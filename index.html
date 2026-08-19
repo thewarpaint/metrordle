@@ -8,7 +8,7 @@
     <meta name="title" content="Metrordle 🚇">
     <meta name="description" content="Ordena 5 estaciones de una línea del Metro de la Ciudad de México en el orden correcto. Tienes 5 intentos.">
 
-    <title>Metrordle 🚇 - eduardogarcia.xyz</title>
+    <title>Metrordle 🚇</title>
 
     <style>
       @font-face {
@@ -629,7 +629,7 @@
 
         var TOTAL_ATTEMPTS = 5;
         var STATIONS_PER_PUZZLE = 5;
-        var SHARE_URL = 'https://eduardogarcia.xyz/metrordle';
+        var SHARE_URL = 'https://metrordle.com/';
 
         var LINES = [
           { id: '1', name: 'Línea 1', color: '#ec2a7b', textColor: '#ffffff', stations: ['Observatorio', 'Tacubaya', 'Juanacatlán', 'Chapultepec', 'Sevilla', 'Insurgentes', 'Cuauhtémoc', 'Balderas', 'Salto del Agua', 'Isabel la Católica', 'Pino Suárez', 'Merced', 'Candelaria', 'San Lázaro', 'Moctezuma', 'Balbuena', 'Boulevard Puerto Aéreo', 'Gómez Farías', 'Zaragoza', 'Pantitlán'] },
@@ -1160,7 +1160,34 @@
           startNewGame();
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        function applyStreakCarryOver() {
+          var url = new URL(window.location.href);
+          var carried = url.searchParams.get('carryStreakOver');
+          if (carried === null) return false;
+
+          var count = parseInt(carried, 10);
+          if (isFinite(count) && count >= 0) {
+            try {
+              var existing = loadStreak();
+              // Never regress a streak the player already built natively here.
+              if (count > existing.count) {
+                var yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                saveStreak({ count: count, lastResultDate: getDateKey(yesterday) });
+              }
+            } catch (e) {
+              // ignore, same defensive posture as the rest of the streak code
+            }
+          }
+
+          url.searchParams.delete('carryStreakOver');
+          window.location.replace(url.toString());
+          return true;
+        }
+
+        if (!applyStreakCarryOver()) {
+          document.addEventListener('DOMContentLoaded', init);
+        }
       })();
     </script>
   </body>

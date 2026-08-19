@@ -126,6 +126,22 @@
         color: var(--ink-soft);
       }
 
+      .date-debug {
+        align-items: center;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-bottom: 0.9rem;
+      }
+
+      .date-debug__label {
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+        min-width: 6.4rem;
+        text-align: center;
+      }
+
       .sign {
         background: var(--paper-raised);
         border: 3px solid var(--rule-strong);
@@ -591,6 +607,12 @@
         <span class="brand__text">Metrordle · Minijuego del Metro CDMX</span>
       </div>
 
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
       <div class="sign">
         <div class="sign__head">
           <h1 id="game-title">Metrordle</h1>
@@ -909,7 +931,21 @@
         // Debug/QA hook: ?date=YYYY-MM-DD overrides "today" so any day's
         // puzzle can be previewed without waiting for it. Falls back to the
         // real date for anything missing or malformed.
+        // debugDate is set by the ?debug=true date-nav buttons and takes
+        // priority over the ?date= param, so the two can be combined
+        // (?debug=true&date=... to start browsing from a specific day).
+        var debugDate = null;
+
+        function isDebugMode() {
+          try {
+            return new URL(window.location.href).searchParams.get('debug') === 'true';
+          } catch (e) {
+            return false;
+          }
+        }
+
         function getEffectiveToday() {
+          if (debugDate) return debugDate;
           try {
             var override = new URL(window.location.href).searchParams.get('date');
             if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) {
@@ -920,6 +956,21 @@
             }
           } catch (e) {}
           return new Date();
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(getEffectiveToday().getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = getDateKey(getEffectiveToday());
+          var isRealToday = dateKey === getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
         }
 
         function getGameNumberForDateKey(dateKey) {
@@ -1374,12 +1425,23 @@
             checkBtn: $('check-btn'),
             reveal: $('reveal'),
             shareBtn: $('share-btn'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
           };
 
           els.checkBtn.addEventListener('click', checkOrder);
           els.shareBtn.addEventListener('click', shareResult);
 
+          if (isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
           startNewGame();
+          renderDateDebugLabel();
         }
 
         function applyStreakCarryOver() {

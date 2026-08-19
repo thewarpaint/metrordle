@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v1';
+var CACHE_NAME = 'metrordle-v2';
 
 var PRECACHE_URLS = [
   '/',
@@ -14,6 +14,7 @@ var PRECACHE_URLS = [
   '/icon-maskable-512.png',
   '/apple-touch-icon.png',
   '/favicon.png',
+  '/station-icons.svg',
 ];
 
 self.addEventListener('install', function (event) {

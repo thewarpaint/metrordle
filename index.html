@@ -126,6 +126,22 @@
         color: var(--ink-soft);
       }
 
+      .date-debug {
+        align-items: center;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-bottom: 0.9rem;
+      }
+
+      .date-debug__label {
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+        min-width: 6.4rem;
+        text-align: center;
+      }
+
       .sign {
         background: var(--paper-raised);
         border: 3px solid var(--rule-strong);
@@ -339,6 +355,19 @@
         height: 1.6rem;
         justify-content: center;
         width: 1.6rem;
+      }
+
+      .platform__icon {
+        color: var(--line);
+        flex: 0 0 auto;
+        height: 1.6rem;
+        width: 1.6rem;
+      }
+
+      .platform__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
       }
 
       .platform__name {
@@ -578,6 +607,12 @@
         <span class="brand__text">Metrordle · Minijuego del Metro CDMX</span>
       </div>
 
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
       <div class="sign">
         <div class="sign__head">
           <h1 id="game-title">Metrordle</h1>
@@ -654,6 +689,175 @@
           { id: 'B', name: 'Línea B', color: '#6b8570', textColor: '#ffffff', stations: ['Buenavista', 'Guerrero', 'Garibaldi/Lagunilla', 'Lagunilla', 'Tepito', 'Morelos', 'San Lázaro', 'Ricardo Flores Magón', 'Romero Rubio', 'Oceanía', 'Deportivo Oceanía', 'Bosque de Aragón', 'Villa de Aragón', 'Nezahualcóyotl', 'Impulsora', 'Río de los Remedios', 'Múzquiz', 'Ecatepec', 'Olímpica', 'Plaza Aragón', 'Ciudad Azteca'] },
         ];
 
+        // Station name -> pictogram slug, resolved against the symbols in
+        // station-icons.svg. Stations without an entry (or whose slug has no
+        // matching <symbol>) simply render without an icon - see
+        // renderPlatform().
+        var STATION_ICON_SLUGS = {
+          'Observatorio': 'observatorio',
+          'Tacubaya': 'tacubaya',
+          'Juanacatlán': 'juanacatlan',
+          'Chapultepec': 'chapultepec',
+          'Sevilla': 'sevilla',
+          'Insurgentes': 'insurgentes',
+          'Cuauhtémoc': 'cuauhtemoc',
+          'Balderas': 'balderas',
+          'Salto del Agua': 'salto-del-agua',
+          'Isabel la Católica': 'isabel-la-catolica',
+          'Pino Suárez': 'pino-suarez',
+          'Merced': 'merced',
+          'Candelaria': 'candelaria',
+          'San Lázaro': 'san-lazaro',
+          'Moctezuma': 'moctezuma',
+          'Balbuena': 'balbuena',
+          'Boulevard Puerto Aéreo': 'boulevard-puerto-aereo',
+          'Gómez Farías': 'gomez-farias',
+          'Zaragoza': 'zaragoza',
+          'Pantitlán': 'pantitlan',
+          'Cuatro Caminos': 'cuatro-caminos',
+          'Panteones': 'panteones',
+          'Tacuba': 'tacuba',
+          'Cuitláhuac': 'cuitlahuac',
+          'Popotla': 'popotla',
+          'Colegio Militar': 'colegio-militar',
+          'Normal': 'normal',
+          'San Cosme': 'san-cosme',
+          'Revolución': 'revolucion',
+          'Hidalgo': 'hidalgo',
+          'Bellas Artes': 'bellas-artes',
+          'Allende': 'allende',
+          'Zócalo': 'zocalo',
+          'San Antonio Abad': 'san-antonio-abad',
+          'Chabacano': 'chabacano',
+          'Viaducto': 'viaducto',
+          'Xola': 'xola',
+          'Villa de Cortés': 'villa-de-cortes',
+          'Nativitas': 'nativitas',
+          'Portales': 'portales',
+          'Ermita': 'ermita',
+          'General Anaya': 'general-anaya',
+          'Tasqueña': 'tasquena',
+          'Indios Verdes': 'indios-verdes',
+          'Deportivo 18 de Marzo': 'deportivo-18-de-marzo',
+          'Potrero': 'potrero',
+          'La Raza': 'la-raza',
+          'Tlatelolco': 'tlatelolco',
+          'Guerrero': 'guerrero',
+          'Juárez': 'juarez',
+          'Niños Héroes': 'ninos-heroes',
+          'Hospital General': 'hospital-general',
+          'Centro Médico': 'centro-medico',
+          'Etiopía': 'etiopia',
+          'Eugenia': 'eugenia',
+          'División del Norte': 'division-del-norte',
+          'Zapata': 'zapata',
+          'Coyoacán': 'coyoacan',
+          'Viveros': 'viveros',
+          'Miguel Ángel de Quevedo': 'miguel-angel-de-quevedo',
+          'Copilco': 'coplico',
+          'Universidad': 'universidad',
+          'Martín Carrera': 'martin-carrera',
+          'Talismán': 'talisman',
+          'Bondojito': 'bondojito',
+          'Consulado': 'consulado',
+          'Canal del Norte': 'canal-del-norte',
+          'Morelos': 'morelos',
+          'Fray Servando': 'fray-servando',
+          'Jamaica': 'jamaica',
+          'Santa Anita': 'santa-anita',
+          'Politécnico': 'politecnico',
+          'Instituto del Petróleo': 'instituto-del-petroleo',
+          'Autobuses del Norte': 'autobuses-del-norte',
+          'Misterios': 'misterios',
+          'Valle Gómez': 'valle-gomez',
+          'Eduardo Molina': 'eduardo-molina',
+          'Aragón': 'aragon',
+          'Oceanía': 'oceania',
+          'Terminal Aérea': 'terminal-aerea',
+          'Hangares': 'hangares',
+          'El Rosario': 'el-rosario',
+          'Tezozómoc': 'tezozomoc',
+          'UAM Azcapotzalco': 'uam',
+          'Ferrería': 'ferreria',
+          'Norte 45': 'norte-45',
+          'Vallejo': 'vallejo',
+          'Lindavista': 'lindavista',
+          'La Villa / Basílica': 'basilica',
+          'Aquiles Serdán': 'aquiles-serdan',
+          'Camarones': 'camarones',
+          'Refinería': 'refineria',
+          'San Joaquín': 'san-joaquin',
+          'Polanco': 'polanco',
+          'Auditorio': 'auditorio',
+          'Constituyentes': 'constituyentes',
+          'San Pedro de los Pinos': 'san-pedro-de-los-pinos',
+          'San Antonio': 'san-antonio',
+          'Mixcoac': 'mixcoac',
+          'Barranca del Muerto': 'barranca-del-muerto',
+          'Garibaldi/Lagunilla': 'garibaldi',
+          'San Juan de Letrán': 'san-juan-de-letran',
+          'Doctores': 'doctores',
+          'Obrera': 'obrera',
+          'La Viga': 'la-viga',
+          'Coyuya': 'coyuya',
+          'Iztacalco': 'iztacalco',
+          'Apatlaco': 'apatlaco',
+          'Aculco': 'aculco',
+          'Escuadrón 201': 'escuadron-201',
+          'Atlalilco': 'atlalilco',
+          'Iztapalapa': 'iztapalapa',
+          'Cerro de la Estrella': 'cerro-de-la-estrella',
+          'UAM-I': 'uam',
+          'Constitución de 1917': 'constitucion-de-1917',
+          'Patriotismo': 'patriotismo',
+          'Chilpancingo': 'chilpancingo',
+          'Lázaro Cárdenas': 'lazaro-cardenas',
+          'Mixiuhca': 'mixiuhca',
+          'Velódromo': 'velodromo',
+          'Ciudad Deportiva': 'ciudad-deportiva',
+          'Puebla': 'puebla',
+          'Agrícola Oriental': 'agricola-oriental',
+          'Canal de San Juan': 'canal-de-san-juan',
+          'Tepalcates': 'tepalcates',
+          'Guelatao': 'guelatao',
+          'Peñón Viejo': 'penon-viejo',
+          'Acatitla': 'acatitla',
+          'Santa Marta': 'santa-marta',
+          'Los Reyes': 'los-reyes',
+          'La Paz': 'la-paz',
+          'Insurgentes Sur': 'insurgentes-sur',
+          'Hospital 20 de Noviembre': 'hospital-20-de-noviembre',
+          'Parque de los Venados': 'parque-de-los-venados',
+          'Eje Central': 'eje-central',
+          'Mexicaltzingo': 'mexicaltzingo',
+          'Culhuacán': 'culhuacan',
+          'San Andrés Tomatlán': 'san-andres-tomatlan',
+          'Lomas Estrella': 'lomas-estrella',
+          'Calle 11': 'calle-11',
+          'Periférico Oriente': 'periferico-oriente',
+          'Tezonco': 'tezonco',
+          'Olivos': 'olivos',
+          'Nopalera': 'nopalera',
+          'Tlaltenco': 'tlaltenco',
+          'Tláhuac': 'tlahuac',
+          'Buenavista': 'buenavista',
+          'Lagunilla': 'lagunilla',
+          'Tepito': 'tepito',
+          'Ricardo Flores Magón': 'ricardo-flores-magon',
+          'Romero Rubio': 'romero-rubio',
+          'Deportivo Oceanía': 'deportivo-oceania',
+          'Bosque de Aragón': 'bosque-de-aragon',
+          'Villa de Aragón': 'villa-de-aragon',
+          'Nezahualcóyotl': 'nezahualcoyotl',
+          'Impulsora': 'impulsora',
+          'Río de los Remedios': 'rio-de-los-remedios',
+          'Múzquiz': 'muzquiz',
+          'Ecatepec': 'ecatepec',
+          'Olímpica': 'olimpica',
+          'Plaza Aragón': 'plaza-aragon',
+          'Ciudad Azteca': 'ciudad-azteca',
+        };
+
         var state = null;
         var els = {};
         var rowRects = {};
@@ -722,6 +926,51 @@
           var d = new Date(dateKey + 'T00:00:00');
           d.setDate(d.getDate() - 1);
           return getDateKey(d);
+        }
+
+        // Debug/QA hook: ?date=YYYY-MM-DD overrides "today" so any day's
+        // puzzle can be previewed without waiting for it. Falls back to the
+        // real date for anything missing or malformed.
+        // debugDate is set by the ?debug=true date-nav buttons and takes
+        // priority over the ?date= param, so the two can be combined
+        // (?debug=true&date=... to start browsing from a specific day).
+        var debugDate = null;
+
+        function isDebugMode() {
+          try {
+            return new URL(window.location.href).searchParams.get('debug') === 'true';
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function getEffectiveToday() {
+          if (debugDate) return debugDate;
+          try {
+            var override = new URL(window.location.href).searchParams.get('date');
+            if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) {
+              var parsed = new Date(override + 'T00:00:00');
+              if (!isNaN(parsed.getTime()) && getDateKey(parsed) === override) {
+                return parsed;
+              }
+            }
+          } catch (e) {}
+          return new Date();
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(getEffectiveToday().getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = getDateKey(getEffectiveToday());
+          var isRealToday = dateKey === getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
         }
 
         function getGameNumberForDateKey(dateKey) {
@@ -815,7 +1064,7 @@
         }
 
         function startNewGame() {
-          var dateKey = getDateKey(new Date());
+          var dateKey = getDateKey(getEffectiveToday());
           var gameNumber = getGameNumberForDateKey(dateKey);
           var puzzle = getPuzzleForDateKey(dateKey);
           var saved = loadSavedState(dateKey);
@@ -1012,6 +1261,22 @@
             nameEl.textContent = name;
 
             li.appendChild(rank);
+
+            var iconSlug = STATION_ICON_SLUGS[name];
+            if (iconSlug) {
+              var iconWrap = document.createElement('span');
+              iconWrap.className = 'platform__icon';
+              var svgNS = 'http://www.w3.org/2000/svg';
+              var svg = document.createElementNS(svgNS, 'svg');
+              svg.setAttribute('aria-hidden', 'true');
+              var use = document.createElementNS(svgNS, 'use');
+              use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'station-icons.svg#' + iconSlug);
+              use.setAttribute('href', 'station-icons.svg#' + iconSlug);
+              svg.appendChild(use);
+              iconWrap.appendChild(svg);
+              li.appendChild(iconWrap);
+            }
+
             li.appendChild(nameEl);
 
             if (state.gameOver) {
@@ -1160,12 +1425,23 @@
             checkBtn: $('check-btn'),
             reveal: $('reveal'),
             shareBtn: $('share-btn'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
           };
 
           els.checkBtn.addEventListener('click', checkOrder);
           els.shareBtn.addEventListener('click', shareResult);
 
+          if (isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
           startNewGame();
+          renderDateDebugLabel();
         }
 
         function applyStreakCarryOver() {

@@ -906,6 +906,22 @@
           return getDateKey(d);
         }
 
+        // Debug/QA hook: ?date=YYYY-MM-DD overrides "today" so any day's
+        // puzzle can be previewed without waiting for it. Falls back to the
+        // real date for anything missing or malformed.
+        function getEffectiveToday() {
+          try {
+            var override = new URL(window.location.href).searchParams.get('date');
+            if (override && /^\d{4}-\d{2}-\d{2}$/.test(override)) {
+              var parsed = new Date(override + 'T00:00:00');
+              if (!isNaN(parsed.getTime()) && getDateKey(parsed) === override) {
+                return parsed;
+              }
+            }
+          } catch (e) {}
+          return new Date();
+        }
+
         function getGameNumberForDateKey(dateKey) {
           var start = new Date(START_DATE_KEY + 'T00:00:00');
           var target = new Date(dateKey + 'T00:00:00');
@@ -997,7 +1013,7 @@
         }
 
         function startNewGame() {
-          var dateKey = getDateKey(new Date());
+          var dateKey = getDateKey(getEffectiveToday());
           var gameNumber = getGameNumberForDateKey(dateKey);
           var puzzle = getPuzzleForDateKey(dateKey);
           var saved = loadSavedState(dateKey);

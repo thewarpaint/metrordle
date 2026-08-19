@@ -7,8 +7,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="title" content="Metrordle 🚇">
     <meta name="description" content="Ordena 5 estaciones de una línea del Metro de la Ciudad de México en el orden correcto. Tienes 5 intentos.">
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle">
 
     <title>Metrordle 🚇</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <style>
       @font-face {
@@ -1189,6 +1197,21 @@
           document.addEventListener('DOMContentLoaded', init);
         }
       })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+
+        var refreshed = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshed) return;
+          refreshed = true;
+          window.location.reload();
+        });
+      }
     </script>
   </body>
 </html>

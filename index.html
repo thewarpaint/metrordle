@@ -341,6 +341,19 @@
         width: 1.6rem;
       }
 
+      .platform__icon {
+        color: var(--line);
+        flex: 0 0 auto;
+        height: 1.6rem;
+        width: 1.6rem;
+      }
+
+      .platform__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
       .platform__name {
         flex: 1 1 auto;
         font-weight: 700;
@@ -653,6 +666,175 @@
           { id: '12', name: 'Línea 12', color: '#a67c00', textColor: '#ffffff', stations: ['Mixcoac', 'Insurgentes Sur', 'Hospital 20 de Noviembre', 'Zapata', 'Parque de los Venados', 'Eje Central', 'Ermita', 'Mexicaltzingo', 'Atlalilco', 'Culhuacán', 'San Andrés Tomatlán', 'Lomas Estrella', 'Calle 11', 'Periférico Oriente', 'Tezonco', 'Olivos', 'Nopalera', 'Zapotitlán', 'Tlaltenco', 'Tláhuac'] },
           { id: 'B', name: 'Línea B', color: '#6b8570', textColor: '#ffffff', stations: ['Buenavista', 'Guerrero', 'Garibaldi/Lagunilla', 'Lagunilla', 'Tepito', 'Morelos', 'San Lázaro', 'Ricardo Flores Magón', 'Romero Rubio', 'Oceanía', 'Deportivo Oceanía', 'Bosque de Aragón', 'Villa de Aragón', 'Nezahualcóyotl', 'Impulsora', 'Río de los Remedios', 'Múzquiz', 'Ecatepec', 'Olímpica', 'Plaza Aragón', 'Ciudad Azteca'] },
         ];
+
+        // Station name -> pictogram slug, resolved against the symbols in
+        // station-icons.svg. Stations without an entry (or whose slug has no
+        // matching <symbol>) simply render without an icon - see
+        // renderPlatform().
+        var STATION_ICON_SLUGS = {
+          'Observatorio': 'observatorio',
+          'Tacubaya': 'tacubaya',
+          'Juanacatlán': 'juanacatlan',
+          'Chapultepec': 'chapultepec',
+          'Sevilla': 'sevilla',
+          'Insurgentes': 'insurgentes',
+          'Cuauhtémoc': 'cuauhtemoc',
+          'Balderas': 'balderas',
+          'Salto del Agua': 'salto-del-agua',
+          'Isabel la Católica': 'isabel-la-catolica',
+          'Pino Suárez': 'pino-suarez',
+          'Merced': 'merced',
+          'Candelaria': 'candelaria',
+          'San Lázaro': 'san-lazaro',
+          'Moctezuma': 'moctezuma',
+          'Balbuena': 'balbuena',
+          'Boulevard Puerto Aéreo': 'boulevard-puerto-aereo',
+          'Gómez Farías': 'gomez-farias',
+          'Zaragoza': 'zaragoza',
+          'Pantitlán': 'pantitlan',
+          'Cuatro Caminos': 'cuatro-caminos',
+          'Panteones': 'panteones',
+          'Tacuba': 'tacuba',
+          'Cuitláhuac': 'cuitlahuac',
+          'Popotla': 'popotla',
+          'Colegio Militar': 'colegio-militar',
+          'Normal': 'normal',
+          'San Cosme': 'san-cosme',
+          'Revolución': 'revolucion',
+          'Hidalgo': 'hidalgo',
+          'Bellas Artes': 'bellas-artes',
+          'Allende': 'allende',
+          'Zócalo': 'zocalo',
+          'San Antonio Abad': 'san-antonio-abad',
+          'Chabacano': 'chabacano',
+          'Viaducto': 'viaducto',
+          'Xola': 'xola',
+          'Villa de Cortés': 'villa-de-cortes',
+          'Nativitas': 'nativitas',
+          'Portales': 'portales',
+          'Ermita': 'ermita',
+          'General Anaya': 'general-anaya',
+          'Tasqueña': 'tasquena',
+          'Indios Verdes': 'indios-verdes',
+          'Deportivo 18 de Marzo': 'deportivo-18-de-marzo',
+          'Potrero': 'potrero',
+          'La Raza': 'la-raza',
+          'Tlatelolco': 'tlatelolco',
+          'Guerrero': 'guerrero',
+          'Juárez': 'juarez',
+          'Niños Héroes': 'ninos-heroes',
+          'Hospital General': 'hospital-general',
+          'Centro Médico': 'centro-medico',
+          'Etiopía': 'etiopia',
+          'Eugenia': 'eugenia',
+          'División del Norte': 'division-del-norte',
+          'Zapata': 'zapata',
+          'Coyoacán': 'coyoacan',
+          'Viveros': 'viveros',
+          'Miguel Ángel de Quevedo': 'miguel-angel-de-quevedo',
+          'Copilco': 'coplico',
+          'Universidad': 'universidad',
+          'Martín Carrera': 'martin-carrera',
+          'Talismán': 'talisman',
+          'Bondojito': 'bondojito',
+          'Consulado': 'consulado',
+          'Canal del Norte': 'canal-del-norte',
+          'Morelos': 'morelos',
+          'Fray Servando': 'fray-servando',
+          'Jamaica': 'jamaica',
+          'Santa Anita': 'santa-anita',
+          'Politécnico': 'politecnico',
+          'Instituto del Petróleo': 'instituto-del-petroleo',
+          'Autobuses del Norte': 'autobuses-del-norte',
+          'Misterios': 'misterios',
+          'Valle Gómez': 'valle-gomez',
+          'Eduardo Molina': 'eduardo-molina',
+          'Aragón': 'aragon',
+          'Oceanía': 'oceania',
+          'Terminal Aérea': 'terminal-aerea',
+          'Hangares': 'hangares',
+          'El Rosario': 'el-rosario',
+          'Tezozómoc': 'tezozomoc',
+          'UAM Azcapotzalco': 'uam',
+          'Ferrería': 'ferreria',
+          'Norte 45': 'norte-45',
+          'Vallejo': 'vallejo',
+          'Lindavista': 'lindavista',
+          'La Villa / Basílica': 'basilica',
+          'Aquiles Serdán': 'aquiles-serdan',
+          'Camarones': 'camarones',
+          'Refinería': 'refineria',
+          'San Joaquín': 'san-joaquin',
+          'Polanco': 'polanco',
+          'Auditorio': 'auditorio',
+          'Constituyentes': 'constituyentes',
+          'San Pedro de los Pinos': 'san-pedro-de-los-pinos',
+          'San Antonio': 'san-antonio',
+          'Mixcoac': 'mixcoac',
+          'Barranca del Muerto': 'barranca-del-muerto',
+          'Garibaldi/Lagunilla': 'garibaldi',
+          'San Juan de Letrán': 'san-juan-de-letran',
+          'Doctores': 'doctores',
+          'Obrera': 'obrera',
+          'La Viga': 'la-viga',
+          'Coyuya': 'coyuya',
+          'Iztacalco': 'iztacalco',
+          'Apatlaco': 'apatlaco',
+          'Aculco': 'aculco',
+          'Escuadrón 201': 'escuadron-201',
+          'Atlalilco': 'atlalilco',
+          'Iztapalapa': 'iztapalapa',
+          'Cerro de la Estrella': 'cerro-de-la-estrella',
+          'UAM-I': 'uam',
+          'Constitución de 1917': 'constitucion-de-1917',
+          'Patriotismo': 'patriotismo',
+          'Chilpancingo': 'chilpancingo',
+          'Lázaro Cárdenas': 'lazaro-cardenas',
+          'Mixiuhca': 'mixiuhca',
+          'Velódromo': 'velodromo',
+          'Ciudad Deportiva': 'ciudad-deportiva',
+          'Puebla': 'puebla',
+          'Agrícola Oriental': 'agricola-oriental',
+          'Canal de San Juan': 'canal-de-san-juan',
+          'Tepalcates': 'tepalcates',
+          'Guelatao': 'guelatao',
+          'Peñón Viejo': 'penon-viejo',
+          'Acatitla': 'acatitla',
+          'Santa Marta': 'santa-marta',
+          'Los Reyes': 'los-reyes',
+          'La Paz': 'la-paz',
+          'Insurgentes Sur': 'insurgentes-sur',
+          'Hospital 20 de Noviembre': 'hospital-20-de-noviembre',
+          'Parque de los Venados': 'parque-de-los-venados',
+          'Eje Central': 'eje-central',
+          'Mexicaltzingo': 'mexicaltzingo',
+          'Culhuacán': 'culhuacan',
+          'San Andrés Tomatlán': 'san-andres-tomatlan',
+          'Lomas Estrella': 'lomas-estrella',
+          'Calle 11': 'calle-11',
+          'Periférico Oriente': 'periferico-oriente',
+          'Tezonco': 'tezonco',
+          'Olivos': 'olivos',
+          'Nopalera': 'nopalera',
+          'Tlaltenco': 'tlaltenco',
+          'Tláhuac': 'tlahuac',
+          'Buenavista': 'buenavista',
+          'Lagunilla': 'lagunilla',
+          'Tepito': 'tepito',
+          'Ricardo Flores Magón': 'ricardo-flores-magon',
+          'Romero Rubio': 'romero-rubio',
+          'Deportivo Oceanía': 'deportivo-oceania',
+          'Bosque de Aragón': 'bosque-de-aragon',
+          'Villa de Aragón': 'villa-de-aragon',
+          'Nezahualcóyotl': 'nezahualcoyotl',
+          'Impulsora': 'impulsora',
+          'Río de los Remedios': 'rio-de-los-remedios',
+          'Múzquiz': 'muzquiz',
+          'Ecatepec': 'ecatepec',
+          'Olímpica': 'olimpica',
+          'Plaza Aragón': 'plaza-aragon',
+          'Ciudad Azteca': 'ciudad-azteca',
+        };
 
         var state = null;
         var els = {};
@@ -1012,6 +1194,22 @@
             nameEl.textContent = name;
 
             li.appendChild(rank);
+
+            var iconSlug = STATION_ICON_SLUGS[name];
+            if (iconSlug) {
+              var iconWrap = document.createElement('span');
+              iconWrap.className = 'platform__icon';
+              var svgNS = 'http://www.w3.org/2000/svg';
+              var svg = document.createElementNS(svgNS, 'svg');
+              svg.setAttribute('aria-hidden', 'true');
+              var use = document.createElementNS(svgNS, 'use');
+              use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'station-icons.svg#' + iconSlug);
+              use.setAttribute('href', 'station-icons.svg#' + iconSlug);
+              svg.appendChild(use);
+              iconWrap.appendChild(svg);
+              li.appendChild(iconWrap);
+            }
+
             li.appendChild(nameEl);
 
             if (state.gameOver) {

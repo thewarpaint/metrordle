@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v2';
+var CACHE_NAME = 'metrordle-v5';
 
 var PRECACHE_URLS = [
   '/',

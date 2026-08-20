@@ -18,10 +18,10 @@ These icons are used here for non-commercial, fan-made purposes to identify
 real Mexico City Metro stations by name, matching their original purpose on
 the transit system itself.
 
-The one exception is `azcapotzalco` (used for UAM Azcapotzalco, since the
-`icons-metro-df` font has no separate icon for that station): traced from a
-station image in
+The exceptions are `azcapotzalco` (UAM Azcapotzalco) and `zapotitlan`
+(Zapotitlán), since the `icons-metro-df` font has no icon for either
+station: both are traced from station images in
 [ronihdzz/metro-maps-cdmx](https://github.com/ronihdzz/metro-maps-cdmx)
 (GPL-3.0), whose README states its station images are themselves sourced
 from the official Mexico City Metro website - so the same STC/Lance Wyman
-attribution and rights note above applies to this icon as well.
+attribution and rights note above applies to these icons as well.

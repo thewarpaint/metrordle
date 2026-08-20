@@ -589,6 +589,66 @@
         text-align: center;
       }
 
+      .debug-stations {
+        margin-top: 1.4rem;
+      }
+
+      .debug-stations[hidden] {
+        display: none;
+      }
+
+      .debug-stations__title {
+        color: var(--ink-soft);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin: 0 0 0.6rem;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .debug-stations__grid {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fill, minmax(5.4rem, 1fr));
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .debug-station {
+        align-items: center;
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.5rem 0.3rem;
+        text-align: center;
+      }
+
+      .debug-station--missing {
+        border-color: var(--danger);
+      }
+
+      .debug-station__icon {
+        color: var(--ink-soft);
+        height: 1.6rem;
+        width: 1.6rem;
+      }
+
+      .debug-station__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .debug-station__name {
+        font-size: 0.64rem;
+        line-height: 1.15;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         * {
           transition-duration: 0.001ms !important;
@@ -668,6 +728,11 @@
       </div>
 
       <p class="credit">Basado en el trazado real de las líneas del Metro de la Ciudad de México. Un juego no oficial, hecho por diversión.</p>
+
+      <div class="debug-stations" id="debug-stations" hidden>
+        <h2 class="debug-stations__title" id="debug-stations-title"></h2>
+        <ul class="debug-stations__grid" id="debug-stations-grid"></ul>
+      </div>
     </div>
 
     <script>
@@ -975,6 +1040,62 @@
           var dateKey = getDateKey(getEffectiveToday());
           var isRealToday = dateKey === getDateKey(new Date());
           els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function renderDebugStationList() {
+          if (!els.debugStationsGrid) return;
+
+          var seen = {};
+          var names = [];
+          LINES.forEach(function (line) {
+            line.stations.forEach(function (name) {
+              if (!seen[name]) {
+                seen[name] = true;
+                names.push(name);
+              }
+            });
+          });
+          names.sort(function (a, b) { return a.localeCompare(b, 'es'); });
+
+          els.debugStationsGrid.innerHTML = '';
+          var missingCount = 0;
+
+          names.forEach(function (name) {
+            var slug = STATION_ICON_SLUGS[name];
+            if (!slug) missingCount++;
+
+            var li = document.createElement('li');
+            li.className = 'debug-station' + (slug ? '' : ' debug-station--missing');
+
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'debug-station__icon';
+            if (slug) {
+              var svgNS = 'http://www.w3.org/2000/svg';
+              var svg = document.createElementNS(svgNS, 'svg');
+              svg.setAttribute('aria-hidden', 'true');
+              var use = document.createElementNS(svgNS, 'use');
+              use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'station-icons.svg#' + slug);
+              use.setAttribute('href', 'station-icons.svg#' + slug);
+              svg.appendChild(use);
+              iconWrap.appendChild(svg);
+            } else {
+              iconWrap.setAttribute('aria-hidden', 'true');
+              iconWrap.textContent = '—';
+            }
+
+            var nameEl = document.createElement('span');
+            nameEl.className = 'debug-station__name';
+            nameEl.textContent = name;
+
+            li.appendChild(iconWrap);
+            li.appendChild(nameEl);
+            els.debugStationsGrid.appendChild(li);
+          });
+
+          if (els.debugStationsTitle) {
+            els.debugStationsTitle.textContent = 'Todas las estaciones (debug) — ' +
+              names.length + ' totales, ' + missingCount + ' sin ícono';
+          }
         }
 
         function getGameNumberForDateKey(dateKey) {
@@ -1433,6 +1554,9 @@
             datePrevBtn: $('date-prev'),
             dateNextBtn: $('date-next'),
             dateDebugLabel: $('date-debug-label'),
+            debugStations: $('debug-stations'),
+            debugStationsTitle: $('debug-stations-title'),
+            debugStationsGrid: $('debug-stations-grid'),
           };
 
           els.checkBtn.addEventListener('click', checkOrder);
@@ -1442,6 +1566,9 @@
             els.dateDebug.hidden = false;
             els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+
+            els.debugStations.hidden = false;
+            renderDebugStationList();
           }
 
           startNewGame();

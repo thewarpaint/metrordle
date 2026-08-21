@@ -453,10 +453,31 @@
 
       .platform-icon-col {
         align-items: center;
+        cursor: grab;
         display: flex;
         flex: 0 0 auto;
         flex-direction: column;
         gap: 0.45rem;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+        will-change: transform;
+      }
+
+      .platform-icon-col.pressing {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
+
+      .platform-icon-col.dragging {
+        cursor: grabbing;
+        position: relative;
+        transition: none;
+        z-index: 20;
+      }
+
+      .platform-icon-col.dragging .platform-icon-col__icon {
+        filter: drop-shadow(0 8px 12px var(--shadow));
       }
 
       .platform-icon-col__icon {
@@ -487,12 +508,29 @@
         background: var(--paper-raised);
         border: 2px solid var(--rule);
         border-radius: 0.5rem;
+        cursor: grab;
         display: flex;
         gap: 0.6rem;
         margin-bottom: 0.4rem;
         padding: 0.4rem 0.55rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
         will-change: transform;
+      }
+
+      .platform__row.pressing {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
+
+      .platform__row.dragging {
+        box-shadow: 0 8px 20px var(--shadow);
+        cursor: grabbing;
+        position: relative;
+        transition: none;
+        z-index: 20;
       }
 
       .platform__row--correct {
@@ -1116,6 +1154,12 @@
         // skip the modal entirely in ?debug=true - see startNewGame).
         var lastPickedMode = 'normal';
 
+        // Drag-and-drop reordering. Set only while a press/drag is being
+        // tracked (see onRowPointerDown); null the rest of the time.
+        var PRESS_HOLD_MS = 200;
+        var PRESS_MOVE_TOLERANCE = 8;
+        var dragState = null;
+
         function $(id) {
           return document.getElementById(id);
         }
@@ -1460,6 +1504,263 @@
           render(true);
         }
 
+        // --- Drag-and-drop reordering ---------------------------------
+        //
+        // A second way to reorder, alongside the up/down (or left/right)
+        // buttons, built for touch: pressing a row/column starts a short
+        // hold timer instead of immediately dragging. If the pointer moves
+        // more than a few pixels before the timer fires, it's treated as an
+        // ordinary scroll/tap and nothing is blocked - the browser handles
+        // it natively, since we never called preventDefault. Only once the
+        // hold completes does the row "arm" (lift, follow the pointer);
+        // because a still hold never starts a scroll gesture in the first
+        // place, there's nothing to fight the browser for once armed. This
+        // is the same mechanism behind reorderable lists in iOS/Android.
+
+        function onRowPointerDown(li, name, event) {
+          if (state.gameOver) return;
+          if (dragState) return; // a press/drag is already being tracked
+          if (event.target.closest('.chev')) return; // let button taps stay instant
+          if (event.isPrimary === false) return;
+
+          dragState = {
+            pointerId: event.pointerId,
+            el: li,
+            name: name,
+            armed: false,
+            timer: null,
+            startClientX: event.clientX,
+            startClientY: event.clientY,
+            lastClientX: event.clientX,
+            lastClientY: event.clientY,
+            startLeft: 0,
+            startTop: 0,
+            width: 0,
+            height: 0,
+            offsetX: 0,
+            offsetY: 0,
+            containerRect: null,
+          };
+
+          li.classList.add('pressing');
+
+          dragState.timer = setTimeout(armDrag, PRESS_HOLD_MS);
+        }
+
+        function armDrag() {
+          if (!dragState || dragState.armed) return;
+          dragState.timer = null;
+          dragState.armed = true;
+
+          var el = dragState.el;
+          el.classList.remove('pressing');
+          el.classList.add('dragging');
+
+          var rect = el.getBoundingClientRect();
+          dragState.startLeft = rect.left;
+          dragState.startTop = rect.top;
+          dragState.width = rect.width;
+          dragState.height = rect.height;
+          dragState.offsetX = dragState.lastClientX - rect.left;
+          dragState.offsetY = dragState.lastClientY - rect.top;
+          dragState.containerRect = els.platform.getBoundingClientRect();
+
+          try {
+            el.setPointerCapture(dragState.pointerId);
+          } catch (e) {}
+
+          updateDragPosition();
+        }
+
+        function cancelPress() {
+          if (!dragState) return;
+          if (dragState.timer) clearTimeout(dragState.timer);
+          dragState.el.classList.remove('pressing');
+          dragState = null;
+        }
+
+        function onDocPointerMove(event) {
+          if (!dragState || event.pointerId !== dragState.pointerId) return;
+
+          dragState.lastClientX = event.clientX;
+          dragState.lastClientY = event.clientY;
+
+          if (!dragState.armed) {
+            var dx = event.clientX - dragState.startClientX;
+            var dy = event.clientY - dragState.startClientY;
+            if (Math.sqrt(dx * dx + dy * dy) > PRESS_MOVE_TOLERANCE) {
+              cancelPress();
+            }
+            return;
+          }
+
+          event.preventDefault();
+          updateDragPosition();
+          maybeSwapWithNeighbor();
+        }
+
+        function onDocPointerUp(event) {
+          if (!dragState || event.pointerId !== dragState.pointerId) return;
+          if (dragState.armed) {
+            finishDrag();
+          } else {
+            cancelPress();
+          }
+        }
+
+        function onDocPointerCancel(event) {
+          if (!dragState || event.pointerId !== dragState.pointerId) return;
+          if (dragState.armed) {
+            finishDrag();
+          } else {
+            cancelPress();
+          }
+        }
+
+        function updateDragPosition() {
+          var el = dragState.el;
+          var horizontal = isHorizontalLayout();
+          var scale = ' scale(1.05)';
+
+          if (horizontal) {
+            var minLeft = dragState.containerRect.left;
+            var maxLeft = dragState.containerRect.right - dragState.width;
+            var newLeft = Math.max(minLeft, Math.min(maxLeft, dragState.lastClientX - dragState.offsetX));
+            el.style.transform = 'translateX(' + (newLeft - dragState.startLeft) + 'px)' + scale;
+          } else {
+            var minTop = dragState.containerRect.top;
+            var maxTop = dragState.containerRect.bottom - dragState.height;
+            var newTop = Math.max(minTop, Math.min(maxTop, dragState.lastClientY - dragState.offsetY));
+            el.style.transform = 'translateY(' + (newTop - dragState.startTop) + 'px)' + scale;
+          }
+        }
+
+        function maybeSwapWithNeighbor() {
+          var el = dragState.el;
+          var horizontal = isHorizontalLayout();
+          var elRect = el.getBoundingClientRect();
+          var elCenter = horizontal ? (elRect.left + elRect.right) / 2 : (elRect.top + elRect.bottom) / 2;
+
+          var prev = el.previousElementSibling;
+          if (prev) {
+            var prevRect = prev.getBoundingClientRect();
+            var prevCenter = horizontal ? (prevRect.left + prevRect.right) / 2 : (prevRect.top + prevRect.bottom) / 2;
+            if (elCenter < prevCenter) {
+              swapWithSibling(prev, -1);
+              return;
+            }
+          }
+
+          var next = el.nextElementSibling;
+          if (next) {
+            var nextRect = next.getBoundingClientRect();
+            var nextCenter = horizontal ? (nextRect.left + nextRect.right) / 2 : (nextRect.top + nextRect.bottom) / 2;
+            if (elCenter > nextCenter) {
+              swapWithSibling(next, 1);
+            }
+          }
+        }
+
+        function swapWithSibling(sibEl, direction) {
+          var draggedEl = dragState.el;
+          var index = state.currentOrder.indexOf(dragState.name);
+          var targetIndex = index + direction;
+          if (targetIndex < 0 || targetIndex >= state.currentOrder.length) return;
+
+          var tmp = state.currentOrder[index];
+          state.currentOrder[index] = state.currentOrder[targetIndex];
+          state.currentOrder[targetIndex] = tmp;
+
+          flipSwap(sibEl, function () {
+            if (direction === 1) {
+              draggedEl.parentNode.insertBefore(sibEl, draggedEl);
+            } else {
+              draggedEl.parentNode.insertBefore(sibEl, draggedEl.nextSibling);
+            }
+          });
+
+          // The dragged element's own untransformed layout position shifted
+          // when its sibling moved around it (DOM/flex order changed) - measure
+          // that new reference position with the transform briefly cleared
+          // (synchronous, so nothing actually paints in between) and
+          // immediately reapply the transform for the current pointer
+          // position, or the element would visually jump on the next move.
+          var savedTransform = draggedEl.style.transform;
+          draggedEl.style.transform = 'none';
+          var rect = draggedEl.getBoundingClientRect();
+          draggedEl.style.transform = savedTransform;
+          dragState.startLeft = rect.left;
+          dragState.startTop = rect.top;
+          updateDragPosition();
+
+          updateRowChrome();
+        }
+
+        // Single-element specialization of the capture/mutate/animate FLIP
+        // pattern captureRects()/flipAnimate() use for the full platform
+        // render - kept separate so a live drag-swap never shares mutable
+        // state (rowRects) with a concurrent full render.
+        function flipSwap(el, mutate) {
+          var horizontal = isHorizontalLayout();
+          var beforeRect = el.getBoundingClientRect();
+          var beforePos = horizontal ? beforeRect.left : beforeRect.top;
+
+          mutate();
+
+          if (prefersReducedMotion()) return;
+          var afterRect = el.getBoundingClientRect();
+          var afterPos = horizontal ? afterRect.left : afterRect.top;
+          var delta = beforePos - afterPos;
+          if (Math.abs(delta) < 1) return;
+          var axis = horizontal ? 'X' : 'Y';
+          el.style.transition = 'none';
+          el.style.transform = 'translate' + axis + '(' + delta + 'px)';
+          requestAnimationFrame(function () {
+            el.style.transition = 'transform 0.22s cubic-bezier(.2,.7,.3,1)';
+            el.style.transform = 'translate' + axis + '(0)';
+          });
+        }
+
+        // Rank badges and button disabled-states/labels depend on index,
+        // which live drag-swaps change without going through render() - keep
+        // them in sync without rebuilding the DOM (that would tear down the
+        // actively-dragged element mid-gesture).
+        function updateRowChrome() {
+          var horizontal = isHorizontalLayout();
+          Array.prototype.forEach.call(els.platform.children, function (row, index) {
+            var rank = row.querySelector('.platform__rank');
+            if (rank) rank.textContent = String(index + 1);
+
+            if (horizontal) {
+              var nav = row.querySelector('.platform-icon-col__nav');
+              if (!nav) return;
+              var leftBtn = nav.firstElementChild;
+              var rightBtn = nav.lastElementChild;
+              leftBtn.disabled = index === 0;
+              leftBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la izquierda');
+              rightBtn.disabled = index === state.currentOrder.length - 1;
+              rightBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la derecha');
+            } else {
+              var buttons = row.querySelector('.platform__buttons');
+              if (!buttons) return;
+              buttons.firstElementChild.disabled = index === 0;
+              buttons.lastElementChild.disabled = index === state.currentOrder.length - 1;
+            }
+          });
+        }
+
+        function finishDrag() {
+          var el = dragState.el;
+          el.classList.remove('dragging');
+          el.style.transform = '';
+          el.style.transition = '';
+          dragState = null;
+          // Rebuild cleanly from state.currentOrder (already kept in sync by
+          // every swap above) - fresh listeners, correct disabled states,
+          // no leftover inline styles.
+          render(false);
+        }
+
         function checkOrder() {
           if (state.gameOver) return;
           var correctCount = 0;
@@ -1614,6 +1915,7 @@
             var li = document.createElement('li');
             li.className = 'platform-icon-col';
             li.setAttribute('data-station', name);
+            li.addEventListener('pointerdown', function (event) { onRowPointerDown(li, name, event); });
 
             var rank = document.createElement('span');
             rank.className = 'platform__rank';
@@ -1642,9 +1944,11 @@
             leftBtn.textContent = '◀';
             leftBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la izquierda');
             leftBtn.disabled = index === 0;
-            leftBtn.addEventListener('click', function (idx) {
-              return function () { moveStation(idx, -1); };
-            }(index));
+            // Looks up the current index by station name rather than
+            // closing over the index captured at render time, since a drag
+            // (see swapWithSibling) can move this row without a full
+            // render() in between, which would leave a captured index stale.
+            leftBtn.addEventListener('click', function () { moveStation(state.currentOrder.indexOf(name), -1); });
 
             var rightBtn = document.createElement('button');
             rightBtn.type = 'button';
@@ -1652,9 +1956,7 @@
             rightBtn.textContent = '▶';
             rightBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la derecha');
             rightBtn.disabled = index === state.currentOrder.length - 1;
-            rightBtn.addEventListener('click', function (idx) {
-              return function () { moveStation(idx, 1); };
-            }(index));
+            rightBtn.addEventListener('click', function () { moveStation(state.currentOrder.indexOf(name), 1); });
 
             nav.appendChild(leftBtn);
             nav.appendChild(rightBtn);
@@ -1671,6 +1973,7 @@
             var li = document.createElement('li');
             li.className = 'platform__row';
             li.setAttribute('data-station', name);
+            li.addEventListener('pointerdown', function (event) { onRowPointerDown(li, name, event); });
 
             if (state.gameOver) {
               var isCorrect = name === state.correctOrder[index];
@@ -1720,9 +2023,11 @@
               upBtn.textContent = '▲';
               upBtn.setAttribute('aria-label', 'Subir ' + name);
               upBtn.disabled = index === 0;
-              upBtn.addEventListener('click', function (idx) {
-                return function () { moveStation(idx, -1); };
-              }(index));
+              // Looks up the current index by station name rather than
+              // closing over the index captured at render time, since a drag
+              // (see swapWithSibling) can move this row without a full
+              // render() in between, which would leave a captured index stale.
+              upBtn.addEventListener('click', function () { moveStation(state.currentOrder.indexOf(name), -1); });
 
               var downBtn = document.createElement('button');
               downBtn.type = 'button';
@@ -1730,9 +2035,7 @@
               downBtn.textContent = '▼';
               downBtn.setAttribute('aria-label', 'Bajar ' + name);
               downBtn.disabled = index === state.currentOrder.length - 1;
-              downBtn.addEventListener('click', function (idx) {
-                return function () { moveStation(idx, 1); };
-              }(index));
+              downBtn.addEventListener('click', function () { moveStation(state.currentOrder.indexOf(name), 1); });
 
               buttons.appendChild(upBtn);
               buttons.appendChild(downBtn);
@@ -1870,6 +2173,14 @@
           els.shareBtn.addEventListener('click', shareResult);
           els.modeNormalBtn.addEventListener('click', function () { resolveModeChoice('normal'); });
           els.modeHardBtn.addEventListener('click', function () { resolveModeChoice('hard'); });
+
+          // Drag-and-drop: pointerdown is attached per-row in
+          // renderPlatformNormal/renderPlatformHard; move/up/cancel are
+          // attached once here since setPointerCapture keeps them routed to
+          // the dragged row regardless of where the pointer physically is.
+          document.addEventListener('pointermove', onDocPointerMove, { passive: false });
+          document.addEventListener('pointerup', onDocPointerUp);
+          document.addEventListener('pointercancel', onDocPointerCancel);
 
           if (isDebugMode()) {
             els.dateDebug.hidden = false;

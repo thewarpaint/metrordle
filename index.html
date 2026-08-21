@@ -146,6 +146,124 @@
         text-align: center;
       }
 
+      .debug-mode-toggle {
+        display: flex;
+        gap: 0.3rem;
+        margin-left: 0.3rem;
+      }
+
+      .debug-mode-toggle__btn {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.35rem;
+        color: var(--ink);
+        cursor: pointer;
+        font-family: 'Overpass', sans-serif;
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 0.3rem 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .debug-mode-toggle__btn:hover {
+        border-color: var(--line);
+      }
+
+      .mode-modal {
+        align-items: center;
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1rem;
+        position: fixed;
+        z-index: 50;
+      }
+
+      .mode-modal[hidden] {
+        display: none;
+      }
+
+      .mode-modal__backdrop {
+        background: rgba(20, 24, 26, 0.55);
+        inset: 0;
+        position: absolute;
+      }
+
+      .mode-modal__card {
+        background: var(--paper-raised);
+        border: 3px solid var(--rule-strong);
+        border-radius: 0.6rem;
+        box-shadow: 0 10px 26px var(--shadow);
+        max-width: 26rem;
+        padding: 1.3rem;
+        position: relative;
+        width: 100%;
+      }
+
+      .mode-modal__card h2 {
+        font-family: 'Overpass', sans-serif;
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin: 0 0 0.4rem;
+      }
+
+      .mode-modal__dek {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+      }
+
+      .mode-modal__options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .mode-option {
+        background: var(--paper);
+        border: 2px solid var(--rule-strong);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Overpass', sans-serif;
+        gap: 0.15rem;
+        padding: 0.9rem 1rem;
+        text-align: left;
+        transition: border-color 0.2s ease, transform 0.05s ease;
+      }
+
+      .mode-option:hover {
+        border-color: var(--line);
+      }
+
+      .mode-option:active {
+        transform: scale(0.98);
+      }
+
+      .mode-option--hard {
+        border-color: var(--danger);
+      }
+
+      .mode-option--hard:hover {
+        border-color: var(--danger);
+      }
+
+      .mode-option__title {
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .mode-option__desc {
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        font-weight: 400;
+      }
+
       .sign {
         background: var(--paper-raised);
         border: 3px solid var(--rule-strong);
@@ -322,6 +440,46 @@
         list-style: none;
         margin: 0;
         padding: 0.8rem 1.1rem 0.1rem;
+      }
+
+      .platform--hard {
+        display: flex;
+        flex-direction: row;
+        gap: 0.3rem;
+        justify-content: space-between;
+        overflow-x: auto;
+        padding-bottom: 0.6rem;
+      }
+
+      .platform-icon-col {
+        align-items: center;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .platform-icon-col__icon {
+        color: var(--line);
+        height: 2.9rem;
+        width: 2.9rem;
+      }
+
+      .platform-icon-col__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .platform-icon-col__nav {
+        display: flex;
+        gap: 0.15rem;
+      }
+
+      .chev.chev--compact {
+        font-size: 0.62rem;
+        height: 1.5rem;
+        width: 1.6rem;
       }
 
       .platform__row {
@@ -660,6 +818,24 @@
   </head>
 
   <body>
+    <div class="mode-modal" id="mode-modal" hidden>
+      <div class="mode-modal__backdrop"></div>
+      <div class="mode-modal__card" role="dialog" aria-modal="true" aria-labelledby="mode-modal-title">
+        <h2 id="mode-modal-title">Elige tu modo</h2>
+        <p class="mode-modal__dek">¿Cómo quieres jugar el Metrordle de hoy?</p>
+        <div class="mode-modal__options">
+          <button type="button" class="mode-option" id="mode-normal-btn">
+            <span class="mode-option__title">Normal</span>
+            <span class="mode-option__desc">Nombre y símbolo de cada estación</span>
+          </button>
+          <button type="button" class="mode-option mode-option--hard" id="mode-hard-btn">
+            <span class="mode-option__title">Difícil</span>
+            <span class="mode-option__desc">Solo símbolos, sin nombres</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="wrap">
       <div class="brand">
         <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -675,6 +851,10 @@
         <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug__label" id="date-debug-label"></span>
         <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+        <span class="debug-mode-toggle">
+          <button type="button" class="debug-mode-toggle__btn" id="debug-mode-normal" aria-label="Ver modo normal">Normal</button>
+          <button type="button" class="debug-mode-toggle__btn" id="debug-mode-hard" aria-label="Ver modo difícil">Difícil</button>
+        </span>
       </div>
 
       <div class="sign">
@@ -931,6 +1111,10 @@
         var state = null;
         var els = {};
         var rowRects = {};
+        var pendingGameSetup = null;
+        // Remembered across mode-modal choices this session (and used to
+        // skip the modal entirely in ?debug=true - see startNewGame).
+        var lastPickedMode = 'normal';
 
         function $(id) {
           return document.getElementById(id);
@@ -1139,6 +1323,7 @@
               history: state.history,
               gameOver: state.gameOver,
               won: state.won,
+              mode: state.mode,
             }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the game
@@ -1194,6 +1379,40 @@
           var gameNumber = getGameNumberForDateKey(dateKey);
           var puzzle = getPuzzleForDateKey(dateKey);
           var saved = loadSavedState(dateKey);
+
+          pendingGameSetup = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            puzzle: puzzle,
+            saved: saved,
+          };
+
+          if (saved) {
+            // Already playing/played today (in whichever mode that was) -
+            // resume as-is, no choice to make.
+            finishStartingGame(saved.mode === 'hard' ? 'hard' : 'normal');
+          } else if (isDebugMode()) {
+            // The date-nav buttons call startNewGame() on every click; showing
+            // the modal for each fake "fresh day" would make date-browsing
+            // unusable, so debug mode skips it and reuses whatever mode was
+            // last picked (via the modal or the debug mode-toggle buttons).
+            finishStartingGame(lastPickedMode);
+          } else {
+            els.modeModal.hidden = false;
+          }
+        }
+
+        function resolveModeChoice(mode) {
+          lastPickedMode = mode;
+          els.modeModal.hidden = true;
+          finishStartingGame(mode);
+        }
+
+        function finishStartingGame(mode) {
+          var dateKey = pendingGameSetup.dateKey;
+          var gameNumber = pendingGameSetup.gameNumber;
+          var puzzle = pendingGameSetup.puzzle;
+          var saved = pendingGameSetup.saved;
           var history = saved ? saved.history : [];
           var gameOver = saved ? !!saved.gameOver : false;
 
@@ -1222,6 +1441,7 @@
             gameOver: gameOver,
             won: saved ? !!saved.won : false,
             streak: gameOver ? loadStreak().count : 0,
+            mode: mode,
           };
 
           document.documentElement.style.setProperty('--line', puzzle.line.color);
@@ -1262,29 +1482,41 @@
           render(false);
         }
 
+        // Hard mode's in-play rows are laid out horizontally, so the FLIP
+        // animation on reorder needs to slide left/right there instead of
+        // up/down - everything else (normal mode, and hard mode once the
+        // round ends and it reverts to the named vertical layout) keeps the
+        // original vertical animation.
+        function isHorizontalLayout() {
+          return state.mode === 'hard' && !state.gameOver;
+        }
+
         function captureRects() {
           rowRects = {};
-          var rows = els.platform.querySelectorAll('.platform__row');
-          rows.forEach(function (row) {
-            rowRects[row.getAttribute('data-station')] = row.getBoundingClientRect().top;
+          var horizontal = isHorizontalLayout();
+          Array.prototype.forEach.call(els.platform.children, function (row) {
+            var rect = row.getBoundingClientRect();
+            rowRects[row.getAttribute('data-station')] = horizontal ? rect.left : rect.top;
           });
         }
 
         function flipAnimate() {
           if (prefersReducedMotion()) return;
-          var rows = els.platform.querySelectorAll('.platform__row');
-          rows.forEach(function (row) {
+          var horizontal = isHorizontalLayout();
+          Array.prototype.forEach.call(els.platform.children, function (row) {
             var name = row.getAttribute('data-station');
-            var oldTop = rowRects[name];
-            if (oldTop === undefined) return;
-            var newTop = row.getBoundingClientRect().top;
-            var delta = oldTop - newTop;
+            var oldPos = rowRects[name];
+            if (oldPos === undefined) return;
+            var rect = row.getBoundingClientRect();
+            var newPos = horizontal ? rect.left : rect.top;
+            var delta = oldPos - newPos;
             if (Math.abs(delta) < 1) return;
+            var axis = horizontal ? 'X' : 'Y';
             row.style.transition = 'none';
-            row.style.transform = 'translateY(' + delta + 'px)';
+            row.style.transform = 'translate' + axis + '(' + delta + 'px)';
             requestAnimationFrame(function () {
               row.style.transition = 'transform 0.22s cubic-bezier(.2,.7,.3,1)';
-              row.style.transform = 'translateY(0)';
+              row.style.transform = 'translate' + axis + '(0)';
             });
           });
         }
@@ -1366,8 +1598,75 @@
         }
 
         function renderPlatform() {
+          var isHardInPlay = state.mode === 'hard' && !state.gameOver;
+          els.platform.className = 'platform' + (isHardInPlay ? ' platform--hard' : '');
           els.platform.innerHTML = '';
 
+          if (isHardInPlay) {
+            renderPlatformHard();
+          } else {
+            renderPlatformNormal();
+          }
+        }
+
+        function renderPlatformHard() {
+          state.currentOrder.forEach(function (name, index) {
+            var li = document.createElement('li');
+            li.className = 'platform-icon-col';
+            li.setAttribute('data-station', name);
+
+            var rank = document.createElement('span');
+            rank.className = 'platform__rank';
+            rank.textContent = String(index + 1);
+
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'platform-icon-col__icon';
+            var iconSlug = STATION_ICON_SLUGS[name];
+            if (iconSlug) {
+              var svgNS = 'http://www.w3.org/2000/svg';
+              var svg = document.createElementNS(svgNS, 'svg');
+              svg.setAttribute('aria-hidden', 'true');
+              var use = document.createElementNS(svgNS, 'use');
+              use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'station-icons.svg#' + iconSlug);
+              use.setAttribute('href', 'station-icons.svg#' + iconSlug);
+              svg.appendChild(use);
+              iconWrap.appendChild(svg);
+            }
+
+            var nav = document.createElement('span');
+            nav.className = 'platform-icon-col__nav';
+
+            var leftBtn = document.createElement('button');
+            leftBtn.type = 'button';
+            leftBtn.className = 'chev chev--compact';
+            leftBtn.textContent = '◀';
+            leftBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la izquierda');
+            leftBtn.disabled = index === 0;
+            leftBtn.addEventListener('click', function (idx) {
+              return function () { moveStation(idx, -1); };
+            }(index));
+
+            var rightBtn = document.createElement('button');
+            rightBtn.type = 'button';
+            rightBtn.className = 'chev chev--compact';
+            rightBtn.textContent = '▶';
+            rightBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la derecha');
+            rightBtn.disabled = index === state.currentOrder.length - 1;
+            rightBtn.addEventListener('click', function (idx) {
+              return function () { moveStation(idx, 1); };
+            }(index));
+
+            nav.appendChild(leftBtn);
+            nav.appendChild(rightBtn);
+
+            li.appendChild(rank);
+            li.appendChild(iconWrap);
+            li.appendChild(nav);
+            els.platform.appendChild(li);
+          });
+        }
+
+        function renderPlatformNormal() {
           state.currentOrder.forEach(function (name, index) {
             var li = document.createElement('li');
             li.className = 'platform__row';
@@ -1498,7 +1797,9 @@
             }).join('');
           }).join('\n');
 
-          return '#Metrordle #' + state.gameNumber + '\n\n' + grid + '\n\n🔥 ' + formatStreak(state.streak) + '\n\n' + SHARE_URL;
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
+
+          return '#Metrordle #' + state.gameNumber + '\n' + hardModeLine + '\n' + grid + '\n\n🔥 ' + formatStreak(state.streak) + '\n\n' + SHARE_URL;
         }
 
         function copyViaExecCommand(text) {
@@ -1558,15 +1859,34 @@
             debugStations: $('debug-stations'),
             debugStationsTitle: $('debug-stations-title'),
             debugStationsGrid: $('debug-stations-grid'),
+            modeModal: $('mode-modal'),
+            modeNormalBtn: $('mode-normal-btn'),
+            modeHardBtn: $('mode-hard-btn'),
+            debugModeNormalBtn: $('debug-mode-normal'),
+            debugModeHardBtn: $('debug-mode-hard'),
           };
 
           els.checkBtn.addEventListener('click', checkOrder);
           els.shareBtn.addEventListener('click', shareResult);
+          els.modeNormalBtn.addEventListener('click', function () { resolveModeChoice('normal'); });
+          els.modeHardBtn.addEventListener('click', function () { resolveModeChoice('hard'); });
 
           if (isDebugMode()) {
             els.dateDebug.hidden = false;
             els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+
+            // The real modal never shows in debug mode (see startNewGame),
+            // so these are the only way to flip modes while browsing dates -
+            // they re-render the *current* effective day, no date change.
+            els.debugModeNormalBtn.addEventListener('click', function () {
+              lastPickedMode = 'normal';
+              finishStartingGame('normal');
+            });
+            els.debugModeHardBtn.addEventListener('click', function () {
+              lastPickedMode = 'hard';
+              finishStartingGame('hard');
+            });
 
             els.debugStations.hidden = false;
             renderDebugStationList();

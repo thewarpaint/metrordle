@@ -165,6 +165,26 @@ a {
   padding: 1.1rem 1.3rem 0.9rem;
 }
 
+h1 {
+  font-family: 'Overpass', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.55rem, 6vw, 2.05rem);
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  margin: 0 0 0.3rem;
+  text-wrap: balance;
+}
+
+.dek {
+  font-family: 'Overpass', sans-serif;
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 36ch;
+}
+
 .chev {
   background: var(--paper-well);
   border: 1px solid var(--rule);

@@ -741,13 +741,28 @@
           });
         }
 
+        // How far over the optimal stop count you finished, translated into
+        // a rating + colored square for the share text (Wordle-style at a
+        // glance). Giving up is always "Terrible", regardless of progress.
+        function getRating() {
+          if (state.status === 'gaveup') return { label: 'Terrible', square: '🟥' };
+
+          var extra = countStops(state.path) - countStops(state.shortestPath);
+          if (extra === 0) return { label: 'Perfecto', square: '🟦' };
+          if (extra <= 5) return { label: 'Buena', square: '🟩' };
+          if (extra <= 10) return { label: 'Regular', square: '🟨' };
+          return { label: 'Mala', square: '🟧' };
+        }
+
         function buildShareText() {
           var yourStops = countStops(state.path);
           var yourTransfers = countTransfers(state.path);
           var optimalStops = countStops(state.shortestPath);
           var optimalTransfers = countTransfers(state.shortestPath);
+          var rating = getRating();
 
           return '🚇 Metrolaberinto #' + state.gameNumber + '\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
             'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)\n' +
             'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)\n' +
             '🔥 ' + MetroShared.formatStreak(state.streak) + '\n\n' +

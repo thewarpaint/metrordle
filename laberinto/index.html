@@ -67,50 +67,117 @@
         padding: 0 0.5rem;
       }
 
-      .current {
-        align-items: center;
-        display: flex;
-        gap: 0.7rem;
-        padding: 0.9rem 1.1rem 0.2rem;
+      .map-stage {
+        height: 15rem;
+        margin: 0.9rem auto 0;
+        max-width: 20rem;
+        position: relative;
+        width: 100%;
       }
 
-      .current[hidden] {
+      .map-stage[hidden] {
         display: none;
       }
 
-      .current__icon {
-        color: var(--ink-soft);
-        flex: 0 0 auto;
-        height: 2.6rem;
-        width: 2.6rem;
+      .map-spokes {
+        height: 100%;
+        left: 0;
+        pointer-events: none;
+        position: absolute;
+        top: 0;
+        width: 100%;
       }
 
-      .current__icon svg {
+      .map-spokes path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-width: 4;
+      }
+
+      .map-hub {
+        align-items: center;
+        background: var(--paper-raised);
+        border: 3px solid var(--rule-strong);
+        border-radius: 50%;
+        display: flex;
+        height: 4.4rem;
+        justify-content: center;
+        left: 50%;
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 4.4rem;
+      }
+
+      .map-hub__icon {
+        color: var(--ink);
+        height: 2.2rem;
+        width: 2.2rem;
+      }
+
+      .map-hub__icon svg {
         display: block;
         height: 100%;
         width: 100%;
       }
 
-      .current__name {
-        font-weight: 800;
-        font-size: 1.1rem;
+      .map-node {
+        align-items: center;
+        background: var(--paper-raised);
+        border-radius: 50%;
+        border-style: solid;
+        border-width: 3px;
+        cursor: pointer;
+        display: flex;
+        height: 3.4rem;
+        justify-content: center;
+        padding: 0;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        width: 3.4rem;
       }
 
-      .current__line {
-        display: inline-block;
-        margin-top: 0.15rem;
+      .map-node:hover {
+        box-shadow: 0 4px 12px var(--shadow);
+        transform: translate(-50%, -50%) scale(1.08);
       }
 
-      .line-badge {
-        border-radius: 999px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 0.12rem 0.55rem;
+      .map-node:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
       }
 
-      .line-badge--muted {
-        background: var(--paper-well);
-        color: var(--ink-soft);
+      .map-node:active {
+        transform: translate(-50%, -50%) scale(0.96);
+      }
+
+      .map-node--destination {
+        animation: map-node-pulse 1.8s ease-in-out infinite;
+      }
+
+      .map-node__icon {
+        color: var(--ink);
+        height: 1.7rem;
+        pointer-events: none;
+        width: 1.7rem;
+      }
+
+      .map-node__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      @keyframes map-node-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(18, 128, 95, 0.45); }
+        50% { box-shadow: 0 0 0 7px rgba(18, 128, 95, 0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .map-node--destination {
+          animation: none;
+        }
       }
 
       .breadcrumb {
@@ -136,68 +203,12 @@
         font-size: 0.72rem;
       }
 
-      .neighbor-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        list-style: none;
-        margin: 0;
-        padding: 0.9rem 1.1rem 0.2rem;
-      }
-
-      .neighbor-list[hidden] {
-        display: none;
+      .giveup-row {
+        padding: 0.4rem 1.1rem 1rem;
       }
 
       .giveup-row[hidden] {
         display: none;
-      }
-
-      .neighbor-btn {
-        align-items: center;
-        background: var(--paper-raised);
-        border: 2px solid var(--rule);
-        border-radius: 0.5rem;
-        color: var(--ink);
-        cursor: pointer;
-        display: flex;
-        font-family: 'Overpass', sans-serif;
-        gap: 0.6rem;
-        padding: 0.5rem 0.7rem;
-        text-align: left;
-        transition: border-color 0.2s ease;
-        width: 100%;
-      }
-
-      .neighbor-btn:hover {
-        border-color: var(--line, var(--ink-soft));
-      }
-
-      .neighbor-btn:active {
-        transform: scale(0.99);
-      }
-
-      .neighbor-btn__icon {
-        color: var(--ink-soft);
-        flex: 0 0 auto;
-        height: 1.8rem;
-        width: 1.8rem;
-      }
-
-      .neighbor-btn__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
-      }
-
-      .neighbor-btn__name {
-        flex: 1 1 auto;
-        font-weight: 700;
-        font-size: 0.92rem;
-      }
-
-      .giveup-row {
-        padding: 0.4rem 1.1rem 1rem;
       }
 
       .reveal {
@@ -329,17 +340,15 @@
           <span class="status-bar__text" id="status"></span>
         </div>
 
-        <div class="current" id="current-panel">
-          <span class="current__icon" id="current-icon"></span>
-          <div>
-            <div class="current__name" id="current-name"></div>
-            <span class="current__line" id="current-line"></span>
+        <div class="map-stage" id="map-stage">
+          <svg class="map-spokes" id="map-spokes" aria-hidden="true"></svg>
+          <div class="map-hub" id="map-hub">
+            <span class="map-hub__icon" id="map-hub-icon"></span>
           </div>
+          <div id="map-nodes"></div>
         </div>
 
         <div class="breadcrumb" id="breadcrumb" aria-hidden="true"></div>
-
-        <ul class="neighbor-list" id="neighbor-list"></ul>
 
         <div class="giveup-row" id="giveup-row">
           <button type="button" class="btn-secondary" id="giveup-btn">Rendirse</button>
@@ -589,21 +598,6 @@
           return wrap;
         }
 
-        function makeLineBadge(lineId) {
-          var badge = document.createElement('span');
-          badge.className = 'line-badge';
-          if (lineId) {
-            var line = getLineById(lineId);
-            badge.textContent = line.name;
-            badge.style.background = line.color;
-            badge.style.color = line.textColor;
-          } else {
-            badge.classList.add('line-badge--muted');
-            badge.textContent = 'Origen';
-          }
-          return badge;
-        }
-
         function makeRouteDot(lineId) {
           var dot = document.createElement('span');
           dot.className = 'route-dot';
@@ -632,30 +626,18 @@
             (stopsSoFar === 0 ? 'Elige tu primer salto' : stopsSoFar + (stopsSoFar === 1 ? ' salto' : ' saltos')) :
             (state.status === 'won' ? '¡Llegaste!' : 'Te rendiste');
 
-          renderCurrent();
           renderBreadcrumb();
 
-          els.neighborList.hidden = !playing;
+          els.mapStage.hidden = !playing;
           els.giveupRow.hidden = !playing;
-          els.currentPanel.hidden = !playing;
 
           if (playing) {
-            renderNeighbors();
+            renderMap();
           } else {
             renderReveal();
           }
 
           els.reveal.hidden = playing;
-        }
-
-        function renderCurrent() {
-          els.currentIcon.innerHTML = '';
-          els.currentIcon.appendChild(makeIcon(state.currentStation, 'current__icon'));
-          $('current-name').textContent = state.currentStation;
-
-          var lastHop = state.path[state.path.length - 1];
-          els.currentLine.innerHTML = '';
-          els.currentLine.appendChild(makeLineBadge(lastHop.lineId));
         }
 
         function renderBreadcrumb() {
@@ -675,41 +657,63 @@
           });
         }
 
-        function renderNeighbors() {
-          var el = els.neighborList;
-          el.innerHTML = '';
+        // No text on the map by design - stations are read by their real
+        // Metro pictogram and line color, the same way riders navigate the
+        // actual system. Breadcrumb below still spells out the trail in
+        // words, and each node keeps a title/aria-label for anyone who
+        // wants to confirm before clicking or is using a screen reader.
+        function renderMap() {
+          els.mapHubIcon.innerHTML = '';
+          els.mapHubIcon.appendChild(makeIcon(state.currentStation, 'map-hub__icon'));
 
           // Neighbors reachable by continuing on the line you're already
-          // riding come first, so staying put on your current line - the
-          // common case - doesn't require scanning past transfer options.
+          // riding land first (12 o'clock, going clockwise), so staying on
+          // your current line - the common case - is the first thing your
+          // eye meets.
           var currentLineId = state.path[state.path.length - 1].lineId;
           var neighbors = (adjacency[state.currentStation] || []).slice().sort(function (a, b) {
             var aCurrent = a.line.id === currentLineId ? 0 : 1;
             var bCurrent = b.line.id === currentLineId ? 0 : 1;
             return aCurrent - bCurrent;
           });
-          neighbors.forEach(function (neighbor) {
-            var li = document.createElement('li');
+
+          var stageW = els.mapStage.clientWidth || 320;
+          var stageH = els.mapStage.clientHeight || 240;
+          var hubX = stageW / 2;
+          var hubY = stageH / 2;
+          var radius = Math.max(70, Math.min(stageW / 2 - 40, stageH / 2 - 40));
+
+          var svgNS = 'http://www.w3.org/2000/svg';
+          els.mapSpokes.setAttribute('viewBox', '0 0 ' + stageW + ' ' + stageH);
+          els.mapSpokes.innerHTML = '';
+          els.mapNodes.innerHTML = '';
+
+          neighbors.forEach(function (neighbor, i) {
+            var angle = -90 + i * (360 / neighbors.length);
+            var rad = angle * Math.PI / 180;
+            var x = hubX + radius * Math.cos(rad);
+            var y = hubY + radius * Math.sin(rad);
+
+            var path = document.createElementNS(svgNS, 'path');
+            path.setAttribute('d', 'M ' + hubX + ' ' + hubY + ' L ' + x + ' ' + y);
+            path.setAttribute('stroke', neighbor.line.color);
+            els.mapSpokes.appendChild(path);
 
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'neighbor-btn';
-            btn.style.setProperty('--line', neighbor.line.color);
-            btn.appendChild(makeIcon(neighbor.station, 'neighbor-btn__icon'));
-
-            var name = document.createElement('span');
-            name.className = 'neighbor-btn__name';
-            name.textContent = neighbor.station;
-            btn.appendChild(name);
-
-            btn.appendChild(makeLineBadge(neighbor.line.id));
+            btn.className = 'map-node' + (neighbor.station === state.destination ? ' map-node--destination' : '');
+            btn.style.left = x + 'px';
+            btn.style.top = y + 'px';
+            btn.style.borderColor = neighbor.line.color;
+            btn.title = neighbor.station;
+            btn.setAttribute('aria-label', neighbor.station + ', ' + neighbor.line.name);
+            btn.appendChild(makeIcon(neighbor.station, 'map-node__icon'));
 
             btn.addEventListener('click', function () {
               chooseNeighbor(neighbor.station, neighbor.line.id);
             });
 
-            li.appendChild(btn);
-            el.appendChild(li);
+            els.mapNodes.appendChild(btn);
           });
         }
 
@@ -800,11 +804,11 @@
 
         function init() {
           els = {
-            currentPanel: $('current-panel'),
-            currentIcon: $('current-icon'),
-            currentLine: $('current-line'),
+            mapStage: $('map-stage'),
+            mapSpokes: $('map-spokes'),
+            mapHubIcon: $('map-hub-icon'),
+            mapNodes: $('map-nodes'),
             breadcrumb: $('breadcrumb'),
-            neighborList: $('neighbor-list'),
             giveupRow: $('giveup-row'),
             giveupBtn: $('giveup-btn'),
             reveal: $('reveal'),
@@ -823,6 +827,10 @@
             els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
+
+          window.addEventListener('resize', function () {
+            if (state && state.status === 'playing') renderMap();
+          });
 
           startNewGame();
           renderDateDebugLabel();

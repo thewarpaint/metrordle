@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="title" content="Metrolaberinto 🚇">
-    <meta name="description" content="Navega la red del Metro de la Ciudad de México estación por estación, de un origen a un destino, usando solo las líneas que tocan tu parada actual.">
+    <meta name="description" content="Navega la red del Metro de la Ciudad de México estación por estación, de un origen a un destino, usando solo las líneas que tocan tu parada actual. Busca la ruta con menos estaciones posible.">
     <meta name="theme-color" content="#0057a8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -279,6 +279,19 @@
         font-variant-numeric: tabular-nums;
         width: 1.1rem;
       }
+
+      .route-dot {
+        align-self: center;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        height: 0.55rem;
+        width: 0.55rem;
+      }
+
+      .route-dot--muted {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+      }
     </style>
   </head>
 
@@ -303,7 +316,7 @@
       <div class="sign">
         <div class="sign__head">
           <h1 id="game-title">Metrolaberinto</h1>
-          <p class="dek">Salta de estación en estación hasta llegar al destino, usando solo las líneas que tocan tu parada actual.</p>
+          <p class="dek">Salta de estación en estación hasta llegar al destino, usando solo las líneas que tocan tu parada actual. Busca la ruta con menos estaciones posible.</p>
         </div>
 
         <div class="headsign">
@@ -591,6 +604,21 @@
           return badge;
         }
 
+        function makeRouteDot(lineId) {
+          var dot = document.createElement('span');
+          dot.className = 'route-dot';
+          dot.setAttribute('aria-hidden', 'true');
+          if (lineId) {
+            var line = getLineById(lineId);
+            dot.style.background = line.color;
+            dot.title = line.name;
+          } else {
+            dot.classList.add('route-dot--muted');
+            dot.title = 'Origen';
+          }
+          return dot;
+        }
+
         function render() {
           if (!state) return;
 
@@ -651,7 +679,15 @@
           var el = els.neighborList;
           el.innerHTML = '';
 
-          var neighbors = adjacency[state.currentStation] || [];
+          // Neighbors reachable by continuing on the line you're already
+          // riding come first, so staying put on your current line - the
+          // common case - doesn't require scanning past transfer options.
+          var currentLineId = state.path[state.path.length - 1].lineId;
+          var neighbors = (adjacency[state.currentStation] || []).slice().sort(function (a, b) {
+            var aCurrent = a.line.id === currentLineId ? 0 : 1;
+            var bCurrent = b.line.id === currentLineId ? 0 : 1;
+            return aCurrent - bCurrent;
+          });
           neighbors.forEach(function (neighbor) {
             var li = document.createElement('li');
 
@@ -697,6 +733,7 @@
           list.innerHTML = '';
           state.shortestPath.forEach(function (hop) {
             var li = document.createElement('li');
+            li.appendChild(makeRouteDot(hop.lineId));
             var text = document.createElement('span');
             text.textContent = hop.station;
             li.appendChild(text);

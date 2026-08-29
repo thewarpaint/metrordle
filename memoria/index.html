@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="Metrordle: Memoria 🚇">
+    <meta
+      name="description"
+      content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 30 segundos."
+    >
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metrordle.com/memoria/">
+    <meta property="og:title" content="Metrordle: Memoria 🚇">
+    <meta property="og:description" content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 30 segundos.">
+    <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="715">
+    <meta property="og:image:alt" content="Un tablero estilo Wordle deletrea METRORDLE, con el logo del Metro de la Ciudad de México y la silueta de la ciudad en dos de las casillas.">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Memoria">
+
+    <title>Metrordle: Memoria 🚇</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <style>
+      .status-bar {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .status-bar__text {
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .timer-track {
+        background: var(--paper-well);
+        border-bottom: 1px solid var(--rule);
+        height: 0.35rem;
+        overflow: hidden;
+      }
+
+      .timer-track[hidden] {
+        display: none;
+      }
+
+      .timer-bar {
+        background: var(--focus);
+        height: 100%;
+        transition: width 1s linear;
+        width: 100%;
+      }
+
+      .memo-board {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(4, 1fr);
+        padding: 0.9rem 1.1rem;
+      }
+
+      .memo-board[hidden] {
+        display: none;
+      }
+
+      .memo-card {
+        align-items: center;
+        aspect-ratio: 1;
+        background: var(--paper-raised);
+        border: 2px solid var(--rule);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        display: flex;
+        font-family: 'Overpass', sans-serif;
+        justify-content: center;
+        padding: 0.25rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
+        width: 100%;
+      }
+
+      .memo-card--icon {
+        background: var(--paper-well);
+      }
+
+      .memo-card:hover:not(:disabled) {
+        border-color: var(--ink-soft);
+      }
+
+      .memo-card:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .memo-card--selected {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 2px var(--focus);
+      }
+
+      .memo-card--matched {
+        cursor: default;
+        opacity: 0.32;
+        transform: scale(0.94);
+      }
+
+      .memo-card--empty {
+        background: transparent;
+        border-style: dashed;
+        cursor: default;
+      }
+
+      .memo-card__icon {
+        color: var(--ink);
+        height: 1.9rem;
+        pointer-events: none;
+        width: 1.9rem;
+      }
+
+      .memo-card__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .memo-card__name {
+        font-size: 0.66rem;
+        font-weight: 700;
+        line-height: 1.15;
+        overflow-wrap: break-word;
+        pointer-events: none;
+        text-align: center;
+      }
+
+      .reveal {
+        padding: 1.1rem;
+      }
+
+      .reveal[hidden] {
+        display: none;
+      }
+
+      .reveal__banner {
+        align-items: center;
+        border: 2px solid var(--rule-strong);
+        border-radius: 0.5rem;
+        display: flex;
+        gap: 0.6rem;
+        font-weight: 800;
+        font-size: 1.05rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem 0.9rem;
+      }
+
+      .reveal__banner--win {
+        background: var(--ok);
+        color: var(--ok-ink);
+      }
+
+      .reveal__banner--lose {
+        background: var(--danger);
+        color: var(--danger-ink);
+      }
+
+      .stats-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .stats-row p {
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .stats-row p strong {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle: Memoria · Minijuego del Metro CDMX</span>
+      </div>
+
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1 id="game-title">Metrordle: Memoria</h1>
+          <p class="dek">
+            Empareja el ícono de cada estación con su nombre. Tienes 30 segundos - cada acierto trae una pareja nueva.
+          </p>
+        </div>
+
+        <div class="status-bar">
+          <span class="status-bar__text" id="status"></span>
+        </div>
+
+        <div class="timer-track" id="timer-track">
+          <div class="timer-bar" id="timer-bar"></div>
+        </div>
+
+        <div class="memo-board" id="memo-board"></div>
+
+        <div class="reveal" id="reveal" hidden>
+          <div id="reveal-banner"></div>
+
+          <div class="stats-row">
+            <p id="stat-you"></p>
+          </div>
+
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+        </div>
+      </div>
+
+      <p class="credit">
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
+        <br>
+        <a href="/">¿Ya jugaste Metrordle hoy?</a> · <a href="/laberinto/">¿Ya jugaste Laberinto hoy?</a>
+      </p>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var SHARE_URL = 'https://metrordle.com/memoria/';
+        var STREAK_STORAGE_KEY = 'memoria:streak';
+
+        // This game's own daily numbering, independent of the other two -
+        // Game #1 is the day Memoria launched.
+        var START_DATE_KEY = '2026-08-29';
+
+        var ROUND_SECONDS = 30;
+
+        // Matching all 8 of the board's starting pairs within the round
+        // counts as a "win" for streak purposes - the board itself has no
+        // fixed size any more (see buildDailyPool), so this is a par bar
+        // rather than "you filled the whole board".
+        var PAR_WIN_SCORE = 8;
+
+        function shuffle(array, rand) {
+          var copy = array.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        // Every unique station name across all lines, deduplicated first
+        // (an interchange is listed once per line it's on in LINES, so a
+        // naive flatten would let it get drawn twice).
+        function allStationNames() {
+          var seen = {};
+          var names = [];
+          MetroShared.LINES.forEach(function (line) {
+            line.stations.forEach(function (name) {
+              if (!seen[name]) {
+                seen[name] = true;
+                names.push(name);
+              }
+            });
+          });
+          return names;
+        }
+
+        // The day's full draw order - every station, shuffled once by the
+        // day's seed. The board only ever shows 16 cells at a time, but a
+        // solved pair pulls the next station off this same list instead of
+        // capping the round at 8 pairs, so it's built as one long queue
+        // rather than a fixed 8-station pick.
+        function buildDailyPool(rand) {
+          return shuffle(allStationNames(), rand);
+        }
+
+        // First 8 stations off the pool become the starting board: one
+        // icon card + one name card each (16 cells), positions shuffled
+        // with the same seeded generator so every player's opening board
+        // is identical that day.
+        function buildInitialCells(pool, rand) {
+          var slots = [];
+          for (var i = 0; i < 8; i++) {
+            slots.push({ type: 'icon', station: pool[i], matched: false });
+            slots.push({ type: 'name', station: pool[i], matched: false });
+          }
+          return shuffle(slots, rand);
+        }
+
+        function lineForStation(name) {
+          for (var i = 0; i < MetroShared.LINES.length; i++) {
+            if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i];
+          }
+          return null;
+        }
+
+        function storageKeyFor(dateKey) {
+          return 'memoria:' + dateKey;
+        }
+
+        function loadSavedResult(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed.score !== 'number') return null;
+            return parsed;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistResult(dateKey, score, won) {
+          try {
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({ score: score, won: won }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the
+            // result just won't be there to reload, same as the other games.
+          }
+        }
+
+        var state = null;
+        var els = {};
+        var debugDate = null;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function startNewGame() {
+          if (state && state.timerId) {
+            clearInterval(state.timerId);
+          }
+
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          var saved = loadSavedResult(dateKey);
+
+          if (saved) {
+            state = {
+              dateKey: dateKey,
+              gameNumber: gameNumber,
+              status: 'done',
+              score: saved.score,
+              won: saved.won,
+              streak: MetroShared.loadStreak(STREAK_STORAGE_KEY).count,
+              cells: [],
+              selectedIndex: null,
+              timerId: null,
+            };
+            render();
+            return;
+          }
+
+          var rand = MetroShared.createSeededRandom('metrordle-memoria-' + dateKey);
+          var pool = buildDailyPool(rand);
+          var cells = buildInitialCells(pool, rand);
+
+          state = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            status: 'playing',
+            rand: rand,
+            pool: pool,
+            poolIndex: 8,
+            cells: cells,
+            selectedIndex: null,
+            score: 0,
+            timeLeft: ROUND_SECONDS,
+            timerId: null,
+            won: false,
+            streak: 0,
+          };
+
+          render();
+          startTimer();
+        }
+
+        function startTimer() {
+          renderStatus();
+          state.timerId = setInterval(tick, 1000);
+        }
+
+        function tick() {
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          renderStatus();
+          if (state.timeLeft <= 0) endRound();
+        }
+
+        function endRound() {
+          clearInterval(state.timerId);
+          state.timerId = null;
+          state.status = 'done';
+          state.won = state.score >= PAR_WIN_SCORE;
+          persistResult(state.dateKey, state.score, state.won);
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
+          render();
+        }
+
+        function onCardClick(index) {
+          if (!state || state.status !== 'playing') return;
+
+          var cell = state.cells[index];
+          if (!cell || cell.type === null || cell.matched) return;
+
+          if (state.selectedIndex === null) {
+            state.selectedIndex = index;
+            renderBoard();
+            return;
+          }
+
+          if (state.selectedIndex === index) {
+            state.selectedIndex = null;
+            renderBoard();
+            return;
+          }
+
+          var a = state.cells[state.selectedIndex];
+          var b = cell;
+
+          if (a.station === b.station) {
+            // Guaranteed to be one icon card + one name card, since the
+            // board never carries two cells of the same type for the same
+            // station at once - the only way to match a station's icon
+            // card is against its own name card.
+            var freedA = state.selectedIndex;
+            var freedB = index;
+            a.matched = true;
+            b.matched = true;
+            state.score += 1;
+            state.selectedIndex = null;
+
+            // Refill exactly the two freed cells from the next station in
+            // the day's pool - the rest of the board is untouched, so a
+            // solved pair never reshuffles anything else you were tracking.
+            if (state.poolIndex < state.pool.length) {
+              var nextStation = state.pool[state.poolIndex];
+              state.poolIndex += 1;
+              var iconInFreedA = state.rand() < 0.5;
+              state.cells[freedA] = { type: iconInFreedA ? 'icon' : 'name', station: nextStation, matched: false };
+              state.cells[freedB] = { type: iconInFreedA ? 'name' : 'icon', station: nextStation, matched: false };
+            } else {
+              // The pool (every station in the network) is exhausted -
+              // realistically unreachable in 30 seconds, but leave the
+              // cells inert rather than crash or wrap around.
+              state.cells[freedA] = { type: null, station: null, matched: true };
+              state.cells[freedB] = { type: null, station: null, matched: true };
+            }
+
+            renderStatus();
+            renderBoard();
+          } else {
+            state.selectedIndex = index;
+            renderBoard();
+          }
+        }
+
+        function makeIcon(stationName, sizeClass) {
+          var wrap = document.createElement('span');
+          wrap.className = sizeClass;
+          var slug = MetroShared.STATION_ICON_SLUGS[stationName];
+          if (slug) {
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('aria-hidden', 'true');
+            var use = document.createElementNS(svgNS, 'use');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+            use.setAttribute('href', '/station-icons.svg#' + slug);
+            svg.appendChild(use);
+            wrap.appendChild(svg);
+          } else {
+            wrap.setAttribute('aria-hidden', 'true');
+            wrap.textContent = '—';
+          }
+          return wrap;
+        }
+
+        function render() {
+          if (!state) return;
+
+          $('game-title').textContent = 'Metrordle: Memoria #' + state.gameNumber;
+
+          var playing = state.status === 'playing';
+          els.board.hidden = !playing;
+          els.timerTrack.hidden = !playing;
+          els.reveal.hidden = playing;
+
+          if (playing) {
+            renderStatus();
+            renderBoard();
+          } else {
+            renderReveal();
+          }
+        }
+
+        function renderStatus() {
+          els.status.textContent = state.timeLeft + 's · ' + state.score +
+            (state.score === 1 ? ' pareja' : ' parejas');
+          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        function renderBoard() {
+          var el = els.board;
+          el.innerHTML = '';
+
+          state.cells.forEach(function (cell, index) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+
+            if (!cell || cell.type === null) {
+              btn.className = 'memo-card memo-card--empty';
+              btn.disabled = true;
+              btn.setAttribute('aria-hidden', 'true');
+              el.appendChild(btn);
+              return;
+            }
+
+            var classes = ['memo-card', 'memo-card--' + cell.type];
+            if (cell.matched) classes.push('memo-card--matched');
+            if (index === state.selectedIndex) classes.push('memo-card--selected');
+            btn.className = classes.join(' ');
+            btn.disabled = cell.matched;
+
+            if (cell.matched) {
+              var line = lineForStation(cell.station);
+              if (line) btn.style.borderColor = line.color;
+            }
+
+            if (cell.type === 'icon') {
+              btn.appendChild(makeIcon(cell.station, 'memo-card__icon'));
+              btn.setAttribute('aria-label', cell.station);
+            } else {
+              var label = document.createElement('span');
+              label.className = 'memo-card__name';
+              label.textContent = cell.station;
+              btn.appendChild(label);
+            }
+
+            btn.addEventListener('click', function () {
+              onCardClick(index);
+            });
+
+            el.appendChild(btn);
+          });
+        }
+
+        function renderReveal() {
+          var won = state.won;
+          var banner = $('reveal-banner');
+          banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
+          banner.textContent = (won ? '¡Buena memoria!' : 'Se acabó el tiempo') + ' 🔥 ' + MetroShared.formatStreak(state.streak);
+
+          $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
+        }
+
+        // How many pairs you matched, translated into a rating + colored
+        // square for the share text (Wordle-style at a glance). Unlike
+        // Laberinto's rating, this has no "complete" state to be measured
+        // against - it's a skill band over an open scale, not a percentage.
+        function getRating(score) {
+          if (score === 0) return { label: 'Terrible', square: '🟥' };
+          if (score <= 3) return { label: 'Mala', square: '🟧' };
+          if (score <= 6) return { label: 'Regular', square: '🟨' };
+          if (score <= 9) return { label: 'Buena', square: '🟩' };
+          return { label: 'Perfecto', square: '🟦' };
+        }
+
+        function buildShareText() {
+          var rating = getRating(state.score);
+
+          return 'Metrordle: Memoria #' + state.gameNumber + '\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Parejas: ' + state.score + '\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          var originalLabel = els.shareBtn.textContent;
+
+          MetroShared.copyToClipboard(buildShareText()).then(function () {
+            els.shareBtn.textContent = '¡Copiado!';
+          }, function () {
+            els.shareBtn.textContent = 'No se pudo copiar';
+          }).then(function () {
+            setTimeout(function () {
+              els.shareBtn.textContent = originalLabel;
+            }, 1600);
+          });
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function init() {
+          els = {
+            status: $('status'),
+            timerTrack: $('timer-track'),
+            timerBar: $('timer-bar'),
+            board: $('memo-board'),
+            reveal: $('reveal'),
+            shareBtn: $('share-btn'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
+          };
+
+          els.shareBtn.addEventListener('click', shareResult);
+
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+
+        var refreshed = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshed) return;
+          refreshed = true;
+          window.location.reload();
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -5,14 +5,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="title" content="Metrolaberinto 🚇">
-    <meta name="description" content="Navega la red del Metro de la Ciudad de México estación por estación, de un origen a un destino, usando solo las líneas que tocan tu parada actual. Busca la ruta con menos estaciones posible.">
+    <meta name="title" content="Metrordle: Laberinto 🚇">
+    <meta
+      name="description"
+      content="Navega el metro de CDMX desde el inicio hacia la meta, una estación a la vez, por la ruta más corta."
+    >
     <meta name="theme-color" content="#0057a8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Metrolaberinto">
 
-    <title>Metrolaberinto 🚇</title>
+    <title>Metrordle: Laberinto 🚇</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/favicon.png">
@@ -315,7 +318,7 @@
           <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
           <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
         </svg>
-        <span class="brand__text">Metrolaberinto · Minijuego del Metro CDMX</span>
+        <span class="brand__text">Metrordle: Laberinto · Minijuego del Metro CDMX</span>
       </div>
 
       <div class="date-debug" id="date-debug" hidden>
@@ -326,8 +329,10 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1 id="game-title">Metrolaberinto</h1>
-          <p class="dek">Salta de estación en estación hasta llegar al destino, usando solo las líneas que tocan tu parada actual. Busca la ruta con menos estaciones posible.</p>
+          <h1 id="game-title">Metrordle: Laberinto</h1>
+          <p class="dek">
+            Salta de estación en estación hasta llegar al destino. Busca la ruta con menos estaciones posible.
+          </p>
         </div>
 
         <div class="headsign">
@@ -372,7 +377,7 @@
       </div>
 
       <p class="credit">
-        Basado en el trazado real de las líneas del Metro de la Ciudad de México. Un juego no oficial, hecho por diversión.
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
         <br>
         <a href="/">¿Ya jugaste Metrordle hoy?</a>
       </p>
@@ -386,12 +391,12 @@
         var SHARE_URL = 'https://metrordle.com/laberinto/';
 
         // This game's own daily numbering, independent of Metrordle's -
-        // Game #1 is the day Metrolaberinto launched.
+        // Game #1 is the day Laberinto launched.
         var START_DATE_KEY = '2026-08-26';
 
         // Minimum puzzle difficulty: reject any origin/destination pair
         // whose shortest path is shorter than this many stations (5 hops).
-        var MIN_PATH_STATIONS = 6;
+        var MIN_PATH_STATIONS = 7;
 
         var adjacency = buildAdjacency(MetroShared.LINES);
 
@@ -474,7 +479,7 @@
         // Metrordle uses for its own shuffle-validity check) until the
         // shortest path clears the difficulty floor.
         function getPuzzleForDateKey(dateKey) {
-          var rand = MetroShared.createSeededRandom('metrolaberinto-' + dateKey);
+          var rand = MetroShared.createSeededRandom('metrordle-laberinto-' + dateKey);
           var origin, destination, shortestPath;
 
           do {
@@ -493,7 +498,7 @@
         }
 
         function storageKeyFor(dateKey) {
-          return 'metrolab:' + dateKey;
+          return 'laberinto:' + dateKey;
         }
 
         function loadSavedState(dateKey) {
@@ -546,7 +551,7 @@
             path: path,
             status: status,
             currentStation: path[path.length - 1].station,
-            streak: status !== 'playing' ? MetroShared.loadStreak('metrolab:streak').count : 0,
+            streak: status !== 'playing' ? MetroShared.loadStreak('laberinto:streak').count : 0,
           };
 
           render();
@@ -554,7 +559,7 @@
 
         function finalizeGame(won) {
           state.status = won ? 'won' : 'gaveup';
-          state.streak = MetroShared.updateStreakForResult('metrolab:streak', state.dateKey, won);
+          state.streak = MetroShared.updateStreakForResult('laberinto:streak', state.dateKey, won);
           persistState();
           render();
         }
@@ -616,7 +621,7 @@
         function render() {
           if (!state) return;
 
-          $('game-title').textContent = 'Metrolaberinto #' + state.gameNumber;
+          $('game-title').textContent = 'Metrordle: Laberinto #' + state.gameNumber;
           $('term-start').textContent = state.origin;
           $('term-end').textContent = state.destination;
 
@@ -730,7 +735,7 @@
 
           $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '</strong> ' + (yourStops === 1 ? 'parada' : 'paradas') +
             ' (<strong>' + yourTransfers + '</strong> ' + (yourTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
-          $('stat-optimal').innerHTML = 'Óptima: <strong>' + optimalStops + '</strong> ' + (optimalStops === 1 ? 'parada' : 'paradas') +
+          $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '</strong> ' + (optimalStops === 1 ? 'parada' : 'paradas') +
             ' (<strong>' + optimalTransfers + '</strong> ' + (optimalTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
 
           var list = $('optimal-path-list');
@@ -765,7 +770,7 @@
           var optimalTransfers = countTransfers(state.shortestPath);
           var rating = getRating();
 
-          return '🚇 Metrolaberinto #' + state.gameNumber + '\n' +
+          return 'Metrordle: Laberinto #' + state.gameNumber + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)\n' +
             'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)\n' +

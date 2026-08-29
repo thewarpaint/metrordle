@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="Metrordle: Laberinto 🚇">
+    <meta
+      name="description"
+      content="Navega el metro de CDMX desde el inicio hacia la meta, una estación a la vez, por la ruta más corta."
+    >
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrolaberinto">
+
+    <title>Metrordle: Laberinto 🚇</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <style>
+      .status-bar {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .status-bar__text {
+        font-size: 0.82rem;
+      }
+
+      .headsign {
+        align-items: center;
+        background: var(--rule-strong);
+        color: var(--paper);
+        display: flex;
+        font-weight: 700;
+        font-size: 0.78rem;
+        justify-content: space-between;
+        letter-spacing: 0.04em;
+        padding: 0.65rem 0.9rem;
+        text-transform: uppercase;
+      }
+
+      .headsign__term {
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .headsign__term--end {
+        text-align: right;
+      }
+
+      .headsign__arrow {
+        flex: 0 0 auto;
+        opacity: 0.65;
+        padding: 0 0.5rem;
+      }
+
+      .map-stage {
+        height: 15rem;
+        margin: 0.9rem auto 0;
+        max-width: 20rem;
+        position: relative;
+        width: 100%;
+      }
+
+      .map-stage[hidden] {
+        display: none;
+      }
+
+      .map-spokes {
+        height: 100%;
+        left: 0;
+        pointer-events: none;
+        position: absolute;
+        top: 0;
+        width: 100%;
+      }
+
+      .map-spokes path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-width: 4;
+      }
+
+      .map-hub {
+        align-items: center;
+        background: var(--paper-raised);
+        border: 3px solid var(--rule-strong);
+        border-radius: 50%;
+        display: flex;
+        height: 4.4rem;
+        justify-content: center;
+        left: 50%;
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 4.4rem;
+      }
+
+      .map-hub__icon {
+        color: var(--ink);
+        height: 2.2rem;
+        width: 2.2rem;
+      }
+
+      .map-hub__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .map-node {
+        align-items: center;
+        background: var(--paper-raised);
+        border-radius: 50%;
+        border-style: solid;
+        border-width: 3px;
+        cursor: pointer;
+        display: flex;
+        height: 3.4rem;
+        justify-content: center;
+        padding: 0;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        width: 3.4rem;
+      }
+
+      .map-node:hover {
+        box-shadow: 0 4px 12px var(--shadow);
+        transform: translate(-50%, -50%) scale(1.08);
+      }
+
+      .map-node:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .map-node:active {
+        transform: translate(-50%, -50%) scale(0.96);
+      }
+
+      .map-node--destination {
+        animation: map-node-pulse 1.8s ease-in-out infinite;
+      }
+
+      .map-node__icon {
+        color: var(--ink);
+        height: 1.7rem;
+        pointer-events: none;
+        width: 1.7rem;
+      }
+
+      .map-node__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      @keyframes map-node-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(18, 128, 95, 0.45); }
+        50% { box-shadow: 0 0 0 7px rgba(18, 128, 95, 0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .map-node--destination {
+          animation: none;
+        }
+      }
+
+      .breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        padding: 0.7rem 1.1rem 0.2rem;
+      }
+
+      .breadcrumb__stop {
+        color: var(--ink-soft);
+        font-size: 0.72rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .breadcrumb__stop--current {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .breadcrumb__sep {
+        color: var(--rule);
+        font-size: 0.72rem;
+      }
+
+      .giveup-row {
+        padding: 0.4rem 1.1rem 1rem;
+      }
+
+      .giveup-row[hidden] {
+        display: none;
+      }
+
+      .reveal {
+        padding: 1.1rem;
+      }
+
+      .reveal[hidden] {
+        display: none;
+      }
+
+      .reveal__banner {
+        align-items: center;
+        border: 2px solid var(--rule-strong);
+        border-radius: 0.5rem;
+        display: flex;
+        gap: 0.6rem;
+        font-weight: 800;
+        font-size: 1.05rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem 0.9rem;
+      }
+
+      .reveal__banner--win {
+        background: var(--ok);
+        color: var(--ok-ink);
+      }
+
+      .reveal__banner--lose {
+        background: var(--danger);
+        color: var(--danger-ink);
+      }
+
+      .stats-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .stats-row p {
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .stats-row p strong {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .reveal__col h3 {
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin: 0 0 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .reveal__col ol {
+        margin: 0 0 1.1rem;
+        padding: 0;
+        list-style: none;
+        counter-reset: revealstep;
+      }
+
+      .reveal__col li {
+        align-items: baseline;
+        counter-increment: revealstep;
+        display: flex;
+        font-size: 0.88rem;
+        gap: 0.4rem;
+        line-height: 1.55;
+      }
+
+      .reveal__col li::before {
+        color: var(--ink-soft);
+        content: counter(revealstep) '.';
+        flex: 0 0 auto;
+        font-family: ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+        width: 1.1rem;
+      }
+
+      .route-dot {
+        align-self: center;
+        border-radius: 50%;
+        flex: 0 0 auto;
+        height: 0.55rem;
+        width: 0.55rem;
+      }
+
+      .route-dot--muted {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle: Laberinto · Minijuego del Metro CDMX</span>
+      </div>
+
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1 id="game-title">Metrordle: Laberinto</h1>
+          <p class="dek">
+            Salta de estación en estación hasta llegar al destino. Busca la ruta con menos estaciones posible.
+          </p>
+        </div>
+
+        <div class="headsign">
+          <span class="headsign__term" id="term-start"></span>
+          <span class="headsign__arrow">→</span>
+          <span class="headsign__term headsign__term--end" id="term-end"></span>
+        </div>
+
+        <div class="status-bar">
+          <span class="status-bar__text" id="status"></span>
+        </div>
+
+        <div class="map-stage" id="map-stage">
+          <svg class="map-spokes" id="map-spokes" aria-hidden="true"></svg>
+          <div class="map-hub" id="map-hub">
+            <span class="map-hub__icon" id="map-hub-icon"></span>
+          </div>
+          <div id="map-nodes"></div>
+        </div>
+
+        <div class="breadcrumb" id="breadcrumb" aria-hidden="true"></div>
+
+        <div class="giveup-row" id="giveup-row">
+          <button type="button" class="btn-secondary" id="giveup-btn">Rendirse</button>
+        </div>
+
+        <div class="reveal" id="reveal" hidden>
+          <div id="reveal-banner"></div>
+
+          <div class="stats-row">
+            <p id="stat-you"></p>
+            <p id="stat-optimal"></p>
+          </div>
+
+          <div class="reveal__col">
+            <h3>Ruta óptima</h3>
+            <ol id="optimal-path-list"></ol>
+          </div>
+
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+        </div>
+      </div>
+
+      <p class="credit">
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
+        <br>
+        <a href="/">¿Ya jugaste Metrordle hoy?</a>
+      </p>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var SHARE_URL = 'https://metrordle.com/laberinto/';
+        var STREAK_STORAGE_KEY = 'laberinto:streak';
+
+        // This game's own daily numbering, independent of Metrordle's -
+        // Game #1 is the day Laberinto launched.
+        var START_DATE_KEY = '2026-08-26';
+
+        // Minimum puzzle difficulty: reject any origin/destination pair
+        // whose shortest path is shorter than this many stations (5 hops).
+        var MIN_PATH_STATIONS = 7;
+
+        var adjacency = buildAdjacency(MetroShared.LINES);
+
+        // Station name -> list of { station, line } reachable in one hop.
+        // A station gets one entry per direction on each line it sits on
+        // (skipped at a line's own endpoints, i > 0 / i < length - 1), so
+        // an interchange naturally accumulates entries from every line it
+        // touches without any special-casing here.
+        function buildAdjacency(lines) {
+          var graph = {};
+          lines.forEach(function (line) {
+            line.stations.forEach(function (name, i) {
+              if (!graph[name]) graph[name] = [];
+              if (i > 0) graph[name].push({ station: line.stations[i - 1], line: line });
+              if (i < line.stations.length - 1) graph[name].push({ station: line.stations[i + 1], line: line });
+            });
+          });
+          return graph;
+        }
+
+        function getLineById(id) {
+          for (var i = 0; i < MetroShared.LINES.length; i++) {
+            if (MetroShared.LINES[i].id === id) return MetroShared.LINES[i];
+          }
+          return null;
+        }
+
+        // Plain unweighted BFS. Returns the shortest path from origin to
+        // destination as a list of hops - [{ station, lineId }], lineId
+        // null for the origin (no line ridden to get there yet) - or null
+        // if destination is unreachable (shouldn't happen on this graph).
+        function bfsShortestPath(origin, destination) {
+          if (origin === destination) return [{ station: origin, lineId: null }];
+
+          var visited = {};
+          visited[origin] = true;
+          var cameFrom = {};
+          var queue = [origin];
+
+          while (queue.length > 0) {
+            var current = queue.shift();
+            if (current === destination) break;
+
+            var neighbors = adjacency[current] || [];
+            for (var i = 0; i < neighbors.length; i++) {
+              var next = neighbors[i];
+              if (visited[next.station]) continue;
+              visited[next.station] = true;
+              cameFrom[next.station] = { prevStation: current, lineId: next.line.id };
+              queue.push(next.station);
+            }
+          }
+
+          if (!visited[destination]) return null;
+
+          var path = [];
+          var cur = destination;
+          while (cur !== origin) {
+            var info = cameFrom[cur];
+            path.unshift({ station: cur, lineId: info.lineId });
+            cur = info.prevStation;
+          }
+          path.unshift({ station: origin, lineId: null });
+          return path;
+        }
+
+        // Number of stops (hops) travelled - one less than the number of
+        // stations in the path, since the origin doesn't count as a hop.
+        function countStops(path) {
+          return path.length - 1;
+        }
+
+        // Number of times the line ridden changes along the path.
+        function countTransfers(path) {
+          var transfers = 0;
+          for (var i = 2; i < path.length; i++) {
+            if (path[i].lineId !== path[i - 1].lineId) transfers++;
+          }
+          return transfers;
+        }
+
+        // Deterministic daily puzzle: pick two different random lines, then
+        // one random station from each, so origin and destination always
+        // start on different lines. Reject-and-retry (same pattern
+        // Metrordle uses for its own shuffle-validity check) until the
+        // shortest path clears the difficulty floor.
+        function getPuzzleForDateKey(dateKey) {
+          var rand = MetroShared.createSeededRandom('metrordle-laberinto-' + dateKey);
+          var origin, destination, shortestPath;
+
+          do {
+            var lineA = MetroShared.LINES[Math.floor(rand() * MetroShared.LINES.length)];
+            var lineB;
+            do {
+              lineB = MetroShared.LINES[Math.floor(rand() * MetroShared.LINES.length)];
+            } while (lineB.id === lineA.id);
+
+            origin = lineA.stations[Math.floor(rand() * lineA.stations.length)];
+            destination = lineB.stations[Math.floor(rand() * lineB.stations.length)];
+            shortestPath = bfsShortestPath(origin, destination);
+          } while (!shortestPath || shortestPath.length < MIN_PATH_STATIONS);
+
+          return { origin: origin, destination: destination, shortestPath: shortestPath };
+        }
+
+        function storageKeyFor(dateKey) {
+          return 'laberinto:' + dateKey;
+        }
+
+        function loadSavedState(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.path) || parsed.path.length === 0) return null;
+            return parsed;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistState() {
+          try {
+            localStorage.setItem(storageKeyFor(state.dateKey), JSON.stringify({
+              path: state.path,
+              status: state.status,
+            }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the game
+            // stays playable for this session, it just won't persist.
+          }
+        }
+
+        var state = null;
+        var els = {};
+        var debugDate = null;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function startNewGame() {
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          var puzzle = getPuzzleForDateKey(dateKey);
+          var saved = loadSavedState(dateKey);
+
+          var path = saved ? saved.path : [{ station: puzzle.origin, lineId: null }];
+          var status = saved ? saved.status : 'playing';
+
+          state = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            origin: puzzle.origin,
+            destination: puzzle.destination,
+            shortestPath: puzzle.shortestPath,
+            path: path,
+            status: status,
+            currentStation: path[path.length - 1].station,
+            streak: status !== 'playing' ? MetroShared.loadStreak(STREAK_STORAGE_KEY).count : 0,
+          };
+
+          render();
+        }
+
+        function finalizeGame(won) {
+          state.status = won ? 'won' : 'gaveup';
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, won);
+          persistState();
+          render();
+        }
+
+        function chooseNeighbor(stationName, lineId) {
+          if (!state || state.status !== 'playing') return;
+
+          state.path.push({ station: stationName, lineId: lineId });
+          state.currentStation = stationName;
+
+          if (stationName === state.destination) {
+            finalizeGame(true);
+          } else {
+            persistState();
+            render();
+          }
+        }
+
+        function giveUp() {
+          if (!state || state.status !== 'playing') return;
+          finalizeGame(false);
+        }
+
+        function makeIcon(stationName, sizeClass) {
+          var wrap = document.createElement('span');
+          wrap.className = sizeClass;
+          var slug = MetroShared.STATION_ICON_SLUGS[stationName];
+          if (slug) {
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('aria-hidden', 'true');
+            var use = document.createElementNS(svgNS, 'use');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+            use.setAttribute('href', '/station-icons.svg#' + slug);
+            svg.appendChild(use);
+            wrap.appendChild(svg);
+          } else {
+            wrap.setAttribute('aria-hidden', 'true');
+            wrap.textContent = '—';
+          }
+          return wrap;
+        }
+
+        function makeRouteDot(lineId) {
+          var dot = document.createElement('span');
+          dot.className = 'route-dot';
+          dot.setAttribute('aria-hidden', 'true');
+          if (lineId) {
+            var line = getLineById(lineId);
+            dot.style.background = line.color;
+            dot.title = line.name;
+          } else {
+            dot.classList.add('route-dot--muted');
+            dot.title = 'Origen';
+          }
+          return dot;
+        }
+
+        function render() {
+          if (!state) return;
+
+          $('game-title').textContent = 'Metrordle: Laberinto #' + state.gameNumber;
+          $('term-start').textContent = state.origin;
+          $('term-end').textContent = state.destination;
+
+          var playing = state.status === 'playing';
+          var stopsSoFar = countStops(state.path);
+          $('status').textContent = playing ?
+            (stopsSoFar === 0 ? 'Elige tu primer salto' : stopsSoFar + (stopsSoFar === 1 ? ' salto' : ' saltos')) :
+            (state.status === 'won' ? '¡Llegaste!' : 'Te rendiste');
+
+          renderBreadcrumb();
+
+          els.mapStage.hidden = !playing;
+          els.giveupRow.hidden = !playing;
+
+          if (playing) {
+            renderMap();
+          } else {
+            renderReveal();
+          }
+
+          els.reveal.hidden = playing;
+        }
+
+        function renderBreadcrumb() {
+          var el = els.breadcrumb;
+          el.innerHTML = '';
+          state.path.forEach(function (hop, index) {
+            if (index > 0) {
+              var sep = document.createElement('span');
+              sep.className = 'breadcrumb__sep';
+              sep.textContent = '→';
+              el.appendChild(sep);
+            }
+            var stop = document.createElement('span');
+            stop.className = 'breadcrumb__stop' + (index === state.path.length - 1 ? ' breadcrumb__stop--current' : '');
+            stop.textContent = hop.station;
+            el.appendChild(stop);
+          });
+        }
+
+        // No text on the map by design - stations are read by their real
+        // Metro pictogram and line color, the same way riders navigate the
+        // actual system. Breadcrumb below still spells out the trail in
+        // words, and each node keeps a title/aria-label for anyone who
+        // wants to confirm before clicking or is using a screen reader.
+        function renderMap() {
+          els.mapHubIcon.innerHTML = '';
+          els.mapHubIcon.appendChild(makeIcon(state.currentStation, 'map-hub__icon'));
+
+          // Neighbors reachable by continuing on the line you're already
+          // riding land first (12 o'clock, going clockwise), so staying on
+          // your current line - the common case - is the first thing your
+          // eye meets.
+          var currentLineId = state.path[state.path.length - 1].lineId;
+          var neighbors = (adjacency[state.currentStation] || []).slice().sort(function (a, b) {
+            var aCurrent = a.line.id === currentLineId ? 0 : 1;
+            var bCurrent = b.line.id === currentLineId ? 0 : 1;
+            return aCurrent - bCurrent;
+          });
+
+          // Measure the actual rendered box rather than hardcoding it, so
+          // the layout still centers correctly if the card's width changes
+          // (viewport resize, different font metrics, etc.) - the || 320 /
+          // || 240 fallbacks only matter before first layout, when
+          // clientWidth/clientHeight can briefly read 0.
+          var stageW = els.mapStage.clientWidth || 320;
+          var stageH = els.mapStage.clientHeight || 240;
+          var hubX = stageW / 2;
+          var hubY = stageH / 2;
+          // Radius is capped by whichever dimension is tighter (a wide but
+          // short card, or vice versa) minus a 40px margin, so neighbor
+          // circles never spill past the stage edge; 70px is just a floor
+          // so a very small stage doesn't collapse the fan to nothing.
+          var radius = Math.max(70, Math.min(stageW / 2 - 40, stageH / 2 - 40));
+
+          var svgNS = 'http://www.w3.org/2000/svg';
+          els.mapSpokes.setAttribute('viewBox', '0 0 ' + stageW + ' ' + stageH);
+          els.mapSpokes.innerHTML = '';
+          els.mapNodes.innerHTML = '';
+
+          neighbors.forEach(function (neighbor, i) {
+            // Evenly split a full circle across however many neighbors
+            // there are (2 neighbors -> 180° apart, 6 -> 60° apart, ...),
+            // starting at 12 o'clock (-90°) and stepping clockwise so the
+            // sorted current-line entry from above always lands there.
+            var angle = -90 + i * (360 / neighbors.length);
+            // Standard polar-to-Cartesian conversion to place each node
+            // relative to the hub at the stage's center.
+            var rad = angle * Math.PI / 180;
+            var x = hubX + radius * Math.cos(rad);
+            var y = hubY + radius * Math.sin(rad);
+
+            var path = document.createElementNS(svgNS, 'path');
+            path.setAttribute('d', 'M ' + hubX + ' ' + hubY + ' L ' + x + ' ' + y);
+            path.setAttribute('stroke', neighbor.line.color);
+            els.mapSpokes.appendChild(path);
+
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'map-node' + (neighbor.station === state.destination ? ' map-node--destination' : '');
+            btn.style.left = x + 'px';
+            btn.style.top = y + 'px';
+            btn.style.borderColor = neighbor.line.color;
+            btn.title = neighbor.station;
+            btn.setAttribute('aria-label', neighbor.station + ', ' + neighbor.line.name);
+            btn.appendChild(makeIcon(neighbor.station, 'map-node__icon'));
+
+            btn.addEventListener('click', function () {
+              chooseNeighbor(neighbor.station, neighbor.line.id);
+            });
+
+            els.mapNodes.appendChild(btn);
+          });
+        }
+
+        function renderReveal() {
+          var won = state.status === 'won';
+          var banner = $('reveal-banner');
+          banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
+          banner.textContent = (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥 ' + MetroShared.formatStreak(state.streak);
+
+          var yourStops = countStops(state.path);
+          var yourTransfers = countTransfers(state.path);
+          var optimalStops = countStops(state.shortestPath);
+          var optimalTransfers = countTransfers(state.shortestPath);
+
+          $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '</strong> ' + (yourStops === 1 ? 'parada' : 'paradas') +
+            ' (<strong>' + yourTransfers + '</strong> ' + (yourTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
+          $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '</strong> ' + (optimalStops === 1 ? 'parada' : 'paradas') +
+            ' (<strong>' + optimalTransfers + '</strong> ' + (optimalTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
+
+          var list = $('optimal-path-list');
+          list.innerHTML = '';
+          state.shortestPath.forEach(function (hop) {
+            var li = document.createElement('li');
+            li.appendChild(makeRouteDot(hop.lineId));
+            var text = document.createElement('span');
+            text.textContent = hop.station;
+            li.appendChild(text);
+            list.appendChild(li);
+          });
+        }
+
+        // How far over the optimal stop count you finished, translated into
+        // a rating + colored square for the share text (Wordle-style at a
+        // glance). Giving up is always "Terrible", regardless of progress.
+        function getRating() {
+          if (state.status === 'gaveup') return { label: 'Terrible', square: '🟥' };
+
+          var extra = countStops(state.path) - countStops(state.shortestPath);
+          if (extra === 0) return { label: 'Perfecto', square: '🟦' };
+          if (extra <= 5) return { label: 'Buena', square: '🟩' };
+          if (extra <= 10) return { label: 'Regular', square: '🟨' };
+          return { label: 'Mala', square: '🟧' };
+        }
+
+        function buildShareText() {
+          var yourStops = countStops(state.path);
+          var yourTransfers = countTransfers(state.path);
+          var optimalStops = countStops(state.shortestPath);
+          var optimalTransfers = countTransfers(state.shortestPath);
+          var rating = getRating();
+
+          return 'Metrordle: Laberinto #' + state.gameNumber + '\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)\n' +
+            'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          var originalLabel = els.shareBtn.textContent;
+
+          MetroShared.copyToClipboard(buildShareText()).then(function () {
+            els.shareBtn.textContent = '¡Copiado!';
+          }, function () {
+            els.shareBtn.textContent = 'No se pudo copiar';
+          }).then(function () {
+            setTimeout(function () {
+              els.shareBtn.textContent = originalLabel;
+            }, 1600);
+          });
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function init() {
+          els = {
+            mapStage: $('map-stage'),
+            mapSpokes: $('map-spokes'),
+            mapHubIcon: $('map-hub-icon'),
+            mapNodes: $('map-nodes'),
+            breadcrumb: $('breadcrumb'),
+            giveupRow: $('giveup-row'),
+            giveupBtn: $('giveup-btn'),
+            reveal: $('reveal'),
+            shareBtn: $('share-btn'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
+          };
+
+          els.giveupBtn.addEventListener('click', giveUp);
+          els.shareBtn.addEventListener('click', shareResult);
+
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
+          window.addEventListener('resize', function () {
+            if (state && state.status === 'playing') renderMap();
+          });
+
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+
+        var refreshed = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshed) return;
+          refreshed = true;
+          window.location.reload();
+        });
+      }
+    </script>
+  </body>
+</html>

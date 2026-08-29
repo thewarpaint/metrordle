@@ -8,13 +8,13 @@
     <meta name="title" content="Metrordle: Memoria 🚇">
     <meta
       name="description"
-      content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 30 segundos."
+      content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 60 segundos."
     >
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://metrordle.com/memoria/">
     <meta property="og:title" content="Metrordle: Memoria 🚇">
-    <meta property="og:description" content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 30 segundos.">
+    <meta property="og:description" content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 60 segundos.">
     <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="715">
@@ -69,6 +69,10 @@
         width: 100%;
       }
 
+      .board-wrap {
+        position: relative;
+      }
+
       .memo-board {
         display: grid;
         gap: 0.5rem;
@@ -78,6 +82,49 @@
 
       .memo-board[hidden] {
         display: none;
+      }
+
+      .start-overlay {
+        align-items: center;
+        background: var(--paper-well);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1.1rem;
+        position: absolute;
+      }
+
+      .start-overlay[hidden] {
+        display: none;
+      }
+
+      .start-overlay__panel {
+        max-width: 17rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      .start-overlay__text {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+      }
+
+      @keyframes memo-card-pop-in {
+        from {
+          opacity: 0;
+          transform: scale(0.7);
+        }
+
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .memo-card--entering {
+        animation: memo-card-pop-in 0.3s ease;
       }
 
       .memo-card {
@@ -220,7 +267,7 @@
         <div class="sign__head">
           <h1 id="game-title">Metrordle: Memoria</h1>
           <p class="dek">
-            Empareja el ícono de cada estación con su nombre. Tienes 30 segundos - cada acierto trae una pareja nueva.
+            Empareja el ícono de cada estación con su nombre. Tienes 60 segundos - cada acierto trae una pareja nueva.
           </p>
         </div>
 
@@ -232,7 +279,16 @@
           <div class="timer-bar" id="timer-bar"></div>
         </div>
 
-        <div class="memo-board" id="memo-board"></div>
+        <div class="board-wrap">
+          <div class="memo-board" id="memo-board"></div>
+
+          <div class="start-overlay" id="start-overlay" hidden>
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text">Toca "Comenzar" cuando estés listo para arrancar el conteo.</p>
+              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
+            </div>
+          </div>
+        </div>
 
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>
@@ -264,7 +320,7 @@
         // Game #1 is the day Memoria launched.
         var START_DATE_KEY = '2026-08-29';
 
-        var ROUND_SECONDS = 30;
+        var ROUND_SECONDS = 60;
 
         // Matching all 8 of the board's starting pairs within the round
         // counts as a "win" for streak purposes - the board itself has no
@@ -348,6 +404,34 @@
           return cells;
         }
 
+        // After a match, scramble where every remaining station sits -
+        // icon cells among themselves, name cells among themselves, so
+        // the checkerboard type at each position never changes - using
+        // the same seeded generator the rest of the round draws from.
+        // Otherwise the freshly refilled pair would always be obvious,
+        // sitting in the exact two slots that were empty a moment ago.
+        // Cells left inert by an exhausted pool are skipped.
+        function shuffleBoardPositions() {
+          var iconPositions = [];
+          var namePositions = [];
+          for (var i = 0; i < state.cells.length; i++) {
+            var cell = state.cells[i];
+            if (!cell || cell.type === null) continue;
+            (cell.type === 'icon' ? iconPositions : namePositions).push(i);
+          }
+
+          function shuffleGroup(positions) {
+            var cells = positions.map(function (pos) { return state.cells[pos]; });
+            var shuffled = shuffle(cells, state.rand);
+            positions.forEach(function (pos, i) {
+              state.cells[pos] = shuffled[i];
+            });
+          }
+
+          shuffleGroup(iconPositions);
+          shuffleGroup(namePositions);
+        }
+
         function lineForStation(name) {
           for (var i = 0; i < MetroShared.LINES.length; i++) {
             if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i];
@@ -420,7 +504,7 @@
           state = {
             dateKey: dateKey,
             gameNumber: gameNumber,
-            status: 'playing',
+            status: 'ready',
             rand: rand,
             pool: pool,
             poolIndex: 8,
@@ -433,6 +517,16 @@
             streak: 0,
           };
 
+          render();
+        }
+
+        // Dismisses the start dialog and kicks off the countdown - the
+        // board is already built and visible underneath, but nothing
+        // ticks (and clicks on it do nothing, see onCardClick) until
+        // the player says they're ready.
+        function beginRound() {
+          if (!state || state.status !== 'ready') return;
+          state.status = 'playing';
           render();
           startTimer();
         }
@@ -491,12 +585,12 @@
             state.score += 1;
             state.selectedIndex = null;
 
-            // Refill exactly the two freed cells from the next station in
-            // the day's pool - the rest of the board is untouched, so a
-            // solved pair never reshuffles anything else you were tracking.
-            // Each cell keeps the type its position always has (see
-            // typeForIndex) - only the station occupying it changes, so
-            // the checkerboard never shifts across a refill.
+            // Refill the two freed cells with the next station in the
+            // day's pool. Each cell keeps the type its position always
+            // has (see typeForIndex) - only the station occupying it
+            // changes, so the checkerboard never shifts. Positions get
+            // reshuffled right after (see shuffleBoardPositions), so
+            // exactly which cells these are doesn't matter for long.
             if (state.poolIndex < state.pool.length) {
               var nextStation = state.pool[state.poolIndex];
               state.poolIndex += 1;
@@ -510,8 +604,10 @@
               state.cells[freedB] = { type: null, station: null, matched: true };
             }
 
+            shuffleBoardPositions();
+
             renderStatus();
-            renderBoard();
+            renderBoardAnimated();
           } else {
             state.selectedIndex = index;
             renderBoard();
@@ -544,15 +640,19 @@
           $('game-title').textContent = 'Metrordle: Memoria #' + state.gameNumber;
 
           var playing = state.status === 'playing';
-          els.board.hidden = !playing;
-          els.timerTrack.hidden = !playing;
-          els.reveal.hidden = playing;
+          var ready = state.status === 'ready';
+          var done = state.status === 'done';
 
-          if (playing) {
+          els.startOverlay.hidden = !ready;
+          els.board.hidden = done;
+          els.timerTrack.hidden = !playing;
+          els.reveal.hidden = !done;
+
+          if (done) {
+            renderReveal();
+          } else {
             renderStatus();
             renderBoard();
-          } else {
-            renderReveal();
           }
         }
 
@@ -582,7 +682,8 @@
             if (cell.matched) classes.push('memo-card--matched');
             if (index === state.selectedIndex) classes.push('memo-card--selected');
             btn.className = classes.join(' ');
-            btn.disabled = cell.matched;
+            btn.disabled = cell.matched || state.status !== 'playing';
+            btn.dataset.key = cell.type + ':' + cell.station;
 
             if (cell.matched) {
               var line = lineForStation(cell.station);
@@ -604,6 +705,57 @@
             });
 
             el.appendChild(btn);
+          });
+        }
+
+        // Same as renderBoard(), but plays a FLIP-style slide for every
+        // card that moved (so a reshuffled board reads as "things moved
+        // over there", not just a jump-cut) and a small pop-in for the
+        // two freshly refilled cards, which have no "before" position to
+        // slide from. Keyed by "type:station" since that pair is always
+        // unique on the board at any moment.
+        function renderBoardAnimated() {
+          var el = els.board;
+          var reduceMotion = MetroShared.prefersReducedMotion();
+          var oldRects = {};
+
+          if (!reduceMotion) {
+            Array.prototype.forEach.call(el.querySelectorAll('.memo-card[data-key]'), function (card) {
+              oldRects[card.dataset.key] = card.getBoundingClientRect();
+            });
+          }
+
+          renderBoard();
+
+          if (reduceMotion) return;
+
+          Array.prototype.forEach.call(el.querySelectorAll('.memo-card[data-key]'), function (card) {
+            var oldRect = oldRects[card.dataset.key];
+
+            if (!oldRect) {
+              card.classList.add('memo-card--entering');
+              setTimeout(function () {
+                card.classList.remove('memo-card--entering');
+              }, 300);
+              return;
+            }
+
+            var newRect = card.getBoundingClientRect();
+            var dx = oldRect.left - newRect.left;
+            var dy = oldRect.top - newRect.top;
+            if (!dx && !dy) return;
+
+            card.style.transition = 'none';
+            card.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+            // Force layout so the browser registers the starting
+            // transform before we animate it away - otherwise these two
+            // style writes collapse into one and nothing visibly moves.
+            void card.offsetWidth;
+            card.style.transition = 'transform 0.35s ease';
+            card.style.transform = '';
+            setTimeout(function () {
+              card.style.transition = '';
+            }, 350);
           });
         }
 
@@ -673,6 +825,8 @@
             timerTrack: $('timer-track'),
             timerBar: $('timer-bar'),
             board: $('memo-board'),
+            startOverlay: $('start-overlay'),
+            startBtn: $('start-btn'),
             reveal: $('reveal'),
             shareBtn: $('share-btn'),
             dateDebug: $('date-debug'),
@@ -682,6 +836,7 @@
           };
 
           els.shareBtn.addEventListener('click', shareResult);
+          els.startBtn.addEventListener('click', beginRound);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;

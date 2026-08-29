@@ -389,6 +389,7 @@
         'use strict';
 
         var SHARE_URL = 'https://metrordle.com/laberinto/';
+        var STREAK_STORAGE_KEY = 'laberinto:streak';
 
         // This game's own daily numbering, independent of Metrordle's -
         // Game #1 is the day Laberinto launched.
@@ -400,6 +401,11 @@
 
         var adjacency = buildAdjacency(MetroShared.LINES);
 
+        // Station name -> list of { station, line } reachable in one hop.
+        // A station gets one entry per direction on each line it sits on
+        // (skipped at a line's own endpoints, i > 0 / i < length - 1), so
+        // an interchange naturally accumulates entries from every line it
+        // touches without any special-casing here.
         function buildAdjacency(lines) {
           var graph = {};
           lines.forEach(function (line) {
@@ -551,7 +557,7 @@
             path: path,
             status: status,
             currentStation: path[path.length - 1].station,
-            streak: status !== 'playing' ? MetroShared.loadStreak('laberinto:streak').count : 0,
+            streak: status !== 'playing' ? MetroShared.loadStreak(STREAK_STORAGE_KEY).count : 0,
           };
 
           render();
@@ -559,7 +565,7 @@
 
         function finalizeGame(won) {
           state.status = won ? 'won' : 'gaveup';
-          state.streak = MetroShared.updateStreakForResult('laberinto:streak', state.dateKey, won);
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, won);
           persistState();
           render();
         }
@@ -682,10 +688,19 @@
             return aCurrent - bCurrent;
           });
 
+          // Measure the actual rendered box rather than hardcoding it, so
+          // the layout still centers correctly if the card's width changes
+          // (viewport resize, different font metrics, etc.) - the || 320 /
+          // || 240 fallbacks only matter before first layout, when
+          // clientWidth/clientHeight can briefly read 0.
           var stageW = els.mapStage.clientWidth || 320;
           var stageH = els.mapStage.clientHeight || 240;
           var hubX = stageW / 2;
           var hubY = stageH / 2;
+          // Radius is capped by whichever dimension is tighter (a wide but
+          // short card, or vice versa) minus a 40px margin, so neighbor
+          // circles never spill past the stage edge; 70px is just a floor
+          // so a very small stage doesn't collapse the fan to nothing.
           var radius = Math.max(70, Math.min(stageW / 2 - 40, stageH / 2 - 40));
 
           var svgNS = 'http://www.w3.org/2000/svg';
@@ -694,7 +709,13 @@
           els.mapNodes.innerHTML = '';
 
           neighbors.forEach(function (neighbor, i) {
+            // Evenly split a full circle across however many neighbors
+            // there are (2 neighbors -> 180° apart, 6 -> 60° apart, ...),
+            // starting at 12 o'clock (-90°) and stepping clockwise so the
+            // sorted current-line entry from above always lands there.
             var angle = -90 + i * (360 / neighbors.length);
+            // Standard polar-to-Cartesian conversion to place each node
+            // relative to the hub at the stage's center.
             var rad = angle * Math.PI / 180;
             var x = hubX + radius * Math.cos(rad);
             var y = hubY + radius * Math.sin(rad);

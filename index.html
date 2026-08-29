@@ -692,6 +692,7 @@
         var TOTAL_ATTEMPTS = 5;
         var STATIONS_PER_PUZZLE = 5;
         var SHARE_URL = 'https://metrordle.com/';
+        var STREAK_STORAGE_KEY = 'metrordle:streak';
 
         var state = null;
         var els = {};
@@ -921,7 +922,7 @@
             history: history,
             gameOver: gameOver,
             won: saved ? !!saved.won : false,
-            streak: gameOver ? MetroShared.loadStreak('metrordle:streak').count : 0,
+            streak: gameOver ? MetroShared.loadStreak(STREAK_STORAGE_KEY).count : 0,
             mode: mode,
           };
 
@@ -1214,7 +1215,7 @@
             state.won = false;
           }
           if (state.gameOver) {
-            state.streak = MetroShared.updateStreakForResult('metrordle:streak', state.dateKey, state.won);
+            state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
           }
           persistState();
           render(false);
@@ -1622,12 +1623,12 @@
           var count = parseInt(carried, 10);
           if (isFinite(count) && count >= 0) {
             try {
-              var existing = MetroShared.loadStreak('metrordle:streak');
+              var existing = MetroShared.loadStreak(STREAK_STORAGE_KEY);
               // Never regress a streak the player already built natively here.
               if (count > existing.count) {
                 var yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                MetroShared.saveStreak('metrordle:streak', { count: count, lastResultDate: MetroShared.getDateKey(yesterday) });
+                MetroShared.saveStreak(STREAK_STORAGE_KEY, { count: count, lastResultDate: MetroShared.getDateKey(yesterday) });
               }
             } catch (e) {
               // ignore, same defensive posture as the rest of the streak code

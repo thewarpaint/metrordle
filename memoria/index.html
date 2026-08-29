@@ -309,17 +309,43 @@
           return shuffle(allStationNames(), rand);
         }
 
-        // First 8 stations off the pool become the starting board: one
-        // icon card + one name card each (16 cells), positions shuffled
-        // with the same seeded generator so every player's opening board
-        // is identical that day.
+        // Which "kind" of card a cell always shows - a checkerboard over
+        // the 4x4 grid (row 0: icon/name/icon/name, row 1: the opposite,
+        // ...), fixed by position rather than by whatever station happens
+        // to be there. A cell's type never changes across the whole round,
+        // including refills - only which station occupies it does.
+        function typeForIndex(index) {
+          var row = Math.floor(index / 4);
+          var col = index % 4;
+          return (row + col) % 2 === 0 ? 'icon' : 'name';
+        }
+
+        // First 8 stations off the pool become the starting board: each
+        // station's icon card lands in a random icon-typed cell and its
+        // name card in a random name-typed cell (two independent shuffles
+        // with the same seeded generator), so there's no fixed
+        // correspondence between where a station's icon and its own name
+        // end up, while every player still sees the identical board that
+        // day.
         function buildInitialCells(pool, rand) {
-          var slots = [];
-          for (var i = 0; i < 8; i++) {
-            slots.push({ type: 'icon', station: pool[i], matched: false });
-            slots.push({ type: 'name', station: pool[i], matched: false });
+          var iconPositions = [];
+          var namePositions = [];
+          for (var i = 0; i < 16; i++) {
+            (typeForIndex(i) === 'icon' ? iconPositions : namePositions).push(i);
           }
-          return shuffle(slots, rand);
+
+          var stations = pool.slice(0, 8);
+          var iconOrder = shuffle(stations, rand);
+          var nameOrder = shuffle(stations, rand);
+
+          var cells = new Array(16);
+          iconPositions.forEach(function (pos, i) {
+            cells[pos] = { type: 'icon', station: iconOrder[i], matched: false };
+          });
+          namePositions.forEach(function (pos, i) {
+            cells[pos] = { type: 'name', station: nameOrder[i], matched: false };
+          });
+          return cells;
         }
 
         function lineForStation(name) {
@@ -468,12 +494,14 @@
             // Refill exactly the two freed cells from the next station in
             // the day's pool - the rest of the board is untouched, so a
             // solved pair never reshuffles anything else you were tracking.
+            // Each cell keeps the type its position always has (see
+            // typeForIndex) - only the station occupying it changes, so
+            // the checkerboard never shifts across a refill.
             if (state.poolIndex < state.pool.length) {
               var nextStation = state.pool[state.poolIndex];
               state.poolIndex += 1;
-              var iconInFreedA = state.rand() < 0.5;
-              state.cells[freedA] = { type: iconInFreedA ? 'icon' : 'name', station: nextStation, matched: false };
-              state.cells[freedB] = { type: iconInFreedA ? 'name' : 'icon', station: nextStation, matched: false };
+              state.cells[freedA] = { type: typeForIndex(freedA), station: nextStation, matched: false };
+              state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation, matched: false };
             } else {
               // The pool (every station in the network) is exhausted -
               // realistically unreachable in 30 seconds, but leave the

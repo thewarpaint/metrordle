@@ -404,32 +404,33 @@
           return cells;
         }
 
-        // After a match, scramble where every remaining station sits -
-        // icon cells among themselves, name cells among themselves, so
-        // the checkerboard type at each position never changes - using
-        // the same seeded generator the rest of the round draws from.
-        // Otherwise the freshly refilled pair would always be obvious,
-        // sitting in the exact two slots that were empty a moment ago.
-        // Cells left inert by an exhausted pool are skipped.
-        function shuffleBoardPositions() {
-          var iconPositions = [];
-          var namePositions = [];
-          for (var i = 0; i < state.cells.length; i++) {
-            var cell = state.cells[i];
-            if (!cell || cell.type === null) continue;
-            (cell.type === 'icon' ? iconPositions : namePositions).push(i);
+        // After a match, swap each of the two freshly refilled cells
+        // with one other random cell of the same checkerboard type (so
+        // the swap can never break the pattern) - just those two freed
+        // cards plus two more, not the whole board. Otherwise the new
+        // pair would always be obvious, sitting in the exact two slots
+        // that were empty a moment ago.
+        function shuffleAfterMatch(freedA, freedB) {
+          function swapWithRandomSameType(index) {
+            var cell = state.cells[index];
+            if (!cell || cell.type === null) return;
+
+            var candidates = [];
+            for (var i = 0; i < state.cells.length; i++) {
+              if (i === index) continue;
+              var other = state.cells[i];
+              if (other && other.type === cell.type) candidates.push(i);
+            }
+            if (candidates.length === 0) return;
+
+            var partner = candidates[Math.floor(state.rand() * candidates.length)];
+            var tmp = state.cells[index];
+            state.cells[index] = state.cells[partner];
+            state.cells[partner] = tmp;
           }
 
-          function shuffleGroup(positions) {
-            var cells = positions.map(function (pos) { return state.cells[pos]; });
-            var shuffled = shuffle(cells, state.rand);
-            positions.forEach(function (pos, i) {
-              state.cells[pos] = shuffled[i];
-            });
-          }
-
-          shuffleGroup(iconPositions);
-          shuffleGroup(namePositions);
+          swapWithRandomSameType(freedA);
+          swapWithRandomSameType(freedB);
         }
 
         function lineForStation(name) {
@@ -588,9 +589,10 @@
             // Refill the two freed cells with the next station in the
             // day's pool. Each cell keeps the type its position always
             // has (see typeForIndex) - only the station occupying it
-            // changes, so the checkerboard never shifts. Positions get
-            // reshuffled right after (see shuffleBoardPositions), so
-            // exactly which cells these are doesn't matter for long.
+            // changes, so the checkerboard never shifts. Both freed
+            // cells then get swapped to other random same-type spots
+            // (see shuffleAfterMatch), so exactly which cells these are
+            // doesn't matter for long.
             if (state.poolIndex < state.pool.length) {
               var nextStation = state.pool[state.poolIndex];
               state.poolIndex += 1;
@@ -598,13 +600,13 @@
               state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation, matched: false };
             } else {
               // The pool (every station in the network) is exhausted -
-              // realistically unreachable in 30 seconds, but leave the
+              // realistically unreachable within the round, but leave the
               // cells inert rather than crash or wrap around.
               state.cells[freedA] = { type: null, station: null, matched: true };
               state.cells[freedB] = { type: null, station: null, matched: true };
             }
 
-            shuffleBoardPositions();
+            shuffleAfterMatch(freedA, freedB);
 
             renderStatus();
             renderBoardAnimated();

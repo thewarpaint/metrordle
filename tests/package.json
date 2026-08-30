@@ -1,0 +1,13 @@
+{
+  "name": "metrordle-tests",
+  "private": true,
+  "description": "Playwright end-to-end tests for the Metrordle minigame family. See README.md.",
+  "scripts": {
+    "test": "node run.js",
+    "test:fast": "node memoria/fast.test.js",
+    "test:lifecycle": "node memoria/round-lifecycle.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}

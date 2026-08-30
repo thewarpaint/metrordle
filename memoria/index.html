@@ -8,13 +8,13 @@
     <meta name="title" content="Metrordle: Memoria 🚇">
     <meta
       name="description"
-      content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 60 segundos."
+      content="Haz la mayor cantidad de pares de estaciones del Metro de CDMX en 60 segundos."
     >
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://metrordle.com/memoria/">
     <meta property="og:title" content="Metrordle: Memoria 🚇">
-    <meta property="og:description" content="Empareja el ícono de cada estación del Metro de CDMX con su nombre antes de que se acabe el tiempo. Tienes 60 segundos.">
+    <meta property="og:description" content="Haz la mayor cantidad de pares de estaciones del Metro de CDMX en 60 segundos.">
     <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="715">
@@ -267,7 +267,8 @@
         <div class="sign__head">
           <h1 id="game-title">Metrordle: Memoria</h1>
           <p class="dek">
-            Empareja el ícono de cada estación con su nombre. Tienes 60 segundos - cada acierto trae una pareja nueva.
+            Haz la mayor cantidad de pares de íconos y nombres de estaciones del Metro de CDMX en 60 segundos.
+            Cada acierto descubre un nuevo par de cartas.
           </p>
         </div>
 
@@ -284,7 +285,9 @@
 
           <div class="start-overlay" id="start-overlay" hidden>
             <div class="start-overlay__panel">
-              <p class="start-overlay__text">Toca "Comenzar" cuando estés listo para arrancar el conteo.</p>
+              <p class="start-overlay__text">
+                Presiona "Comenzar" cuando estés listo para arrancar el conteo.
+              </p>
               <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
             </div>
           </div>
@@ -776,10 +779,10 @@
         // against - it's a skill band over an open scale, not a percentage.
         function getRating(score) {
           if (score === 0) return { label: 'Terrible', square: '🟥' };
-          if (score <= 3) return { label: 'Mala', square: '🟧' };
-          if (score <= 6) return { label: 'Regular', square: '🟨' };
-          if (score <= 9) return { label: 'Buena', square: '🟩' };
-          return { label: 'Perfecto', square: '🟦' };
+          if (score <= 5) return { label: 'Mala', square: '🟧' };
+          if (score <= 10) return { label: 'Regular', square: '🟨' };
+          if (score <= 20) return { label: 'Buena', square: '🟩' };
+          return { label: 'Excelente', square: '🟦' };
         }
 
         function buildShareText() {

@@ -63,7 +63,7 @@
       }
 
       .timer-bar {
-        background: var(--focus);
+        background: var(--line);
         height: 100%;
         transition: width 1s linear;
         width: 100%;
@@ -130,7 +130,7 @@
       .memo-card {
         align-items: center;
         aspect-ratio: 1;
-        background: var(--paper-raised);
+        background: var(--paper-well);
         border: 2px solid var(--rule);
         border-radius: 0.5rem;
         cursor: pointer;
@@ -141,10 +141,6 @@
         padding: 0.25rem;
         transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
         width: 100%;
-      }
-
-      .memo-card--icon {
-        background: var(--paper-well);
       }
 
       .memo-card:hover:not(:disabled) {
@@ -187,6 +183,7 @@
       }
 
       .memo-card__name {
+        color: var(--ink);
         font-size: 0.66rem;
         font-weight: 700;
         hyphens: auto;
@@ -484,6 +481,15 @@
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
           var saved = loadSavedResult(dateKey);
+
+          // A decorative daily accent - which line's color shows up on
+          // the Comenzar button and the countdown bar - picked the same
+          // way the main game picks its daily line, but from its own
+          // seed namespace so it never touches the pool's draw order.
+          var accentRand = MetroShared.createSeededRandom('metrordle-memoria-accent-' + dateKey);
+          var accentLine = MetroShared.LINES[Math.floor(accentRand() * MetroShared.LINES.length)];
+          document.documentElement.style.setProperty('--line', accentLine.color);
+          document.documentElement.style.setProperty('--line-ink', accentLine.textColor);
 
           if (saved) {
             state = {

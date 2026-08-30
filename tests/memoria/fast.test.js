@@ -146,6 +146,50 @@ async function main() {
     }
   });
 
+  test('icon and name cards share the same background, and name text isn\'t left unreadable', async () => {
+    const { context, page } = await freshPage(TEST_DATE);
+    try {
+      const info = await page.evaluate(() => {
+        const iconCard = document.querySelector('.memo-card--icon');
+        const nameCard = document.querySelector('.memo-card--name');
+        const nameText = nameCard.querySelector('.memo-card__name');
+        return {
+          iconBg: getComputedStyle(iconCard).backgroundColor,
+          nameBg: getComputedStyle(nameCard).backgroundColor,
+          nameTextColor: getComputedStyle(nameText).color,
+        };
+      });
+      assert.strictEqual(info.iconBg, info.nameBg, 'icon and name cards should share the same background');
+      // Buttons don't inherit page text color by default - a name card
+      // with no explicit color falls back to the browser's default
+      // button text (black), which is nearly invisible on a dark card.
+      assert.notStrictEqual(info.nameTextColor, 'rgb(0, 0, 0)', 'name text should not fall back to the browser default black button text');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('the Comenzar button and timer bar pick the same deterministic per-day accent color', async () => {
+    const { context: c1, page: p1 } = await freshPage(TEST_DATE);
+    const { context: c2, page: p2 } = await freshPage(TEST_DATE);
+    try {
+      const readLine = (page) => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--line').trim());
+
+      const line1 = await readLine(p1);
+      const line2 = await readLine(p2);
+      assert.strictEqual(line1, line2, 'the same date should pick the same accent color across sessions');
+      assert.ok(/^#[0-9a-f]{6}$/i.test(line1), 'accent should be a real line color, got: ' + line1);
+
+      const btnBg = await p1.evaluate(() => getComputedStyle(document.getElementById('start-btn')).backgroundColor);
+      await p1.click('#start-btn');
+      const barBg = await p1.evaluate(() => getComputedStyle(document.getElementById('timer-bar')).backgroundColor);
+      assert.strictEqual(btnBg, barBg, 'Comenzar button and timer bar should render the same accent color');
+    } finally {
+      await c1.close();
+      await c2.close();
+    }
+  });
+
   test('?debug=true date navigation loads a different day\'s board', async () => {
     const { context, page } = await freshPage(TEST_DATE);
     try {

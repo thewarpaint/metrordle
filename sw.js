@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v16';
+var CACHE_NAME = 'metrordle-v17';
 
 var PRECACHE_URLS = [
   '/',
@@ -12,14 +12,15 @@ var PRECACHE_URLS = [
   '/laberinto/index.html',
   '/memoria/',
   '/memoria/index.html',
-  '/shared.css',
-  '/shared.js',
-  '/manifest.json',
+  // Assets
+  '/apple-touch-icon.png',
+  '/favicon.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',
-  '/apple-touch-icon.png',
-  '/favicon.png',
+  '/manifest.json',
+  '/shared.css',
+  '/shared.js',
   '/station-icons.svg',
 ];
 

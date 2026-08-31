@@ -922,6 +922,8 @@
             } while (arraysEqual(currentOrder, puzzle.correctOrder));
           }
 
+          var savedStreak = gameOver ? MetroShared.loadStreak(STREAK_STORAGE_KEY) : null;
+
           state = {
             dateKey: dateKey,
             gameNumber: gameNumber,
@@ -932,7 +934,8 @@
             history: history,
             gameOver: gameOver,
             won: saved ? !!saved.won : false,
-            streak: gameOver ? MetroShared.loadStreak(STREAK_STORAGE_KEY).count : 0,
+            streak: savedStreak ? savedStreak.count : 0,
+            maxStreak: savedStreak ? savedStreak.max : 0,
             mode: mode,
           };
 
@@ -1226,6 +1229,7 @@
           }
           if (state.gameOver) {
             state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
+            state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           }
           persistState();
           render(false);
@@ -1494,6 +1498,15 @@
           });
         }
 
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
         function renderReveal() {
           if (!state.gameOver) {
             els.reveal.hidden = true;
@@ -1504,7 +1517,8 @@
 
           var banner = $('reveal-banner');
           banner.className = 'reveal__banner ' + (state.won ? 'reveal__banner--win' : 'reveal__banner--lose');
-          banner.textContent = (state.won ? '¡Lo lograste!' : 'Suerte para la próxima…') + ' 🔥 ' + MetroShared.formatStreak(state.streak);
+          banner.textContent = (state.won ? '¡Lo lograste!' : 'Suerte para la próxima…') + ' 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
 
           var board = $('guess-board');
           board.innerHTML = '';
@@ -1550,7 +1564,8 @@
 
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
-          return '#Metrordle #' + state.gameNumber + '\n' + hardModeLine + '\n' + grid + '\n\n🔥 ' + MetroShared.formatStreak(state.streak) + '\n\n' + SHARE_URL;
+          return '#Metrordle #' + state.gameNumber + '\n' + hardModeLine + '\n' + grid + '\n\n🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' + SHARE_URL;
         }
 
         function shareResult() {
@@ -1638,7 +1653,14 @@
               if (count > existing.count) {
                 var yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                MetroShared.saveStreak(STREAK_STORAGE_KEY, { count: count, lastResultDate: MetroShared.getDateKey(yesterday) });
+                MetroShared.saveStreak(STREAK_STORAGE_KEY, {
+                  count: count,
+                  lastResultDate: MetroShared.getDateKey(yesterday),
+                  // The carried-over count is itself a real streak this
+                  // player reached, so it's a lower bound on their best -
+                  // never regress a max already tracked natively here.
+                  max: Math.max(existing.max, count),
+                });
               }
             } catch (e) {
               // ignore, same defensive posture as the rest of the streak code

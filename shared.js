@@ -316,7 +316,7 @@ function formatStreak(count) {
 }
 
 function formatMaxStreak(count) {
-  return 'Racha máxima: ' + count + (count === 1 ? ' día' : ' días');
+  return 'máxima: ' + count + (count === 1 ? ' día' : ' días');
 }
 
 function copyViaExecCommand(text) {

@@ -762,7 +762,7 @@
         // reads as redundant rather than as new information.
         function maxStreakLine(separator) {
           if (state.maxStreak <= state.streak) return '';
-          return separator + '🏆 ' + MetroShared.formatMaxStreak(state.maxStreak);
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
         }
 
         function renderReveal() {
@@ -770,7 +770,7 @@
           var banner = $('reveal-banner');
           banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
           banner.textContent = (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(' · ');
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
 
           var yourStops = countStops(state.path);
           var yourTransfers = countTransfers(state.path);

@@ -681,6 +681,37 @@
           });
         }
 
+        // Where neighbor i (of n total) lands relative to the hub, as a
+        // { dx, dy } offset - always in reading order, top row before
+        // bottom row and left before right within a row, so the array's
+        // order (which already groups same-line neighbors together and
+        // puts the line you're currently riding first, see the sort
+        // below) maps directly onto how the fan reads. Exactly two
+        // neighbors go left/right rather than top/bottom - the far and
+        // away most common case (most stations aren't interchanges),
+        // and "first, then second" reads more naturally side by side.
+        function neighborOffset(i, n, radius) {
+          if (n === 1) return { dx: 0, dy: -radius };
+          if (n === 2) return { dx: (i === 0 ? -1 : 1) * radius, dy: 0 };
+
+          // 3+: two rows. The top row (read first) gets the extra seat
+          // when n is odd, so the earlier array entries - read first -
+          // land in the row read first.
+          var topCount = Math.ceil(n / 2);
+          var row = i < topCount ? 0 : 1;
+          var colsInRow = row === 0 ? topCount : n - topCount;
+          var col = row === 0 ? i : i - topCount;
+
+          // Evenly spread this row's columns across a span centered on
+          // the hub, one radius apart - the same spacing the 2-neighbor
+          // case uses, so a wide row never reaches further out than that
+          // already does.
+          var span = (colsInRow - 1) * radius;
+          var dx = colsInRow === 1 ? 0 : -span / 2 + col * radius;
+          var dy = (row === 0 ? -1 : 1) * radius;
+          return { dx: dx, dy: dy };
+        }
+
         // No text on the map by design - stations are read by their real
         // Metro pictogram and line color, the same way riders navigate the
         // actual system. Breadcrumb below still spells out the trail in
@@ -691,9 +722,12 @@
           els.mapHubIcon.appendChild(makeIcon(state.currentStation, 'map-hub__icon'));
 
           // Neighbors reachable by continuing on the line you're already
-          // riding land first (12 o'clock, going clockwise), so staying on
-          // your current line - the common case - is the first thing your
-          // eye meets.
+          // riding land first, so staying on your current line - the
+          // common case - is the first thing your eye meets. This is a
+          // stable sort over an adjacency list that's already grouped by
+          // line (buildAdjacency finishes one line's entries before
+          // starting the next), so every line's stations stay next to
+          // each other in the result too - not just the current one.
           var currentLineId = state.path[state.path.length - 1].lineId;
           var neighbors = (adjacency[state.currentStation] || []).slice().sort(function (a, b) {
             var aCurrent = a.line.id === currentLineId ? 0 : 1;
@@ -722,16 +756,9 @@
           els.mapNodes.innerHTML = '';
 
           neighbors.forEach(function (neighbor, i) {
-            // Evenly split a full circle across however many neighbors
-            // there are (2 neighbors -> 180° apart, 6 -> 60° apart, ...),
-            // starting at 12 o'clock (-90°) and stepping clockwise so the
-            // sorted current-line entry from above always lands there.
-            var angle = -90 + i * (360 / neighbors.length);
-            // Standard polar-to-Cartesian conversion to place each node
-            // relative to the hub at the stage's center.
-            var rad = angle * Math.PI / 180;
-            var x = hubX + radius * Math.cos(rad);
-            var y = hubY + radius * Math.sin(rad);
+            var offset = neighborOffset(i, neighbors.length, radius);
+            var x = hubX + offset.dx;
+            var y = hubY + offset.dy;
 
             var path = document.createElementNS(svgNS, 'path');
             path.setAttribute('d', 'M ' + hubX + ' ' + hubY + ' L ' + x + ' ' + y);

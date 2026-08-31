@@ -557,6 +557,7 @@
 
           var path = saved ? saved.path : [{ station: puzzle.origin, lineId: null }];
           var status = saved ? saved.status : 'playing';
+          var savedStreak = status !== 'playing' ? MetroShared.loadStreak(STREAK_STORAGE_KEY) : null;
 
           state = {
             dateKey: dateKey,
@@ -567,7 +568,8 @@
             path: path,
             status: status,
             currentStation: path[path.length - 1].station,
-            streak: status !== 'playing' ? MetroShared.loadStreak(STREAK_STORAGE_KEY).count : 0,
+            streak: savedStreak ? savedStreak.count : 0,
+            maxStreak: savedStreak ? savedStreak.max : 0,
           };
 
           render();
@@ -576,6 +578,7 @@
         function finalizeGame(won) {
           state.status = won ? 'won' : 'gaveup';
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, won);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           persistState();
           render();
         }
@@ -753,11 +756,21 @@
           });
         }
 
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + '🏆 ' + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
         function renderReveal() {
           var won = state.status === 'won';
           var banner = $('reveal-banner');
           banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
-          banner.textContent = (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥 ' + MetroShared.formatStreak(state.streak);
+          banner.textContent = (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(' · ');
 
           var yourStops = countStops(state.path);
           var yourTransfers = countTransfers(state.path);
@@ -805,7 +818,7 @@
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)\n' +
             'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)\n' +
-            '🔥 ' + MetroShared.formatStreak(state.streak) + '\n\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' +
             SHARE_URL;
         }
 

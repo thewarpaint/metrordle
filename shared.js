@@ -271,12 +271,15 @@ function getGameNumberForDateKey(dateKey, startDateKey) {
 function loadStreak(storageKey) {
   try {
     var raw = localStorage.getItem(storageKey);
-    if (!raw) return { count: 0, lastResultDate: null };
+    if (!raw) return { count: 0, lastResultDate: null, max: 0 };
     var parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed.count !== 'number') return { count: 0, lastResultDate: null };
+    if (!parsed || typeof parsed.count !== 'number') return { count: 0, lastResultDate: null, max: 0 };
+    // Backfill max for streaks saved before this field existed - the
+    // current count is always a lower bound on the best ever reached.
+    if (typeof parsed.max !== 'number') parsed.max = parsed.count;
     return parsed;
   } catch (e) {
-    return { count: 0, lastResultDate: null };
+    return { count: 0, lastResultDate: null, max: 0 };
   }
 }
 
@@ -301,6 +304,7 @@ function updateStreakForResult(storageKey, dateKey, won) {
     streak.count = 0;
   }
 
+  streak.max = Math.max(streak.max || 0, streak.count);
   streak.lastResultDate = dateKey;
   saveStreak(storageKey, streak);
 
@@ -309,6 +313,10 @@ function updateStreakForResult(storageKey, dateKey, won) {
 
 function formatStreak(count) {
   return 'Racha: ' + count + (count === 1 ? ' día' : ' días');
+}
+
+function formatMaxStreak(count) {
+  return 'Racha máxima: ' + count + (count === 1 ? ' día' : ' días');
 }
 
 function copyViaExecCommand(text) {
@@ -359,4 +367,5 @@ window.MetroShared = {
   saveStreak: saveStreak,
   updateStreakForResult: updateStreakForResult,
   formatStreak: formatStreak,
+  formatMaxStreak: formatMaxStreak,
 };

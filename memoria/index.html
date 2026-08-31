@@ -492,13 +492,15 @@
           document.documentElement.style.setProperty('--line-ink', accentLine.textColor);
 
           if (saved) {
+            var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state = {
               dateKey: dateKey,
               gameNumber: gameNumber,
               status: 'done',
               score: saved.score,
               won: saved.won,
-              streak: MetroShared.loadStreak(STREAK_STORAGE_KEY).count,
+              streak: savedStreak.count,
+              maxStreak: savedStreak.max,
               cells: [],
               selectedIndex: null,
               timerId: null,
@@ -525,6 +527,7 @@
             timerId: null,
             won: false,
             streak: 0,
+            maxStreak: 0,
           };
 
           render();
@@ -559,6 +562,7 @@
           state.won = state.score >= PAR_WIN_SCORE;
           persistResult(state.dateKey, state.score, state.won);
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           render();
         }
 
@@ -770,11 +774,21 @@
           });
         }
 
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + '🏆 ' + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
         function renderReveal() {
           var won = state.won;
           var banner = $('reveal-banner');
           banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
-          banner.textContent = (won ? '¡Buena memoria!' : 'Se acabó el tiempo') + ' 🔥 ' + MetroShared.formatStreak(state.streak);
+          banner.textContent = (won ? '¡Buena memoria!' : 'Se acabó el tiempo') + ' 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(' · ');
 
           $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
         }
@@ -797,7 +811,7 @@
           return 'Metrordle: Memoria #' + state.gameNumber + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Parejas: ' + state.score + '\n' +
-            '🔥 ' + MetroShared.formatStreak(state.streak) + '\n\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' +
             SHARE_URL;
         }
 

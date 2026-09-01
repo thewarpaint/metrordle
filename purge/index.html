@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+
+    <title>Limpiando caché… · Metrordle</title>
+
+    <link rel="icon" href="/favicon.png">
+
+    <!--
+      Deliberately self-contained - no /shared.css, no /shared.js. This
+      page exists to recover from a broken or stale service worker
+      cache, so it can't depend on anything that a broken cache might
+      itself be serving stale. Its own inline styles/script are the
+      entire page.
+    -->
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body {
+        align-items: center;
+        background: #faf9f5;
+        color: #14181a;
+        display: flex;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        justify-content: center;
+        margin: 0;
+        min-height: 100vh;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #0c0e11;
+          color: #ece9e1;
+        }
+      }
+
+      p {
+        font-size: 0.95rem;
+        margin: 0;
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+
+  <body>
+    <p id="message">Borrando datos locales…</p>
+
+    <noscript>
+      <meta http-equiv="refresh" content="0;url=/">
+    </noscript>
+
+    <script>
+      (function () {
+        'use strict';
+
+        function purgeCaches() {
+          if (!('caches' in window)) return Promise.resolve();
+          return caches.keys()
+            .then(function (keys) {
+              return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+            })
+            .catch(function () {
+              // Best-effort - a purge that can't finish still shouldn't
+              // strand the visitor on this page.
+            });
+        }
+
+        function unregisterServiceWorkers() {
+          if (!('serviceWorker' in navigator)) return Promise.resolve();
+          return navigator.serviceWorker.getRegistrations()
+            .then(function (registrations) {
+              return Promise.all(registrations.map(function (reg) { return reg.unregister(); }));
+            })
+            .catch(function () {});
+        }
+
+        function redirectHome() {
+          // A unique query string guarantees the next request for "/" is
+          // a real fetch, not a hit on some other cache layer (a CDN or
+          // the browser's own HTTP cache) sitting in front of Cache
+          // Storage, which is already empty by this point either way.
+          window.location.replace('/?purged=' + Date.now());
+        }
+
+        Promise.all([purgeCaches(), unregisterServiceWorkers()]).then(redirectHome, redirectHome);
+      })();
+    </script>
+  </body>
+</html>

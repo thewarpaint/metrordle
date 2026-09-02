@@ -435,42 +435,98 @@
           return null;
         }
 
-        // Plain unweighted BFS. Returns the shortest path from origin to
-        // destination as a list of hops - [{ station, lineId }], lineId
-        // null for the origin (no line ridden to get there yet) - or null
-        // if destination is unreachable (shouldn't happen on this graph).
-        function bfsShortestPath(origin, destination) {
+        // A search state is "at this station, currently riding this line"
+        // (null for the line before boarding anything) rather than just
+        // a station, since how many transfers it took to get somewhere
+        // depends on which line you rode in on, not only which station
+        // you're at.
+        function stateKey(station, lineId) {
+          return station + ' ' + (lineId || '');
+        }
+
+        // Fewer stops always wins; among routes tied on stops, fewer line
+        // changes wins. Plain BFS alone can't guarantee the second part -
+        // it locks in whichever predecessor reaches a station first, with
+        // no regard for how many times that particular route switched
+        // lines to get there. This is a Dijkstra-style search instead,
+        // ordered by the (stops, transfers) pair, so a state is only
+        // finalized once it's provably the best route to it on both
+        // counts - not just the first one discovered.
+        //
+        // Returns the winning route as a list of hops - [{ station,
+        // lineId }], lineId null for the origin (no line ridden to get
+        // there yet) - or null if destination is unreachable (shouldn't
+        // happen on this graph).
+        function shortestPath(origin, destination) {
           if (origin === destination) return [{ station: origin, lineId: null }];
 
-          var visited = {};
-          visited[origin] = true;
+          function isBetter(a, b) {
+            if (a.stops !== b.stops) return a.stops < b.stops;
+            return a.transfers < b.transfers;
+          }
+
+          var startKey = stateKey(origin, null);
+          var best = {};
+          best[startKey] = { stops: 0, transfers: 0 };
           var cameFrom = {};
-          var queue = [origin];
 
-          while (queue.length > 0) {
-            var current = queue.shift();
-            if (current === destination) break;
+          var frontier = [{ key: startKey, station: origin, lineId: null, stops: 0, transfers: 0 }];
+          var destKey = null;
 
-            var neighbors = adjacency[current] || [];
-            for (var i = 0; i < neighbors.length; i++) {
-              var next = neighbors[i];
-              if (visited[next.station]) continue;
-              visited[next.station] = true;
-              cameFrom[next.station] = { prevStation: current, lineId: next.line.id };
-              queue.push(next.station);
+          while (frontier.length > 0) {
+            // The graph is small enough (163 stations) that a linear scan
+            // for the best entry is simpler than a real priority queue,
+            // and plenty fast for a once-per-page-load search.
+            var bestIndex = 0;
+            for (var i = 1; i < frontier.length; i++) {
+              if (isBetter(frontier[i], frontier[bestIndex])) bestIndex = i;
+            }
+            var cur = frontier.splice(bestIndex, 1)[0];
+
+            // A better route to this exact state was already finalized -
+            // this is a stale queue entry left over from before that.
+            var known = best[cur.key];
+            if (isBetter(known, cur)) continue;
+
+            if (cur.station === destination) {
+              destKey = cur.key;
+              break;
+            }
+
+            var neighbors = adjacency[cur.station] || [];
+            for (var j = 0; j < neighbors.length; j++) {
+              var next = neighbors[j];
+              var isTransfer = cur.lineId !== null && next.line.id !== cur.lineId;
+              var candidate = {
+                key: stateKey(next.station, next.line.id),
+                station: next.station,
+                lineId: next.line.id,
+                stops: cur.stops + 1,
+                transfers: cur.transfers + (isTransfer ? 1 : 0),
+              };
+
+              var existing = best[candidate.key];
+              if (!existing || isBetter(candidate, existing)) {
+                best[candidate.key] = { stops: candidate.stops, transfers: candidate.transfers };
+                cameFrom[candidate.key] = { prevKey: cur.key, station: candidate.station, lineId: candidate.lineId };
+                frontier.push(candidate);
+              }
             }
           }
 
-          if (!visited[destination]) return null;
+          if (destKey === null) return null;
 
           var path = [];
-          var cur = destination;
-          while (cur !== origin) {
-            var info = cameFrom[cur];
-            path.unshift({ station: cur, lineId: info.lineId });
-            cur = info.prevStation;
+          var k = destKey;
+          while (true) {
+            var info = cameFrom[k];
+            if (!info) {
+              path.unshift({ station: origin, lineId: null });
+              break;
+            }
+            path.unshift({ station: info.station, lineId: info.lineId });
+            k = info.prevKey;
           }
-          path.unshift({ station: origin, lineId: null });
           return path;
         }
 
@@ -496,7 +552,7 @@
         // shortest path clears the difficulty floor.
         function getPuzzleForDateKey(dateKey) {
           var rand = MetroShared.createSeededRandom('metrordle-laberinto-' + dateKey);
-          var origin, destination, shortestPath;
+          var origin, destination, path;
 
           do {
             var lineA = MetroShared.LINES[Math.floor(rand() * MetroShared.LINES.length)];
@@ -507,10 +563,10 @@
 
             origin = lineA.stations[Math.floor(rand() * lineA.stations.length)];
             destination = lineB.stations[Math.floor(rand() * lineB.stations.length)];
-            shortestPath = bfsShortestPath(origin, destination);
-          } while (!shortestPath || shortestPath.length < MIN_PATH_STATIONS);
+            path = shortestPath(origin, destination);
+          } while (!path || path.length < MIN_PATH_STATIONS);
 
-          return { origin: origin, destination: destination, shortestPath: shortestPath };
+          return { origin: origin, destination: destination, shortestPath: path };
         }
 
         function storageKeyFor(dateKey) {

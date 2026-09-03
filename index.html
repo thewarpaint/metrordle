@@ -830,8 +830,10 @@
         // which (birthday-paradox math on ~147 possible puzzles) made an
         // exact repeat well within a few weeks likely - #19 and #22 came up
         // identical. From NON_REPEATING_SINCE on, puzzles are drawn in order
-        // from a single seeded shuffle of every possible puzzle, so nothing
-        // repeats until the whole pool has been used once, then it reshuffles.
+        // from a single seeded arrangement of every possible puzzle (see
+        // arrangePuzzlePoolWithLineSpacing below), so nothing repeats until
+        // the whole pool has been used once, and the same line never shows
+        // up on two days running either.
         //
         // Dates before the cutoff keep the exact old per-day algorithm so
         // already-played days (and anything saved in localStorage for them)
@@ -850,10 +852,78 @@
           return pool;
         }
 
+        // Arranges the pool so no line is ever picked on two calendar days
+        // in a row (including across the wraparound from the end of one
+        // cycle to the start of the next), instead of just shuffling
+        // everything and letting a line land back-to-back by chance. Uses
+        // the standard greedy for "no two adjacent equal": always draw the
+        // next entry from whichever remaining line has the most puzzles
+        // left, skipping the line just used. That's always solvable here
+        // since no single line's puzzle count comes close to half the pool
+        // (worst case today is 20 out of 147).
+        function arrangePuzzlePoolWithLineSpacing(pool, rand) {
+          var byLine = {};
+          var lines = [];
+          pool.forEach(function (entry) {
+            if (!byLine[entry.line.id]) {
+              byLine[entry.line.id] = [];
+              lines.push(entry.line);
+            }
+            byLine[entry.line.id].push(entry);
+          });
+          lines.forEach(function (line) {
+            byLine[line.id] = shuffle(byLine[line.id], rand);
+          });
+          var lineOrder = shuffle(lines, rand);
+
+          var result = [];
+          var lastLineId = null;
+          while (result.length < pool.length) {
+            var best = null;
+            for (var i = 0; i < lineOrder.length; i++) {
+              var candidate = lineOrder[i];
+              var bucket = byLine[candidate.id];
+              if (!bucket.length || candidate.id === lastLineId) continue;
+              if (!best || bucket.length > byLine[best.id].length) best = candidate;
+            }
+            if (!best) {
+              // Only lines with entries left all equal lastLineId - not
+              // reachable with this network's per-line puzzle counts, but
+              // fall back to allowing a repeat rather than stalling.
+              for (var j = 0; j < lineOrder.length; j++) {
+                if (byLine[lineOrder[j].id].length) { best = lineOrder[j]; break; }
+              }
+            }
+            result.push(byLine[best.id].shift());
+            lastLineId = best.id;
+          }
+
+          // The pool cycles once exhausted, so the last and first entries
+          // are also calendar-adjacent - swap to fix that seam too, if the
+          // greedy above happened to leave it matching.
+          var n = result.length;
+          if (n > 3 && result[0].line.id === result[n - 1].line.id) {
+            for (var k = 1; k <= n - 3; k++) {
+              var moving = result[n - 1];
+              var staying = result[k];
+              var validAtK = moving.line.id !== result[k - 1].line.id && moving.line.id !== result[k + 1].line.id;
+              var validAtEnd = staying.line.id !== result[n - 2].line.id && staying.line.id !== result[0].line.id;
+              if (validAtK && validAtEnd) {
+                result[k] = moving;
+                result[n - 1] = staying;
+                break;
+              }
+            }
+          }
+
+          return result;
+        }
+
         var shuffledPuzzlePool = null;
         function getShuffledPuzzlePool() {
           if (!shuffledPuzzlePool) {
-            shuffledPuzzlePool = shuffle(buildPuzzlePool(), MetroShared.createSeededRandom(POOL_SEED));
+            var rand = MetroShared.createSeededRandom(POOL_SEED);
+            shuffledPuzzlePool = arrangePuzzlePoolWithLineSpacing(buildPuzzlePool(), rand);
           }
           return shuffledPuzzlePool;
         }

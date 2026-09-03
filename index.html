@@ -825,14 +825,57 @@
           }
         }
 
+        // Every (line, start) window is a possible daily puzzle. Before
+        // NON_REPEATING_SINCE each day independently picked one at random,
+        // which (birthday-paradox math on ~147 possible puzzles) made an
+        // exact repeat well within a few weeks likely - #19 and #22 came up
+        // identical. From NON_REPEATING_SINCE on, puzzles are drawn in order
+        // from a single seeded shuffle of every possible puzzle, so nothing
+        // repeats until the whole pool has been used once, then it reshuffles.
+        //
+        // Dates before the cutoff keep the exact old per-day algorithm so
+        // already-played days (and anything saved in localStorage for them)
+        // never change. Only new days get the non-repeating pool.
+        var NON_REPEATING_SINCE = '2026-09-04';
+        var POOL_SEED = 'metrordle-puzzle-pool-v1';
+
+        function buildPuzzlePool() {
+          var pool = [];
+          MetroShared.LINES.forEach(function (line) {
+            var maxStart = line.stations.length - STATIONS_PER_PUZZLE;
+            for (var start = 0; start <= maxStart; start++) {
+              pool.push({ line: line, start: start });
+            }
+          });
+          return pool;
+        }
+
+        var shuffledPuzzlePool = null;
+        function getShuffledPuzzlePool() {
+          if (!shuffledPuzzlePool) {
+            shuffledPuzzlePool = shuffle(buildPuzzlePool(), MetroShared.createSeededRandom(POOL_SEED));
+          }
+          return shuffledPuzzlePool;
+        }
+
         function getPuzzleForDateKey(dateKey) {
-          var rand = MetroShared.createSeededRandom('metrordle-' + dateKey);
-          var line = MetroShared.LINES[Math.floor(rand() * MetroShared.LINES.length)];
-          var maxStart = line.stations.length - STATIONS_PER_PUZZLE;
-          var start = Math.floor(rand() * (maxStart + 1));
+          if (dateKey < NON_REPEATING_SINCE) {
+            var rand = MetroShared.createSeededRandom('metrordle-' + dateKey);
+            var line = MetroShared.LINES[Math.floor(rand() * MetroShared.LINES.length)];
+            var maxStart = line.stations.length - STATIONS_PER_PUZZLE;
+            var start = Math.floor(rand() * (maxStart + 1));
+            return {
+              line: line,
+              correctOrder: line.stations.slice(start, start + STATIONS_PER_PUZZLE),
+            };
+          }
+
+          var pool = getShuffledPuzzlePool();
+          var poolIndex = MetroShared.getGameNumberForDateKey(dateKey, NON_REPEATING_SINCE) - 1;
+          var entry = pool[poolIndex % pool.length];
           return {
-            line: line,
-            correctOrder: line.stations.slice(start, start + STATIONS_PER_PUZZLE),
+            line: entry.line,
+            correctOrder: entry.line.stations.slice(entry.start, entry.start + STATIONS_PER_PUZZLE),
           };
         }
 

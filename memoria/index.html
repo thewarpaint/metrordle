@@ -846,21 +846,40 @@
           renderRevealIcons();
         }
 
+        // Grouped by line (in MetroShared.LINES order, then by each
+        // station's own position along its line) rather than match order,
+        // so same-colored icons cluster together instead of scattering
+        // across the grid.
+        function sortedMatchedStations() {
+          var entries = state.matchedStations.map(function (station) {
+            var line = lineForStation(station);
+            return {
+              station: station,
+              line: line,
+              lineIndex: line ? MetroShared.LINES.indexOf(line) : MetroShared.LINES.length,
+              posInLine: line ? line.stations.indexOf(station) : 0,
+            };
+          });
+          entries.sort(function (a, b) {
+            return a.lineIndex - b.lineIndex || a.posInLine - b.posInLine;
+          });
+          return entries;
+        }
+
         function renderRevealIcons() {
           var el = els.revealIcons;
           el.innerHTML = '';
           el.hidden = state.matchedStations.length === 0;
 
-          state.matchedStations.forEach(function (station) {
+          sortedMatchedStations().forEach(function (entry) {
             var cell = document.createElement('span');
             cell.className = 'reveal__icon-cell';
-            cell.title = station;
-            cell.setAttribute('aria-label', station);
+            cell.title = entry.station;
+            cell.setAttribute('aria-label', entry.station);
 
-            var line = lineForStation(station);
-            if (line) cell.style.borderColor = line.color;
+            if (entry.line) cell.style.borderColor = entry.line.color;
 
-            cell.appendChild(makeIcon(station, 'reveal__icon'));
+            cell.appendChild(makeIcon(entry.station, 'reveal__icon'));
             el.appendChild(cell);
           });
         }

@@ -12,7 +12,13 @@
 const assert = require('assert');
 const { chromium } = require('playwright');
 const { startServer, test, runAll } = require('../lib/harness');
-const { matchOnePair } = require('../lib/memoria-helpers');
+const { clickCardForStation } = require('../lib/memoria-helpers');
+
+async function matchSpecificPair(page, station) {
+  await clickCardForStation(page, station);
+  await page.waitForTimeout(60);
+  await clickCardForStation(page, station);
+}
 
 // Must match START_DATE_KEY in memoria/index.html.
 const START_DATE_KEY = '2026-08-29';
@@ -63,15 +69,23 @@ async function main() {
       await page.click('#start-btn');
       await page.waitForTimeout(200);
 
-      // Match exactly 2 pairs so the result is predictable (rating
-      // "Mala", streak stays at 0 since 2 < the 8-pair win threshold).
-      const station1 = await matchOnePair(page);
+      // Match 3 specific stations from the initial board (known for this
+      // date), deliberately in an order that is NOT already grouped by
+      // line - Línea 12, then Línea 2, then Línea 1 - so the reveal
+      // screen's line-sorted icon order can only match by actually
+      // re-sorting, not by coincidentally mirroring match order.
+      const station1 = 'San Andrés Tomatlán'; // Línea 12
+      const station2 = 'Normal'; // Línea 2
+      const station3 = 'Candelaria'; // Línea 1
+      await matchSpecificPair(page, station1);
       await page.waitForTimeout(500);
-      const station2 = await matchOnePair(page);
+      await matchSpecificPair(page, station2);
+      await page.waitForTimeout(500);
+      await matchSpecificPair(page, station3);
       await page.waitForTimeout(500);
 
       const midStatus = await page.$eval('#status', (el) => el.textContent);
-      assert.ok(midStatus.endsWith('2 parejas'), 'should show 2 parejas after matching twice, got: ' + midStatus);
+      assert.ok(midStatus.endsWith('3 parejas'), 'should show 3 parejas after matching three times, got: ' + midStatus);
 
       // Let the round run out for real - poll rather than sleep a fixed
       // 60s, since the exact remaining time depends on how long the
@@ -82,17 +96,21 @@ async function main() {
       assert.strictEqual(banner, 'Se acabó el tiempo 🔥 Racha: 0 días');
 
       const stat = await page.$eval('#stat-you', (el) => el.textContent);
-      assert.strictEqual(stat, 'Parejas: 2');
+      assert.strictEqual(stat, 'Parejas: 3');
 
+      // Persisted matchedStations stays in MATCH order - only the reveal's
+      // rendered order is sorted by line, not the stored data itself.
       const saved = await page.evaluate((k) => localStorage.getItem('memoria:' + k), DATE);
-      assert.deepStrictEqual(JSON.parse(saved), { score: 2, won: false, matchedStations: [station1, station2] });
+      assert.deepStrictEqual(JSON.parse(saved), { score: 3, won: false, matchedStations: [station1, station2, station3] });
 
       // The reveal screen should show one small icon per matched station,
-      // laid out 6 per row.
+      // laid out 6 per row, grouped by line rather than match order -
+      // Línea 1 (Candelaria), then Línea 2 (Normal), then Línea 12 (San
+      // Andrés Tomatlán), reordered from the Línea 12/2/1 match order above.
       const iconCells = await page.$$('#reveal-icons .reveal__icon-cell');
-      assert.strictEqual(iconCells.length, 2, 'expected one icon per matched pair');
+      assert.strictEqual(iconCells.length, 3, 'expected one icon per matched pair');
       const iconLabels = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
-      assert.deepStrictEqual(iconLabels, [station1, station2], 'icons should appear in match order');
+      assert.deepStrictEqual(iconLabels, [station3, station2, station1], 'icons should be grouped by line, not shown in match order');
       const columnCount = await page.$eval('#reveal-icons', (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
       assert.strictEqual(columnCount, 6, 'expected the icon grid to lay out 6 per row');
 
@@ -102,7 +120,7 @@ async function main() {
 
       const expected = 'Metrordle: Memoria #' + gameNumberFor(DATE) + '\n' +
         '🟧 Calificación: Mala\n' +
-        'Parejas: 2\n' +
+        'Parejas: 3\n' +
         '🔥 Racha: 0 días\n\n' +
         'https://metrordle.com/memoria/';
       assert.strictEqual(shareText, expected);
@@ -113,9 +131,9 @@ async function main() {
       await page.waitForTimeout(200);
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'reveal should show immediately on reload after finishing');
       const statAfterReload = await page.$eval('#stat-you', (el) => el.textContent);
-      assert.strictEqual(statAfterReload, 'Parejas: 2', 'reload should show the same saved score, not start a new round');
+      assert.strictEqual(statAfterReload, 'Parejas: 3', 'reload should show the same saved score, not start a new round');
       const iconLabelsAfterReload = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
-      assert.deepStrictEqual(iconLabelsAfterReload, [station1, station2], 'reload should show the same saved matched-station icons');
+      assert.deepStrictEqual(iconLabelsAfterReload, [station3, station2, station1], 'reload should show the same line-sorted icon order');
     } finally {
       await context.close();
     }

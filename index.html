@@ -852,15 +852,62 @@
           return pool;
         }
 
-        // Arranges the pool so no line is ever picked on two calendar days
-        // in a row (including across the wraparound from the end of one
-        // cycle to the start of the next), instead of just shuffling
-        // everything and letting a line land back-to-back by chance. Uses
-        // the standard greedy for "no two adjacent equal": always draw the
-        // next entry from whichever remaining line has the most puzzles
-        // left, skipping the line just used. That's always solvable here
-        // since no single line's puzzle count comes close to half the pool
-        // (worst case today is 20 out of 147).
+        // Fixes any spot where the same line ends up on two calendar days
+        // in a row, including the wraparound seam where the pool cycles
+        // back to its own start. Scans the (circular) sequence and, for
+        // each violation, swaps in an entry from elsewhere that doesn't
+        // create a new one. Collisions are rare (see below), so a few
+        // passes are always enough to converge.
+        function repairAdjacentLineCollisions(sequence) {
+          var n = sequence.length;
+          for (var pass = 0; pass < 3; pass++) {
+            var fixedAny = false;
+            for (var i = 0; i < n; i++) {
+              var next = (i + 1) % n;
+              if (sequence[i].line.id !== sequence[next].line.id) continue;
+
+              for (var j = 0; j < n; j++) {
+                if (j === i || j === next) continue;
+                var prevJ = (j - 1 + n) % n;
+                var nextJ = (j + 1) % n;
+                // Keep j clear of i/next's own neighbors so the swap below
+                // only ever touches positions i, next, prevJ, j and nextJ.
+                if (prevJ === next || nextJ === next || prevJ === i || nextJ === i) continue;
+
+                var entryAtNext = sequence[next];
+                var entryAtJ = sequence[j];
+                var afterNext = (next + 1) % n;
+
+                var validAtNext = entryAtJ.line.id !== sequence[i].line.id &&
+                  entryAtJ.line.id !== sequence[afterNext].line.id;
+                var validAtJ = entryAtNext.line.id !== sequence[prevJ].line.id &&
+                  entryAtNext.line.id !== sequence[nextJ].line.id;
+
+                if (validAtNext && validAtJ) {
+                  sequence[next] = entryAtJ;
+                  sequence[j] = entryAtNext;
+                  fixedAny = true;
+                  break;
+                }
+              }
+            }
+            if (!fixedAny) break;
+          }
+        }
+
+        // Arranges the pool so each line's puzzles land roughly evenly
+        // spaced across the whole cycle, rather than just shuffling
+        // everything (which lets a line cluster by chance) or greedily
+        // avoiding same-line repeats one day at a time (which still lets
+        // the biggest line show up every other day for long stretches -
+        // exactly what games #23/25/27/29/31 did, all Línea 2).
+        //
+        // Each line gets a target slot for every one of its puzzles,
+        // spaced pool.length / count apart with a random phase offset so
+        // different lines' patterns don't line up. Bigger lines are placed
+        // first so their spacing sets the skeleton; smaller lines fill the
+        // gaps around them. A final pass fixes any adjacent same-line pair
+        // a slot collision happened to leave behind.
         function arrangePuzzlePoolWithLineSpacing(pool, rand) {
           var byLine = {};
           var lines = [];
@@ -871,52 +918,39 @@
             }
             byLine[entry.line.id].push(entry);
           });
+
+          // Shuffle first so lines with an equal puzzle count don't always
+          // land in the same relative order (sort is stable).
+          lines = shuffle(lines, rand);
+          lines.sort(function (a, b) { return byLine[b.id].length - byLine[a.id].length; });
+
+          var n = pool.length;
+          var slots = new Array(n).fill(null);
+
+          function nearestFreeSlot(pos) {
+            for (var d = 0; d < n; d++) {
+              var forward = (pos + d) % n;
+              if (!slots[forward]) return forward;
+              var backward = (pos - d + n) % n;
+              if (!slots[backward]) return backward;
+            }
+            return -1; // unreachable: n slots for n entries total
+          }
+
           lines.forEach(function (line) {
-            byLine[line.id] = shuffle(byLine[line.id], rand);
+            var bucket = shuffle(byLine[line.id], rand);
+            var count = bucket.length;
+            var phase = rand();
+            for (var k = 0; k < count; k++) {
+              var idealPos = Math.floor(((k + phase) * n) / count) % n;
+              var slot = nearestFreeSlot(idealPos);
+              slots[slot] = bucket[k];
+            }
           });
-          var lineOrder = shuffle(lines, rand);
 
-          var result = [];
-          var lastLineId = null;
-          while (result.length < pool.length) {
-            var best = null;
-            for (var i = 0; i < lineOrder.length; i++) {
-              var candidate = lineOrder[i];
-              var bucket = byLine[candidate.id];
-              if (!bucket.length || candidate.id === lastLineId) continue;
-              if (!best || bucket.length > byLine[best.id].length) best = candidate;
-            }
-            if (!best) {
-              // Only lines with entries left all equal lastLineId - not
-              // reachable with this network's per-line puzzle counts, but
-              // fall back to allowing a repeat rather than stalling.
-              for (var j = 0; j < lineOrder.length; j++) {
-                if (byLine[lineOrder[j].id].length) { best = lineOrder[j]; break; }
-              }
-            }
-            result.push(byLine[best.id].shift());
-            lastLineId = best.id;
-          }
+          repairAdjacentLineCollisions(slots);
 
-          // The pool cycles once exhausted, so the last and first entries
-          // are also calendar-adjacent - swap to fix that seam too, if the
-          // greedy above happened to leave it matching.
-          var n = result.length;
-          if (n > 3 && result[0].line.id === result[n - 1].line.id) {
-            for (var k = 1; k <= n - 3; k++) {
-              var moving = result[n - 1];
-              var staying = result[k];
-              var validAtK = moving.line.id !== result[k - 1].line.id && moving.line.id !== result[k + 1].line.id;
-              var validAtEnd = staying.line.id !== result[n - 2].line.id && staying.line.id !== result[0].line.id;
-              if (validAtK && validAtEnd) {
-                result[k] = moving;
-                result[n - 1] = staying;
-                break;
-              }
-            }
-          }
-
-          return result;
+          return slots;
         }
 
         var shuffledPuzzlePool = null;

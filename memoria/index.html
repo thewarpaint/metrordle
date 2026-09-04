@@ -239,6 +239,41 @@
       .stats-row p strong {
         font-variant-numeric: tabular-nums;
       }
+
+      .reveal__icons {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(6, 1fr);
+        margin-bottom: 1.1rem;
+      }
+
+      .reveal__icons[hidden] {
+        display: none;
+      }
+
+      .reveal__icon-cell {
+        align-items: center;
+        aspect-ratio: 1;
+        background: var(--paper-well);
+        border: 2px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        justify-content: center;
+        padding: 0.2rem;
+      }
+
+      .reveal__icon {
+        color: var(--ink);
+        height: 1.1rem;
+        pointer-events: none;
+        width: 1.1rem;
+      }
+
+      .reveal__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
     </style>
   </head>
 
@@ -296,6 +331,8 @@
           <div class="stats-row">
             <p id="stat-you"></p>
           </div>
+
+          <div class="reveal__icons" id="reveal-icons"></div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
         </div>
@@ -450,15 +487,26 @@
             if (!raw) return null;
             var parsed = JSON.parse(raw);
             if (!parsed || typeof parsed.score !== 'number') return null;
-            return parsed;
+            // matchedStations was added after this key's format shipped, so
+            // a result saved by an older version won't have it - fall back
+            // to an empty list rather than crash.
+            return {
+              score: parsed.score,
+              won: parsed.won,
+              matchedStations: Array.isArray(parsed.matchedStations) ? parsed.matchedStations : [],
+            };
           } catch (e) {
             return null;
           }
         }
 
-        function persistResult(dateKey, score, won) {
+        function persistResult(dateKey, score, won, matchedStations) {
           try {
-            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({ score: score, won: won }));
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
+              score: score,
+              won: won,
+              matchedStations: matchedStations,
+            }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the
             // result just won't be there to reload, same as the other games.
@@ -499,6 +547,7 @@
               status: 'done',
               score: saved.score,
               won: saved.won,
+              matchedStations: saved.matchedStations,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
               cells: [],
@@ -523,6 +572,7 @@
             cells: cells,
             selectedIndex: null,
             score: 0,
+            matchedStations: [],
             timeLeft: ROUND_SECONDS,
             timerId: null,
             won: false,
@@ -560,7 +610,7 @@
           state.timerId = null;
           state.status = 'done';
           state.won = state.score >= PAR_WIN_SCORE;
-          persistResult(state.dateKey, state.score, state.won);
+          persistResult(state.dateKey, state.score, state.won, state.matchedStations);
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           render();
@@ -597,6 +647,7 @@
             a.matched = true;
             b.matched = true;
             state.score += 1;
+            state.matchedStations.push(a.station);
             state.selectedIndex = null;
 
             // Refill the two freed cells with the next station in the
@@ -791,6 +842,27 @@
             MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
 
           $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
+
+          renderRevealIcons();
+        }
+
+        function renderRevealIcons() {
+          var el = els.revealIcons;
+          el.innerHTML = '';
+          el.hidden = state.matchedStations.length === 0;
+
+          state.matchedStations.forEach(function (station) {
+            var cell = document.createElement('span');
+            cell.className = 'reveal__icon-cell';
+            cell.title = station;
+            cell.setAttribute('aria-label', station);
+
+            var line = lineForStation(station);
+            if (line) cell.style.borderColor = line.color;
+
+            cell.appendChild(makeIcon(station, 'reveal__icon'));
+            el.appendChild(cell);
+          });
         }
 
         // How many pairs you matched, translated into a rating + colored
@@ -853,6 +925,7 @@
             startOverlay: $('start-overlay'),
             startBtn: $('start-btn'),
             reveal: $('reveal'),
+            revealIcons: $('reveal-icons'),
             shareBtn: $('share-btn'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),

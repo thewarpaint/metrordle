@@ -65,9 +65,9 @@ async function main() {
 
       // Match exactly 2 pairs so the result is predictable (rating
       // "Mala", streak stays at 0 since 2 < the 8-pair win threshold).
-      await matchOnePair(page);
+      const station1 = await matchOnePair(page);
       await page.waitForTimeout(500);
-      await matchOnePair(page);
+      const station2 = await matchOnePair(page);
       await page.waitForTimeout(500);
 
       const midStatus = await page.$eval('#status', (el) => el.textContent);
@@ -85,7 +85,16 @@ async function main() {
       assert.strictEqual(stat, 'Parejas: 2');
 
       const saved = await page.evaluate((k) => localStorage.getItem('memoria:' + k), DATE);
-      assert.deepStrictEqual(JSON.parse(saved), { score: 2, won: false });
+      assert.deepStrictEqual(JSON.parse(saved), { score: 2, won: false, matchedStations: [station1, station2] });
+
+      // The reveal screen should show one small icon per matched station,
+      // laid out 6 per row.
+      const iconCells = await page.$$('#reveal-icons .reveal__icon-cell');
+      assert.strictEqual(iconCells.length, 2, 'expected one icon per matched pair');
+      const iconLabels = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
+      assert.deepStrictEqual(iconLabels, [station1, station2], 'icons should appear in match order');
+      const columnCount = await page.$eval('#reveal-icons', (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+      assert.strictEqual(columnCount, 6, 'expected the icon grid to lay out 6 per row');
 
       await page.click('#share-btn');
       await page.waitForTimeout(300);
@@ -105,6 +114,8 @@ async function main() {
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'reveal should show immediately on reload after finishing');
       const statAfterReload = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(statAfterReload, 'Parejas: 2', 'reload should show the same saved score, not start a new round');
+      const iconLabelsAfterReload = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
+      assert.deepStrictEqual(iconLabelsAfterReload, [station1, station2], 'reload should show the same saved matched-station icons');
     } finally {
       await context.close();
     }

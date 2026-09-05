@@ -1028,11 +1028,11 @@
         }
 
         // Two-state alias control: an input+save row when no alias is
-        // set yet (or the player asked to change it), or a plain display
-        // with a "Cambiar" button once one exists. Built with DOM methods
-        // and textContent throughout, never innerHTML with the alias
-        // itself - it's free text from anyone who's played, not trusted
-        // data like a station name.
+        // set yet, or a plain display once one exists - built with DOM
+        // methods and textContent throughout, never innerHTML with the
+        // alias itself, since it's free text from anyone who's played,
+        // not trusted data like a station name.
+        //
         // No way to change an alias once it's set - a change would land
         // under a different Firestore doc (see aliasDocId), leaving the
         // old alias's entry orphaned in the leaderboard with a stale

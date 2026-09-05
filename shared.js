@@ -397,11 +397,72 @@ function firebaseReady() {
   return typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0;
 }
 
+// A localStorage-backed stand-in for the same collection/dateKey/entries
+// shape Firestore would hold, so a page can exercise the whole
+// submit-then-render-a-top-5 flow before any real Firebase project
+// exists - or, in a sandboxed context that can never reach Firestore at
+// all (like a Claude Artifact preview), as the only backend it'll ever
+// have. Opt-in only (see the `options.useLocalFallback` checks below) so
+// a page that hasn't asked for it keeps the original behavior: a real
+// Firestore write/read when configured, a clean no-op otherwise.
+var LEADERBOARD_FALLBACK_PREFIX = 'metrordle:leaderboard-fallback:';
+
+function fallbackStorageKey(collectionName, dateKey) {
+  return LEADERBOARD_FALLBACK_PREFIX + collectionName + ':' + dateKey;
+}
+
+function loadFallbackEntries(collectionName, dateKey) {
+  try {
+    var raw = localStorage.getItem(fallbackStorageKey(collectionName, dateKey));
+    var parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveFallbackEntries(collectionName, dateKey, entries) {
+  try {
+    localStorage.setItem(fallbackStorageKey(collectionName, dateKey), JSON.stringify(entries));
+  } catch (e) {
+    // localStorage unavailable (private mode, quota, etc.) - the
+    // fallback entry just won't persist, same tradeoff as everything
+    // else this site keeps in localStorage.
+  }
+}
+
+function submitLeaderboardScoreFallback(collectionName, dateKey, alias, score) {
+  var docId = aliasDocId(alias);
+  if (!docId) return Promise.reject(new Error('Alias is required'));
+
+  var entries = loadFallbackEntries(collectionName, dateKey);
+  entries[docId] = { alias: normalizeAlias(alias), score: score, submittedAt: Date.now() };
+  saveFallbackEntries(collectionName, dateKey, entries);
+  return Promise.resolve();
+}
+
+function getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount) {
+  var entries = loadFallbackEntries(collectionName, dateKey);
+  var results = Object.keys(entries).map(function (docId) {
+    var entry = entries[docId];
+    return { id: docId, alias: entry.alias, score: entry.score, submittedAt: entry.submittedAt };
+  });
+  results.sort(function (a, b) {
+    return b.score - a.score || a.submittedAt - b.submittedAt;
+  });
+  return Promise.resolve(results.slice(0, limitCount));
+}
+
 // Upserts (creates or overwrites) the caller's entry for that day - "last
 // write wins" if the same alias submits from more than one device on the
 // same day, which is an accepted simplification rather than a bug.
-function submitLeaderboardScore(collectionName, dateKey, alias, score) {
-  if (!firebaseReady()) return Promise.reject(new Error('Firebase not available'));
+function submitLeaderboardScore(collectionName, dateKey, alias, score, options) {
+  if (!firebaseReady()) {
+    if (options && options.useLocalFallback) {
+      return submitLeaderboardScoreFallback(collectionName, dateKey, alias, score);
+    }
+    return Promise.reject(new Error('Firebase not available'));
+  }
 
   var docId = aliasDocId(alias);
   if (!docId) return Promise.reject(new Error('Alias is required'));
@@ -415,11 +476,17 @@ function submitLeaderboardScore(collectionName, dateKey, alias, score) {
     });
 }
 
-// Resolves to [] (never rejects) when Firebase isn't available or the
-// query fails - an empty leaderboard is a fine degraded state for a read,
-// unlike a failed write, which callers may want to surface differently.
-function getTopLeaderboardScores(collectionName, dateKey, limitCount) {
-  if (!firebaseReady()) return Promise.resolve([]);
+// Resolves to [] (never rejects) when Firebase isn't available (and no
+// fallback was requested) or the query fails - an empty leaderboard is a
+// fine degraded state for a read, unlike a failed write, which callers
+// may want to surface differently.
+function getTopLeaderboardScores(collectionName, dateKey, limitCount, options) {
+  if (!firebaseReady()) {
+    if (options && options.useLocalFallback) {
+      return getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount);
+    }
+    return Promise.resolve([]);
+  }
 
   return firebase.firestore()
     .collection(collectionName).doc(dateKey).collection('entries')

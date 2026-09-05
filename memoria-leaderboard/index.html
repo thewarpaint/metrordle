@@ -5,16 +5,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="title" content="Metrordle: Memoria 🚇">
+    <meta name="title" content="Metrordle: Memoria (staging) 🚇">
     <meta
       name="description"
-      content="Haz la mayor cantidad de pares de estaciones del Metro de CDMX en 60 segundos."
+      content="Página de staging para probar la tabla de posiciones de Memoria antes de publicarla. No es para jugadores."
     >
+    <meta name="robots" content="noindex, nofollow">
 
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://metrordle.com/memoria/">
-    <meta property="og:title" content="Metrordle: Memoria 🚇">
-    <meta property="og:description" content="Haz la mayor cantidad de pares de estaciones del Metro de CDMX en 60 segundos.">
+    <meta property="og:url" content="https://metrordle.com/memoria-leaderboard/">
+    <meta property="og:title" content="Metrordle: Memoria (staging) 🚇">
+    <meta property="og:description" content="Página de staging para probar la tabla de posiciones de Memoria antes de publicarla. No es para jugadores.">
     <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="715">
@@ -23,9 +24,9 @@
     <meta name="theme-color" content="#0057a8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Metrordle: Memoria">
+    <meta name="apple-mobile-web-app-title" content="Memoria (staging)">
 
-    <title>Metrordle: Memoria 🚇</title>
+    <title>Metrordle: Memoria (staging) 🚇</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/favicon.png">
@@ -274,6 +275,90 @@
         height: 100%;
         width: 100%;
       }
+
+      .leaderboard {
+        margin-bottom: 1.1rem;
+      }
+
+      .leaderboard__title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem;
+      }
+
+      .leaderboard__alias {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .leaderboard__alias input {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.35rem;
+        color: var(--ink);
+        flex: 1 1 8rem;
+        font: inherit;
+        min-width: 0;
+        padding: 0.35rem 0.5rem;
+      }
+
+      .leaderboard__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        list-style: none;
+        margin: 0 0 0.6rem;
+        padding: 0;
+      }
+
+      .leaderboard__row {
+        align-items: center;
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .leaderboard__row--you {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 1px var(--focus);
+      }
+
+      .leaderboard__rank {
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+        width: 1.4rem;
+      }
+
+      .leaderboard__alias-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .leaderboard__score {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .leaderboard__status {
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        margin: 0 0 0.6rem;
+      }
+
+      .leaderboard__status[hidden] {
+        display: none;
+      }
     </style>
   </head>
 
@@ -286,7 +371,7 @@
           <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
           <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
         </svg>
-        <span class="brand__text">Metrordle: Memoria · Minijuego del Metro CDMX</span>
+        <span class="brand__text">Metrordle: Memoria (staging) · No es la página real</span>
       </div>
 
       <div class="date-debug" id="date-debug" hidden>
@@ -297,7 +382,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1 id="game-title">Metrordle: Memoria</h1>
+          <h1 id="game-title">Metrordle: Memoria (staging)</h1>
           <p class="dek">
             Haz la mayor cantidad de pares de íconos y nombres de estaciones del Metro de CDMX en 60 segundos.
             Cada acierto descubre un nuevo par de cartas.
@@ -334,6 +419,13 @@
 
           <div class="reveal__icons" id="reveal-icons"></div>
 
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Tabla de hoy</h2>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
         </div>
       </div>
@@ -345,13 +437,23 @@
       </p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
         'use strict';
 
+        // Staging page: deliberately namespaced away from the real
+        // Memoria page's storage keys ('memoria:...') so testing here
+        // never touches a real player's saved result or streak, and
+        // away from its Firestore collection so test submissions never
+        // land in the real leaderboard.
         var SHARE_URL = 'https://metrordle.com/memoria/';
-        var STREAK_STORAGE_KEY = 'memoria:streak';
+        var STREAK_STORAGE_KEY = 'memoria-leaderboard-staging:streak';
+        var LEADERBOARD_COLLECTION = 'memoria-leaderboard-staging';
+        var LEADERBOARD_SIZE = 5;
 
         // This game's own daily numbering, independent of the other two -
         // Game #1 is the day Memoria launched.
@@ -478,7 +580,7 @@
         }
 
         function storageKeyFor(dateKey) {
-          return 'memoria:' + dateKey;
+          return 'memoria-leaderboard-staging:' + dateKey;
         }
 
         function loadSavedResult(dateKey) {
@@ -554,6 +656,10 @@
               selectedIndex: null,
               timerId: null,
             };
+            // A retry, in case an earlier submission attempt (e.g. right
+            // after setting an alias mid-session) failed silently -
+            // harmless to repeat since it's an upsert.
+            submitScore();
             render();
             return;
           }
@@ -613,7 +719,42 @@
           persistResult(state.dateKey, state.score, state.won, state.matchedStations);
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+          submitScore();
           render();
+        }
+
+        // Submits the current result to today's leaderboard, if an alias
+        // is already set. Also called again once the player sets an
+        // alias from the reveal screen, in case a round already finished
+        // before they had one. Skipped entirely in ?debug=true so test
+        // plays on arbitrary dates never pollute real leaderboard data.
+        function submitScore() {
+          if (!state || state.status !== 'done') return;
+
+          // Unlike the real Memoria page, this staging page does NOT
+          // skip submissions under ?debug=true - date-nav testing is the
+          // whole point of this page, and it already writes to its own
+          // isolated staging collection/fallback namespace (see
+          // LEADERBOARD_COLLECTION above), so there's no real data to
+          // protect from test plays here.
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          // useLocalFallback: this staging page uses a localStorage-backed
+          // fake leaderboard whenever Firebase isn't configured yet, so
+          // the whole flow is testable before any real project exists -
+          // it automatically switches to the real Firestore backend once
+          // firebase-config.js has real credentials.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, state.score, { useLocalFallback: true })
+            .then(function () {
+              renderLeaderboard();
+            })
+            .catch(function () {
+              // Best-effort - the player's own result is already saved
+              // locally either way, so a failed submission isn't shown as
+              // an error; it's silently retried the next time
+              // submitScore() runs (e.g. the next reload).
+            });
         }
 
         function onCardClick(index) {
@@ -844,6 +985,8 @@
           $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
 
           renderRevealIcons();
+          renderAliasRow();
+          renderLeaderboard();
         }
 
         // Grouped by line (in MetroShared.LINES order, then by each
@@ -882,6 +1025,134 @@
             cell.appendChild(makeIcon(entry.station, 'reveal__icon'));
             el.appendChild(cell);
           });
+        }
+
+        // Two-state alias control: an input+save row when no alias is
+        // set yet (or the player asked to change it), or a plain display
+        // with a "Cambiar" button once one exists. Built with DOM methods
+        // and textContent throughout, never innerHTML with the alias
+        // itself - it's free text from anyone who's played, not trusted
+        // data like a station name.
+        function renderAliasRow() {
+          var alias = MetroShared.getAlias();
+          if (alias) {
+            showAliasDisplay(alias);
+          } else {
+            showAliasInput('');
+          }
+        }
+
+        function showAliasDisplay(alias) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var label = document.createElement('span');
+          label.textContent = 'Jugando como: ';
+          var strong = document.createElement('strong');
+          strong.textContent = alias;
+          label.appendChild(strong);
+
+          var changeBtn = document.createElement('button');
+          changeBtn.type = 'button';
+          changeBtn.className = 'btn-secondary';
+          changeBtn.textContent = 'Cambiar';
+          changeBtn.addEventListener('click', function () {
+            showAliasInput(alias);
+          });
+
+          el.appendChild(label);
+          el.appendChild(changeBtn);
+        }
+
+        function showAliasInput(currentValue) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.value = currentValue;
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            showAliasDisplay(normalized);
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') save();
+          });
+
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+        }
+
+        // renderLeaderboard() can legitimately be called twice in close
+        // succession - once from render() showing the current state, and
+        // again from submitScore()'s success callback refreshing it with
+        // the just-submitted entry - and both are async. Without this
+        // guard, an earlier call's response can resolve after a later
+        // call already cleared and repainted the list, appending a stale
+        // copy of the rows on top instead of being discarded. Bumped on
+        // every call; a response only renders if it's still the latest.
+        var leaderboardRequestId = 0;
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+          els.leaderboardList.innerHTML = '';
+          els.leaderboardStatus.hidden = true;
+
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, { useLocalFallback: true })
+            .then(function (entries) {
+              // Either the player navigated to a different day (debug
+              // date-nav) before this resolved, or a newer renderLeaderboard()
+              // call has already superseded this one - either way, don't
+              // paint a stale response over whatever's showing now.
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
+
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+
+              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + (index + 1);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score';
+                score.textContent = entry.score;
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                els.leaderboardList.appendChild(li);
+              });
+            });
         }
 
         // How many pairs you matched, translated into a rating + colored
@@ -945,6 +1216,9 @@
             startBtn: $('start-btn'),
             reveal: $('reveal'),
             revealIcons: $('reveal-icons'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
             shareBtn: $('share-btn'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),

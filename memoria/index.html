@@ -1080,17 +1080,32 @@
           el.appendChild(saveBtn);
         }
 
+        // renderLeaderboard() can legitimately be called twice in close
+        // succession - once from render() showing the current state, and
+        // again from submitScore()'s success callback refreshing it with
+        // the just-submitted entry - and both are async. Without this
+        // guard, an earlier call's response can resolve after a later
+        // call already cleared and repainted the list, appending a stale
+        // copy of the rows on top instead of being discarded. Bumped on
+        // every call; a response only renders if it's still the latest.
+        var leaderboardRequestId = 0;
+
         function renderLeaderboard() {
           var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
           els.leaderboardList.innerHTML = '';
           els.leaderboardStatus.hidden = true;
 
           MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE)
             .then(function (entries) {
-              // The player may have navigated to a different day (debug
-              // date-nav) before this resolved - don't paint a stale
-              // response over whatever's showing now.
+              // Either the player navigated to a different day (debug
+              // date-nav) before this resolved, or a newer renderLeaderboard()
+              // call has already superseded this one - either way, don't
+              // paint a stale response over whatever's showing now.
               if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
 
               if (entries.length === 0) {
                 els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';

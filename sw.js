@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v25';
+var CACHE_NAME = 'metrordle-v26';
 
 var PRECACHE_URLS = [
   '/',
@@ -15,6 +15,7 @@ var PRECACHE_URLS = [
   // Assets
   '/apple-touch-icon.png',
   '/favicon.png',
+  '/firebase-config.js',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',

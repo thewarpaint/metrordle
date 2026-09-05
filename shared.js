@@ -349,6 +349,97 @@ function copyToClipboard(text) {
   return copyViaExecCommand(text);
 }
 
+// Daily leaderboards (Firestore-backed). The player's alias is site-wide
+// (one localStorage key shared across every game), not per-game, so it
+// carries over if a leaderboard ever comes to Metrordle or Laberinto too.
+var ALIAS_STORAGE_KEY = 'metrordle:alias';
+var ALIAS_MAX_LENGTH = 20;
+
+function normalizeAlias(alias) {
+  return String(alias || '').trim().slice(0, ALIAS_MAX_LENGTH);
+}
+
+// The document ID a given alias maps to in a leaderboard's "entries"
+// subcollection - lowercased so "Eduardo" and "eduardo" land in the same
+// slot instead of coexisting as separate near-duplicate entries.
+function aliasDocId(alias) {
+  return normalizeAlias(alias).toLowerCase();
+}
+
+function getAlias() {
+  try {
+    return localStorage.getItem(ALIAS_STORAGE_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+// Returns the normalized alias that was actually saved (possibly empty,
+// if the input was blank/whitespace-only), so callers can tell whether
+// the save actually took.
+function setAlias(alias) {
+  var normalized = normalizeAlias(alias);
+  try {
+    if (normalized) {
+      localStorage.setItem(ALIAS_STORAGE_KEY, normalized);
+    } else {
+      localStorage.removeItem(ALIAS_STORAGE_KEY);
+    }
+  } catch (e) {
+    // localStorage unavailable (private mode, quota, etc.) - the alias
+    // just won't persist across reloads, same tradeoff as every other
+    // localStorage-backed value on this site.
+  }
+  return normalized;
+}
+
+function firebaseReady() {
+  return typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0;
+}
+
+// Upserts (creates or overwrites) the caller's entry for that day - "last
+// write wins" if the same alias submits from more than one device on the
+// same day, which is an accepted simplification rather than a bug.
+function submitLeaderboardScore(collectionName, dateKey, alias, score) {
+  if (!firebaseReady()) return Promise.reject(new Error('Firebase not available'));
+
+  var docId = aliasDocId(alias);
+  if (!docId) return Promise.reject(new Error('Alias is required'));
+
+  return firebase.firestore()
+    .collection(collectionName).doc(dateKey).collection('entries').doc(docId)
+    .set({
+      alias: normalizeAlias(alias),
+      score: score,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+}
+
+// Resolves to [] (never rejects) when Firebase isn't available or the
+// query fails - an empty leaderboard is a fine degraded state for a read,
+// unlike a failed write, which callers may want to surface differently.
+function getTopLeaderboardScores(collectionName, dateKey, limitCount) {
+  if (!firebaseReady()) return Promise.resolve([]);
+
+  return firebase.firestore()
+    .collection(collectionName).doc(dateKey).collection('entries')
+    .orderBy('score', 'desc')
+    .orderBy('submittedAt', 'asc')
+    .limit(limitCount)
+    .get()
+    .then(function (snapshot) {
+      var results = [];
+      snapshot.forEach(function (doc) {
+        var data = doc.data();
+        results.push({ id: doc.id, alias: data.alias, score: data.score });
+      });
+      return results;
+    })
+    .catch(function () {
+      return [];
+    });
+}
+
 window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
@@ -368,4 +459,10 @@ window.MetroShared = {
   updateStreakForResult: updateStreakForResult,
   formatStreak: formatStreak,
   formatMaxStreak: formatMaxStreak,
+  normalizeAlias: normalizeAlias,
+  aliasDocId: aliasDocId,
+  getAlias: getAlias,
+  setAlias: setAlias,
+  submitLeaderboardScore: submitLeaderboardScore,
+  getTopLeaderboardScores: getTopLeaderboardScores,
 };

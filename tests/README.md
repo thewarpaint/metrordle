@@ -25,8 +25,9 @@ npx playwright install chromium
 From the `tests/` directory:
 
 ```sh
-npm test              # everything (~90s total)
-npm run test:fast      # fast checks only (~15s)
+npm test               # everything (~95s total)
+npm run test:fast       # fast checks only (~15s)
+npm run test:leaderboard  # alias + leaderboard checks (~15s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
 ```
 
@@ -69,6 +70,25 @@ real, so it's slower):
   share text to the clipboard.
 - Reloading after a result is saved shows that same result instead of
   starting a new round.
+- The reveal's matched-station icons render grouped by line (not match
+  order).
+
+**`memoria/leaderboard.test.js`** (no real-time waiting - plants a saved
+result directly in `localStorage` to reach the reveal screen instantly):
+- The alias input shows when none is saved; saving one persists it under
+  the site-wide `metrordle:alias` key (not a Memoria-specific one) and
+  switches to a "Jugando como: ... (Cambiar)" display.
+- An alias saved from a previous visit shows the display row directly on
+  load, without asking again.
+- The leaderboard section degrades gracefully (an empty-state message,
+  zero rows, zero JS errors) when no real Firebase project is configured
+  - which is the checked-in default, see `firebase-config.js`.
+
+These don't exercise real Firestore reads/writes, since no live Firebase
+project's credentials belong in this repo. Once a real project is wired
+up in `firebase-config.js`, do one manual smoke test against it: confirm
+a normal play submits a score visible in the Firebase console, and that
+playing under `?debug=true` does not.
 
 ## Adding a check
 

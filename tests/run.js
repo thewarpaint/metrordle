@@ -9,6 +9,7 @@ const path = require('path');
 
 const FILES = [
   'memoria/fast.test.js',
+  'memoria/leaderboard.test.js',
   'memoria/round-lifecycle.test.js',
 ];
 

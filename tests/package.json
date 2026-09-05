@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node run.js",
     "test:fast": "node memoria/fast.test.js",
+    "test:leaderboard": "node memoria-leaderboard/leaderboard.test.js",
     "test:lifecycle": "node memoria/round-lifecycle.test.js"
   },
   "devDependencies": {

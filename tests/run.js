@@ -10,6 +10,7 @@ const path = require('path');
 const FILES = [
   'memoria/fast.test.js',
   'memoria/round-lifecycle.test.js',
+  'memoria-leaderboard/leaderboard.test.js',
 ];
 
 let failed = 0;

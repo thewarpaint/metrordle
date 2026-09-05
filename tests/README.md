@@ -7,8 +7,9 @@ test file spins up a plain `python3 -m http.server` rooted at the repo
 and drives it with a real (headless) browser, the same way a player's
 browser would.
 
-Only Memoria has coverage today (`memoria/`). Add new games under their
-own subdirectory following the same pattern.
+Only Memoria has coverage today (`memoria/`), plus its `/memoria-leaderboard/`
+staging page (`memoria-leaderboard/`). Add new games under their own
+subdirectory following the same pattern.
 
 ## Setup
 
@@ -25,8 +26,9 @@ npx playwright install chromium
 From the `tests/` directory:
 
 ```sh
-npm test              # everything (~90s total)
-npm run test:fast      # fast checks only (~15s)
+npm test               # everything (~95s total)
+npm run test:fast       # fast checks only (~15s)
+npm run test:leaderboard  # alias + leaderboard checks (~15s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
 ```
 
@@ -69,6 +71,37 @@ real, so it's slower):
   share text to the clipboard.
 - Reloading after a result is saved shows that same result instead of
   starting a new round.
+- The reveal's matched-station icons render grouped by line (not match
+  order).
+
+**`memoria-leaderboard/leaderboard.test.js`** (no real-time waiting -
+plants a saved result directly in `localStorage` to reach the reveal
+screen instantly), covering `/memoria-leaderboard/` - a staging copy of
+the Memoria page (own storage-key prefix and Firestore collection, so
+testing here never touches a real player's saved result, streak, or the
+real leaderboard) used to build and test this feature before it ships on
+`/memoria/` itself:
+- The alias input shows when none is saved; saving one persists it under
+  the site-wide `metrordle:alias` key (not page-specific) and switches to
+  a "Jugando como: ... (Cambiar)" display.
+- An alias saved from a previous visit shows the display row directly on
+  load, without asking again.
+- With no real Firebase project configured (the checked-in default - see
+  `firebase-config.js`), this page falls back to a localStorage-backed
+  fake leaderboard: a submission actually lands and renders, multiple
+  entries sort correctly (score desc, earliest-submission tie-break), and
+  the current player's own row gets highlighted.
+- The leaderboard section shows an empty-state message before any
+  submission that day.
+- Nothing here ever writes to the real page's `memoria:...` storage keys.
+
+None of this exercises real Firestore reads/writes, since no live
+Firebase project's credentials belong in this repo. Once a real project
+is wired up in `firebase-config.js`, this page automatically starts using
+it instead of the local fallback - do one manual smoke test against it:
+confirm a normal play submits a score visible in the Firebase console
+under `memoria-leaderboard-staging`, and that playing under `?debug=true`
+does not.
 
 ## Adding a check
 

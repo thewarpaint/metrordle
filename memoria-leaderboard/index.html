@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="Metrordle: Memoria (staging) 🚇">
+    <meta
+      name="description"
+      content="Página de staging para probar la tabla de posiciones de Memoria antes de publicarla. No es para jugadores."
+    >
+    <meta name="robots" content="noindex, nofollow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metrordle.com/memoria-leaderboard/">
+    <meta property="og:title" content="Metrordle: Memoria (staging) 🚇">
+    <meta property="og:description" content="Página de staging para probar la tabla de posiciones de Memoria antes de publicarla. No es para jugadores.">
+    <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="715">
+    <meta property="og:image:alt" content="Un tablero estilo Wordle deletrea METRORDLE, con el logo del Metro de la Ciudad de México y la silueta de la ciudad en dos de las casillas.">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Memoria (staging)">
+
+    <title>Metrordle: Memoria (staging) 🚇</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <style>
+      .status-bar {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .status-bar__text {
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .timer-track {
+        background: var(--paper-well);
+        border-bottom: 1px solid var(--rule);
+        height: 0.35rem;
+        overflow: hidden;
+      }
+
+      .timer-track[hidden] {
+        display: none;
+      }
+
+      .timer-bar {
+        background: var(--line);
+        height: 100%;
+        transition: width 1s linear;
+        width: 100%;
+      }
+
+      .board-wrap {
+        position: relative;
+      }
+
+      .memo-board {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(4, 1fr);
+        padding: 0.9rem 1.1rem;
+      }
+
+      .memo-board[hidden] {
+        display: none;
+      }
+
+      .start-overlay {
+        align-items: center;
+        background: var(--paper-well);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1.1rem;
+        position: absolute;
+      }
+
+      .start-overlay[hidden] {
+        display: none;
+      }
+
+      .start-overlay__panel {
+        max-width: 17rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      .start-overlay__text {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+      }
+
+      @keyframes memo-card-pop-in {
+        from {
+          opacity: 0;
+          transform: scale(0.7);
+        }
+
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .memo-card--entering {
+        animation: memo-card-pop-in 0.3s ease;
+      }
+
+      .memo-card {
+        align-items: center;
+        aspect-ratio: 1;
+        background: var(--paper-well);
+        border: 2px solid var(--rule);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        display: flex;
+        font-family: 'Overpass', sans-serif;
+        justify-content: center;
+        min-width: 0;
+        padding: 0.25rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
+        width: 100%;
+      }
+
+      .memo-card:hover:not(:disabled) {
+        border-color: var(--ink-soft);
+      }
+
+      .memo-card:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .memo-card--selected {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 2px var(--focus);
+      }
+
+      .memo-card--matched {
+        cursor: default;
+        opacity: 0.32;
+        transform: scale(0.94);
+      }
+
+      .memo-card--empty {
+        background: transparent;
+        border-style: dashed;
+        cursor: default;
+      }
+
+      .memo-card__icon {
+        color: var(--ink);
+        height: 1.9rem;
+        pointer-events: none;
+        width: 1.9rem;
+      }
+
+      .memo-card__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .memo-card__name {
+        color: var(--ink);
+        font-size: 0.66rem;
+        font-weight: 700;
+        hyphens: auto;
+        line-height: 1.15;
+        min-width: 0;
+        overflow-wrap: break-word;
+        pointer-events: none;
+        text-align: center;
+      }
+
+      .reveal {
+        padding: 1.1rem;
+      }
+
+      .reveal[hidden] {
+        display: none;
+      }
+
+      .reveal__banner {
+        align-items: center;
+        border: 2px solid var(--rule-strong);
+        border-radius: 0.5rem;
+        display: flex;
+        gap: 0.6rem;
+        font-weight: 800;
+        font-size: 1.05rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem 0.9rem;
+      }
+
+      .reveal__banner--win {
+        background: var(--ok);
+        color: var(--ok-ink);
+      }
+
+      .reveal__banner--lose {
+        background: var(--danger);
+        color: var(--danger-ink);
+      }
+
+      .stats-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .stats-row p {
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .stats-row p strong {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .reveal__icons {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(6, 1fr);
+        margin-bottom: 1.1rem;
+      }
+
+      .reveal__icons[hidden] {
+        display: none;
+      }
+
+      .reveal__icon-cell {
+        align-items: center;
+        aspect-ratio: 1;
+        background: var(--paper-well);
+        border: 2px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        justify-content: center;
+        padding: 0.2rem;
+      }
+
+      .reveal__icon {
+        color: var(--ink);
+        height: 1.1rem;
+        pointer-events: none;
+        width: 1.1rem;
+      }
+
+      .reveal__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .leaderboard {
+        margin-bottom: 1.1rem;
+      }
+
+      .leaderboard__title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem;
+      }
+
+      .leaderboard__alias {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .leaderboard__alias input {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.35rem;
+        color: var(--ink);
+        flex: 1 1 8rem;
+        font: inherit;
+        min-width: 0;
+        padding: 0.35rem 0.5rem;
+      }
+
+      .leaderboard__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        list-style: none;
+        margin: 0 0 0.6rem;
+        padding: 0;
+      }
+
+      .leaderboard__row {
+        align-items: center;
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .leaderboard__row--you {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 1px var(--focus);
+      }
+
+      .leaderboard__rank {
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+        width: 1.4rem;
+      }
+
+      .leaderboard__alias-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .leaderboard__score {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .leaderboard__status {
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        margin: 0 0 0.6rem;
+      }
+
+      .leaderboard__status[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle: Memoria (staging) · No es la página real</span>
+      </div>
+
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1 id="game-title">Metrordle: Memoria (staging)</h1>
+          <p class="dek">
+            Haz la mayor cantidad de pares de íconos y nombres de estaciones del Metro de CDMX en 60 segundos.
+            Cada acierto descubre un nuevo par de cartas.
+          </p>
+        </div>
+
+        <div class="status-bar">
+          <span class="status-bar__text" id="status"></span>
+        </div>
+
+        <div class="timer-track" id="timer-track">
+          <div class="timer-bar" id="timer-bar"></div>
+        </div>
+
+        <div class="board-wrap">
+          <div class="memo-board" id="memo-board"></div>
+
+          <div class="start-overlay" id="start-overlay" hidden>
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text">
+                Presiona "Comenzar" cuando estés listo para arrancar el conteo.
+              </p>
+              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal" id="reveal" hidden>
+          <div id="reveal-banner"></div>
+
+          <div class="stats-row">
+            <p id="stat-you"></p>
+          </div>
+
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
+          <div class="reveal__icons" id="reveal-icons"></div>
+
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+        </div>
+      </div>
+
+      <p class="credit">
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
+        <br>
+        <a href="/">¿Ya jugaste Metrordle hoy?</a> · <a href="/laberinto/">¿Ya jugaste Laberinto hoy?</a>
+      </p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        // Staging page: deliberately namespaced away from the real
+        // Memoria page's storage keys ('memoria:...') so testing here
+        // never touches a real player's saved result or streak, and
+        // away from its Firestore collection so test submissions never
+        // land in the real leaderboard.
+        var SHARE_URL = 'https://metrordle.com/memoria/';
+        var STREAK_STORAGE_KEY = 'memoria-leaderboard-staging:streak';
+        var LEADERBOARD_COLLECTION = 'memoria-leaderboard-staging';
+        var LEADERBOARD_SIZE = 5;
+
+        // This game's own daily numbering, independent of the other two -
+        // Game #1 is the day Memoria launched.
+        var START_DATE_KEY = '2026-08-29';
+
+        var ROUND_SECONDS = 60;
+
+        // Matching all 8 of the board's starting pairs within the round
+        // counts as a "win" for streak purposes - the board itself has no
+        // fixed size any more (see buildDailyPool), so this is a par bar
+        // rather than "you filled the whole board".
+        var PAR_WIN_SCORE = 8;
+
+        function shuffle(array, rand) {
+          var copy = array.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        // Every unique station name across all lines, deduplicated first
+        // (an interchange is listed once per line it's on in LINES, so a
+        // naive flatten would let it get drawn twice).
+        function allStationNames() {
+          var seen = {};
+          var names = [];
+          MetroShared.LINES.forEach(function (line) {
+            line.stations.forEach(function (name) {
+              if (!seen[name]) {
+                seen[name] = true;
+                names.push(name);
+              }
+            });
+          });
+          return names;
+        }
+
+        // The day's full draw order - every station, shuffled once by the
+        // day's seed. The board only ever shows 16 cells at a time, but a
+        // solved pair pulls the next station off this same list instead of
+        // capping the round at 8 pairs, so it's built as one long queue
+        // rather than a fixed 8-station pick.
+        function buildDailyPool(rand) {
+          return shuffle(allStationNames(), rand);
+        }
+
+        // Which "kind" of card a cell always shows - a checkerboard over
+        // the 4x4 grid (row 0: icon/name/icon/name, row 1: the opposite,
+        // ...), fixed by position rather than by whatever station happens
+        // to be there. A cell's type never changes across the whole round,
+        // including refills - only which station occupies it does.
+        function typeForIndex(index) {
+          var row = Math.floor(index / 4);
+          var col = index % 4;
+          return (row + col) % 2 === 0 ? 'icon' : 'name';
+        }
+
+        // First 8 stations off the pool become the starting board: each
+        // station's icon card lands in a random icon-typed cell and its
+        // name card in a random name-typed cell (two independent shuffles
+        // with the same seeded generator), so there's no fixed
+        // correspondence between where a station's icon and its own name
+        // end up, while every player still sees the identical board that
+        // day.
+        function buildInitialCells(pool, rand) {
+          var iconPositions = [];
+          var namePositions = [];
+          for (var i = 0; i < 16; i++) {
+            (typeForIndex(i) === 'icon' ? iconPositions : namePositions).push(i);
+          }
+
+          var stations = pool.slice(0, 8);
+          var iconOrder = shuffle(stations, rand);
+          var nameOrder = shuffle(stations, rand);
+
+          var cells = new Array(16);
+          iconPositions.forEach(function (pos, i) {
+            cells[pos] = { type: 'icon', station: iconOrder[i], matched: false };
+          });
+          namePositions.forEach(function (pos, i) {
+            cells[pos] = { type: 'name', station: nameOrder[i], matched: false };
+          });
+          return cells;
+        }
+
+        // After a match, swap each of the two freshly refilled cells
+        // with one other random cell of the same checkerboard type (so
+        // the swap can never break the pattern) - just those two freed
+        // cards plus two more, not the whole board. Otherwise the new
+        // pair would always be obvious, sitting in the exact two slots
+        // that were empty a moment ago.
+        function shuffleAfterMatch(freedA, freedB) {
+          function swapWithRandomSameType(index) {
+            var cell = state.cells[index];
+            if (!cell || cell.type === null) return;
+
+            var candidates = [];
+            for (var i = 0; i < state.cells.length; i++) {
+              if (i === index) continue;
+              var other = state.cells[i];
+              if (other && other.type === cell.type) candidates.push(i);
+            }
+            if (candidates.length === 0) return;
+
+            var partner = candidates[Math.floor(state.rand() * candidates.length)];
+            var tmp = state.cells[index];
+            state.cells[index] = state.cells[partner];
+            state.cells[partner] = tmp;
+          }
+
+          swapWithRandomSameType(freedA);
+          swapWithRandomSameType(freedB);
+        }
+
+        function lineForStation(name) {
+          for (var i = 0; i < MetroShared.LINES.length; i++) {
+            if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i];
+          }
+          return null;
+        }
+
+        function storageKeyFor(dateKey) {
+          return 'memoria-leaderboard-staging:' + dateKey;
+        }
+
+        function loadSavedResult(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed.score !== 'number') return null;
+            // matchedStations was added after this key's format shipped, so
+            // a result saved by an older version won't have it - fall back
+            // to an empty list rather than crash.
+            return {
+              score: parsed.score,
+              won: parsed.won,
+              matchedStations: Array.isArray(parsed.matchedStations) ? parsed.matchedStations : [],
+            };
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistResult(dateKey, score, won, matchedStations) {
+          try {
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
+              score: score,
+              won: won,
+              matchedStations: matchedStations,
+            }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the
+            // result just won't be there to reload, same as the other games.
+          }
+        }
+
+        var state = null;
+        var els = {};
+        var debugDate = null;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function startNewGame() {
+          if (state && state.timerId) {
+            clearInterval(state.timerId);
+          }
+
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          var saved = loadSavedResult(dateKey);
+
+          // A decorative daily accent - which line's color shows up on
+          // the Comenzar button and the countdown bar - picked the same
+          // way the main game picks its daily line, but from its own
+          // seed namespace so it never touches the pool's draw order.
+          var accentRand = MetroShared.createSeededRandom('metrordle-memoria-accent-' + dateKey);
+          var accentLine = MetroShared.LINES[Math.floor(accentRand() * MetroShared.LINES.length)];
+          document.documentElement.style.setProperty('--line', accentLine.color);
+          document.documentElement.style.setProperty('--line-ink', accentLine.textColor);
+
+          if (saved) {
+            var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
+            state = {
+              dateKey: dateKey,
+              gameNumber: gameNumber,
+              status: 'done',
+              score: saved.score,
+              won: saved.won,
+              matchedStations: saved.matchedStations,
+              streak: savedStreak.count,
+              maxStreak: savedStreak.max,
+              cells: [],
+              selectedIndex: null,
+              timerId: null,
+            };
+            // A retry, in case an earlier submission attempt (e.g. right
+            // after setting an alias mid-session) failed silently -
+            // harmless to repeat since it's an upsert.
+            submitScore();
+            render();
+            return;
+          }
+
+          var rand = MetroShared.createSeededRandom('metrordle-memoria-' + dateKey);
+          var pool = buildDailyPool(rand);
+          var cells = buildInitialCells(pool, rand);
+
+          state = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            status: 'ready',
+            rand: rand,
+            pool: pool,
+            poolIndex: 8,
+            cells: cells,
+            selectedIndex: null,
+            score: 0,
+            matchedStations: [],
+            timeLeft: ROUND_SECONDS,
+            timerId: null,
+            won: false,
+            streak: 0,
+            maxStreak: 0,
+          };
+
+          render();
+        }
+
+        // Dismisses the start dialog and kicks off the countdown - the
+        // board is already built and visible underneath, but nothing
+        // ticks (and clicks on it do nothing, see onCardClick) until
+        // the player says they're ready.
+        function beginRound() {
+          if (!state || state.status !== 'ready') return;
+          state.status = 'playing';
+          render();
+          startTimer();
+        }
+
+        function startTimer() {
+          renderStatus();
+          state.timerId = setInterval(tick, 1000);
+        }
+
+        function tick() {
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          renderStatus();
+          if (state.timeLeft <= 0) endRound();
+        }
+
+        function endRound() {
+          clearInterval(state.timerId);
+          state.timerId = null;
+          state.status = 'done';
+          state.won = state.score >= PAR_WIN_SCORE;
+          persistResult(state.dateKey, state.score, state.won, state.matchedStations);
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+          submitScore();
+          render();
+        }
+
+        // Submits the current result to today's leaderboard, if an alias
+        // is already set. Also called again once the player sets an
+        // alias from the reveal screen, in case a round already finished
+        // before they had one. Skipped entirely in ?debug=true so test
+        // plays on arbitrary dates never pollute real leaderboard data.
+        function submitScore() {
+          if (!state || state.status !== 'done') return;
+
+          // Unlike the real Memoria page, this staging page does NOT
+          // skip submissions under ?debug=true - date-nav testing is the
+          // whole point of this page, and it already writes to its own
+          // isolated staging collection/fallback namespace (see
+          // LEADERBOARD_COLLECTION above), so there's no real data to
+          // protect from test plays here.
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          // useLocalFallback: this staging page uses a localStorage-backed
+          // fake leaderboard whenever Firebase isn't configured yet, so
+          // the whole flow is testable before any real project exists -
+          // it automatically switches to the real Firestore backend once
+          // firebase-config.js has real credentials.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, state.score, { useLocalFallback: true })
+            .then(function () {
+              renderLeaderboard();
+            })
+            .catch(function () {
+              // Best-effort - the player's own result is already saved
+              // locally either way, so a failed submission isn't shown as
+              // an error; it's silently retried the next time
+              // submitScore() runs (e.g. the next reload).
+            });
+        }
+
+        function onCardClick(index) {
+          if (!state || state.status !== 'playing') return;
+
+          var cell = state.cells[index];
+          if (!cell || cell.type === null || cell.matched) return;
+
+          if (state.selectedIndex === null) {
+            state.selectedIndex = index;
+            renderBoard();
+            return;
+          }
+
+          if (state.selectedIndex === index) {
+            state.selectedIndex = null;
+            renderBoard();
+            return;
+          }
+
+          var a = state.cells[state.selectedIndex];
+          var b = cell;
+
+          if (a.station === b.station) {
+            // Guaranteed to be one icon card + one name card, since the
+            // board never carries two cells of the same type for the same
+            // station at once - the only way to match a station's icon
+            // card is against its own name card.
+            var freedA = state.selectedIndex;
+            var freedB = index;
+            a.matched = true;
+            b.matched = true;
+            state.score += 1;
+            state.matchedStations.push(a.station);
+            state.selectedIndex = null;
+
+            // Refill the two freed cells with the next station in the
+            // day's pool. Each cell keeps the type its position always
+            // has (see typeForIndex) - only the station occupying it
+            // changes, so the checkerboard never shifts. Both freed
+            // cells then get swapped to other random same-type spots
+            // (see shuffleAfterMatch), so exactly which cells these are
+            // doesn't matter for long.
+            if (state.poolIndex < state.pool.length) {
+              var nextStation = state.pool[state.poolIndex];
+              state.poolIndex += 1;
+              state.cells[freedA] = { type: typeForIndex(freedA), station: nextStation, matched: false };
+              state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation, matched: false };
+            } else {
+              // The pool (every station in the network) is exhausted -
+              // realistically unreachable within the round, but leave the
+              // cells inert rather than crash or wrap around.
+              state.cells[freedA] = { type: null, station: null, matched: true };
+              state.cells[freedB] = { type: null, station: null, matched: true };
+            }
+
+            shuffleAfterMatch(freedA, freedB);
+
+            renderStatus();
+            renderBoardAnimated();
+          } else {
+            state.selectedIndex = index;
+            renderBoard();
+          }
+        }
+
+        function makeIcon(stationName, sizeClass) {
+          var wrap = document.createElement('span');
+          wrap.className = sizeClass;
+          var slug = MetroShared.STATION_ICON_SLUGS[stationName];
+          if (slug) {
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('aria-hidden', 'true');
+            var use = document.createElementNS(svgNS, 'use');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+            use.setAttribute('href', '/station-icons.svg#' + slug);
+            svg.appendChild(use);
+            wrap.appendChild(svg);
+          } else {
+            wrap.setAttribute('aria-hidden', 'true');
+            wrap.textContent = '—';
+          }
+          return wrap;
+        }
+
+        function render() {
+          if (!state) return;
+
+          $('game-title').textContent = 'Metrordle: Memoria #' + state.gameNumber;
+
+          var playing = state.status === 'playing';
+          var ready = state.status === 'ready';
+          var done = state.status === 'done';
+
+          els.startOverlay.hidden = !ready;
+          els.board.hidden = done;
+          els.timerTrack.hidden = !playing;
+          els.reveal.hidden = !done;
+
+          if (done) {
+            renderReveal();
+          } else {
+            renderStatus();
+            renderBoard();
+          }
+        }
+
+        function renderStatus() {
+          els.status.textContent = state.timeLeft + 's · ' + state.score +
+            (state.score === 1 ? ' pareja' : ' parejas');
+          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        function renderBoard() {
+          var el = els.board;
+          el.innerHTML = '';
+
+          state.cells.forEach(function (cell, index) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+
+            if (!cell || cell.type === null) {
+              btn.className = 'memo-card memo-card--empty';
+              btn.disabled = true;
+              btn.setAttribute('aria-hidden', 'true');
+              el.appendChild(btn);
+              return;
+            }
+
+            var classes = ['memo-card', 'memo-card--' + cell.type];
+            if (cell.matched) classes.push('memo-card--matched');
+            if (index === state.selectedIndex) classes.push('memo-card--selected');
+            btn.className = classes.join(' ');
+            btn.disabled = cell.matched || state.status !== 'playing';
+            btn.dataset.key = cell.type + ':' + cell.station;
+
+            if (cell.matched) {
+              var line = lineForStation(cell.station);
+              if (line) btn.style.borderColor = line.color;
+            }
+
+            if (cell.type === 'icon') {
+              btn.appendChild(makeIcon(cell.station, 'memo-card__icon'));
+              btn.setAttribute('aria-label', cell.station);
+            } else {
+              var label = document.createElement('span');
+              label.className = 'memo-card__name';
+              label.textContent = cell.station;
+              btn.appendChild(label);
+            }
+
+            btn.addEventListener('click', function () {
+              onCardClick(index);
+            });
+
+            el.appendChild(btn);
+          });
+        }
+
+        // Same as renderBoard(), but plays a FLIP-style slide for every
+        // card that moved (so a reshuffled board reads as "things moved
+        // over there", not just a jump-cut) and a small pop-in for the
+        // two freshly refilled cards, which have no "before" position to
+        // slide from. Keyed by "type:station" since that pair is always
+        // unique on the board at any moment.
+        function renderBoardAnimated() {
+          var el = els.board;
+          var reduceMotion = MetroShared.prefersReducedMotion();
+          var oldRects = {};
+
+          if (!reduceMotion) {
+            Array.prototype.forEach.call(el.querySelectorAll('.memo-card[data-key]'), function (card) {
+              oldRects[card.dataset.key] = card.getBoundingClientRect();
+            });
+          }
+
+          renderBoard();
+
+          if (reduceMotion) return;
+
+          Array.prototype.forEach.call(el.querySelectorAll('.memo-card[data-key]'), function (card) {
+            var oldRect = oldRects[card.dataset.key];
+
+            if (!oldRect) {
+              card.classList.add('memo-card--entering');
+              setTimeout(function () {
+                card.classList.remove('memo-card--entering');
+              }, 300);
+              return;
+            }
+
+            var newRect = card.getBoundingClientRect();
+            var dx = oldRect.left - newRect.left;
+            var dy = oldRect.top - newRect.top;
+            if (!dx && !dy) return;
+
+            card.style.transition = 'none';
+            card.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+            // Force layout so the browser registers the starting
+            // transform before we animate it away - otherwise these two
+            // style writes collapse into one and nothing visibly moves.
+            void card.offsetWidth;
+            card.style.transition = 'transform 0.35s ease';
+            card.style.transform = '';
+            setTimeout(function () {
+              card.style.transition = '';
+            }, 350);
+          });
+        }
+
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
+        function renderReveal() {
+          var won = state.won;
+          var banner = $('reveal-banner');
+          banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
+          banner.textContent = (won ? '¡Buena memoria!' : 'Se acabó el tiempo') + ' 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
+
+          $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
+
+          renderRevealIcons();
+          renderAliasRow();
+          renderLeaderboard();
+        }
+
+        // Grouped by line (in MetroShared.LINES order, then by each
+        // station's own position along its line) rather than match order,
+        // so same-colored icons cluster together instead of scattering
+        // across the grid.
+        function sortedMatchedStations() {
+          var entries = state.matchedStations.map(function (station) {
+            var line = lineForStation(station);
+            return {
+              station: station,
+              line: line,
+              lineIndex: line ? MetroShared.LINES.indexOf(line) : MetroShared.LINES.length,
+              posInLine: line ? line.stations.indexOf(station) : 0,
+            };
+          });
+          entries.sort(function (a, b) {
+            return a.lineIndex - b.lineIndex || a.posInLine - b.posInLine;
+          });
+          return entries;
+        }
+
+        function renderRevealIcons() {
+          var el = els.revealIcons;
+          el.innerHTML = '';
+          el.hidden = state.matchedStations.length === 0;
+
+          sortedMatchedStations().forEach(function (entry) {
+            var cell = document.createElement('span');
+            cell.className = 'reveal__icon-cell';
+            cell.title = entry.station;
+            cell.setAttribute('aria-label', entry.station);
+
+            if (entry.line) cell.style.borderColor = entry.line.color;
+
+            cell.appendChild(makeIcon(entry.station, 'reveal__icon'));
+            el.appendChild(cell);
+          });
+        }
+
+        // Two-state alias control: an input+save row when no alias is
+        // set yet, or a plain display once one exists - built with DOM
+        // methods and textContent throughout, never innerHTML with the
+        // alias itself, since it's free text from anyone who's played,
+        // not trusted data like a station name.
+        //
+        // No way to change an alias once it's set - a change would land
+        // under a different Firestore doc (see aliasDocId), leaving the
+        // old alias's entry orphaned in the leaderboard with a stale
+        // score instead of actually updating it. Keeping whatever the
+        // player first entered avoids that; revisit if there's ever a
+        // real need to rename (e.g. by moving the old entry too).
+        function renderAliasRow() {
+          var alias = MetroShared.getAlias();
+          if (alias) {
+            showAliasDisplay(alias);
+          } else {
+            showAliasInput();
+          }
+        }
+
+        function showAliasDisplay(alias) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var label = document.createElement('span');
+          label.textContent = 'Jugando como: ';
+          var strong = document.createElement('strong');
+          strong.textContent = alias;
+          label.appendChild(strong);
+
+          el.appendChild(label);
+        }
+
+        function showAliasInput() {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            showAliasDisplay(normalized);
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') save();
+          });
+
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+        }
+
+        // renderLeaderboard() can legitimately be called twice in close
+        // succession - once from render() showing the current state, and
+        // again from submitScore()'s success callback refreshing it with
+        // the just-submitted entry - and both are async. Without this
+        // guard, an earlier call's response can resolve after a later
+        // call already cleared and repainted the list, appending a stale
+        // copy of the rows on top instead of being discarded. Bumped on
+        // every call; a response only renders if it's still the latest.
+        var leaderboardRequestId = 0;
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+          els.leaderboardList.innerHTML = '';
+          els.leaderboardStatus.hidden = true;
+
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, { useLocalFallback: true })
+            .then(function (entries) {
+              // Either the player navigated to a different day (debug
+              // date-nav) before this resolved, or a newer renderLeaderboard()
+              // call has already superseded this one - either way, don't
+              // paint a stale response over whatever's showing now.
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
+
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+
+              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + (index + 1);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score';
+                score.textContent = entry.score;
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                els.leaderboardList.appendChild(li);
+              });
+            });
+        }
+
+        // How many pairs you matched, translated into a rating + colored
+        // square for the share text (Wordle-style at a glance). Unlike
+        // Laberinto's rating, this has no "complete" state to be measured
+        // against - it's a skill band over an open scale, not a percentage.
+        function getRating(score) {
+          if (score === 0) return { label: 'Terrible', square: '🟥' };
+          if (score <= 5) return { label: 'Mala', square: '🟧' };
+          if (score <= 10) return { label: 'Regular', square: '🟨' };
+          if (score <= 20) return { label: 'Buena', square: '🟩' };
+          return { label: 'Excelente', square: '🟦' };
+        }
+
+        function buildShareText() {
+          var rating = getRating(state.score);
+
+          return 'Metrordle: Memoria #' + state.gameNumber + '\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Parejas: ' + state.score + '\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          var originalLabel = els.shareBtn.textContent;
+
+          MetroShared.copyToClipboard(buildShareText()).then(function () {
+            els.shareBtn.textContent = '¡Copiado!';
+          }, function () {
+            els.shareBtn.textContent = 'No se pudo copiar';
+          }).then(function () {
+            setTimeout(function () {
+              els.shareBtn.textContent = originalLabel;
+            }, 1600);
+          });
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function init() {
+          els = {
+            status: $('status'),
+            timerTrack: $('timer-track'),
+            timerBar: $('timer-bar'),
+            board: $('memo-board'),
+            startOverlay: $('start-overlay'),
+            startBtn: $('start-btn'),
+            reveal: $('reveal'),
+            revealIcons: $('reveal-icons'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
+            shareBtn: $('share-btn'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
+          };
+
+          els.shareBtn.addEventListener('click', shareResult);
+          els.startBtn.addEventListener('click', beginRound);
+
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+
+        var refreshed = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshed) return;
+          refreshed = true;
+          window.location.reload();
+        });
+      }
+    </script>
+  </body>
+</html>

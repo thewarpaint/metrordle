@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Security Rules for the Metrordle minigame family's Firestore-backed
+// daily leaderboards. metrordle.com has no build/deploy pipeline for
+// Firebase, so there's no automated way to ship these - paste this file's
+// contents into the Firebase console under Firestore Database > Rules
+// (or, if you set up the Firebase CLI later, `firebase deploy --only
+// firestore:rules`).
+//
+// There's no login system on the site, so these rules can only validate
+// the SHAPE and plausibility of a write (right types, a score that's
+// actually reachable, one document per alias per day) - they cannot
+// verify a human genuinely played fair. That's an accepted tradeoff for
+// a casual daily leaderboard, not an oversight - do not treat this as a
+// substitute for real anti-cheat.
+//
+// Add another `match` block below, following the same pattern, if
+// another game gets its own leaderboard collection later (e.g.
+// "laberinto-leaderboard").
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // memoria-leaderboard/{dateKey}/entries/{aliasId}
+    match /memoria-leaderboard/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'score', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 200 && // the whole network is 163 stations
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
+
+    // memoria-leaderboard-staging/{dateKey}/entries/{aliasId} - written by
+    // /memoria-leaderboard/, a staging copy of the Memoria page used to
+    // test the leaderboard feature before it ships on the real page. Kept
+    // in its own collection so staging test plays never mix with real
+    // scores above; same validation, same caveats.
+    match /memoria-leaderboard-staging/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'score', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 200 &&
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
+  }
+}

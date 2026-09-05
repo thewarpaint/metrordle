@@ -15,17 +15,16 @@
 // failing gracefully, so nothing crashes, the leaderboard section just
 // won't show any scores.
 var FIREBASE_CONFIG = {
-  apiKey: 'REPLACE_WITH_YOUR_FIREBASE_API_KEY',
-  authDomain: 'REPLACE_WITH_YOUR_PROJECT.firebaseapp.com',
-  projectId: 'REPLACE_WITH_YOUR_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'REPLACE_WITH_YOUR_SENDER_ID',
-  appId: 'REPLACE_WITH_YOUR_APP_ID',
+  apiKey: 'AIzaSyBhSzl62jl7foB-OiF35PCQZk-xBSy7H50',
+  authDomain: 'metrordle-23704.firebaseapp.com',
+  projectId: 'metrordle-23704',
+  storageBucket: 'metrordle-23704.firebasestorage.app',
+  messagingSenderId: '123137970314',
+  appId: '1:123137970314:web:dd12baa4ebc95f2b55dd73'
 };
 
 (function () {
   if (typeof firebase === 'undefined') return;
-  if (FIREBASE_CONFIG.apiKey.indexOf('REPLACE_WITH_') === 0) return;
 
   try {
     firebase.initializeApp(FIREBASE_CONFIG);

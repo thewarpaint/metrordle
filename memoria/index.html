@@ -416,14 +416,14 @@
             <p id="stat-you"></p>
           </div>
 
-          <div class="reveal__icons" id="reveal-icons"></div>
-
           <div class="leaderboard" id="leaderboard">
-            <h2 class="leaderboard__title">Tabla de hoy</h2>
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
             <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
             <ol class="leaderboard__list" id="leaderboard-list"></ol>
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
           </div>
+
+          <div class="reveal__icons" id="reveal-icons"></div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
         </div>
@@ -1012,17 +1012,23 @@
         }
 
         // Two-state alias control: an input+save row when no alias is
-        // set yet (or the player asked to change it), or a plain display
-        // with a "Cambiar" button once one exists. Built with DOM methods
-        // and textContent throughout, never innerHTML with the alias
-        // itself - it's free text from anyone who's played, not trusted
-        // data like a station name.
+        // set yet, or a plain display once one exists - built with DOM
+        // methods and textContent throughout, never innerHTML with the
+        // alias itself, since it's free text from anyone who's played,
+        // not trusted data like a station name.
+        //
+        // No way to change an alias once it's set - a change would land
+        // under a different Firestore doc (see aliasDocId), leaving the
+        // old alias's entry orphaned in the leaderboard with a stale
+        // score instead of actually updating it. Keeping whatever the
+        // player first entered avoids that; revisit if there's ever a
+        // real need to rename (e.g. by moving the old entry too).
         function renderAliasRow() {
           var alias = MetroShared.getAlias();
           if (alias) {
             showAliasDisplay(alias);
           } else {
-            showAliasInput('');
+            showAliasInput();
           }
         }
 
@@ -1036,19 +1042,10 @@
           strong.textContent = alias;
           label.appendChild(strong);
 
-          var changeBtn = document.createElement('button');
-          changeBtn.type = 'button';
-          changeBtn.className = 'btn-secondary';
-          changeBtn.textContent = 'Cambiar';
-          changeBtn.addEventListener('click', function () {
-            showAliasInput(alias);
-          });
-
           el.appendChild(label);
-          el.appendChild(changeBtn);
         }
 
-        function showAliasInput(currentValue) {
+        function showAliasInput() {
           var el = els.leaderboardAliasRow;
           el.innerHTML = '';
 
@@ -1056,7 +1053,6 @@
           input.type = 'text';
           input.maxLength = 20;
           input.placeholder = 'Tu alias';
-          input.value = currentValue;
           input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
 
           var saveBtn = document.createElement('button');

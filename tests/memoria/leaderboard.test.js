@@ -57,18 +57,28 @@ async function main() {
 
       const displayText = await page.$eval('#leaderboard-alias-row', (el) => el.textContent);
       assert.ok(displayText.includes('Eduardo'), 'should show the saved alias, got: ' + displayText);
-      assert.ok(displayText.includes('Cambiar'), 'should show a Cambiar button once an alias is set');
+
+      // No way to change it once set - changing would land under a
+      // different Firestore doc, orphaning the old entry instead of
+      // updating it (see the code comment on renderAliasRow).
+      const changeButtonCount = await page.locator('#leaderboard-alias-row button').count();
+      assert.strictEqual(changeButtonCount, 0, 'should not offer a way to change the alias once set');
 
       // Site-wide key, not a Memoria-specific one - so a future leaderboard
       // on another game could reuse the same alias.
       const storedKey = await page.evaluate(() => localStorage.getItem('metrordle:alias'));
       assert.strictEqual(storedKey, 'Eduardo');
 
-      // Clicking Cambiar should bring the input back, pre-filled.
-      await page.click('#leaderboard-alias-row button');
-      await page.waitForTimeout(100);
-      const inputValue = await page.$eval('#leaderboard-alias-row input', (el) => el.value);
-      assert.strictEqual(inputValue, 'Eduardo', 'Cambiar should pre-fill the input with the current alias');
+      const titleText = await page.$eval('.leaderboard__title', (el) => el.textContent);
+      assert.strictEqual(titleText, 'Mejores 5 puntajes hoy');
+
+      // The leaderboard section should render above the matched-station
+      // icons, not below.
+      const order = await page.evaluate(() => {
+        const nodes = Array.from(document.querySelectorAll('#leaderboard, #reveal-icons'));
+        return nodes.map((n) => n.id);
+      });
+      assert.deepStrictEqual(order, ['leaderboard', 'reveal-icons'], 'leaderboard should come before the icons grid in the DOM');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

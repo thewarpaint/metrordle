@@ -726,34 +726,43 @@
         // Submits the current result to today's leaderboard, if an alias
         // is already set. Also called again once the player sets an
         // alias from the reveal screen, in case a round already finished
-        // before they had one. Skipped entirely in ?debug=true so test
-        // plays on arbitrary dates never pollute real leaderboard data.
+        // before they had one.
+        //
+        // Unlike the real Memoria page, this staging page does NOT skip
+        // submissions under ?debug=true - date-nav testing is the whole
+        // point of this page, and it already writes to its own isolated
+        // staging collection/fallback namespace (see LEADERBOARD_COLLECTION
+        // above), so there's no real data to protect from test plays here.
         function submitScore() {
-          if (!state || state.status !== 'done') return;
+          if (!state || state.status !== 'done') {
+            console.log('[Leaderboard] submitScore() skipped - no finished round yet (state.status=' + (state && state.status) + ')');
+            return;
+          }
 
-          // Unlike the real Memoria page, this staging page does NOT
-          // skip submissions under ?debug=true - date-nav testing is the
-          // whole point of this page, and it already writes to its own
-          // isolated staging collection/fallback namespace (see
-          // LEADERBOARD_COLLECTION above), so there's no real data to
-          // protect from test plays here.
           var alias = MetroShared.getAlias();
-          if (!alias) return;
+          if (!alias) {
+            console.log('[Leaderboard] submitScore() skipped - no alias set yet');
+            return;
+          }
 
           // useLocalFallback: this staging page uses a localStorage-backed
           // fake leaderboard whenever Firebase isn't configured yet, so
           // the whole flow is testable before any real project exists -
           // it automatically switches to the real Firestore backend once
           // firebase-config.js has real credentials.
+          console.log('[Leaderboard] submitScore() submitting', { dateKey: state.dateKey, alias: alias, score: state.score });
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, state.score, { useLocalFallback: true })
             .then(function () {
+              console.log('[Leaderboard] submitScore() succeeded - refreshing the rendered leaderboard');
               renderLeaderboard();
             })
-            .catch(function () {
+            .catch(function (err) {
               // Best-effort - the player's own result is already saved
               // locally either way, so a failed submission isn't shown as
-              // an error; it's silently retried the next time
-              // submitScore() runs (e.g. the next reload).
+              // an error in the UI; it's silently retried the next time
+              // submitScore() runs (e.g. the next reload). Still logged
+              // here in full for debugging.
+              console.error('[Leaderboard] submitScore() failed:', err);
             });
         }
 
@@ -1105,6 +1114,7 @@
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
+          console.log('[Leaderboard] renderLeaderboard() called for', dateKey, '(request #' + requestId + ')');
           els.leaderboardList.innerHTML = '';
           els.leaderboardStatus.hidden = true;
 
@@ -1114,9 +1124,16 @@
               // date-nav) before this resolved, or a newer renderLeaderboard()
               // call has already superseded this one - either way, don't
               // paint a stale response over whatever's showing now.
-              if (!state || state.dateKey !== dateKey) return;
-              if (requestId !== leaderboardRequestId) return;
+              if (!state || state.dateKey !== dateKey) {
+                console.log('[Leaderboard] renderLeaderboard() request #' + requestId + ' discarded - date changed (now ' + (state && state.dateKey) + ')');
+                return;
+              }
+              if (requestId !== leaderboardRequestId) {
+                console.log('[Leaderboard] renderLeaderboard() request #' + requestId + ' discarded - superseded by request #' + leaderboardRequestId);
+                return;
+              }
 
+              console.log('[Leaderboard] renderLeaderboard() request #' + requestId + ' rendering', entries.length, 'entrie(s)');
               els.leaderboardList.innerHTML = '';
 
               if (entries.length === 0) {
@@ -1203,6 +1220,14 @@
         }
 
         function init() {
+          console.log('[Leaderboard] Page init.', {
+            firebaseDefined: typeof firebase !== 'undefined',
+            firebaseAppsCount: (typeof firebase !== 'undefined' && firebase.apps) ? firebase.apps.length : 'n/a',
+            alias: MetroShared.getAlias() || '(none set)',
+            debugMode: MetroShared.isDebugMode(),
+            leaderboardCollection: LEADERBOARD_COLLECTION,
+          });
+
           els = {
             status: $('status'),
             timerTrack: $('timer-track'),

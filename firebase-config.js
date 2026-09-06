@@ -24,13 +24,16 @@ var FIREBASE_CONFIG = {
 };
 
 (function () {
-  if (typeof firebase === 'undefined') return;
+  if (typeof firebase === 'undefined') {
+    console.error('[Firebase] SDK not loaded - firebase-app-compat.js/firebase-firestore-compat.js did not load before this script ran (network blocked? ad blocker? gstatic.com unreachable?).');
+    return;
+  }
 
+  console.log('[Firebase] Initializing with config:', FIREBASE_CONFIG);
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
+    console.log('[Firebase] initializeApp() succeeded. firebase.apps:', firebase.apps.map(function (app) { return app.name; }));
   } catch (e) {
-    // Already initialized, or a malformed config - either way there's
-    // nothing more to do here; shared.js's leaderboard functions check
-    // firebase.apps.length themselves before touching Firestore.
+    console.error('[Firebase] initializeApp() threw:', e);
   }
 })();

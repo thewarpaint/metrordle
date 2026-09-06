@@ -589,25 +589,30 @@
             if (!raw) return null;
             var parsed = JSON.parse(raw);
             if (!parsed || typeof parsed.score !== 'number') return null;
-            // matchedStations was added after this key's format shipped, so
-            // a result saved by an older version won't have it - fall back
-            // to an empty list rather than crash.
+            // matchedStations/leaderboardSubmitted were added after this
+            // key's format shipped, so a result saved by an older version
+            // won't have them - fall back rather than crash. Treating a
+            // missing leaderboardSubmitted as false is fine: it just means
+            // one harmless retry-submit next load, same as a genuine
+            // earlier failure would cause.
             return {
               score: parsed.score,
               won: parsed.won,
               matchedStations: Array.isArray(parsed.matchedStations) ? parsed.matchedStations : [],
+              leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
           } catch (e) {
             return null;
           }
         }
 
-        function persistResult(dateKey, score, won, matchedStations) {
+        function persistResult(dateKey, score, won, matchedStations, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               score: score,
               won: won,
               matchedStations: matchedStations,
+              leaderboardSubmitted: !!leaderboardSubmitted,
             }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the
@@ -650,15 +655,19 @@
               score: saved.score,
               won: saved.won,
               matchedStations: saved.matchedStations,
+              leaderboardSubmitted: saved.leaderboardSubmitted,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
               cells: [],
               selectedIndex: null,
               timerId: null,
             };
-            // A retry, in case an earlier submission attempt (e.g. right
-            // after setting an alias mid-session) failed silently -
-            // harmless to repeat since it's an upsert.
+            // submitScore() itself checks state.leaderboardSubmitted and
+            // no-ops if it's already true, so this is only ever a real
+            // retry when an earlier attempt is known to have failed (or
+            // never ran) - not a pointless resubmit-then-rerender on every
+            // normal reload of an already-submitted day, which used to
+            // cause a visible double flicker in the rendered leaderboard.
             submitScore();
             render();
             return;
@@ -716,7 +725,8 @@
           state.timerId = null;
           state.status = 'done';
           state.won = state.score >= PAR_WIN_SCORE;
-          persistResult(state.dateKey, state.score, state.won, state.matchedStations);
+          state.leaderboardSubmitted = false;
+          persistResult(state.dateKey, state.score, state.won, state.matchedStations, false);
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           submitScore();
@@ -739,6 +749,11 @@
             return;
           }
 
+          if (state.leaderboardSubmitted) {
+            console.log('[Leaderboard] submitScore() skipped - already confirmed submitted for today');
+            return;
+          }
+
           var alias = MetroShared.getAlias();
           if (!alias) {
             console.log('[Leaderboard] submitScore() skipped - no alias set yet');
@@ -754,6 +769,8 @@
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, state.score, { useLocalFallback: true })
             .then(function () {
               console.log('[Leaderboard] submitScore() succeeded - refreshing the rendered leaderboard');
+              state.leaderboardSubmitted = true;
+              persistResult(state.dateKey, state.score, state.won, state.matchedStations, true);
               renderLeaderboard();
             })
             .catch(function (err) {
@@ -1115,8 +1132,11 @@
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
           console.log('[Leaderboard] renderLeaderboard() called for', dateKey, '(request #' + requestId + ')');
-          els.leaderboardList.innerHTML = '';
-          els.leaderboardStatus.hidden = true;
+          // Deliberately not clearing els.leaderboardList/leaderboardStatus
+          // here - this call is often just a same-data refresh (e.g. a
+          // reload of an already-submitted day), and blanking the list
+          // before the fetch resolves caused a visible flicker. The list
+          // is only ever touched once a response actually arrives, below.
 
           MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, { useLocalFallback: true })
             .then(function (entries) {

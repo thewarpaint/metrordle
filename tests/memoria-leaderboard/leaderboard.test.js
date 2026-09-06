@@ -28,14 +28,15 @@ const PAGE_PATH = '/memoria-leaderboard/';
 const STORAGE_PREFIX = 'memoria-leaderboard-staging:';
 const FALLBACK_COLLECTION = 'memoria-leaderboard-staging';
 
-async function plantSavedResult(page, dateKey, score, matchedStations) {
+async function plantSavedResult(page, dateKey, score, matchedStations, leaderboardSubmitted) {
   await page.evaluate(function (args) {
     localStorage.setItem(args.prefix + args.dateKey, JSON.stringify({
       score: args.score,
       won: args.score >= 8,
       matchedStations: args.matchedStations,
+      leaderboardSubmitted: !!args.leaderboardSubmitted,
     }));
-  }, { prefix: STORAGE_PREFIX, dateKey: dateKey, score: score, matchedStations: matchedStations });
+  }, { prefix: STORAGE_PREFIX, dateKey: dateKey, score: score, matchedStations: matchedStations, leaderboardSubmitted: leaderboardSubmitted });
 }
 
 async function plantFallbackEntry(page, dateKey, docId, alias, score, submittedAt) {
@@ -202,6 +203,41 @@ async function main() {
       assert.strictEqual(statusVisible, true, 'expected the empty-state leaderboard message to show');
       const rows = await page.$$('#leaderboard-list .leaderboard__row');
       assert.strictEqual(rows.length, 0, 'expected no leaderboard rows before any submission');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a reload of an already-submitted day does not resubmit to the leaderboard', async () => {
+    const DATE = '2026-11-06';
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + PAGE_PATH + '?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await page.evaluate(() => localStorage.setItem('metrordle:alias', 'Ya'));
+
+      // Plant a fallback entry as if an earlier submission already landed
+      // with score 7, then plant a saved result with leaderboardSubmitted:
+      // true but a *different* score (99) - a state that can't happen for
+      // real, used purely to detect a resubmission: if submitScore() ran
+      // again despite the flag, it would upsert the fallback entry to 99.
+      await plantFallbackEntry(page, DATE, 'ya', 'Ya', 7, 1000);
+      await plantSavedResult(page, DATE, 99, ['Insurgentes'], true);
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const fallbackRaw = await page.evaluate((args) => localStorage.getItem('metrordle:leaderboard-fallback:' + args.collection + ':' + args.dateKey), { collection: FALLBACK_COLLECTION, dateKey: DATE });
+      const fallbackEntries = JSON.parse(fallbackRaw);
+      assert.strictEqual(fallbackEntries.ya.score, 7, 'a day already marked leaderboardSubmitted should not resubmit and overwrite the existing entry');
+
+      const rowText = await page.$eval('#leaderboard-list', (el) => el.textContent);
+      assert.ok(rowText.includes('7'), 'rendered leaderboard should still show the original submitted score: ' + rowText);
+      assert.ok(!rowText.includes('99'), 'rendered leaderboard should not show the unsubmitted local score: ' + rowText);
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

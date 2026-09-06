@@ -453,26 +453,52 @@ function getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount) {
   return Promise.resolve(results.slice(0, limitCount));
 }
 
+function firebaseStatusForLog() {
+  return {
+    firebaseDefined: typeof firebase !== 'undefined',
+    firebaseAppsCount: (typeof firebase !== 'undefined' && firebase.apps) ? firebase.apps.length : 'n/a',
+    firebaseReady: firebaseReady(),
+  };
+}
+
 // Upserts (creates or overwrites) the caller's entry for that day - "last
 // write wins" if the same alias submits from more than one device on the
 // same day, which is an accepted simplification rather than a bug.
 function submitLeaderboardScore(collectionName, dateKey, alias, score, options) {
+  var docId = aliasDocId(alias);
+  var path = collectionName + '/' + dateKey + '/entries/' + docId;
+  console.log('[Leaderboard] submitLeaderboardScore()', Object.assign({
+    path: path, alias: alias, score: score, useLocalFallback: !!(options && options.useLocalFallback),
+  }, firebaseStatusForLog()));
+
   if (!firebaseReady()) {
     if (options && options.useLocalFallback) {
+      console.log('[Leaderboard] Firebase not ready - writing to the localStorage fallback instead:', path);
       return submitLeaderboardScoreFallback(collectionName, dateKey, alias, score);
     }
+    console.warn('[Leaderboard] Firebase not ready and no fallback requested - write skipped:', path);
     return Promise.reject(new Error('Firebase not available'));
   }
 
-  var docId = aliasDocId(alias);
-  if (!docId) return Promise.reject(new Error('Alias is required'));
+  if (!docId) {
+    console.warn('[Leaderboard] Empty/invalid alias - write skipped:', path);
+    return Promise.reject(new Error('Alias is required'));
+  }
 
+  console.log('[Leaderboard] Writing to Firestore:', path);
   return firebase.firestore()
     .collection(collectionName).doc(dateKey).collection('entries').doc(docId)
     .set({
       alias: normalizeAlias(alias),
       score: score,
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+    .then(function () {
+      console.log('[Leaderboard] Write succeeded:', path);
+    })
+    .catch(function (err) {
+      console.error('[Leaderboard] Write FAILED:', path, '\n  code:', err && err.code, '\n  message:', err && err.message, '\n  full error:', err);
+      throw err;
     });
 }
 
@@ -481,13 +507,21 @@ function submitLeaderboardScore(collectionName, dateKey, alias, score, options) 
 // fine degraded state for a read, unlike a failed write, which callers
 // may want to surface differently.
 function getTopLeaderboardScores(collectionName, dateKey, limitCount, options) {
+  var path = collectionName + '/' + dateKey + '/entries';
+  console.log('[Leaderboard] getTopLeaderboardScores()', Object.assign({
+    path: path, limitCount: limitCount, useLocalFallback: !!(options && options.useLocalFallback),
+  }, firebaseStatusForLog()));
+
   if (!firebaseReady()) {
     if (options && options.useLocalFallback) {
+      console.log('[Leaderboard] Firebase not ready - reading from the localStorage fallback instead:', path);
       return getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount);
     }
+    console.warn('[Leaderboard] Firebase not ready and no fallback requested - read returns []:', path);
     return Promise.resolve([]);
   }
 
+  console.log('[Leaderboard] Querying Firestore:', path);
   return firebase.firestore()
     .collection(collectionName).doc(dateKey).collection('entries')
     .orderBy('score', 'desc')
@@ -500,9 +534,11 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, options) {
         var data = doc.data();
         results.push({ id: doc.id, alias: data.alias, score: data.score });
       });
+      console.log('[Leaderboard] Query succeeded:', path, '- got', results.length, 'result(s):', results);
       return results;
     })
-    .catch(function () {
+    .catch(function (err) {
+      console.error('[Leaderboard] Query FAILED:', path, '\n  code:', err && err.code, '\n  message:', err && err.message, '\n  full error:', err);
       return [];
     });
 }

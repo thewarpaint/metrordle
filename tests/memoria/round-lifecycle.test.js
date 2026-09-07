@@ -101,7 +101,7 @@ async function main() {
       // Persisted matchedStations stays in MATCH order - only the reveal's
       // rendered order is sorted by line, not the stored data itself.
       const saved = await page.evaluate((k) => localStorage.getItem('memoria:' + k), DATE);
-      assert.deepStrictEqual(JSON.parse(saved), { score: 3, won: false, matchedStations: [station1, station2, station3] });
+      assert.deepStrictEqual(JSON.parse(saved), { score: 3, won: false, matchedStations: [station1, station2, station3], leaderboardSubmitted: false });
 
       // The reveal screen should show one small icon per matched station,
       // laid out 6 per row, grouped by line rather than match order -

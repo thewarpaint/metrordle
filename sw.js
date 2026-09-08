@@ -3,7 +3,11 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v29';
+var CACHE_NAME = 'metrordle-v30';
+
+// How long a page navigation waits on the network before falling back to
+// the cached version - see the fetch handler below.
+var NAVIGATION_TIMEOUT_MS = 1500;
 
 var PRECACHE_URLS = [
   '/',
@@ -63,22 +67,50 @@ self.addEventListener('fetch', function (event) {
   }
 
   if (request.mode === 'navigate') {
-    // Network-first for the page itself, so online players always get
-    // the current version; offline players fall back to the last cache.
+    // Race the network against a short timeout for the page itself, so
+    // online players on a decent connection still get the current
+    // version, but a slow network doesn't hold up first paint - the
+    // cached copy answers instead. Either way, this network fetch keeps
+    // running in the background and updates the cache for next time once
+    // it resolves, even after it's lost the race and the cached response
+    // has already been sent.
+    var networkPromise = fetch(request)
+      .then(function (response) {
+        var responseClone = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) {
+          cache.put(request, responseClone);
+        });
+        return response;
+      })
+      .catch(function () {
+        return null;
+      });
+
+    // Keeps the service worker alive long enough for the cache update
+    // above to land even when the timeout below wins the race and
+    // respondWith() settles first.
+    event.waitUntil(networkPromise);
+
+    var timeoutPromise = new Promise(function (resolve) {
+      setTimeout(function () { resolve(null); }, NAVIGATION_TIMEOUT_MS);
+    });
+
     event.respondWith(
-      fetch(request)
-        .then(function (response) {
-          var responseClone = response.clone();
-          caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(request, responseClone);
+      Promise.race([networkPromise, timeoutPromise]).then(function (response) {
+        if (response) return response;
+
+        // Either the network was too slow or it failed outright - serve
+        // the last cached version. If there isn't one (e.g. a page not
+        // in PRECACHE_URLS on a first-ever visit), wait on the same
+        // network fetch that's already in flight rather than starting a
+        // second one.
+        return caches.match(request).then(function (cached) {
+          if (cached) return cached;
+          return networkPromise.then(function (netResponse) {
+            return netResponse || caches.match('/index.html');
           });
-          return response;
-        })
-        .catch(function () {
-          return caches.match(request).then(function (cached) {
-            return cached || caches.match('/index.html');
-          });
-        })
+        });
+      })
     );
     return;
   }

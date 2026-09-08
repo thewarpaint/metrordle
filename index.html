@@ -1827,15 +1827,13 @@
 
     <script>
       if ('serviceWorker' in navigator) {
+        // Deliberately no controllerchange -> reload() here: a new
+        // service worker activates in the background (see sw.js) and
+        // simply serves the updated version on the next natural
+        // navigation, instead of yanking the page out from under a
+        // player mid-round the moment a deploy lands.
         window.addEventListener('load', function () {
           navigator.serviceWorker.register('/sw.js');
-        });
-
-        var refreshed = false;
-        navigator.serviceWorker.addEventListener('controllerchange', function () {
-          if (refreshed) return;
-          refreshed = true;
-          window.location.reload();
         });
       }
     </script>

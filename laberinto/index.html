@@ -879,17 +879,7 @@
         }
 
         function shareResult() {
-          var originalLabel = els.shareBtn.textContent;
-
-          MetroShared.copyToClipboard(buildShareText()).then(function () {
-            els.shareBtn.textContent = '¡Copiado!';
-          }, function () {
-            els.shareBtn.textContent = 'No se pudo copiar';
-          }).then(function () {
-            setTimeout(function () {
-              els.shareBtn.textContent = originalLabel;
-            }, 1600);
-          });
+          MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
         }
 
         function shiftDebugDate(deltaDays) {

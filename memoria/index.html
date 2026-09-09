@@ -1178,9 +1178,31 @@
         }
 
         function shareResult() {
+          var text = buildShareText();
+
+          // Prefer the native share sheet when available - it hands the
+          // target app the text as a proper structured field, rather
+          // than relying on the player to manually paste a clipboard
+          // blob through whatever app they choose (some of which have
+          // been reported to mangle a pasted multi-line/emoji block into
+          // a URL-encoded mess instead of showing it as plain text).
+          if (navigator.share) {
+            navigator.share({ text: text }).catch(function (err) {
+              // AbortError just means the player closed the share sheet
+              // without picking anything - not a failure to fall back from.
+              if (err && err.name === 'AbortError') return;
+              copyShareTextToClipboard(text);
+            });
+            return;
+          }
+
+          copyShareTextToClipboard(text);
+        }
+
+        function copyShareTextToClipboard(text) {
           var originalLabel = els.shareBtn.textContent;
 
-          MetroShared.copyToClipboard(buildShareText()).then(function () {
+          MetroShared.copyToClipboard(text).then(function () {
             els.shareBtn.textContent = '¡Copiado!';
           }, function () {
             els.shareBtn.textContent = 'No se pudo copiar';

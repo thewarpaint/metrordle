@@ -870,11 +870,11 @@
           var optimalTransfers = countTransfers(state.shortestPath);
           var rating = getRating();
 
-          return 'Metrordle: Laberinto #' + state.gameNumber + '\n' +
+          return '#Metrordle: Laberinto #' + state.gameNumber + '\n\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)\n' +
             'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)\n' +
-            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
             SHARE_URL;
         }
 

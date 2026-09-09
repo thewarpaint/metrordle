@@ -1164,16 +1164,17 @@
           if (score <= 5) return { label: 'Mala', square: '🟧' };
           if (score <= 10) return { label: 'Regular', square: '🟨' };
           if (score <= 20) return { label: 'Buena', square: '🟩' };
-          return { label: 'Excelente', square: '🟦' };
+          if (score <= 30) return { label: 'Excelente', square: '🟦' };
+          return { label: 'Sobresaliente', square: '🟪' };
         }
 
         function buildShareText() {
           var rating = getRating(state.score);
 
-          return 'Metrordle: Memoria #' + state.gameNumber + '\n' +
+          return '#Metrordle: Memoria #' + state.gameNumber + '\n\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Parejas: ' + state.score + '\n' +
-            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
             SHARE_URL;
         }
 

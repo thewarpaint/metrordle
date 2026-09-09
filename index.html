@@ -1712,7 +1712,7 @@
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
           return '#Metrordle #' + state.gameNumber + '\n' + hardModeLine + '\n' + grid + '\n\n🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine('\n') + '\n\n' + SHARE_URL;
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' + SHARE_URL;
         }
 
         function shareResult() {

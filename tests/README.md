@@ -7,9 +7,8 @@ test file spins up a plain `python3 -m http.server` rooted at the repo
 and drives it with a real (headless) browser, the same way a player's
 browser would.
 
-Only Memoria has coverage today (`memoria/`), plus its `/memoria-leaderboard/`
-staging page (`memoria-leaderboard/`). Add new games under their own
-subdirectory following the same pattern.
+Only Memoria has coverage today (`memoria/`). Add new games under their
+own subdirectory following the same pattern.
 
 ## Setup
 
@@ -28,7 +27,7 @@ From the `tests/` directory:
 ```sh
 npm test               # everything (~95s total)
 npm run test:fast       # fast checks only (~15s)
-npm run test:leaderboard  # alias + leaderboard checks (~15s)
+npm run test:leaderboard  # the real page's leaderboard checks (~10s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
 ```
 
@@ -74,34 +73,39 @@ real, so it's slower):
 - The reveal's matched-station icons render grouped by line (not match
   order).
 
-**`memoria-leaderboard/leaderboard.test.js`** (no real-time waiting -
-plants a saved result directly in `localStorage` to reach the reveal
-screen instantly), covering `/memoria-leaderboard/` - a staging copy of
-the Memoria page (own storage-key prefix and Firestore collection, so
-testing here never touches a real player's saved result, streak, or the
-real leaderboard) used to build and test this feature before it ships on
-`/memoria/` itself:
-- The alias input shows when none is saved; saving one persists it under
-  the site-wide `metrordle:alias` key (not page-specific) and switches to
-  a "Jugando como: ... (Cambiar)" display.
-- An alias saved from a previous visit shows the display row directly on
-  load, without asking again.
-- With no real Firebase project configured (the checked-in default - see
-  `firebase-config.js`), this page falls back to a localStorage-backed
-  fake leaderboard: a submission actually lands and renders, multiple
-  entries sort correctly (score desc, earliest-submission tie-break), and
-  the current player's own row gets highlighted.
-- The leaderboard section shows an empty-state message before any
-  submission that day.
-- Nothing here ever writes to the real page's `memoria:...` storage keys.
+**`memoria/leaderboard.test.js`** (no real-time waiting - plants a saved
+result directly in `localStorage` to reach the reveal screen instantly),
+covering the leaderboard section on the real `/memoria/` page (its own
+`memoria-leaderboard` Firestore collection, no localStorage fallback):
+- The leaderboard section renders above the matched-icons grid, with the
+  right title, and degrades gracefully to an empty-state message rather
+  than erroring when Firebase isn't reachable (this sandboxed environment
+  can't reach `gstatic.com` at all, which doubles as a real "player whose
+  network blocks Firebase" case).
+- Saving an alias persists it under the site-wide `metrordle:alias` key
+  and shows the "Jugando como: ..." display, without a page error, even
+  under `?debug=true`.
+- A play under `?debug=true` never marks `leaderboardSubmitted` true -
+  date-nav testing shouldn't pollute the real leaderboard.
 
-None of this exercises real Firestore reads/writes, since no live
-Firebase project's credentials belong in this repo. Once a real project
-is wired up in `firebase-config.js`, this page automatically starts using
-it instead of the local fallback - do one manual smoke test against it:
-confirm a normal play submits a score visible in the Firebase console
-under `memoria-leaderboard-staging`, and that playing under `?debug=true`
+None of this exercises a real Firestore submission landing and rendering
+(sorted, tie-broken, highlighting the current player's row) end to end,
+since no live Firebase project's credentials belong in this repo and the
+real page has no localStorage fallback to fall back to instead. Once a
+real project is wired up in `firebase-config.js`, do a manual smoke test
+against it: confirm a normal play submits a score visible in the Firebase
+console under `memoria-leaderboard`, and that playing under `?debug=true`
 does not.
+
+**`memoria/share.test.js`** (same saved-result-planting trick, no
+real-time waiting) covers the "Compartir" button's `navigator.share()`
+path specifically - Playwright's Chromium has no Web Share API by
+default, so `round-lifecycle.test.js`'s real completed round only ever
+exercises the clipboard-copy fallback. Stubs `navigator.share` to check:
+it's called with the correctly-built share text; a cancelled share sheet
+(`AbortError`) does *not* also fall back to a clipboard copy; a share
+sheet that fails for another reason *does* fall back, with the button
+showing the clipboard-copy confirmation label.
 
 ## Adding a check
 

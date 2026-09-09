@@ -12,7 +12,6 @@ const FILES = [
   'memoria/round-lifecycle.test.js',
   'memoria/leaderboard.test.js',
   'memoria/share.test.js',
-  'memoria-leaderboard/leaderboard.test.js',
 ];
 
 let failed = 0;

@@ -118,7 +118,7 @@ async function main() {
       await page.waitForTimeout(300);
       const shareText = await page.evaluate(() => navigator.clipboard.readText());
 
-      const expected = 'Metrordle: Memoria #' + gameNumberFor(DATE) + '\n' +
+      const expected = '#Metrordle: Memoria #' + gameNumberFor(DATE) + '\n\n' +
         '🟧 Calificación: Mala\n' +
         'Parejas: 3\n' +
         '🔥 Racha: 0 días\n\n' +

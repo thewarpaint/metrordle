@@ -349,6 +349,41 @@ function copyToClipboard(text) {
   return copyViaExecCommand(text);
 }
 
+function copyTextWithButtonFeedback(text, buttonEl) {
+  var originalLabel = buttonEl.textContent;
+
+  copyToClipboard(text).then(function () {
+    buttonEl.textContent = '¡Copiado!';
+  }, function () {
+    buttonEl.textContent = 'No se pudo copiar';
+  }).then(function () {
+    setTimeout(function () {
+      buttonEl.textContent = originalLabel;
+    }, 1600);
+  });
+}
+
+// Shares text via the native OS share sheet when available - it hands
+// the target app a proper structured field, rather than relying on the
+// player to manually paste a clipboard blob through whatever app they
+// pick (which has been reported to mangle a pasted multi-line/emoji
+// block into a URL-encoded mess instead of showing it as plain text).
+// Falls back to a clipboard copy (with buttonEl's own label as a
+// temporary confirmation) when navigator.share isn't available, or if
+// the share sheet itself fails for a reason other than the player just
+// closing it (AbortError).
+function shareOrCopyText(text, buttonEl) {
+  if (navigator.share) {
+    navigator.share({ text: text }).catch(function (err) {
+      if (err && err.name === 'AbortError') return;
+      copyTextWithButtonFeedback(text, buttonEl);
+    });
+    return;
+  }
+
+  copyTextWithButtonFeedback(text, buttonEl);
+}
+
 // Daily leaderboards (Firestore-backed). The player's alias is site-wide
 // (one localStorage key shared across every game), not per-game, so it
 // carries over if a leaderboard ever comes to Metrordle or Laberinto too.
@@ -557,6 +592,7 @@ window.MetroShared = {
   prefersReducedMotion: prefersReducedMotion,
   copyViaExecCommand: copyViaExecCommand,
   copyToClipboard: copyToClipboard,
+  shareOrCopyText: shareOrCopyText,
   loadStreak: loadStreak,
   saveStreak: saveStreak,
   updateStreakForResult: updateStreakForResult,

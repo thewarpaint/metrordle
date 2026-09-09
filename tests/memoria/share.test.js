@@ -65,7 +65,7 @@ async function main() {
 
       const calls = await page.evaluate(() => window.__shareCalls);
       assert.strictEqual(calls.length, 1, 'expected navigator.share to be called exactly once');
-      assert.ok(calls[0].text.startsWith('Metrordle: Memoria #'), 'shared text should start with the game header, got: ' + calls[0].text);
+      assert.ok(calls[0].text.startsWith('#Metrordle: Memoria #'), 'shared text should start with the game header, got: ' + calls[0].text);
       assert.ok(calls[0].text.includes('Parejas: 4'), 'shared text should include the score, got: ' + calls[0].text);
       assert.ok(calls[0].text.includes('https://metrordle.com/memoria/'), 'shared text should include the game URL, got: ' + calls[0].text);
 
@@ -127,7 +127,7 @@ async function main() {
       await page.waitForTimeout(300);
 
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-      assert.ok(clipboardText.startsWith('Metrordle: Memoria #'), 'expected the share text on the clipboard after a non-abort share failure, got: ' + clipboardText);
+      assert.ok(clipboardText.startsWith('#Metrordle: Memoria #'), 'expected the share text on the clipboard after a non-abort share failure, got: ' + clipboardText);
 
       const btnLabel = await page.$eval('#share-btn', (el) => el.textContent);
       assert.strictEqual(btnLabel, '¡Copiado!', 'button should show the clipboard-copy confirmation on this fallback path');

@@ -1162,9 +1162,9 @@
         function getRating(score) {
           if (score === 0) return { label: 'Terrible', square: '🟥' };
           if (score <= 5) return { label: 'Mala', square: '🟧' };
-          if (score <= 10) return { label: 'Regular', square: '🟨' };
-          if (score <= 20) return { label: 'Buena', square: '🟩' };
-          if (score <= 30) return { label: 'Excelente', square: '🟦' };
+          if (score <= 15) return { label: 'Regular', square: '🟨' };
+          if (score <= 25) return { label: 'Buena', square: '🟩' };
+          if (score <= 35) return { label: 'Excelente', square: '🟦' };
           return { label: 'Sobresaliente', square: '🟪' };
         }
 

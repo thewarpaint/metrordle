@@ -15,8 +15,7 @@ rules_version = '2';
 // substitute for real anti-cheat.
 //
 // Add another `match` block below, following the same pattern, if
-// another game gets its own leaderboard collection later (e.g.
-// "laberinto-leaderboard").
+// another game gets its own leaderboard collection later.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -32,6 +31,32 @@ service cloud.firestore {
         request.resource.data.score is int &&
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 200 && // the whole network is 163 stations
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
+
+    // laberinto-leaderboard/{dateKey}/entries/{aliasId} - ranked ascending
+    // (fewer stations/transfers is better), unlike Memoria's descending
+    // score, but the same shape/plausibility validation otherwise. Bounds
+    // are generous rather than tight since a player can wander the network
+    // indefinitely before reaching the destination - there's no move limit
+    // to derive a tighter cap from.
+    match /laberinto-leaderboard/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'stations', 'transfers', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.stations is int &&
+        request.resource.data.stations >= 0 &&
+        request.resource.data.stations <= 500 &&
+        request.resource.data.transfers is int &&
+        request.resource.data.transfers >= 0 &&
+        request.resource.data.transfers <= 100 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

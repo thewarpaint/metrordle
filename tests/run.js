@@ -12,6 +12,7 @@ const FILES = [
   'memoria/round-lifecycle.test.js',
   'memoria/leaderboard.test.js',
   'memoria/share.test.js',
+  'laberinto/leaderboard.test.js',
 ];
 
 let failed = 0;

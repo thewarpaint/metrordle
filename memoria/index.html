@@ -743,7 +743,7 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, state.score, {})
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.won, state.matchedStations, true);
@@ -1112,7 +1112,7 @@
           // before the fetch resolves would cause a visible flicker. The
           // list is only ever touched once a response actually arrives.
 
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, {})
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], {})
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()

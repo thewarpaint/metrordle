@@ -7,7 +7,8 @@ test file spins up a plain `python3 -m http.server` rooted at the repo
 and drives it with a real (headless) browser, the same way a player's
 browser would.
 
-Only Memoria has coverage today (`memoria/`). Add new games under their
+Memoria (`memoria/`) has the fullest coverage; Laberinto (`laberinto/`)
+has leaderboard coverage only so far. Add new games/checks under their
 own subdirectory following the same pattern.
 
 ## Setup
@@ -27,8 +28,9 @@ From the `tests/` directory:
 ```sh
 npm test               # everything (~95s total)
 npm run test:fast       # fast checks only (~15s)
-npm run test:leaderboard  # the real page's leaderboard checks (~10s)
+npm run test:leaderboard  # Memoria's leaderboard checks (~10s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
+npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
 ```
 
 Or run a file directly: `node memoria/fast.test.js`.
@@ -106,6 +108,29 @@ it's called with the correctly-built share text; a cancelled share sheet
 (`AbortError`) does *not* also fall back to a clipboard copy; a share
 sheet that fails for another reason *does* fall back, with the button
 showing the clipboard-copy confirmation label.
+
+**`laberinto/leaderboard.test.js`** (no real-time waiting - plants a
+"won" state with a fabricated path directly in `localStorage`, since
+`loadSavedState()` only checks that `path` is a non-empty array, not
+that it's a real solve), covering the leaderboard section on
+`/laberinto/` (its own `laberinto-leaderboard` Firestore collection, no
+localStorage fallback). Ranked the opposite direction from Memoria's:
+fewer stations wins, fewer transfers breaks a tie, both ascending -
+entries render as `stations-transfers` (e.g. `12-2`) rather than a
+single number:
+- The leaderboard section renders above the optimal-route details, with
+  the right title, and degrades gracefully to an empty-state message
+  rather than erroring when Firebase isn't reachable.
+- Saving an alias persists it under the site-wide `metrordle:alias` key,
+  without a page error, even under `?debug=true`.
+- A play under `?debug=true` never marks `leaderboardSubmitted` true.
+- Giving up never has anything to submit (there's no route to rank) -
+  `leaderboardSubmitted` stays false, but the leaderboard section still
+  renders without error.
+
+Same real-Firestore-submission coverage gap as Memoria's leaderboard
+test, for the same reason (no live Firebase project's credentials belong
+in this repo, and the real page has no localStorage fallback).
 
 ## Adding a check
 

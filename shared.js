@@ -466,25 +466,38 @@ function saveFallbackEntries(collectionName, dateKey, entries) {
   }
 }
 
-function submitLeaderboardScoreFallback(collectionName, dateKey, alias, score) {
+// Ranks entries by an ordered list of [fieldName, 'asc'|'desc'] pairs -
+// e.g. [['score', 'desc']] for Memoria (higher wins), or
+// [['stations', 'asc'], ['transfers', 'asc']] for Laberinto (fewer of
+// both wins, stations breaking ties first). submittedAt ascending is
+// always the final tiebreak, same as Firestore's own query below.
+function compareByOrderSpecs(orderBySpecs) {
+  return function (a, b) {
+    for (var i = 0; i < orderBySpecs.length; i++) {
+      var field = orderBySpecs[i][0];
+      var dir = orderBySpecs[i][1] === 'desc' ? -1 : 1;
+      if (a[field] !== b[field]) return dir * (a[field] - b[field]);
+    }
+    return a.submittedAt - b.submittedAt;
+  };
+}
+
+function submitLeaderboardScoreFallback(collectionName, dateKey, alias, fields) {
   var docId = aliasDocId(alias);
   if (!docId) return Promise.reject(new Error('Alias is required'));
 
   var entries = loadFallbackEntries(collectionName, dateKey);
-  entries[docId] = { alias: normalizeAlias(alias), score: score, submittedAt: Date.now() };
+  entries[docId] = Object.assign({ alias: normalizeAlias(alias), submittedAt: Date.now() }, fields);
   saveFallbackEntries(collectionName, dateKey, entries);
   return Promise.resolve();
 }
 
-function getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount) {
+function getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount, orderBySpecs) {
   var entries = loadFallbackEntries(collectionName, dateKey);
   var results = Object.keys(entries).map(function (docId) {
-    var entry = entries[docId];
-    return { id: docId, alias: entry.alias, score: entry.score, submittedAt: entry.submittedAt };
+    return Object.assign({ id: docId }, entries[docId]);
   });
-  results.sort(function (a, b) {
-    return b.score - a.score || a.submittedAt - b.submittedAt;
-  });
+  results.sort(compareByOrderSpecs(orderBySpecs));
   return Promise.resolve(results.slice(0, limitCount));
 }
 
@@ -499,17 +512,20 @@ function firebaseStatusForLog() {
 // Upserts (creates or overwrites) the caller's entry for that day - "last
 // write wins" if the same alias submits from more than one device on the
 // same day, which is an accepted simplification rather than a bug.
-function submitLeaderboardScore(collectionName, dateKey, alias, score, options) {
+// `fields` is the game-specific ranked data to store alongside alias/
+// submittedAt - e.g. { score: 10 } for Memoria, or { stations: 12,
+// transfers: 2 } for Laberinto.
+function submitLeaderboardScore(collectionName, dateKey, alias, fields, options) {
   var docId = aliasDocId(alias);
   var path = collectionName + '/' + dateKey + '/entries/' + docId;
   console.log('[Leaderboard] submitLeaderboardScore()', Object.assign({
-    path: path, alias: alias, score: score, useLocalFallback: !!(options && options.useLocalFallback),
+    path: path, alias: alias, fields: fields, useLocalFallback: !!(options && options.useLocalFallback),
   }, firebaseStatusForLog()));
 
   if (!firebaseReady()) {
     if (options && options.useLocalFallback) {
       console.log('[Leaderboard] Firebase not ready - writing to the localStorage fallback instead:', path);
-      return submitLeaderboardScoreFallback(collectionName, dateKey, alias, score);
+      return submitLeaderboardScoreFallback(collectionName, dateKey, alias, fields);
     }
     console.warn('[Leaderboard] Firebase not ready and no fallback requested - write skipped:', path);
     return Promise.reject(new Error('Firebase not available'));
@@ -523,11 +539,10 @@ function submitLeaderboardScore(collectionName, dateKey, alias, score, options) 
   console.log('[Leaderboard] Writing to Firestore:', path);
   return firebase.firestore()
     .collection(collectionName).doc(dateKey).collection('entries').doc(docId)
-    .set({
+    .set(Object.assign({
       alias: normalizeAlias(alias),
-      score: score,
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    })
+    }, fields))
     .then(function () {
       console.log('[Leaderboard] Write succeeded:', path);
     })
@@ -540,26 +555,32 @@ function submitLeaderboardScore(collectionName, dateKey, alias, score, options) 
 // Resolves to [] (never rejects) when Firebase isn't available (and no
 // fallback was requested) or the query fails - an empty leaderboard is a
 // fine degraded state for a read, unlike a failed write, which callers
-// may want to surface differently.
-function getTopLeaderboardScores(collectionName, dateKey, limitCount, options) {
+// may want to surface differently. `orderBySpecs` is an ordered list of
+// [fieldName, 'asc'|'desc'] pairs (see compareByOrderSpecs above) - each
+// returned entry carries whichever of those fields the doc has, plus id
+// and alias.
+function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpecs, options) {
   var path = collectionName + '/' + dateKey + '/entries';
   console.log('[Leaderboard] getTopLeaderboardScores()', Object.assign({
-    path: path, limitCount: limitCount, useLocalFallback: !!(options && options.useLocalFallback),
+    path: path, limitCount: limitCount, orderBySpecs: orderBySpecs, useLocalFallback: !!(options && options.useLocalFallback),
   }, firebaseStatusForLog()));
 
   if (!firebaseReady()) {
     if (options && options.useLocalFallback) {
       console.log('[Leaderboard] Firebase not ready - reading from the localStorage fallback instead:', path);
-      return getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount);
+      return getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount, orderBySpecs);
     }
     console.warn('[Leaderboard] Firebase not ready and no fallback requested - read returns []:', path);
     return Promise.resolve([]);
   }
 
   console.log('[Leaderboard] Querying Firestore:', path);
-  return firebase.firestore()
-    .collection(collectionName).doc(dateKey).collection('entries')
-    .orderBy('score', 'desc')
+  var query = firebase.firestore().collection(collectionName).doc(dateKey).collection('entries');
+  orderBySpecs.forEach(function (spec) {
+    query = query.orderBy(spec[0], spec[1]);
+  });
+
+  return query
     .orderBy('submittedAt', 'asc')
     .limit(limitCount)
     .get()
@@ -567,7 +588,11 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, options) {
       var results = [];
       snapshot.forEach(function (doc) {
         var data = doc.data();
-        results.push({ id: doc.id, alias: data.alias, score: data.score });
+        var entry = { id: doc.id, alias: data.alias };
+        orderBySpecs.forEach(function (spec) {
+          entry[spec[0]] = data[spec[0]];
+        });
+        results.push(entry);
       });
       console.log('[Leaderboard] Query succeeded:', path, '- got', results.length, 'result(s):', results);
       return results;

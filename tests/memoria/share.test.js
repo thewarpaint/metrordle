@@ -5,10 +5,10 @@
 // memoria/index.html), and the clipboard-copy fallback otherwise. The
 // clipboard path is already covered end to end in round-lifecycle.test.js
 // via a real completed round - this file uses the saved-result-planted-
-// in-localStorage trick (see memoria-leaderboard's tests) to reach the
-// reveal screen instantly instead, and focuses on the native-share branch
-// specifically, since Playwright's Chromium has no navigator.share by
-// default and so never exercises it otherwise.
+// in-localStorage trick (see tests/memoria/leaderboard.test.js) to reach
+// the reveal screen instantly instead, and focuses on the native-share
+// branch specifically, since Playwright's Chromium has no navigator.share
+// by default and so never exercises it otherwise.
 
 const assert = require('assert');
 const { chromium } = require('playwright');

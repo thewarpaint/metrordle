@@ -9,9 +9,11 @@
 // the page must not throw, exactly like a real player whose network
 // blocks Firebase.
 //
-// See tests/memoria-leaderboard/leaderboard.test.js for the fuller
-// submit/rank/tie-break behavior, already covered end to end there via
-// the staging page's localStorage fallback.
+// The full submit/rank/tie-break behavior (a real localStorage-backed
+// submission landing and rendering, multiple entries sorting correctly)
+// was previously covered end to end via the now-removed /memoria-leaderboard/
+// staging page's fallback mode - this repo currently has no automated
+// coverage for that path since the real page never uses the fallback.
 
 const assert = require('assert');
 const { chromium } = require('playwright');

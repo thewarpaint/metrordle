@@ -138,6 +138,40 @@ async function main() {
     }
   });
 
+  test('degrades to a plain clipboard copy instead of throwing when shared.js is missing shareOrCopyText (a stale cache)', async () => {
+    const DATE = '2026-12-13';
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/memoria/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 5, ['Zapata']);
+      await page.reload({ waitUntil: 'networkidle' });
+      // Simulates a browser whose cached shared.js predates
+      // shareOrCopyText being added there, while index.html itself is
+      // current - exactly the mismatch a stale service-worker cache can
+      // produce, and the actual failure mode reported in production
+      // (MetroShared.shareOrCopyText is not a function).
+      await page.evaluate(() => { delete MetroShared.shareOrCopyText; });
+      await page.waitForTimeout(300);
+
+      await page.click('#share-btn');
+      await page.waitForTimeout(300);
+
+      const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+      assert.ok(clipboardText.startsWith('#Metrordle: Memoria #'), 'expected the share text on the clipboard via the fallback path, got: ' + clipboardText);
+
+      const btnLabel = await page.$eval('#share-btn', (el) => el.textContent);
+      assert.strictEqual(btnLabel, '¡Copiado!', 'button should show the clipboard-copy confirmation on this fallback path');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors (the whole point of the fallback): ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

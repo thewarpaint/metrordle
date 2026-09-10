@@ -1179,7 +1179,30 @@
         }
 
         function shareResult() {
-          MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
+          var text = buildShareText();
+
+          if (MetroShared.shareOrCopyText) {
+            MetroShared.shareOrCopyText(text, els.shareBtn);
+            return;
+          }
+
+          // shared.js is missing a function this page expects to call -
+          // almost certainly a stale cached copy (a service worker or
+          // browser cache serving an old shared.js alongside a fresher
+          // index.html, from before shareOrCopyText existed there), not
+          // a real absence. Degrade to a plain clipboard copy using the
+          // much longer-standing copyToClipboard rather than throwing
+          // and leaving Compartir completely dead for that player.
+          var originalLabel = els.shareBtn.textContent;
+          MetroShared.copyToClipboard(text).then(function () {
+            els.shareBtn.textContent = '¡Copiado!';
+          }, function () {
+            els.shareBtn.textContent = 'No se pudo copiar';
+          }).then(function () {
+            setTimeout(function () {
+              els.shareBtn.textContent = originalLabel;
+            }, 1600);
+          });
         }
 
         function shiftDebugDate(deltaDays) {

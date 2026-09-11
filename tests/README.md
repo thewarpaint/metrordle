@@ -8,8 +8,9 @@ and drives it with a real (headless) browser, the same way a player's
 browser would.
 
 Memoria (`memoria/`) has the fullest coverage; Laberinto (`laberinto/`)
-has leaderboard coverage only so far. Add new games/checks under their
-own subdirectory following the same pattern.
+and the main game (`metrordle/`) have leaderboard coverage only so far.
+Add new games/checks under their own subdirectory following the same
+pattern.
 
 ## Setup
 
@@ -31,6 +32,7 @@ npm run test:fast       # fast checks only (~15s)
 npm run test:leaderboard  # Memoria's leaderboard checks (~10s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
 npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
+npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 ```
 
 Or run a file directly: `node memoria/fast.test.js`.
@@ -131,6 +133,28 @@ single number:
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason (no live Firebase project's credentials belong
 in this repo, and the real page has no localStorage fallback).
+
+**`metrordle/leaderboard.test.js`** (no real-time waiting - plants a
+fabricated `history` array directly in `localStorage`, since
+`loadSavedState()` only checks that `history` is an array, not that the
+guesses are real), covering the leaderboard section on the main game
+(its own `metrordle-leaderboard` Firestore collection, no localStorage
+fallback). One combined leaderboard, not split by normal/hard mode:
+fewer attempts wins, and a hard-mode entry beats a normal-mode entry at
+the same attempts count - entries render as the attempts count with a
+"🧠" suffix on hard-mode ones:
+- The leaderboard section renders above the guess-board details, with
+  the right title, and degrades gracefully to an empty-state message
+  rather than erroring when Firebase isn't reachable.
+- Saving an alias persists it under the site-wide `metrordle:alias` key,
+  without a page error, even under `?debug=true`.
+- A play under `?debug=true` never marks `leaderboardSubmitted` true.
+- A loss never has anything to submit (there's no valid attempts count
+  to rank) - `leaderboardSubmitted` stays false, but the leaderboard
+  section still renders without error.
+
+Same real-Firestore-submission coverage gap as Memoria's leaderboard
+test, for the same reason.
 
 ## Adding a check
 

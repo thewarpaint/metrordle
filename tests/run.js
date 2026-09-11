@@ -13,6 +13,7 @@ const FILES = [
   'memoria/leaderboard.test.js',
   'memoria/share.test.js',
   'laberinto/leaderboard.test.js',
+  'metrordle/leaderboard.test.js',
 ];
 
 let failed = 0;

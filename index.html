@@ -589,6 +589,90 @@
         line-height: 1.15;
       }
 
+      .leaderboard {
+        margin-bottom: 1.1rem;
+      }
+
+      .leaderboard__title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem;
+      }
+
+      .leaderboard__alias {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .leaderboard__alias input {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.35rem;
+        color: var(--ink);
+        flex: 1 1 8rem;
+        font: inherit;
+        min-width: 0;
+        padding: 0.35rem 0.5rem;
+      }
+
+      .leaderboard__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        list-style: none;
+        margin: 0 0 0.6rem;
+        padding: 0;
+      }
+
+      .leaderboard__row {
+        align-items: center;
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .leaderboard__row--you {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 1px var(--focus);
+      }
+
+      .leaderboard__rank {
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+        width: 1.4rem;
+      }
+
+      .leaderboard__alias-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .leaderboard__score {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .leaderboard__status {
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        margin: 0 0 0.6rem;
+      }
+
+      .leaderboard__status[hidden] {
+        display: none;
+      }
+
     </style>
   </head>
 
@@ -671,6 +755,13 @@
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>
 
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
           <div class="reveal__col">
             <h3>Orden correcto</h3>
             <ol id="reveal-correct"></ol>
@@ -694,6 +785,9 @@
       </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
@@ -703,6 +797,8 @@
         var STATIONS_PER_PUZZLE = 5;
         var SHARE_URL = 'https://metrordle.com/';
         var STREAK_STORAGE_KEY = 'metrordle:streak';
+        var LEADERBOARD_COLLECTION = 'metrordle-leaderboard';
+        var LEADERBOARD_SIZE = 5;
 
         var state = null;
         var els = {};
@@ -1006,6 +1102,7 @@
               gameOver: state.gameOver,
               won: state.won,
               mode: state.mode,
+              leaderboardSubmitted: !!state.leaderboardSubmitted,
             }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the game
@@ -1084,12 +1181,59 @@
             streak: savedStreak ? savedStreak.count : 0,
             maxStreak: savedStreak ? savedStreak.max : 0,
             mode: mode,
+            // Missing on a save from before this field existed defaults to
+            // false, same as everywhere else this flag is used - one
+            // harmless retry-submit, same as a genuine earlier failure.
+            leaderboardSubmitted: !!(saved && saved.leaderboardSubmitted),
           };
 
           document.documentElement.style.setProperty('--line', puzzle.line.color);
           document.documentElement.style.setProperty('--line-ink', puzzle.line.textColor);
 
+          // submitScore() itself checks state.won/state.leaderboardSubmitted
+          // and no-ops unless this is a won game that hasn't confirmed a
+          // submission yet - harmless to call unconditionally here.
+          submitScore();
           render(false);
+        }
+
+        // Submits the current result to today's leaderboard, if the player
+        // actually won (a loss never solved the puzzle, so has no
+        // meaningful attempts count to rank) and an alias is already set.
+        // Also called again once the player sets an alias from the reveal
+        // screen, in case a round already finished before they had one.
+        //
+        // hardMode is stored alongside attempts so the combined leaderboard
+        // (one ranking, not split by mode) can rank a hard-mode entry ahead
+        // of a normal-mode one at the same attempts count - see
+        // renderLeaderboard()'s orderBySpecs.
+        //
+        // Skips entirely under ?debug=true - date-nav testing plays
+        // through arbitrary past/future days and shouldn't pollute the
+        // real leaderboard with them.
+        function submitScore() {
+          if (!state || !state.gameOver || !state.won) return;
+          if (state.leaderboardSubmitted) return;
+          if (MetroShared.isDebugMode()) return;
+
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          var fields = { attempts: state.history.length, hardMode: state.mode === 'hard' };
+
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
+            .then(function () {
+              state.leaderboardSubmitted = true;
+              persistState();
+              renderLeaderboard();
+            })
+            .catch(function (err) {
+              // Best-effort - the player's own result is already saved
+              // locally either way, so a failed submission isn't shown as
+              // an error in the UI; it's silently retried the next time
+              // submitScore() runs (e.g. the next reload).
+              console.error('[Leaderboard] submitScore() failed:', err);
+            });
         }
 
         function moveStation(index, direction) {
@@ -1377,6 +1521,8 @@
           if (state.gameOver) {
             state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.won);
             state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+            state.leaderboardSubmitted = false;
+            submitScore();
           }
           persistState();
           render(false);
@@ -1667,6 +1813,9 @@
           banner.textContent = (state.won ? '¡Lo lograste!' : 'Suerte para la próxima…') + ' 🔥 ' +
             MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
 
+          renderAliasRow();
+          renderLeaderboard();
+
           var board = $('guess-board');
           board.innerHTML = '';
           state.history.forEach(function (attempt, i) {
@@ -1719,6 +1868,142 @@
           MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
         }
 
+        // Two-state alias control: an input+save row when no alias is
+        // set yet, or a plain display once one exists - built with DOM
+        // methods and textContent throughout, never innerHTML with the
+        // alias itself, since it's free text from anyone who's played,
+        // not trusted data like a station name.
+        //
+        // No way to change an alias once it's set - a change would land
+        // under a different Firestore doc (see aliasDocId), leaving the
+        // old alias's entry orphaned in the leaderboard with a stale
+        // score instead of actually updating it. Keeping whatever the
+        // player first entered avoids that; revisit if there's ever a
+        // real need to rename (e.g. by moving the old entry too).
+        function renderAliasRow() {
+          var alias = MetroShared.getAlias();
+          if (alias) {
+            showAliasDisplay(alias);
+          } else {
+            showAliasInput();
+          }
+        }
+
+        function showAliasDisplay(alias) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var label = document.createElement('span');
+          label.textContent = 'Jugando como: ';
+          var strong = document.createElement('strong');
+          strong.textContent = alias;
+          label.appendChild(strong);
+
+          el.appendChild(label);
+        }
+
+        function showAliasInput() {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            showAliasDisplay(normalized);
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') save();
+          });
+
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+        }
+
+        // renderLeaderboard() can legitimately be called twice in close
+        // succession - once from renderReveal() showing the current
+        // state, and again from submitScore()'s success callback
+        // refreshing it with the just-submitted entry - and both are
+        // async. Without this guard, an earlier call's response can
+        // resolve after a later call already cleared and repainted the
+        // list, appending a stale copy of the rows on top instead of
+        // being discarded. Bumped on every call; a response only renders
+        // if it's still the latest.
+        var leaderboardRequestId = 0;
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+          // Deliberately not clearing els.leaderboardList/leaderboardStatus
+          // here - this call is often just a same-data refresh (e.g. a
+          // reload of an already-submitted day), and blanking the list
+          // before the fetch resolves would cause a visible flicker. The
+          // list is only ever touched once a response actually arrives.
+
+          // One combined leaderboard, not split by mode - fewer attempts
+          // wins, and a hard-mode entry beats a normal-mode entry at the
+          // same attempts count (Firestore/the fallback comparator both
+          // order booleans false < true, so hardMode desc puts true
+          // ahead). submittedAt asc is appended automatically by
+          // getTopLeaderboardScores() as the final tiebreak.
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['hardMode', 'desc']], {})
+            .then(function (entries) {
+              // Either the player navigated to a different day (debug
+              // date-nav) before this resolved, or a newer renderLeaderboard()
+              // call has already superseded this one - either way, don't
+              // paint a stale response over whatever's showing now.
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
+
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+
+              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + (index + 1);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score';
+                // A 🧠 suffix flags a hard-mode solve, matching the
+                // share text's own "🧠 Modo difícil" wording.
+                score.textContent = entry.attempts + (entry.hardMode ? ' 🧠' : '');
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                els.leaderboardList.appendChild(li);
+              });
+            });
+        }
+
         function init() {
           els = {
             platform: $('platform'),
@@ -1737,6 +2022,9 @@
             modeHardBtn: $('mode-hard-btn'),
             debugModeNormalBtn: $('debug-mode-normal'),
             debugModeHardBtn: $('debug-mode-hard'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
           };
 
           els.checkBtn.addEventListener('click', checkOrder);

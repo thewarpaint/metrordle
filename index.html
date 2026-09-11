@@ -659,8 +659,22 @@
       }
 
       .leaderboard__score {
+        align-items: center;
+        display: flex;
+      }
+
+      .leaderboard__score-badge {
+        flex: none;
+        text-align: center;
+        width: 1.1rem;
+      }
+
+      .leaderboard__score-number {
+        flex: none;
         font-variant-numeric: tabular-nums;
         font-weight: 700;
+        text-align: right;
+        width: 1rem;
       }
 
       .leaderboard__status {
@@ -1992,9 +2006,22 @@
 
                 var score = document.createElement('span');
                 score.className = 'leaderboard__score';
-                // A 🧠 suffix flags a hard-mode solve, matching the
-                // share text's own "🧠 Modo difícil" wording.
-                score.textContent = entry.attempts + (entry.hardMode ? ' 🧠' : '');
+
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                // A 🧠 badge flags a hard-mode solve, matching the share
+                // text's own "🧠 Modo difícil" wording. Always rendered
+                // (empty when not hard mode) with a fixed width so the
+                // badge and the number after it line up the same way
+                // across every row, hard-mode or not.
+                if (entry.hardMode) badge.textContent = '🧠';
+
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number';
+                number.textContent = entry.attempts;
+
+                score.appendChild(badge);
+                score.appendChild(number);
 
                 li.appendChild(rank);
                 li.appendChild(name);

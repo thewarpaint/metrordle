@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v35';
+var CACHE_NAME = 'metrordle-v36';
 
 // How long a page navigation waits on the network before falling back to
 // the cached version - see the fetch handler below.
@@ -97,6 +97,20 @@ self.addEventListener('activate', function (event) {
   );
 });
 
+// Which "generation" - 'network' or 'cache' - each open tab's own page
+// came from, keyed by client ID. A page and its own subresources
+// (shared.js in particular) used to be resolved completely
+// independently: the page raced network-vs-timeout while shared.js was
+// strictly cache-first, so a tab could easily end up running a fresh
+// page against a stale shared.js (or vice versa) if one resolved from
+// the network and the other didn't. Recording each tab's own outcome
+// here, and having its own asset requests below deliberately match it,
+// makes a page load "all or nothing" instead of a race per resource -
+// this is why it's a plain object (reset for free on every service
+// worker restart) rather than something persisted: it only ever needs
+// to answer for currently-open tabs, not across restarts.
+var clientFreshness = {};
+
 self.addEventListener('fetch', function (event) {
   var request = event.request;
 
@@ -141,10 +155,25 @@ self.addEventListener('fetch', function (event) {
       }, NAVIGATION_TIMEOUT_MS);
     });
 
+    // The client this navigation is creating/replacing - not yet in
+    // self.clients, but subresource fetch events for the resulting page
+    // (shared.js, shared.css, ...) already carry this same ID as their
+    // own event.clientId, which is exactly what the asset branch below
+    // looks up.
+    var resultingClientId = event.resultingClientId;
+
+    function markFreshness(generation) {
+      if (resultingClientId) {
+        clientFreshness[resultingClientId] = generation;
+        log('navigate marking client', resultingClientId, 'as', generation, 'for', request.url);
+      }
+    }
+
     event.respondWith(
       Promise.race([networkPromise, timeoutPromise]).then(function (response) {
         if (response) {
           log('navigate serving the NETWORK response for', request.url);
+          markFreshness('network');
           return response;
         }
 
@@ -156,6 +185,7 @@ self.addEventListener('fetch', function (event) {
         return caches.match(request).then(function (cached) {
           if (cached) {
             log('navigate serving the CACHED response for', request.url);
+            markFreshness('cache');
             return cached;
           }
 
@@ -163,6 +193,7 @@ self.addEventListener('fetch', function (event) {
           return networkPromise.then(function (netResponse) {
             if (netResponse) {
               log('navigate serving the (delayed) NETWORK response for', request.url);
+              markFreshness('network');
               return netResponse;
             }
 
@@ -178,6 +209,7 @@ self.addEventListener('fetch', function (event) {
             // that wouldn't have an exact match in PRECACHE_URLS - no
             // trailing slash, a stray query string, etc.
             warn('navigate FALLING BACK TO /index.html for', request.url, '- no cache entry and the network fetch failed. PRECACHE_URLS has:', PRECACHE_URLS);
+            markFreshness('cache');
             return caches.match('/index.html');
           });
         });
@@ -186,15 +218,52 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Static assets (icons, manifest) rarely change - cache-first.
+  // Static assets (icons, manifest, shared.js/css, ...). Default: cache-
+  // first, since most of these rarely change and there's no reason to
+  // make every load pay a network round trip for them.
+  //
+  // The one exception is a request belonging to a tab whose own page
+  // load was just classified 'network' above - that tab's assets are
+  // forced to network-first too (falling back to cache only if the
+  // network request actually fails, not merely if it's slow), so a
+  // freshly-served page can never end up paired with a stale script.
+  // A tab with no recorded classification yet (its navigation wasn't
+  // seen by this exact service worker instance, e.g. a page open from
+  // before this SW activated) defaults to network-first as well, on the
+  // same "prefer freshness when uncertain" reasoning as everything else
+  // in this file - see the install-failure logging above.
+  var generation = clientFreshness[event.clientId];
+
+  if (generation !== 'cache') {
+    event.respondWith(
+      fetch(request)
+        .then(function (response) {
+          log('asset network response (client generation: ' + (generation || 'unknown') + ') for', request.url, '- status:', response.status, response.ok ? '(ok)' : '(NOT ok)');
+          var responseClone = response.clone();
+          caches.open(CACHE_NAME).then(function (cache) {
+            cache.put(request, responseClone);
+          });
+          return response;
+        })
+        .catch(function (err) {
+          warn('asset network fetch FAILED (client generation: ' + (generation || 'unknown') + ') for', request.url, '- falling back to cache:', err && err.message, err);
+          return caches.match(request).then(function (cached) {
+            if (cached) return cached;
+            throw err;
+          });
+        })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then(function (cached) {
       if (cached) {
-        log('asset cache HIT:', request.url);
+        log('asset cache HIT (client generation: cache) for', request.url);
         return cached;
       }
 
-      log('asset cache MISS, fetching from network:', request.url);
+      log('asset cache MISS (client generation: cache), fetching from network:', request.url);
       return fetch(request).then(function (response) {
         log('asset network response for', request.url, '- status:', response.status, response.ok ? '(ok)' : '(NOT ok)');
         var responseClone = response.clone();

@@ -62,5 +62,30 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // metrordle-leaderboard/{dateKey}/entries/{aliasId} - one combined
+    // leaderboard (not split by normal/hard mode). Ranked by fewest
+    // attempts, with a hard-mode entry beating a normal-mode entry at the
+    // same attempts count (see renderLeaderboard()'s orderBySpecs) - the
+    // hardMode field just needs to be a plausible bool here, the ordering
+    // itself lives client-side. attempts is bounded by TOTAL_ATTEMPTS (a
+    // puzzle is only ever solved in 1-5 tries).
+    match /metrordle-leaderboard/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.attempts is int &&
+        request.resource.data.attempts >= 1 &&
+        request.resource.data.attempts <= 5 &&
+        request.resource.data.hardMode is bool &&
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
   }
 }

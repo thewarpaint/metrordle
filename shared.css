@@ -281,6 +281,60 @@ h1 {
   text-align: center;
 }
 
+.game-promo {
+  margin-top: 1.1rem;
+}
+
+.game-promo__eyebrow {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.5rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.game-promo__grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.game-promo__card {
+  background: var(--paper-well);
+  border: 2px solid var(--rule-strong);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.7rem 0.75rem;
+  text-decoration: none;
+  transition: border-color 0.2s ease;
+}
+
+.game-promo__card:hover {
+  border-color: var(--line);
+}
+
+.game-promo__glyph {
+  font-size: 1.3rem;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.game-promo__name {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.game-promo__sub {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.001ms !important;

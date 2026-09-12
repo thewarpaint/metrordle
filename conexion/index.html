@@ -240,8 +240,10 @@
 
       .board--done .tile:not(.tile--empty) { opacity: 0.5; }
 
-      .tile--hidden {
-        border: 2px solid var(--rule);
+      .tile--neutral {
+        background: var(--rule);
+        border: 2px solid var(--ink-soft);
+        color: var(--ink);
       }
 
       .reveal { padding: 1.1rem; text-align: center; }
@@ -747,24 +749,26 @@
                 var line = lineById(id);
                 var flag = state.flagged[key(r, c)];
 
-                // Hard mode hides every tile's line until it's either
-                // mid-pop (part of a just-formed group) or the round is
-                // over - and everything stays hidden during the pre-game
-                // preview regardless of mode, since the mode choice isn't
-                // made yet and revealing the board then would let a
-                // player memorize it before picking "difícil".
-                var hidden = state.status === 'ready' ||
+                // Hard mode hides only the line's color (the actual
+                // "answer") until a tile is either mid-pop (part of a
+                // just-formed group) or the round is over - the station
+                // icon itself always stays visible, since that's what a
+                // player actually reads the board by. Colors also stay
+                // neutral during the pre-game preview regardless of mode,
+                // since the mode choice isn't made yet and revealing them
+                // then would let a player memorize the board before
+                // picking "difícil".
+                var neutralColor = state.status === 'ready' ||
                   (state.mode === 'hard' && state.status === 'playing' && flag !== 'pop');
 
-                if (hidden) {
-                  btn.className += ' tile--hidden';
-                  btn.setAttribute('aria-label', 'Estación oculta, fila ' + (r + 1) + ', columna ' + (c + 1));
+                if (neutralColor) {
+                  btn.className += ' tile--neutral';
                 } else {
                   btn.style.setProperty('--tile-bg', line.color);
                   btn.style.setProperty('--tile-ink', line.textColor);
-                  btn.appendChild(makeStationIcon(line.icon));
-                  btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
                 }
+                btn.appendChild(makeStationIcon(line.icon));
+                btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
 
                 if (flag) btn.className += ' tile--' + flag;
 

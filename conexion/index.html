@@ -18,13 +18,13 @@
     <meta name="title" content="Metrordle: Conexión 🚇">
     <meta
       name="description"
-      content="Intercambia vagones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo."
+      content="Intercambia estaciones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo."
     >
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://metrordle.com/conexion/">
     <meta property="og:title" content="Metrordle: Conexión 🚇">
-    <meta property="og:description" content="Intercambia vagones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo.">
+    <meta property="og:description" content="Intercambia estaciones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo.">
     <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="715">
@@ -331,7 +331,7 @@
         <div class="sign__head">
           <h1 id="game-title">Metrordle: Conexión</h1>
           <p class="dek">
-            Intercambia dos vagones adyacentes para formar filas de 3 o más
+            Intercambia dos estaciones adyacentes para formar filas de 3 o más
             de la misma línea. Filas más largas valen más puntos, y si
             encadenas varias seguidas, todavía más. Forma los que puedas
             en 60 segundos.
@@ -357,12 +357,12 @@
           <div class="start-overlay" id="start-overlay">
             <div class="start-overlay__panel">
               <p class="start-overlay__text">
-                Intercambia dos vagones para formar filas de 3 o más de la
+                Intercambia dos estaciones para formar filas de 3 o más de la
                 misma línea. Filas más largas valen más puntos, y si
                 encadenas varias seguidas, todavía más.
               </p>
               <p class="start-overlay__text">
-                <strong>Modo difícil:</strong> los vagones no muestran su
+                <strong>Modo difícil:</strong> las estaciones no muestran su
                 línea — solo se revelan un instante al formar un grupo.
               </p>
               <div class="start-overlay__modes">
@@ -473,7 +473,6 @@
           if (!slug) return wrap;
           var svgNS = 'http://www.w3.org/2000/svg';
           var svg = document.createElementNS(svgNS, 'svg');
-          svg.setAttribute('viewBox', '0 0 24 24');
           svg.setAttribute('aria-hidden', 'true');
           var use = document.createElementNS(svgNS, 'use');
           use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
@@ -645,7 +644,7 @@
           $('game-title').textContent = 'Metrordle: Conexión #' + state.gameNumber;
           renderLegend();
           els.reveal.hidden = true;
-          setToast('Elige dos vagones adyacentes para intercambiarlos.');
+          setToast('Elige dos estaciones adyacentes para intercambiarlas.');
           render();
         }
 
@@ -759,7 +758,7 @@
 
                 if (hidden) {
                   btn.className += ' tile--hidden';
-                  btn.setAttribute('aria-label', 'Vagón oculto, fila ' + (r + 1) + ', columna ' + (c + 1));
+                  btn.setAttribute('aria-label', 'Estación oculta, fila ' + (r + 1) + ', columna ' + (c + 1));
                 } else {
                   btn.style.setProperty('--tile-bg', line.color);
                   btn.style.setProperty('--tile-ink', line.textColor);

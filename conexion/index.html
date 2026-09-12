@@ -644,12 +644,26 @@
 
         function setToast(text) { els.toast.textContent = text; }
 
+        function tileElementAt(r, c) {
+          return els.board.children[r * COLS + c];
+        }
+
         // Nudges a stuck or thinking player: if 5s pass with no swap
         // attempt, one tile from a real valid move starts bouncing until
         // the next interaction clears it (see every call site below -
         // this fires whenever the player could plausibly act next).
+        //
+        // Toggles the class directly on the existing tile element rather
+        // than going through render() - a full render() tears down and
+        // rebuilds all 56 tiles (including recreating every <use> icon),
+        // which is wasted work for a one-class change and was visibly
+        // flickering right as the bounce should start.
         function resetIdleTimer() {
           if (state.idleTimer) clearTimeout(state.idleTimer);
+          if (state.hintCell) {
+            var prev = tileElementAt(state.hintCell[0], state.hintCell[1]);
+            if (prev) prev.classList.remove('tile--hint');
+          }
           state.hintCell = null;
           if (state.status === 'playing') {
             state.idleTimer = setTimeout(showHint, HINT_IDLE_MS);
@@ -661,7 +675,8 @@
           var move = findValidMove(state.board);
           if (!move) return;
           state.hintCell = move.a;
-          render();
+          var el = tileElementAt(move.a[0], move.a[1]);
+          if (el) el.classList.add('tile--hint');
         }
 
         function beginRound() {

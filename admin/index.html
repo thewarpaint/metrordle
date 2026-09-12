@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+
+    <title>Admin · Metrordle 🚇</title>
+
+    <link rel="icon" href="/favicon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <style>
+      .admin-boards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .admin-board {
+        padding: 1.1rem 1.3rem 1.3rem;
+      }
+
+      .admin-board__head {
+        margin-bottom: 0.7rem;
+      }
+
+      .admin-board__title {
+        font-family: 'Overpass', sans-serif;
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0 0 0.15rem;
+      }
+
+      .admin-board__num {
+        color: var(--ink-soft);
+        font-weight: 700;
+      }
+
+      .admin-board__dek {
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        margin: 0;
+      }
+
+      .admin-board__link {
+        display: inline-block;
+        font-size: 0.78rem;
+        margin-top: 0.6rem;
+      }
+
+      .leaderboard__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .leaderboard__row {
+        align-items: center;
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .leaderboard__rank {
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+        width: 1.8rem;
+      }
+
+      .leaderboard__alias-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Metrordle's score is a two-slot badge+number cell (see /index.html) -
+         the fixed widths keep the 🧠 hard-mode badge and the number each in
+         their own column, aligned down the list whether or not a given row
+         has a badge. Laberinto/Memoria use the simpler plain variant below. */
+      .leaderboard__score {
+        align-items: center;
+        display: flex;
+      }
+
+      .leaderboard__score-badge {
+        flex: none;
+        text-align: center;
+        width: 1.1rem;
+      }
+
+      .leaderboard__score-number {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        text-align: right;
+        width: 1rem;
+      }
+
+      .leaderboard__score--plain {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .leaderboard__status {
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        margin: 0;
+      }
+
+      .leaderboard__status[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle · Admin</span>
+      </div>
+
+      <!-- Same prev/next date-nav as each game's own ?debug=true date
+           picker (see index.html's #date-debug) - here it's always on,
+           since this whole page only exists to browse past days. -->
+      <div class="date-debug" id="date-debug">
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="admin-boards">
+        <div class="sign admin-board" id="metrordle-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Metrordle <span class="admin-board__num" id="metrordle-num"></span></h2>
+            <p class="admin-board__dek">Menos intentos gana · empate lo resuelve el modo difícil</p>
+          </div>
+          <ol class="leaderboard__list" id="metrordle-list"></ol>
+          <p class="leaderboard__status" id="metrordle-status" hidden></p>
+          <a class="admin-board__link" id="metrordle-link" target="_blank" rel="noopener">Ver este día en Metrordle →</a>
+        </div>
+
+        <div class="sign admin-board" id="laberinto-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Laberinto <span class="admin-board__num" id="laberinto-num"></span></h2>
+            <p class="admin-board__dek">Menos estaciones gana · empate lo resuelven los transbordos</p>
+          </div>
+          <ol class="leaderboard__list" id="laberinto-list"></ol>
+          <p class="leaderboard__status" id="laberinto-status" hidden></p>
+          <a class="admin-board__link" id="laberinto-link" target="_blank" rel="noopener">Ver este día en Laberinto →</a>
+        </div>
+
+        <div class="sign admin-board" id="memoria-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Memoria <span class="admin-board__num" id="memoria-num"></span></h2>
+            <p class="admin-board__dek">Más parejas gana</p>
+          </div>
+          <ol class="leaderboard__list" id="memoria-list"></ol>
+          <p class="leaderboard__status" id="memoria-status" hidden></p>
+          <a class="admin-board__link" id="memoria-link" target="_blank" rel="noopener">Ver este día en Memoria →</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var LEADERBOARD_SIZE = 20;
+
+        // One entry per game's own leaderboard - collection/startDateKey/
+        // orderBySpecs/href all copied from that game's own <script> block,
+        // so this stays a read-only view onto the exact same data and
+        // ranking rules each game already uses (see index.html, laberinto/
+        // index.html, memoria/index.html).
+        var GAMES = [
+          {
+            key: 'metrordle',
+            collection: 'metrordle-leaderboard',
+            startDateKey: '2026-08-13',
+            orderBySpecs: [['attempts', 'asc'], ['hardMode', 'desc']],
+            href: '/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score';
+
+              var badge = document.createElement('span');
+              badge.className = 'leaderboard__score-badge';
+              if (entry.hardMode) badge.textContent = '🧠';
+
+              var number = document.createElement('span');
+              number.className = 'leaderboard__score-number';
+              number.textContent = entry.attempts;
+
+              score.appendChild(badge);
+              score.appendChild(number);
+              return score;
+            },
+          },
+          {
+            key: 'laberinto',
+            collection: 'laberinto-leaderboard',
+            startDateKey: '2026-08-26',
+            orderBySpecs: [['stations', 'asc'], ['transfers', 'asc']],
+            href: '/laberinto/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score--plain';
+              score.textContent = entry.stations + '-' + entry.transfers;
+              return score;
+            },
+          },
+          {
+            key: 'memoria',
+            collection: 'memoria-leaderboard',
+            startDateKey: '2026-08-29',
+            orderBySpecs: [['score', 'desc']],
+            href: '/memoria/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score--plain';
+              score.textContent = String(entry.score);
+              return score;
+            },
+          },
+        ];
+
+        var els = {};
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        // Same debugDate pattern as each game's own date-nav (see
+        // shiftDebugDate()/renderDateDebugLabel() in index.html) - it's
+        // just never gated behind ?debug=true here, since browsing past
+        // days is this whole page's reason to exist.
+        var debugDate = null;
+
+        function currentDateKey() {
+          return MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+        }
+
+        function shiftDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          renderAll();
+        }
+
+        function renderDateLabel() {
+          var dateKey = currentDateKey();
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        // Bumped on every date change so a slow response for a date the
+        // admin has already navigated away from can't paint over the
+        // date they're now looking at - same guard shape as each game's
+        // own renderLeaderboard()/leaderboardRequestId.
+        var renderToken = 0;
+
+        function renderAll() {
+          renderDateLabel();
+          var dateKey = currentDateKey();
+          var token = ++renderToken;
+          GAMES.forEach(function (game) {
+            renderGame(game, dateKey, token);
+          });
+        }
+
+        function renderGame(game, dateKey, token) {
+          var gameEls = els[game.key];
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, game.startDateKey);
+          gameEls.num.textContent = gameNumber >= 1 ? '#' + gameNumber : '';
+          gameEls.link.href = game.href + '?debug=true&date=' + dateKey;
+
+          gameEls.list.innerHTML = '';
+          gameEls.status.hidden = true;
+
+          MetroShared.getTopLeaderboardScores(game.collection, dateKey, LEADERBOARD_SIZE, game.orderBySpecs, {})
+            .then(function (entries) {
+              // A newer date change (or an unreachable Firebase, which
+              // getTopLeaderboardScores() already resolves to [] rather
+              // than rejecting - see shared.js) both land here; either
+              // way, a stale response never overwrites the current date.
+              if (token !== renderToken) return;
+
+              if (entries.length === 0) {
+                gameEls.status.textContent = 'Sin resultados para esta fecha.';
+                gameEls.status.hidden = false;
+                return;
+              }
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row';
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + (index + 1);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(game.scoreCell(entry));
+                gameEls.list.appendChild(li);
+              });
+            });
+        }
+
+        function init() {
+          els.dateLabel = $('date-debug-label');
+          GAMES.forEach(function (game) {
+            els[game.key] = {
+              num: $(game.key + '-num'),
+              list: $(game.key + '-list'),
+              status: $(game.key + '-status'),
+              link: $(game.key + '-link'),
+            };
+          });
+
+          $('date-prev').addEventListener('click', function () { shiftDate(-1); });
+          $('date-next').addEventListener('click', function () { shiftDate(1); });
+
+          renderAll();
+        }
+
+        init();
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>

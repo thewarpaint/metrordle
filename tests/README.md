@@ -7,10 +7,10 @@ test file spins up a plain `python3 -m http.server` rooted at the repo
 and drives it with a real (headless) browser, the same way a player's
 browser would.
 
-Memoria (`memoria/`) has the fullest coverage; Laberinto (`laberinto/`)
-and the main game (`metrordle/`) have leaderboard coverage only so far.
-Add new games/checks under their own subdirectory following the same
-pattern.
+Memoria (`memoria/`) has the fullest coverage; Laberinto (`laberinto/`),
+the main game (`metrordle/`), and the admin leaderboard browser
+(`admin/`) have leaderboard coverage only so far. Add new games/checks
+under their own subdirectory following the same pattern.
 
 ## Setup
 
@@ -33,6 +33,7 @@ npm run test:leaderboard  # Memoria's leaderboard checks (~10s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
 npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
 npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
+npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
 ```
 
 Or run a file directly: `node memoria/fast.test.js`.
@@ -155,6 +156,22 @@ the same attempts count - entries render as the attempts count with a
 
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
+
+**`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
+leaderboard browser (no game state of its own to plant in
+`localStorage` - it just reads all three games' own collections):
+- The date picker (the same prev/next chevrons as each game's own
+  `?debug=true` date-nav) is visible without `?debug=true`, and all
+  three games' sections degrade gracefully to an empty-state message
+  when Firebase isn't reachable.
+- Clicking the chevrons moves the shown date a real calendar day at a
+  time, and each game's "Ver este día en ___" deep link tracks whatever
+  date is currently shown.
+- Real leaderboard data (stubbed via a route-intercepted, patched
+  `shared.js`, since this sandboxed environment can't reach Firestore)
+  renders with each game's own ranking and score formatting: Metrordle's
+  badge+number cell, Laberinto's `stations-transfers`, Memoria's plain
+  score.
 
 ## Adding a check
 

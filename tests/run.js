@@ -14,6 +14,7 @@ const FILES = [
   'memoria/share.test.js',
   'laberinto/leaderboard.test.js',
   'metrordle/leaderboard.test.js',
+  'admin/admin.test.js',
 ];
 
 let failed = 0;

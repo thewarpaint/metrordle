@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Tighter than the other games' CSP: this page loads no Firebase SDK
+      and has no leaderboard yet (core-mechanic prototype, see AGENTS.md/
+      the PR that added this page), so there's nothing to allow beyond
+      the site's own origin. 'unsafe-inline' is needed for script-src/
+      style-src for the same reason as every other page here - no build
+      step to generate per-script hashes/nonces for inline <script>/
+      <style> blocks.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="Metrordle: Conexión 🚇">
+    <meta
+      name="description"
+      content="Intercambia vagones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo."
+    >
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metrordle.com/conexion/">
+    <meta property="og:title" content="Metrordle: Conexión 🚇">
+    <meta property="og:description" content="Intercambia vagones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo.">
+    <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="715">
+    <meta property="og:image:alt" content="Un tablero estilo Wordle deletrea METRORDLE, con el logo del Metro de la Ciudad de México y la silueta de la ciudad en dos de las casillas.">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Conexión">
+
+    <title>Metrordle: Conexión 🚇</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <style>
+      .sr-only {
+        border: 0;
+        clip: rect(0 0 0 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        width: 1px;
+      }
+
+      .legend {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: center;
+        padding: 0 1.1rem 1rem;
+      }
+
+      .legend__chip {
+        align-items: center;
+        border-radius: 50%;
+        color: var(--chip-ink);
+        background: var(--chip-bg);
+        display: flex;
+        height: 1.8rem;
+        justify-content: center;
+        width: 1.8rem;
+      }
+
+      .legend__chip svg {
+        color: inherit;
+        height: 60%;
+        width: 60%;
+      }
+
+      .status-bar {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .status-bar__text {
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .status-bar__text--low { color: var(--danger); font-weight: 700; }
+
+      .timer-track {
+        background: var(--paper-well);
+        border-bottom: 1px solid var(--rule);
+        height: 0.35rem;
+        overflow: hidden;
+      }
+
+      .timer-track[hidden] { display: none; }
+
+      .timer-bar {
+        background: var(--line);
+        height: 100%;
+        transition: width 1s linear;
+        width: 100%;
+      }
+
+      .board-wrap {
+        padding: 1rem 1.1rem;
+        position: relative;
+      }
+
+      .board {
+        display: grid;
+        gap: 0.32rem;
+        grid-template-columns: repeat(var(--cols), 1fr);
+        margin: 0 auto;
+        max-width: 24rem;
+      }
+
+      .tile {
+        aspect-ratio: 1;
+        background: var(--tile-bg, var(--paper-well));
+        border: none;
+        border-radius: 50%;
+        color: var(--tile-ink, var(--ink));
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        position: relative;
+        transition: transform 0.12s ease, box-shadow 0.15s ease;
+        width: 100%;
+      }
+
+      .tile:disabled { cursor: default; }
+
+      .tile__icon {
+        color: inherit;
+        height: 60%;
+        pointer-events: none;
+        width: 60%;
+      }
+
+      .tile__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .tile--selected {
+        box-shadow: 0 0 0 3px var(--paper-raised), 0 0 0 5px var(--focus);
+        transform: scale(1.06);
+      }
+
+      .tile--empty { background: transparent; visibility: hidden; }
+
+      .tile--shake { animation: tileShake 0.32s ease; }
+
+      .tile--pop { animation: tilePop 0.22s ease forwards; }
+
+      .tile--drop { animation: tileDrop 0.26s ease; }
+
+      @keyframes tileShake {
+        10%, 90% { transform: translateX(-3px); }
+        20%, 80% { transform: translateX(4px); }
+        30%, 50%, 70% { transform: translateX(-6px); }
+        40%, 60% { transform: translateX(6px); }
+      }
+
+      @keyframes tilePop { to { transform: scale(1.3); opacity: 0; } }
+
+      @keyframes tileDrop {
+        from { transform: translateY(-135%); opacity: 0.3; }
+        to { transform: none; opacity: 1; }
+      }
+
+      .toast {
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        font-weight: 700;
+        height: 1.2rem;
+        margin: 0 0 0.2rem;
+        text-align: center;
+      }
+
+      .start-overlay {
+        align-items: center;
+        background: var(--paper-well);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1.1rem;
+        position: absolute;
+      }
+
+      .start-overlay[hidden] { display: none; }
+
+      .start-overlay__panel {
+        max-width: 17rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      .start-overlay__text {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+      }
+
+      .reveal { padding: 1.1rem; }
+
+      .reveal[hidden] { display: none; }
+
+      .reveal__banner {
+        align-items: center;
+        background: var(--ok);
+        border: 2px solid var(--rule-strong);
+        border-radius: 0.5rem;
+        color: var(--ok-ink);
+        display: flex;
+        font-size: 1.05rem;
+        font-weight: 800;
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem 0.9rem;
+      }
+
+      .stats-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .stats-row p {
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .stats-row p strong {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle: Conexión · Minijuego del Metro CDMX</span>
+      </div>
+
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1 id="game-title">Metrordle: Conexión</h1>
+          <p class="dek">
+            Intercambia dos vagones adyacentes para formar filas de 3 o más
+            de la misma línea. Filas más largas valen más puntos, y si
+            encadenas varias seguidas, todavía más. Forma los que puedas
+            en 60 segundos.
+          </p>
+        </div>
+
+        <div class="legend" id="legend"></div>
+        <p class="sr-only" id="legend-sr"></p>
+
+        <div class="status-bar">
+          <span class="status-bar__text" id="status"></span>
+        </div>
+
+        <div class="timer-track" id="timer-track" hidden>
+          <div class="timer-bar" id="timer-bar"></div>
+        </div>
+
+        <p class="toast" id="toast" aria-live="polite"></p>
+
+        <div class="board-wrap">
+          <div class="board" id="board" style="--cols: 7;"></div>
+
+          <div class="start-overlay" id="start-overlay">
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text">
+                Intercambia dos vagones para formar filas de 3 o más de la
+                misma línea. Filas más largas valen más puntos, y si
+                encadenas varias seguidas, todavía más.
+              </p>
+              <p class="start-overlay__text">
+                Presiona "Comenzar" cuando estés listo para arrancar el
+                conteo de 60 segundos.
+              </p>
+              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal" id="reveal" hidden>
+          <div class="reveal__banner" id="reveal-banner"></div>
+          <div class="stats-row">
+            <p>Puntaje: <strong id="reveal-score">0</strong></p>
+            <p>Grupos formados: <strong id="reveal-groups">0</strong></p>
+            <p>Mejor combo: <strong id="reveal-combo">×1</strong></p>
+            <p>Fila más larga: <strong id="reveal-run">3</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <p class="credit">
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
+      </p>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        // Station pictogram picked to stand in for each line's "kind" -
+        // resolved against the symbols in /station-icons.svg, same sprite
+        // Memoria uses. Chosen for recognizability, not any deeper meaning.
+        var LINE_ICON_SLUGS = {
+          '1': 'chapultepec',
+          '2': 'zocalo',
+          '3': 'universidad',
+          '4': 'candelaria',
+          '5': 'terminal-aerea',
+          '6': 'lindavista',
+          '7': 'auditorio',
+          '8': 'constitucion-de-1917',
+          '9': 'velodromo',
+          'A': 'la-paz',
+          '12': 'tlahuac',
+          'B': 'buenavista',
+        };
+
+        var ALL_LINES = MetroShared.LINES.map(function (line) {
+          return {
+            id: line.id,
+            name: line.name,
+            color: line.color,
+            textColor: line.textColor,
+            icon: LINE_ICON_SLUGS[line.id],
+          };
+        });
+
+        var START_DATE_KEY = '2026-09-12';
+        var ROWS = 8;
+        var COLS = 7;
+        var KIND_COUNT = 6;
+        var ROUND_SECONDS = 60;
+        var POP_MS = 220;
+        var DROP_MS = 260;
+        var SWAP_MS = 140;
+
+        var delay = MetroShared.prefersReducedMotion()
+          ? function () { return 0; }
+          : function (ms) { return ms; };
+
+        function $(id) { return document.getElementById(id); }
+
+        function shuffle(array, rand) {
+          var copy = array.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        function key(r, c) { return r + ',' + c; }
+
+        var els = {};
+        var state = null;
+        var debugDate = null;
+
+        function makeStationIcon(slug) {
+          var wrap = document.createElement('span');
+          wrap.className = 'tile__icon';
+          if (!slug) return wrap;
+          var svgNS = 'http://www.w3.org/2000/svg';
+          var svg = document.createElementNS(svgNS, 'svg');
+          svg.setAttribute('viewBox', '0 0 24 24');
+          svg.setAttribute('aria-hidden', 'true');
+          var use = document.createElementNS(svgNS, 'use');
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+          use.setAttribute('href', '/station-icons.svg#' + slug);
+          svg.appendChild(use);
+          wrap.appendChild(svg);
+          return wrap;
+        }
+
+        function randomLine(rand) {
+          return state.activeLines[Math.floor(rand() * state.activeLines.length)];
+        }
+
+        function lineById(id) {
+          for (var i = 0; i < state.activeLines.length; i++) {
+            if (state.activeLines[i].id === id) return state.activeLines[i];
+          }
+          return null;
+        }
+
+        function wouldMatchAt(board, r, c, id) {
+          if (c >= 2 && board[r][c - 1] === id && board[r][c - 2] === id) return true;
+          if (r >= 2 && board[r - 1][c] === id && board[r - 2][c] === id) return true;
+          return false;
+        }
+
+        function generateBoard(rand) {
+          var board = [];
+          for (var r = 0; r < ROWS; r++) board.push(new Array(COLS).fill(null));
+
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              var candidate = randomLine(rand).id;
+              var attempts = 0;
+              while (wouldMatchAt(board, r, c, candidate) && attempts < 20) {
+                candidate = randomLine(rand).id;
+                attempts++;
+              }
+              board[r][c] = candidate;
+            }
+          }
+
+          if (!hasAnyValidMove(board)) return generateBoard(rand);
+          return board;
+        }
+
+        function findMatches(board) {
+          var matched = new Set();
+          var maxRun = 0;
+
+          for (var r = 0; r < ROWS; r++) {
+            var c = 0;
+            while (c < COLS) {
+              var val = board[r][c];
+              var runEnd = c;
+              while (runEnd + 1 < COLS && board[r][runEnd + 1] === val) runEnd++;
+              var runLen = runEnd - c + 1;
+              if (runLen >= 3) {
+                for (var k = c; k <= runEnd; k++) matched.add(key(r, k));
+                maxRun = Math.max(maxRun, runLen);
+              }
+              c = runEnd + 1;
+            }
+          }
+
+          for (var c2 = 0; c2 < COLS; c2++) {
+            var r2 = 0;
+            while (r2 < ROWS) {
+              var val2 = board[r2][c2];
+              var runEnd2 = r2;
+              while (runEnd2 + 1 < ROWS && board[runEnd2 + 1][c2] === val2) runEnd2++;
+              var runLen2 = runEnd2 - r2 + 1;
+              if (runLen2 >= 3) {
+                for (var k2 = r2; k2 <= runEnd2; k2++) matched.add(key(k2, c2));
+                maxRun = Math.max(maxRun, runLen2);
+              }
+              r2 = runEnd2 + 1;
+            }
+          }
+
+          return { matched: matched, maxRun: maxRun };
+        }
+
+        function swapCells(board, a, b) {
+          var tmp = board[a[0]][a[1]];
+          board[a[0]][a[1]] = board[b[0]][b[1]];
+          board[b[0]][b[1]] = tmp;
+        }
+
+        function hasAnyValidMove(board) {
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              if (c + 1 < COLS) {
+                swapCells(board, [r, c], [r, c + 1]);
+                var right = findMatches(board).matched.size > 0;
+                swapCells(board, [r, c], [r, c + 1]);
+                if (right) return true;
+              }
+              if (r + 1 < ROWS) {
+                swapCells(board, [r, c], [r + 1, c]);
+                var down = findMatches(board).matched.size > 0;
+                swapCells(board, [r, c], [r + 1, c]);
+                if (down) return true;
+              }
+            }
+          }
+          return false;
+        }
+
+        function applyGravity(board, rand) {
+          var newCounts = new Array(COLS).fill(0);
+          for (var c = 0; c < COLS; c++) {
+            var stack = [];
+            for (var r = 0; r < ROWS; r++) {
+              if (board[r][c] !== null) stack.push(board[r][c]);
+            }
+            var missing = ROWS - stack.length;
+            newCounts[c] = missing;
+            var column = [];
+            for (var i = 0; i < missing; i++) column.push(randomLine(rand).id);
+            column = column.concat(stack);
+            for (var r2 = 0; r2 < ROWS; r2++) board[r2][c] = column[r2];
+          }
+          return newCounts;
+        }
+
+        function isAdjacent(a, b) {
+          var dr = Math.abs(a[0] - b[0]);
+          var dc = Math.abs(a[1] - b[1]);
+          return (dr + dc) === 1;
+        }
+
+        function startNewGame() {
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          var rand = MetroShared.createSeededRandom('metrordle-conexion-' + dateKey);
+          var activeLines = shuffle(ALL_LINES, rand).slice(0, KIND_COUNT);
+
+          if (state && state.timerId) clearInterval(state.timerId);
+
+          state = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            rand: rand,
+            activeLines: activeLines,
+            board: null,
+            selected: null,
+            score: 0,
+            groupsFormed: 0,
+            timeLeft: ROUND_SECONDS,
+            timerId: null,
+            cascadeStep: 0,
+            maxCombo: 1,
+            maxRunSeen: 3,
+            busy: false,
+            status: 'ready',
+            flagged: {},
+          };
+          state.board = generateBoard(rand);
+
+          $('game-title').textContent = 'Metrordle: Conexión #' + state.gameNumber;
+          renderLegend();
+          els.reveal.hidden = true;
+          setToast('Elige dos vagones adyacentes para intercambiarlos.');
+          render();
+        }
+
+        function renderLegend() {
+          els.legend.innerHTML = '';
+          var names = [];
+          state.activeLines.forEach(function (line) {
+            var chip = document.createElement('span');
+            chip.className = 'legend__chip';
+            chip.style.setProperty('--chip-bg', line.color);
+            chip.style.setProperty('--chip-ink', line.textColor);
+            chip.appendChild(makeStationIcon(line.icon));
+            els.legend.appendChild(chip);
+            names.push(line.name);
+          });
+          els.legendSr.textContent = 'Líneas de hoy: ' + names.join(', ');
+        }
+
+        function setToast(text) { els.toast.textContent = text; }
+
+        function beginRound() {
+          if (!state || state.status !== 'ready') return;
+          state.status = 'playing';
+          render();
+          state.timerId = setInterval(tick, 1000);
+        }
+
+        function tick() {
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          renderStatus();
+          if (state.timeLeft <= 0) endRound();
+        }
+
+        function renderStatus() {
+          els.status.textContent = state.timeLeft + 's · ' + state.score +
+            (state.score === 1 ? ' punto' : ' puntos');
+          els.status.classList.toggle('status-bar__text--low', state.status === 'playing' && state.timeLeft <= 10);
+          els.timerTrack.hidden = state.status !== 'playing';
+          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        function render() {
+          renderStatus();
+
+          var playing = state.status === 'playing';
+          els.startOverlay.hidden = state.status !== 'ready';
+
+          els.board.innerHTML = '';
+
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              var id = state.board[r][c];
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'tile';
+
+              if (id === null) {
+                btn.className += ' tile--empty';
+                btn.disabled = true;
+              } else {
+                var line = lineById(id);
+                btn.style.setProperty('--tile-bg', line.color);
+                btn.style.setProperty('--tile-ink', line.textColor);
+                btn.appendChild(makeStationIcon(line.icon));
+                btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
+
+                var flag = state.flagged[key(r, c)];
+                if (flag) btn.className += ' tile--' + flag;
+
+                if (state.selected && state.selected[0] === r && state.selected[1] === c) {
+                  btn.className += ' tile--selected';
+                  btn.setAttribute('aria-pressed', 'true');
+                }
+
+                btn.disabled = !playing || state.busy;
+                (function (rr, cc) {
+                  btn.addEventListener('click', function () { onTileClick(rr, cc); });
+                })(r, c);
+              }
+
+              els.board.appendChild(btn);
+            }
+          }
+        }
+
+        function onTileClick(r, c) {
+          if (state.status !== 'playing' || state.busy) return;
+
+          if (!state.selected) {
+            state.selected = [r, c];
+            render();
+            return;
+          }
+
+          if (state.selected[0] === r && state.selected[1] === c) {
+            state.selected = null;
+            render();
+            return;
+          }
+
+          if (!isAdjacent(state.selected, [r, c])) {
+            state.selected = [r, c];
+            render();
+            return;
+          }
+
+          var a = state.selected;
+          var b = [r, c];
+          swapCells(state.board, a, b);
+          var wouldMatch = findMatches(state.board).matched.size > 0;
+
+          if (!wouldMatch) {
+            swapCells(state.board, a, b);
+            state.selected = null;
+            state.busy = true;
+            render();
+            flashInvalid(a, b);
+            return;
+          }
+
+          state.selected = null;
+          state.busy = true;
+          state.cascadeStep = 0;
+          render();
+
+          setTimeout(function () { resolveStep(); }, delay(SWAP_MS));
+        }
+
+        function flashInvalid(a, b) {
+          var cells = els.board.children;
+          var idxA = a[0] * COLS + a[1];
+          var idxB = b[0] * COLS + b[1];
+          [idxA, idxB].forEach(function (idx) {
+            var el = cells[idx];
+            if (el) el.classList.add('tile--shake');
+          });
+          setTimeout(function () {
+            state.busy = false;
+            render();
+          }, delay(320));
+        }
+
+        function resolveStep() {
+          var result = findMatches(state.board);
+
+          if (result.matched.size === 0) {
+            finishMove();
+            return;
+          }
+
+          state.flagged = {};
+          result.matched.forEach(function (k) { state.flagged[k] = 'pop'; });
+          render();
+
+          setTimeout(function () {
+            state.cascadeStep++;
+            state.groupsFormed++;
+            var stepPoints = result.matched.size * 10 + Math.max(0, result.maxRun - 3) * 15;
+            state.score += stepPoints * state.cascadeStep;
+            state.maxCombo = Math.max(state.maxCombo, state.cascadeStep);
+            state.maxRunSeen = Math.max(state.maxRunSeen, result.maxRun);
+
+            result.matched.forEach(function (k) {
+              var parts = k.split(',');
+              state.board[+parts[0]][+parts[1]] = null;
+            });
+
+            var newCounts = applyGravity(state.board, state.rand);
+            state.flagged = {};
+            for (var c = 0; c < COLS; c++) {
+              for (var r = 0; r < newCounts[c]; r++) state.flagged[key(r, c)] = 'drop';
+            }
+
+            render();
+
+            if (state.cascadeStep > 1) {
+              setToast('¡Combo ×' + state.cascadeStep + '! +' + (stepPoints * state.cascadeStep) + ' pts');
+            } else if (result.maxRun >= 5) {
+              setToast('¡Línea completa de ' + result.maxRun + '! +' + stepPoints + ' pts');
+            } else {
+              setToast('+' + (stepPoints * state.cascadeStep) + ' pts');
+            }
+
+            setTimeout(function () { resolveStep(); }, delay(DROP_MS));
+          }, delay(POP_MS));
+        }
+
+        function finishMove() {
+          state.flagged = {};
+
+          if (state.status === 'playing' && !hasAnyValidMove(state.board)) {
+            state.board = generateBoard(state.rand);
+            setToast('Sin movimientos posibles — tablero revuelto.');
+          }
+
+          state.busy = false;
+          render();
+        }
+
+        function endRound() {
+          if (state.timerId) clearInterval(state.timerId);
+          state.status = 'done';
+          setToast('');
+          els.revealBanner.textContent = '¡Se acabó el tiempo!';
+          els.revealScore.textContent = String(state.score);
+          els.revealGroups.textContent = String(state.groupsFormed);
+          els.revealCombo.textContent = '×' + state.maxCombo;
+          els.revealRun.textContent = String(state.maxRunSeen);
+          els.reveal.hidden = false;
+          render();
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function init() {
+          els = {
+            legend: $('legend'),
+            legendSr: $('legend-sr'),
+            status: $('status'),
+            timerTrack: $('timer-track'),
+            timerBar: $('timer-bar'),
+            toast: $('toast'),
+            board: $('board'),
+            startOverlay: $('start-overlay'),
+            startBtn: $('start-btn'),
+            reveal: $('reveal'),
+            revealBanner: $('reveal-banner'),
+            revealScore: $('reveal-score'),
+            revealGroups: $('reveal-groups'),
+            revealCombo: $('reveal-combo'),
+            revealRun: $('reveal-run'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
+          };
+
+          els.startBtn.addEventListener('click', beginRound);
+
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+      })();
+    </script>
+  </body>
+</html>

@@ -15,6 +15,7 @@ const FILES = [
   'laberinto/leaderboard.test.js',
   'metrordle/leaderboard.test.js',
   'admin/admin.test.js',
+  'security/csp.test.js',
 ];
 
 let failed = 0;

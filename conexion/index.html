@@ -91,6 +91,8 @@
         padding: 0.5rem 1.1rem;
       }
 
+      .status-bar[hidden] { display: none; }
+
       .status-bar__text {
         font-size: 0.82rem;
         font-variant-numeric: tabular-nums;
@@ -228,6 +230,20 @@
         margin: 0 0 1rem;
       }
 
+      .start-overlay__text strong { color: var(--ink); }
+
+      .start-overlay__modes {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .board--done .tile:not(.tile--empty) { opacity: 0.5; }
+
+      .tile--hidden {
+        border: 2px solid var(--rule);
+      }
+
       .reveal { padding: 1.1rem; text-align: center; }
 
       .reveal[hidden] { display: none; }
@@ -325,7 +341,7 @@
         <div class="legend" id="legend"></div>
         <p class="sr-only" id="legend-sr"></p>
 
-        <div class="status-bar">
+        <div class="status-bar" id="status-bar">
           <span class="status-bar__text" id="status"></span>
         </div>
 
@@ -346,10 +362,13 @@
                 encadenas varias seguidas, todavía más.
               </p>
               <p class="start-overlay__text">
-                Presiona "Comenzar" cuando estés listo para arrancar el
-                conteo de 60 segundos.
+                <strong>Modo difícil:</strong> los vagones no muestran su
+                línea — solo se revelan un instante al formar un grupo.
               </p>
-              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
+              <div class="start-overlay__modes">
+                <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
+                <button type="button" class="btn-secondary" id="start-hard-btn">Jugar modo difícil</button>
+              </div>
             </div>
           </div>
         </div>
@@ -372,6 +391,7 @@
               <div class="reveal__stat-label">Fila más larga</div>
             </div>
           </div>
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
         </div>
       </div>
 
@@ -422,6 +442,7 @@
         var DROP_MS = 260;
         var SWAP_MS = 140;
         var HINT_IDLE_MS = 5000;
+        var SHARE_URL = 'https://metrordle.com/conexion/';
 
         var delay = MetroShared.prefersReducedMotion()
           ? function () { return 0; }
@@ -605,6 +626,7 @@
             activeLines: activeLines,
             board: null,
             selected: null,
+            mode: 'normal',
             score: 0,
             groupsFormed: 0,
             timeLeft: ROUND_SECONDS,
@@ -679,8 +701,9 @@
           if (el) el.classList.add('tile--hint');
         }
 
-        function beginRound() {
+        function beginRound(mode) {
           if (!state || state.status !== 'ready') return;
+          state.mode = mode;
           state.status = 'playing';
           render();
           resetIdleTimer();
@@ -694,6 +717,7 @@
         }
 
         function renderStatus() {
+          els.statusBar.hidden = state.status === 'done';
           els.status.textContent = state.timeLeft + 's · ' + state.score +
             (state.score === 1 ? ' punto' : ' puntos');
           els.status.classList.toggle('status-bar__text--low', state.status === 'playing' && state.timeLeft <= 10);
@@ -706,6 +730,7 @@
 
           var playing = state.status === 'playing';
           els.startOverlay.hidden = state.status !== 'ready';
+          els.board.classList.toggle('board--done', state.status === 'done');
 
           els.board.innerHTML = '';
 
@@ -721,12 +746,27 @@
                 btn.disabled = true;
               } else {
                 var line = lineById(id);
-                btn.style.setProperty('--tile-bg', line.color);
-                btn.style.setProperty('--tile-ink', line.textColor);
-                btn.appendChild(makeStationIcon(line.icon));
-                btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
-
                 var flag = state.flagged[key(r, c)];
+
+                // Hard mode hides every tile's line until it's either
+                // mid-pop (part of a just-formed group) or the round is
+                // over - and everything stays hidden during the pre-game
+                // preview regardless of mode, since the mode choice isn't
+                // made yet and revealing the board then would let a
+                // player memorize it before picking "difícil".
+                var hidden = state.status === 'ready' ||
+                  (state.mode === 'hard' && state.status === 'playing' && flag !== 'pop');
+
+                if (hidden) {
+                  btn.className += ' tile--hidden';
+                  btn.setAttribute('aria-label', 'Vagón oculto, fila ' + (r + 1) + ', columna ' + (c + 1));
+                } else {
+                  btn.style.setProperty('--tile-bg', line.color);
+                  btn.style.setProperty('--tile-ink', line.textColor);
+                  btn.appendChild(makeStationIcon(line.icon));
+                  btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
+                }
+
                 if (flag) btn.className += ' tile--' + flag;
 
                 if (state.selected && state.selected[0] === r && state.selected[1] === c) {
@@ -809,7 +849,16 @@
           }, delay(320));
         }
 
+        // A swap made in the last instant before time runs out can still
+        // have this whole chain of setTimeouts in flight when endRound()
+        // fires (it doesn't - and can't easily - cancel them). Without
+        // this guard, a trailing cascade would keep adding to
+        // state.score and re-rendering the status bar with a live total
+        // after the reveal screen already froze an earlier score into
+        // reveal-score, which is exactly why the two used to disagree.
         function resolveStep() {
+          if (state.status !== 'playing') return;
+
           var result = findMatches(state.board);
 
           if (result.matched.size === 0) {
@@ -822,6 +871,8 @@
           render();
 
           setTimeout(function () {
+            if (state.status !== 'playing') return;
+
             state.cascadeStep++;
             state.groupsFormed++;
             var stepPoints = result.matched.size * 10 + Math.max(0, result.maxRun - 3) * 15;
@@ -867,6 +918,32 @@
           resetIdleTimer();
         }
 
+        // Open scale, no "complete" state to measure against - same
+        // shape as Memoria's own getRating, tuned to Conexión's scoring.
+        function getRating(score) {
+          if (score === 0) return { label: 'Mala', square: '🟥' };
+          if (score <= 150) return { label: 'Regular', square: '🟧' };
+          if (score <= 400) return { label: 'Buena', square: '🟨' };
+          if (score <= 800) return { label: 'Muy buena', square: '🟩' };
+          if (score <= 1400) return { label: 'Excelente', square: '🟦' };
+          return { label: 'Sobresaliente', square: '🟪' };
+        }
+
+        function buildShareText() {
+          var rating = getRating(state.score);
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
+
+          return 'Metrordle: Conexión #' + state.gameNumber + '\n' + hardModeLine + '\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Puntaje: ' + state.score + '\n' +
+            'Grupos: ' + state.groupsFormed + ' · Combo máximo: ×' + state.maxCombo + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
+        }
+
         function endRound() {
           if (state.timerId) clearInterval(state.timerId);
           if (state.idleTimer) clearTimeout(state.idleTimer);
@@ -901,26 +978,31 @@
           els = {
             legend: $('legend'),
             legendSr: $('legend-sr'),
+            statusBar: $('status-bar'),
             status: $('status'),
             timerTrack: $('timer-track'),
             timerBar: $('timer-bar'),
             toast: $('toast'),
             board: $('board'),
             startOverlay: $('start-overlay'),
-            startBtn: $('start-btn'),
+            startNormalBtn: $('start-normal-btn'),
+            startHardBtn: $('start-hard-btn'),
             reveal: $('reveal'),
             revealBanner: $('reveal-banner'),
             revealScore: $('reveal-score'),
             revealGroups: $('reveal-groups'),
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
+            shareBtn: $('share-btn'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),
             dateNextBtn: $('date-next'),
             dateDebugLabel: $('date-debug-label'),
           };
 
-          els.startBtn.addEventListener('click', beginRound);
+          els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
+          els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
+          els.shareBtn.addEventListener('click', shareResult);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;

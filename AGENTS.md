@@ -1,0 +1,142 @@
+# AGENTS.md
+
+Context for picking up work on this repo in a new session. Read this
+first; it links out to the deeper docs (`tests/README.md`,
+`firestore.rules`) rather than duplicating them.
+
+## What this is
+
+**Metrordle** (metrordle.com): a family of daily Wordle-style minigames
+themed around the Mexico City Metro. Static site, **no build step** -
+every page is a single self-contained `.html` file with inline
+`<style>`/`<script>`, deployed as-is via GitHub Pages (see `CNAME`).
+Site copy/UI is in Spanish (`es-MX`).
+
+## The games
+
+- **`/` (`index.html`)** - Metrordle: order 5 stations of one Metro line
+  correctly in 5 attempts. Has a "normal"/"hard" mode toggle
+  (`state.mode`), chosen via a modal on a fresh day.
+- **`/laberinto/`** - Metrordle: Laberinto: navigate from an origin to a
+  destination station, picking neighbors/lines at each hop.
+- **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
+  pairing station icons with names.
+- **`/admin/`** - read-only cross-game leaderboard browser (not linked
+  from any game's nav, `noindex`). Same prev/next date-nav as the
+  games' own `?debug=true` mode, but always on.
+- **`/purge/`** - a recovery page that clears Cache Storage + unregisters
+  the service worker, then redirects home. Deliberately self-contained
+  (no `/shared.js`/`/shared.css` dependency), since it exists to recover
+  from a *broken* cache.
+
+Each game is deterministic per calendar day: a seeded RNG
+(`MetroShared.createSeededRandom('<salt>-' + dateKey)`) derives that
+day's puzzle from the date, so everyone gets the same puzzle and replays
+are impossible without a debug override.
+
+## Shared infrastructure
+
+- **`shared.js`** - `window.MetroShared`: date-key/seeded-RNG helpers,
+  streak tracking (localStorage), alias helpers, the leaderboard API
+  (`submitLeaderboardScore`/`getTopLeaderboardScores`, collection- and
+  field-shape-agnostic - see "Leaderboards" below), clipboard/share
+  helpers (`shareOrCopyText`, native `navigator.share` with a
+  clipboard-copy fallback).
+- **`shared.css`** - design tokens (`:root` custom properties, light +
+  dark via `prefers-color-scheme` and `[data-theme]`), the embedded
+  Overpass font (base64 `@font-face`, huge single line - don't `cat`
+  the whole file), and cross-game primitives (`.wrap`, `.brand`,
+  `.sign`, `.date-debug`/`.chev` date-nav, `.btn-primary`/`.btn-secondary`).
+  Game-specific CSS lives in each page's own `<style>` block.
+- **`firebase-config.js`** - **contains the real, live Firebase
+  project's credentials on `main`.** See "Firebase credential safety"
+  below before ever running tests locally.
+- **`firestore.rules`** - hand-maintained (no CLI/CI deploy pipeline -
+  paste into the Firebase console manually). One `match` block per
+  leaderboard collection, validating shape/type/bounds only (no login
+  system exists, so these can't verify a human played fair - accepted
+  tradeoff for a casual leaderboard).
+- **`sw.js`** - service worker. Navigations: network race with a
+  1.5s timeout, falling back to cache, updating the cache in the
+  background regardless of who won the race. Static assets: cache-first.
+  Per-client freshness tracking keeps a tab's own page and its
+  `shared.js`/`shared.css` from diverging in version. **Bump
+  `CACHE_NAME` on any change to `sw.js` or any precached asset** -
+  check open PRs first for numbering collisions (any two PRs touching
+  that line collide on merge regardless of the number picked).
+
+## Leaderboards
+
+Each game has its own daily Firestore leaderboard:
+`{collection}/{dateKey}/entries/{aliasDocId}`, collections
+`metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard`.
+Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
+key, shared across all games) with **no rename** - the alias *is* the
+document ID (lowercased), so changing it would orphan the old entry;
+two players choosing the same alias silently share/overwrite one entry
+(known, accepted limitation).
+
+Per-game conventions, each with its own ranking rule baked into
+`orderBySpecs` (an ordered `[field, 'asc'|'desc']` list; `submittedAt`
+asc is always auto-appended as the final tiebreak by
+`getTopLeaderboardScores()` itself):
+- Metrordle: fewest attempts, hard-mode beats normal-mode at a tie
+  (`[['attempts','asc'],['hardMode','desc']]` - relies on Firestore/the
+  JS comparator ordering `false < true`).
+- Laberinto: fewest stations, then fewest transfers, both ascending.
+- Memoria: highest score, descending.
+
+Submission pattern (identical across all 3 games): a
+`leaderboardSubmitted` flag persisted alongside the game result, so a
+reload never resubmits; `submitScore()` no-ops without an alias, under
+`?debug=true`, or (Metrordle/Laberinto only) on a loss/give-up - only a
+genuine win has a meaningful score to rank. `renderLeaderboard()` never
+clears the DOM before its fetch resolves (avoids a flicker on reload),
+guarded by a monotonically increasing request-id so a stale response
+can't paint over a newer one.
+
+## Rendering safety
+
+**Every leaderboard `alias` render uses `.textContent`, never
+`.innerHTML`** - aliases are arbitrary user text (Firestore only
+validates type/length, not content) and are the only content that
+flows from one player into another's browser. This convention is not
+enforced by tooling (no lint/build step) - grep for `entry.alias` and
+confirm every hit is a `.textContent` assignment before adding any new
+leaderboard consumer. A CSP `<meta>` tag on every page adds
+defense-in-depth on top of this (see each page's own CSP comment for
+the exact policy and its documented `'unsafe-inline'` tradeoff).
+
+## Debug mode
+
+`?debug=true` on any game page reveals a prev/next date-nav
+(`MetroShared.getEffectiveToday`/`getDateKey`) to preview any day's
+puzzle without waiting for it, and makes `submitScore()` a no-op site-wide
+so date-nav testing never pollutes the real leaderboards. `?date=YYYY-MM-DD`
+also works standalone (validated by regex, falls back to real "today" if
+malformed).
+
+## Tests
+
+Playwright, no framework beyond `assert` - see `tests/README.md` for
+the full breakdown of what each file covers and how to add a check.
+`cd tests && npm test` runs everything (~95s).
+
+**Before running tests locally, swap `firebase-config.js`'s real
+credentials for fake placeholder ones, then restore and verify
+`git diff origin/main -- firebase-config.js` is empty before
+committing/pushing - never skip this.** The repo's real project is
+live; this sandbox can't reach `gstatic.com`/Firestore at all, which is
+itself exercised as the "Firebase unreachable degrades gracefully" case
+in every leaderboard test.
+
+## Git workflow
+
+Branch off latest `main` for every change, one PR per logical change,
+never push directly to `main`. Commit messages and PR bodies end with
+the attribution footer from the session's system prompt. Known open
+PRs as of this writing: **#33** (service-worker cache-consistency,
+already bumped `CACHE_NAME` on its own branch - expect a collision) and
+**#13** (Laberinto neighbor-fan layout, unrelated/stale). Re-check
+current PR state via the GitHub MCP tools before assuming either is
+still open - this list goes stale.

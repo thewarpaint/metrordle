@@ -125,6 +125,7 @@
         grid-template-columns: repeat(var(--cols), 1fr);
         margin: 0 auto;
         max-width: 24rem;
+        touch-action: manipulation;
       }
 
       .tile {
@@ -139,6 +140,7 @@
         justify-content: center;
         padding: 0;
         position: relative;
+        touch-action: manipulation;
         transition: transform 0.12s ease, box-shadow 0.15s ease;
         width: 100%;
       }
@@ -170,6 +172,13 @@
       .tile--pop { animation: tilePop 0.22s ease forwards; }
 
       .tile--drop { animation: tileDrop 0.26s ease; }
+
+      .tile--hint { animation: tileHint 0.9s ease-in-out infinite; }
+
+      @keyframes tileHint {
+        0%, 100% { transform: none; }
+        50% { transform: translateY(-12%); }
+      }
 
       @keyframes tileShake {
         10%, 90% { transform: translateX(-3px); }
@@ -219,7 +228,7 @@
         margin: 0 0 1rem;
       }
 
-      .reveal { padding: 1.1rem; }
+      .reveal { padding: 1.1rem; text-align: center; }
 
       .reveal[hidden] { display: none; }
 
@@ -233,23 +242,53 @@
         font-size: 1.05rem;
         font-weight: 800;
         gap: 0.6rem;
+        justify-content: center;
         margin-bottom: 1rem;
         padding: 0.75rem 0.9rem;
       }
 
-      .stats-row {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
+      .reveal__score {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 2.4rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.2rem;
       }
 
-      .stats-row p {
-        font-size: 0.9rem;
-        margin: 0;
+      .reveal__score-label {
+        color: var(--ink-soft);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
       }
 
-      .stats-row p strong {
-        font-variant-numeric: tabular-nums;
+      .reveal__stats {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .reveal__stat {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        padding: 0.55rem 0.3rem;
+      }
+
+      .reveal__stat-value {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .reveal__stat-label {
+        color: var(--ink-soft);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
       }
     </style>
   </head>
@@ -317,11 +356,21 @@
 
         <div class="reveal" id="reveal" hidden>
           <div class="reveal__banner" id="reveal-banner"></div>
-          <div class="stats-row">
-            <p>Puntaje: <strong id="reveal-score">0</strong></p>
-            <p>Grupos formados: <strong id="reveal-groups">0</strong></p>
-            <p>Mejor combo: <strong id="reveal-combo">×1</strong></p>
-            <p>Fila más larga: <strong id="reveal-run">3</strong></p>
+          <div class="reveal__score" id="reveal-score">0</div>
+          <div class="reveal__score-label">puntos</div>
+          <div class="reveal__stats">
+            <div class="reveal__stat">
+              <div class="reveal__stat-value" id="reveal-groups">0</div>
+              <div class="reveal__stat-label">Grupos</div>
+            </div>
+            <div class="reveal__stat">
+              <div class="reveal__stat-value" id="reveal-combo">×1</div>
+              <div class="reveal__stat-label">Mejor combo</div>
+            </div>
+            <div class="reveal__stat">
+              <div class="reveal__stat-value" id="reveal-run">3</div>
+              <div class="reveal__stat-label">Fila más larga</div>
+            </div>
           </div>
         </div>
       </div>
@@ -372,6 +421,7 @@
         var POP_MS = 220;
         var DROP_MS = 260;
         var SWAP_MS = 140;
+        var HINT_IDLE_MS = 5000;
 
         var delay = MetroShared.prefersReducedMotion()
           ? function () { return 0; }
@@ -492,24 +542,28 @@
           board[b[0]][b[1]] = tmp;
         }
 
-        function hasAnyValidMove(board) {
+        function findValidMove(board) {
           for (var r = 0; r < ROWS; r++) {
             for (var c = 0; c < COLS; c++) {
               if (c + 1 < COLS) {
                 swapCells(board, [r, c], [r, c + 1]);
                 var right = findMatches(board).matched.size > 0;
                 swapCells(board, [r, c], [r, c + 1]);
-                if (right) return true;
+                if (right) return { a: [r, c], b: [r, c + 1] };
               }
               if (r + 1 < ROWS) {
                 swapCells(board, [r, c], [r + 1, c]);
                 var down = findMatches(board).matched.size > 0;
                 swapCells(board, [r, c], [r + 1, c]);
-                if (down) return true;
+                if (down) return { a: [r, c], b: [r + 1, c] };
               }
             }
           }
-          return false;
+          return null;
+        }
+
+        function hasAnyValidMove(board) {
+          return findValidMove(board) !== null;
         }
 
         function applyGravity(board, rand) {
@@ -542,6 +596,7 @@
           var activeLines = shuffle(ALL_LINES, rand).slice(0, KIND_COUNT);
 
           if (state && state.timerId) clearInterval(state.timerId);
+          if (state && state.idleTimer) clearTimeout(state.idleTimer);
 
           state = {
             dateKey: dateKey,
@@ -554,6 +609,8 @@
             groupsFormed: 0,
             timeLeft: ROUND_SECONDS,
             timerId: null,
+            idleTimer: null,
+            hintCell: null,
             cascadeStep: 0,
             maxCombo: 1,
             maxRunSeen: 3,
@@ -587,10 +644,31 @@
 
         function setToast(text) { els.toast.textContent = text; }
 
+        // Nudges a stuck or thinking player: if 5s pass with no swap
+        // attempt, one tile from a real valid move starts bouncing until
+        // the next interaction clears it (see every call site below -
+        // this fires whenever the player could plausibly act next).
+        function resetIdleTimer() {
+          if (state.idleTimer) clearTimeout(state.idleTimer);
+          state.hintCell = null;
+          if (state.status === 'playing') {
+            state.idleTimer = setTimeout(showHint, HINT_IDLE_MS);
+          }
+        }
+
+        function showHint() {
+          if (!state || state.status !== 'playing' || state.busy) return;
+          var move = findValidMove(state.board);
+          if (!move) return;
+          state.hintCell = move.a;
+          render();
+        }
+
         function beginRound() {
           if (!state || state.status !== 'ready') return;
           state.status = 'playing';
           render();
+          resetIdleTimer();
           state.timerId = setInterval(tick, 1000);
         }
 
@@ -641,6 +719,10 @@
                   btn.setAttribute('aria-pressed', 'true');
                 }
 
+                if (state.hintCell && state.hintCell[0] === r && state.hintCell[1] === c) {
+                  btn.className += ' tile--hint';
+                }
+
                 btn.disabled = !playing || state.busy;
                 (function (rr, cc) {
                   btn.addEventListener('click', function () { onTileClick(rr, cc); });
@@ -654,6 +736,8 @@
 
         function onTileClick(r, c) {
           if (state.status !== 'playing' || state.busy) return;
+
+          resetIdleTimer();
 
           if (!state.selected) {
             state.selected = [r, c];
@@ -706,6 +790,7 @@
           setTimeout(function () {
             state.busy = false;
             render();
+            resetIdleTimer();
           }, delay(320));
         }
 
@@ -764,10 +849,13 @@
 
           state.busy = false;
           render();
+          resetIdleTimer();
         }
 
         function endRound() {
           if (state.timerId) clearInterval(state.timerId);
+          if (state.idleTimer) clearTimeout(state.idleTimer);
+          state.hintCell = null;
           state.status = 'done';
           setToast('');
           els.revealBanner.textContent = '¡Se acabó el tiempo!';

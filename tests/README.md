@@ -9,8 +9,10 @@ browser would.
 
 Memoria (`memoria/`) has the fullest coverage; Laberinto (`laberinto/`),
 the main game (`metrordle/`), and the admin leaderboard browser
-(`admin/`) have leaderboard coverage only so far. Add new games/checks
-under their own subdirectory following the same pattern.
+(`admin/`) have leaderboard coverage only so far; `security/` covers
+site-wide checks (currently just the CSP) that aren't specific to any
+one game. Add new games/checks under their own subdirectory following
+the same pattern.
 
 ## Setup
 
@@ -34,6 +36,7 @@ npm run test:lifecycle  # the round-completion checks only (~65s)
 npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
 npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
+npm run test:csp  # Content-Security-Policy checks, every page (~10s)
 ```
 
 Or run a file directly: `node memoria/fast.test.js`.
@@ -172,6 +175,20 @@ leaderboard browser (no game state of its own to plant in
   renders with each game's own ranking and score formatting: Metrordle's
   badge+number cell, Laberinto's `stations-transfers`, Memoria's plain
   score.
+
+**`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
+tag every page carries (defense-in-depth alongside the app's actual XSS
+mitigation - every leaderboard alias render uses `textContent`, never
+`innerHTML`, see each `*/leaderboard.test.js` above):
+- Every page (`/`, `/memoria/`, `/laberinto/`, `/admin/`, `/purge/`)
+  loads with zero `securitypolicyviolation` events and zero page errors
+  - a policy that's too strict would otherwise silently break the page's
+    own inline `<script>`, its embedded font, or the Firebase SDK.
+- A positive control: a `fetch()` and a `<script src>` to a host
+  deliberately left off the allowlist are both actually blocked - a
+  regression here (rather than just "no violations") is what would catch
+  a typo'd or misspelled policy that looks present in the HTML but isn't
+  enforced at all.
 
 ## Adding a check
 

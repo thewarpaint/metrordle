@@ -443,6 +443,7 @@
         var DROP_MS = 260;
         var SWAP_MS = 140;
         var HINT_IDLE_MS = 5000;
+        var HARD_MODE_MULTIPLIER = 2;
         var SHARE_URL = 'https://metrordle.com/conexion/';
 
         var delay = MetroShared.prefersReducedMotion()
@@ -877,8 +878,10 @@
 
             state.cascadeStep++;
             state.groupsFormed++;
-            var stepPoints = result.matched.size * 10 + Math.max(0, result.maxRun - 3) * 15;
-            state.score += stepPoints * state.cascadeStep;
+            var basePoints = result.matched.size * 10 + Math.max(0, result.maxRun - 3) * 15;
+            var hardModeMultiplier = state.mode === 'hard' ? HARD_MODE_MULTIPLIER : 1;
+            var stepPoints = basePoints * hardModeMultiplier * state.cascadeStep;
+            state.score += stepPoints;
             state.maxCombo = Math.max(state.maxCombo, state.cascadeStep);
             state.maxRunSeen = Math.max(state.maxRunSeen, result.maxRun);
 
@@ -896,11 +899,11 @@
             render();
 
             if (state.cascadeStep > 1) {
-              setToast('¡Combo ×' + state.cascadeStep + '! +' + (stepPoints * state.cascadeStep) + ' pts');
+              setToast('¡Combo ×' + state.cascadeStep + '! +' + stepPoints + ' pts');
             } else if (result.maxRun >= 5) {
               setToast('¡Línea completa de ' + result.maxRun + '! +' + stepPoints + ' pts');
             } else {
-              setToast('+' + (stepPoints * state.cascadeStep) + ' pts');
+              setToast('+' + stepPoints + ' pts');
             }
 
             setTimeout(function () { resolveStep(); }, delay(DROP_MS));

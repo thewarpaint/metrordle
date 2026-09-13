@@ -406,31 +406,13 @@
       (function () {
         'use strict';
 
-        // Station pictogram picked to stand in for each line's "kind" -
-        // resolved against the symbols in /station-icons.svg, same sprite
-        // Memoria uses. Chosen for recognizability, not any deeper meaning.
-        var LINE_ICON_SLUGS = {
-          '1': 'chapultepec',
-          '2': 'zocalo',
-          '3': 'universidad',
-          '4': 'candelaria',
-          '5': 'terminal-aerea',
-          '6': 'lindavista',
-          '7': 'auditorio',
-          '8': 'constitucion-de-1917',
-          '9': 'velodromo',
-          'A': 'la-paz',
-          '12': 'tlahuac',
-          'B': 'buenavista',
-        };
-
         var ALL_LINES = MetroShared.LINES.map(function (line) {
           return {
             id: line.id,
             name: line.name,
             color: line.color,
             textColor: line.textColor,
-            icon: LINE_ICON_SLUGS[line.id],
+            stations: line.stations,
           };
         });
 
@@ -471,14 +453,46 @@
         // capping any repeat streak at 2 (only possible across a cycle
         // boundary) while each cycle's split stays freshly randomized.
         // Assumes ALL_LINES.length is an exact multiple of KIND_COUNT.
-        function pickActiveLines(gameNumber) {
+        // Each line still needs one station pictogram to stand in for its
+        // "kind" on the board. Picking it fresh per day (seeded off dateKey,
+        // separately from which lines are active) instead of a single fixed
+        // station per line means a returning line doesn't always show the
+        // same icon. Some stations transfer between lines, so slugs are
+        // de-duplicated across today's picks - two active lines showing the
+        // same pictogram would make hard mode's icon-only board ambiguous.
+        function pickStationIcons(lines, dateKey) {
+          var iconRand = MetroShared.createSeededRandom('metrordle-conexion-icons-' + dateKey);
+          var usedSlugs = {};
+          return lines.map(function (line) {
+            var candidates = shuffle(line.stations, iconRand);
+            var slug = null;
+            for (var i = 0; i < candidates.length; i++) {
+              var candidateSlug = MetroShared.STATION_ICON_SLUGS[candidates[i]];
+              if (candidateSlug && !usedSlugs[candidateSlug]) {
+                slug = candidateSlug;
+                break;
+              }
+            }
+            if (!slug) slug = MetroShared.STATION_ICON_SLUGS[candidates[0]];
+            usedSlugs[slug] = true;
+            return {
+              id: line.id,
+              name: line.name,
+              color: line.color,
+              textColor: line.textColor,
+              icon: slug,
+            };
+          });
+        }
+
+        function pickActiveLines(gameNumber, dateKey) {
           var cycleLength = ALL_LINES.length / KIND_COUNT;
           var cycleIndex = Math.floor((gameNumber - 1) / cycleLength);
           var dayInCycle = (gameNumber - 1) % cycleLength;
           var cycleRand = MetroShared.createSeededRandom('metrordle-conexion-lines-cycle-' + cycleIndex);
           var shuffled = shuffle(ALL_LINES, cycleRand);
           var start = dayInCycle * KIND_COUNT;
-          return shuffled.slice(start, start + KIND_COUNT);
+          return pickStationIcons(shuffled.slice(start, start + KIND_COUNT), dateKey);
         }
 
         function key(r, c) { return r + ',' + c; }
@@ -633,7 +647,7 @@
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
           var rand = MetroShared.createSeededRandom('metrordle-conexion-' + dateKey);
-          var activeLines = pickActiveLines(gameNumber);
+          var activeLines = pickActiveLines(gameNumber, dateKey);
 
           if (state && state.timerId) clearInterval(state.timerId);
           if (state && state.idleTimer) clearTimeout(state.idleTimer);

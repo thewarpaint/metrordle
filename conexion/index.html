@@ -463,6 +463,24 @@
           return copy;
         }
 
+        // Picking KIND_COUNT lines fresh and independently each day is fair
+        // (each line ~50% per day) but lets a line's streak of consecutive
+        // appearances run unbounded. Instead, lines are dealt in 2-day
+        // cycles: one shuffle of all 12 is split into two complementary
+        // halves, so a line dealt today is guaranteed to sit out tomorrow,
+        // capping any repeat streak at 2 (only possible across a cycle
+        // boundary) while each cycle's split stays freshly randomized.
+        // Assumes ALL_LINES.length is an exact multiple of KIND_COUNT.
+        function pickActiveLines(gameNumber) {
+          var cycleLength = ALL_LINES.length / KIND_COUNT;
+          var cycleIndex = Math.floor((gameNumber - 1) / cycleLength);
+          var dayInCycle = (gameNumber - 1) % cycleLength;
+          var cycleRand = MetroShared.createSeededRandom('metrordle-conexion-lines-cycle-' + cycleIndex);
+          var shuffled = shuffle(ALL_LINES, cycleRand);
+          var start = dayInCycle * KIND_COUNT;
+          return shuffled.slice(start, start + KIND_COUNT);
+        }
+
         function key(r, c) { return r + ',' + c; }
 
         var els = {};
@@ -615,7 +633,7 @@
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
           var rand = MetroShared.createSeededRandom('metrordle-conexion-' + dateKey);
-          var activeLines = shuffle(ALL_LINES, rand).slice(0, KIND_COUNT);
+          var activeLines = pickActiveLines(gameNumber);
 
           if (state && state.timerId) clearInterval(state.timerId);
           if (state && state.idleTimer) clearTimeout(state.idleTimer);

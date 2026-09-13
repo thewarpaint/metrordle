@@ -137,6 +137,36 @@
       .leaderboard__status[hidden] {
         display: none;
       }
+
+      .admin-loading {
+        align-items: center;
+        color: var(--ink-soft);
+        display: flex;
+        gap: 0.6rem;
+        justify-content: center;
+        padding: 2.5rem 1rem;
+      }
+
+      .admin-loading[hidden] {
+        display: none;
+      }
+
+      .admin-spinner {
+        animation: admin-spin 0.8s linear infinite;
+        border: 3px solid var(--rule);
+        border-radius: 50%;
+        border-top-color: var(--line);
+        height: 1.4rem;
+        width: 1.4rem;
+      }
+
+      @keyframes admin-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .admin-boards[hidden] {
+        display: none;
+      }
     </style>
   </head>
 
@@ -161,7 +191,12 @@
         <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
       </div>
 
-      <div class="admin-boards">
+      <div class="admin-loading" id="admin-loading">
+        <span class="admin-spinner" aria-hidden="true"></span>
+        <span>Cargando resultados…</span>
+      </div>
+
+      <div class="admin-boards" id="admin-boards" hidden>
         <div class="sign admin-board" id="metrordle-board">
           <div class="admin-board__head">
             <h2 class="admin-board__title">Metrordle <span class="admin-board__num" id="metrordle-num"></span></h2>
@@ -295,12 +330,31 @@
         // own renderLeaderboard()/leaderboardRequestId.
         var renderToken = 0;
 
+        // Each game's leaderboard fetch used to paint the moment it
+        // resolved, independently of the other two - since Firestore's
+        // three responses never land at the same instant, the page's
+        // height (and everything below it) kept jumping as each board
+        // popped in on its own. Now every board still renders into the
+        // DOM as soon as its own data arrives (so there's no extra work
+        // stacked up at the end), but els.boards stays hidden - and the
+        // spinner up - until Promise.all confirms all three are in, so
+        // the whole set appears in one frame instead of three.
         function renderAll() {
           renderDateLabel();
           var dateKey = currentDateKey();
           var token = ++renderToken;
-          GAMES.forEach(function (game) {
-            renderGame(game, dateKey, token);
+
+          els.loading.hidden = false;
+          els.boards.hidden = true;
+
+          var pending = GAMES.map(function (game) {
+            return renderGame(game, dateKey, token);
+          });
+
+          Promise.all(pending).then(function () {
+            if (token !== renderToken) return;
+            els.loading.hidden = true;
+            els.boards.hidden = false;
           });
         }
 
@@ -313,7 +367,7 @@
           gameEls.list.innerHTML = '';
           gameEls.status.hidden = true;
 
-          MetroShared.getTopLeaderboardScores(game.collection, dateKey, LEADERBOARD_SIZE, game.orderBySpecs, {})
+          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, LEADERBOARD_SIZE, game.orderBySpecs, {})
             .then(function (entries) {
               // A newer date change (or an unreachable Firebase, which
               // getTopLeaderboardScores() already resolves to [] rather
@@ -349,6 +403,8 @@
 
         function init() {
           els.dateLabel = $('date-debug-label');
+          els.loading = $('admin-loading');
+          els.boards = $('admin-boards');
           GAMES.forEach(function (game) {
             els[game.key] = {
               num: $(game.key + '-num'),

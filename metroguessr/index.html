@@ -322,6 +322,14 @@
       }
 
       .leaflet-control-attribution a { color: var(--ink-soft) !important; }
+
+      .leaflet-control-zoom a {
+        background: var(--paper-raised) !important;
+        color: var(--ink) !important;
+        border-color: var(--rule) !important;
+      }
+
+      .leaflet-control-zoom a:hover { background: var(--paper-well) !important; }
     </style>
   </head>
   <body>
@@ -689,6 +697,27 @@
           interactive: false,
         }).addTo(map);
 
+        // The map starts fully locked (see the interaction handlers all
+        // set to false above) so the puzzle can't be panned/zoomed away
+        // from while playing. Once a round ends there's nothing left to
+        // give away, so this turns dragging/zoom back on and adds the
+        // zoom control, letting the player explore the revealed area.
+        var zoomControl = null;
+
+        function setMapInteractive(interactive) {
+          [map.dragging, map.touchZoom, map.scrollWheelZoom, map.doubleClickZoom, map.boxZoom, map.keyboard].forEach(function (handler) {
+            if (!handler) return;
+            if (interactive) handler.enable(); else handler.disable();
+          });
+
+          if (interactive && !zoomControl) {
+            zoomControl = L.control.zoom().addTo(map);
+          } else if (!interactive && zoomControl) {
+            map.removeControl(zoomControl);
+            zoomControl = null;
+          }
+        }
+
         // --- game state ---
         var debugDate = null;
         var state = null;
@@ -731,6 +760,7 @@
 
           showLabels = false;
           setTileLayer();
+          setMapInteractive(false);
           var markerEl = targetMarker.getElement();
           if (markerEl) {
             markerEl.classList.add('target-marker--live');
@@ -816,6 +846,7 @@
           }
           showLabels = true;
           setTileLayer();
+          setMapInteractive(true);
           $('guess-form').hidden = true;
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;

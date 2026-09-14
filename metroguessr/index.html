@@ -14,15 +14,15 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://*.basemaps.cartocdn.com; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="title" content="Metrordle: ¿Dónde Estoy? 🚇">
+    <meta name="title" content="Metrordle: Metroguessr 🚇">
     <meta
       name="description"
       content="Adivina la estación del Metro CDMX marcada en el mapa antes de que se acaben tus 5 intentos."
     >
 
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://metrordle.com/ubicacion/">
-    <meta property="og:title" content="Metrordle: ¿Dónde Estoy? 🚇">
+    <meta property="og:url" content="https://metrordle.com/metroguessr/">
+    <meta property="og:title" content="Metrordle: Metroguessr 🚇">
     <meta property="og:description" content="Adivina la estación del Metro CDMX marcada en el mapa antes de que se acaben tus 5 intentos.">
     <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
     <meta property="og:image:width" content="1200">
@@ -32,9 +32,9 @@
     <meta name="theme-color" content="#0057a8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Metrordle: ¿Dónde Estoy?">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Metroguessr">
 
-    <title>Metrordle: ¿Dónde Estoy? 🚇</title>
+    <title>Metrordle: Metroguessr 🚇</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/favicon.png">
@@ -354,7 +354,7 @@
 
     <div class="topbar">
       <p class="eyebrow">Metrordle</p>
-      <h1>¿Dónde Estoy?</h1>
+      <h1>Metroguessr</h1>
       <div class="date-row" id="date-row">
         <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior" hidden>◀</button>
         <p class="game-number" id="game-number"></p>
@@ -497,7 +497,7 @@
         function startGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
-          var rand = MetroShared.createSeededRandom('metrordle-ubicacion-' + dateKey);
+          var rand = MetroShared.createSeededRandom('metrordle-metroguessr-' + dateKey);
           var idx = Math.floor(rand() * STATIONS.length);
           var target = STATIONS[idx][0];
 

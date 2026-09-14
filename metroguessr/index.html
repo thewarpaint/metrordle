@@ -101,14 +101,6 @@
         gap: 0.3rem;
       }
 
-      .eyebrow {
-        font-weight: 700;
-        font-size: 0.68rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
-      }
-
       h1 {
         font-family: 'Overpass', sans-serif;
         font-weight: 800;
@@ -182,15 +174,6 @@
         border-radius: 999px;
         margin: 0.15rem auto 0.1rem;
         flex: none;
-      }
-
-      .search-label {
-        font-weight: 700;
-        font-size: 0.68rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
-        display: block;
       }
 
       .search-box { position: relative; flex: none; }
@@ -341,8 +324,7 @@
     </div>
 
     <div class="topbar">
-      <p class="eyebrow">Metrordle</p>
-      <h1 id="game-title">Metroguessr</h1>
+      <h1 id="game-title">Metrordle: Metroguessr</h1>
       <div class="date-row" id="date-row" hidden>
         <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug-label" id="date-debug-label"></span>
@@ -354,9 +336,8 @@
     <div class="panel">
       <div class="panel__handle"></div>
 
-      <label class="search-label" for="guess-input">¿Qué estación es?</label>
       <div class="search-box">
-        <input type="text" id="guess-input" autocomplete="off" placeholder="Escribe el nombre de una estación&hellip;">
+        <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
         <div class="suggestions" id="suggestions" hidden></div>
       </div>
       <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
@@ -370,6 +351,7 @@
       <div class="reveal" id="reveal" hidden>
         <p class="reveal__banner" id="reveal-banner"></p>
         <p class="reveal__station" id="reveal-station"></p>
+        <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
       </div>
 
       <div class="history-scroll">
@@ -548,6 +530,7 @@
           dark: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
         };
         var TILE_ATTRIBUTION = '&copy; <a href="https://carto.com/attributions">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        var SHARE_URL = 'https://metrordle.com/metroguessr/';
 
         function $(id) { return document.getElementById(id); }
 
@@ -667,7 +650,7 @@
             done: false,
           };
 
-          $('game-title').textContent = 'Metroguessr #' + gameNumber;
+          $('game-title').textContent = 'Metrordle: Metroguessr #' + gameNumber;
           renderDateDebugLabel();
 
           var pos = stationByName[target];
@@ -768,6 +751,35 @@
           $('reveal-station').textContent = 'La estación era: ' + state.target;
         }
 
+        // Distance -> emoji square for the share text, closest to
+        // farthest: an exact match is always the bullseye, then a
+        // blue/green/yellow/orange/red scale by how close the guess was.
+        function guessEmoji(guess) {
+          if (guess.correct) return '🎯';
+          if (guess.dist < 0.5) return '🟦';
+          if (guess.dist < 1) return '🟩';
+          if (guess.dist < 2.5) return '🟨';
+          if (guess.dist < 5) return '🟧';
+          return '🟥';
+        }
+
+        function buildShareText() {
+          var squares = state.guesses.map(guessEmoji).join('');
+          var won = state.guesses[state.guesses.length - 1].correct;
+          var resultLine = won
+            ? 'Resuelto en ' + state.attempts + '/' + MAX_ATTEMPTS + ' intentos'
+            : 'No lo logré (' + MAX_ATTEMPTS + '/' + MAX_ATTEMPTS + ')';
+
+          return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' +
+            squares + '\n' +
+            resultLine + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          MetroShared.shareOrCopyText(buildShareText(), $('share-btn'));
+        }
+
         // --- search / autocomplete ---
         var input = $('guess-input');
         var suggestionsEl = $('suggestions');
@@ -859,6 +871,8 @@
         guessBtn.addEventListener('click', function () {
           if (!guessBtn.disabled) submitGuess(input.value);
         });
+
+        $('share-btn').addEventListener('click', shareResult);
 
         // --- debug date-nav (?debug=true) ---
         function shiftDebugDate(deltaDays) {

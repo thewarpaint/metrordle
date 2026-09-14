@@ -75,9 +75,9 @@
       }
 
       .target-marker {
-        stroke: var(--line);
+        stroke: var(--marker-color, #ffffff);
         stroke-width: 3;
-        fill: var(--line);
+        fill: var(--marker-color, #ffffff);
         fill-opacity: 0.22;
       }
 
@@ -186,6 +186,15 @@
         flex: none;
       }
 
+      .guess-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        flex: none;
+      }
+
+      .guess-form[hidden] { display: none; }
+
       .search-box { position: relative; flex: none; }
 
       input[type="text"] {
@@ -246,8 +255,11 @@
         font-size: 0.8rem;
         letter-spacing: 0.03em;
         text-transform: uppercase;
-        color: var(--line-ink);
-        background: var(--line);
+        /* --ink/--paper already flip between the two themes, so this
+           reads as a dark button with light text in light mode and a
+           light button with dark text in dark mode, for free. */
+        color: var(--paper);
+        background: var(--ink);
         border: none;
         border-radius: 0 0.7rem 0 0.7rem;
         padding: 0.62rem;
@@ -330,11 +342,13 @@
     <div class="panel">
       <div class="panel__handle"></div>
 
-      <div class="search-box">
-        <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
-        <div class="suggestions" id="suggestions" hidden></div>
+      <div class="guess-form" id="guess-form">
+        <div class="search-box">
+          <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
+          <div class="suggestions" id="suggestions" hidden></div>
+        </div>
+        <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
       </div>
-      <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
 
       <p class="status-line" id="status-line"></p>
 
@@ -621,6 +635,17 @@
         var stationByName = {};
         STATIONS.forEach(function (s) { stationByName[s[0]] = { lat: s[1], lng: s[2] }; });
 
+        // A station on more than one line (an interchange) just takes the
+        // first match in MetroShared.LINES's own order - there's no single
+        // "correct" line to prefer for those, so this keeps it deterministic
+        // rather than picking one some other way.
+        function lineColorForStation(name) {
+          for (var i = 0; i < MetroShared.LINES.length; i++) {
+            if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i].color;
+          }
+          return null;
+        }
+
         function prefersDark() {
           return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
@@ -707,9 +732,13 @@
           showLabels = false;
           setTileLayer();
           var markerEl = targetMarker.getElement();
-          if (markerEl) markerEl.classList.add('target-marker--live');
+          if (markerEl) {
+            markerEl.classList.add('target-marker--live');
+            markerEl.style.removeProperty('--marker-color');
+          }
 
           $('reveal').hidden = true;
+          $('guess-form').hidden = false;
           $('guess-input').disabled = false;
           $('guess-input').value = '';
           $('guess-btn').disabled = true;
@@ -780,9 +809,14 @@
 
         function showReveal(won) {
           var markerEl = targetMarker.getElement();
-          if (markerEl) markerEl.classList.remove('target-marker--live');
+          if (markerEl) {
+            markerEl.classList.remove('target-marker--live');
+            var lineColor = lineColorForStation(state.target);
+            if (lineColor) markerEl.style.setProperty('--marker-color', lineColor);
+          }
           showLabels = true;
           setTileLayer();
+          $('guess-form').hidden = true;
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;
           $('status-line').textContent = '';

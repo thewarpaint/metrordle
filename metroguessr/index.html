@@ -94,10 +94,11 @@
 
       /* Reveal marker: the station's own pictogram (same style as
          Conexión's board tiles) on a badge colored with its Metro line,
-         swapped in for the plain circle once the round ends. Leaflet's
-         .leaflet-div-icon default (white box, gray border) is reset here
-         so only this styling paints. */
-      .leaflet-div-icon.target-icon-marker {
+         swapped in for the plain circle once the round ends. Passing our
+         own `className` to L.divIcon() replaces Leaflet's default
+         'leaflet-div-icon' class outright (rather than adding to it), so
+         this only needs to target our own class, not that default one. */
+      .target-icon-marker {
         background: var(--badge-bg, var(--ink));
         border: none;
         border-radius: 0 33% 0 0;
@@ -342,6 +343,13 @@
       }
 
       .leaflet-control-zoom a:hover { background: var(--paper-well) !important; }
+
+      /* The zoom control (top-left by default) would otherwise render
+         right under the fixed topbar, which sits in its own stacking
+         context above the map and so visually covers it. --topbar-h is
+         kept in sync with the topbar's actual rendered height (it varies
+         with the debug date-row) via a ResizeObserver below. */
+      .leaflet-top { margin-top: calc(var(--topbar-h, 4.5rem) + 0.6rem); }
     </style>
   </head>
   <body>
@@ -683,6 +691,20 @@
 
         function prefersDark() {
           return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+
+        // Keeps --topbar-h (used to push the zoom control below the
+        // topbar, see .leaflet-top) in sync with its actual rendered
+        // height, which changes when the debug date-row shows/hides.
+        var topbarEl = document.querySelector('.topbar');
+        function syncTopbarHeight() {
+          document.documentElement.style.setProperty('--topbar-h', topbarEl.offsetHeight + 'px');
+        }
+        syncTopbarHeight();
+        if (window.ResizeObserver) {
+          new ResizeObserver(syncTopbarHeight).observe(topbarEl);
+        } else {
+          window.addEventListener('resize', syncTopbarHeight);
         }
 
         var map = L.map('leaflet-map', {

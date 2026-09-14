@@ -91,7 +91,7 @@
         right: 0;
         z-index: 500;
         padding: max(0.85rem, env(safe-area-inset-top)) 1rem 0.6rem;
-        background: color-mix(in srgb, var(--paper) 80%, transparent);
+        background: color-mix(in srgb, var(--paper) 75%, transparent);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--rule);
@@ -124,13 +124,15 @@
         gap: 0.5rem;
       }
 
-      .game-number {
-        font-size: 0.78rem;
-        color: var(--ink-soft);
-        margin: 0;
-      }
+      .date-row[hidden] { display: none; }
 
-      .date-row[hidden] .game-number { display: none; }
+      .date-debug-label {
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+        min-width: 6rem;
+        text-align: center;
+      }
 
       .pips {
         display: flex;
@@ -149,16 +151,6 @@
       .pip--used { background: var(--danger); }
       .pip--win { background: var(--ok); }
 
-      .map-caption {
-        font-size: 0.62rem;
-        letter-spacing: 0.05em;
-        color: var(--ink-soft);
-        margin: 0.1rem 0 0;
-        text-align: center;
-      }
-
-      .map-caption a { color: inherit; }
-
       /* --- bottom sheet panel --- */
 
       .panel {
@@ -170,7 +162,9 @@
         max-width: 27rem;
         z-index: 500;
         max-height: 60vh;
-        background: var(--paper-raised);
+        background: color-mix(in srgb, var(--paper-raised) 75%, transparent);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         border: 1px solid var(--rule);
         border-bottom: none;
         border-radius: 1.3rem 1.3rem 0 0;
@@ -327,15 +321,6 @@
       .history-row__dist { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
       .history-row__dir { font-size: 1.05rem; line-height: 1; }
 
-      .footnote {
-        flex: none;
-        text-align: center;
-        font-size: 0.66rem;
-        color: var(--ink-soft);
-        line-height: 1.4;
-        margin: 0;
-      }
-
       /* Leaflet's own controls, restyled minimally to sit on our paper theme */
       .leaflet-control-attribution {
         background: color-mix(in srgb, var(--paper-well) 80%, transparent) !important;
@@ -354,14 +339,13 @@
 
     <div class="topbar">
       <p class="eyebrow">Metrordle</p>
-      <h1>Metroguessr</h1>
-      <div class="date-row" id="date-row">
-        <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior" hidden>◀</button>
-        <p class="game-number" id="game-number"></p>
-        <button type="button" class="chev chev--compact" id="date-next" aria-label="Día siguiente" hidden>▶</button>
+      <h1 id="game-title">Metroguessr</h1>
+      <div class="date-row" id="date-row" hidden>
+        <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug-label" id="date-debug-label"></span>
+        <button type="button" class="chev chev--compact" id="date-next" aria-label="Día siguiente">▶</button>
       </div>
       <div class="pips" id="pips"></div>
-      <p class="map-caption">Mapa sin nombres de calles ni estaciones</p>
     </div>
 
     <div class="panel">
@@ -388,8 +372,6 @@
       <div class="history-scroll">
         <div class="history" id="history"></div>
       </div>
-
-      <p class="footnote">147 de 163 estaciones con coordenadas verificadas &middot; Línea 12 pendiente &middot; ubicaciones de referencia, no oficiales</p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -619,11 +601,6 @@
           return arrows[Math.round(deg / 45) % 8];
         }
 
-        var MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-        function humanDate(date) {
-          return date.getDate() + ' ' + MONTHS[date.getMonth()] + ' ' + date.getFullYear();
-        }
-
         var stationByName = {};
         STATIONS.forEach(function (s) { stationByName[s[0]] = { lat: s[1], lng: s[2] }; });
 
@@ -687,7 +664,8 @@
             done: false,
           };
 
-          $('game-number').textContent = 'Entrega #' + gameNumber + ' · ' + humanDate(MetroShared.getEffectiveToday(debugDate));
+          $('game-title').textContent = 'Metroguessr #' + gameNumber;
+          renderDateDebugLabel();
 
           var pos = stationByName[target];
           map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
@@ -886,9 +864,16 @@
           startGame();
         }
 
+        function renderDateDebugLabel() {
+          var label = $('date-debug-label');
+          if (!label) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          label.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
         if (MetroShared.isDebugMode()) {
-          $('date-prev').hidden = false;
-          $('date-next').hidden = false;
+          $('date-row').hidden = false;
           $('date-prev').addEventListener('click', function () { shiftDebugDate(-1); });
           $('date-next').addEventListener('click', function () { shiftDebugDate(1); });
         }

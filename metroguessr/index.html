@@ -405,7 +405,155 @@
         // coordinate conflicts across interchange stations). Línea 12
         // (opened 2012) isn't in the source dataset and its 16
         // unique stations aren't included here yet.
-        var STATIONS = [["Acatitla",19.3647,-99.005699],["Aculco",19.3738,-99.107697],["Agrícola Oriental",19.4048,-99.069901],["Allende",19.4356,-99.137398],["Apatlaco",19.379299,-99.109596],["Aquiles Serdán",19.490499,-99.194901],["Aragón",19.4512,-99.096397],["Atlalilco",19.356199,-99.101303],["Auditorio",19.425501,-99.192001],["Autobuses del Norte",19.479099,-99.140701],["Balbuena",19.423,-99.102501],["Balderas",19.427401,-99.149101],["Barranca del Muerto",19.360701,-99.189598],["Bellas Artes",19.436199,-99.141899],["Bondojito",19.464701,-99.1119],["Bosque de Aragón",19.458105,-99.069257],["Boulevard Puerto Aéreo",19.419701,-99.096001],["Buenavista",19.446501,-99.153198],["Camarones",19.4792,-99.190201],["Canal de San Juan",19.3985,-99.059303],["Canal del Norte",19.4489,-99.116096],["Candelaria",19.428801,-99.1194],["Centro Médico",19.4069,-99.155197],["Cerro de la Estrella",19.3561,-99.085503],["Chabacano",19.4084,-99.135803],["Chapultepec",19.420799,-99.1763],["Chilpancingo",19.4062,-99.168404],["Ciudad Azteca",19.534599,-99.027496],["Ciudad Deportiva",19.408501,-99.091202],["Colegio Militar",19.449301,-99.171402],["Constitución de 1917",19.346001,-99.063904],["Constituyentes",19.4119,-99.191299],["Consulado",19.458099,-99.113899],["Copilco",19.335899,-99.176598],["Coyoacán",19.3615,-99.170502],["Coyuya",19.3986,-99.113503],["Cuatro Caminos",19.4596,-99.215897],["Cuauhtémoc",19.4259,-99.154701],["Cuitláhuac",19.4575,-99.182198],["Deportivo 18 de Marzo",19.483801,-99.126602],["Deportivo Oceanía",19.451,-99.079399],["División del Norte",19.379849,-99.159111],["Doctores",19.4217,-99.143303],["Ecatepec",19.515301,-99.036003],["Eduardo Molina",19.451401,-99.1054],["El Rosario",19.504601,-99.200104],["Ermita",19.3619,-99.142899],["Escuadrón 201",19.365,-99.1092],["Etiopía",19.395599,-99.156303],["Eugenia",19.3855,-99.157501],["Ferrería",19.490499,-99.173897],["Fray Servando",19.4217,-99.120499],["Garibaldi/Lagunilla",19.444401,-99.139801],["General Anaya",19.3533,-99.144997],["Gómez Farías",19.4158,-99.090302],["Guelatao",19.385099,-99.035599],["Guerrero",19.444799,-99.145401],["Hangares",19.4242,-99.087898],["Hidalgo",19.4373,-99.147102],["Hospital General",19.413601,-99.1539],["Impulsora",19.485901,-99.048897],["Indios Verdes",19.495399,-99.119499],["Instituto del Petróleo",19.4908,-99.14709],["Insurgentes",19.423599,-99.162804],["Isabel la Católica",19.4265,-99.137497],["Iztacalco",19.3887,-99.112198],["Iztapalapa",19.357901,-99.093498],["Jamaica",19.4088,-99.1222],["Juanacatlán",19.412901,-99.182198],["Juárez",19.433599,-99.147903],["La Paz",19.3507,-98.960999],["La Raza",19.470301,-99.136902],["La Viga",19.406601,-99.126297],["La Villa / Basílica",19.4816,-99.117897],["Lagunilla",19.4433,-99.130997],["Lázaro Cárdenas",19.4069,-99.144699],["Lindavista",19.4879,-99.134598],["Los Reyes",19.358999,-98.976898],["Martín Carrera",19.485001,-99.104401],["Merced",19.425501,-99.124702],["Miguel Ángel de Quevedo",19.3468,-99.181],["Misterios",19.4634,-99.130798],["Mixcoac",19.3762,-99.187798],["Mixiuhca",19.4086,-99.1129],["Moctezuma",19.4272,-99.110298],["Morelos",19.4391,-99.11959],["Múzquiz",19.500999,-99.041901],["Nativitas",19.379499,-99.140198],["Nezahualcóyotl",19.473101,-99.054497],["Niños Héroes",19.421,-99.150497],["Normal",19.444401,-99.167397],["Norte 45",19.488899,-99.163498],["Obrera",19.413099,-99.144096],["Observatorio",19.398551,-99.200449],["Oceanía",19.445801,-99.087196],["Olímpica",19.521299,-99.033401],["Panteones",19.458799,-99.203201],["Pantitlán",19.4154,-99.072197],["Patriotismo",19.4062,-99.178902],["Peñón Viejo",19.373301,-99.017097],["Pino Suárez",19.4259,-99.133202],["Plaza Aragón",19.5285,-99.030197],["Polanco",19.433701,-99.190697],["Politécnico",19.5009,-99.1493],["Popotla",19.4522,-99.174797],["Portales",19.3699,-99.141602],["Potrero",19.476999,-99.132202],["Puebla",19.4072,-99.081902],["Refinería",19.4701,-99.1903],["Revolución",19.4417,-99.161102],["Ricardo Flores Magón",19.4366,-99.103699],["Río de los Remedios",19.490999,-99.0467],["Romero Rubio",19.4408,-99.094299],["Salto del Agua",19.4268,-99.142197],["San Antonio",19.3848,-99.186302],["San Antonio Abad",19.418699,-99.134102],["San Cosme",19.441799,-99.161102],["San Joaquín",19.445801,-99.191803],["San Juan de Letrán",19.431299,-99.141602],["San Lázaro",19.4303,-99.114799],["San Pedro de los Pinos",19.3913,-99.186096],["Santa Anita",19.4027,-99.121696],["Santa Marta",19.3603,-98.995102],["Sevilla",19.4219,-99.170601],["Tacuba",19.459499,-99.188698],["Tacubaya",19.4032,-99.187103],["Talismán",19.4746,-99.108002],["Tasqueña",19.3442,-99.142502],["Tepalcates",19.3913,-99.046402],["Tepito",19.442801,-99.123703],["Terminal Aérea",19.4338,-99.0877],["Tezozómoc",19.494699,-99.19559],["Tlatelolco",19.455218,-99.143164],["UAM Azcapotzalco",19.490999,-99.186401],["UAM-I",19.3508,-99.074699],["Universidad",19.324499,-99.174004],["Valle Gómez",19.4594,-99.119499],["Vallejo",19.490299,-99.155602],["Velódromo",19.4086,-99.102997],["Viaducto",19.4009,-99.136902],["Villa de Aragón",19.4617,-99.061302],["Villa de Cortés",19.3876,-99.139],["Viveros",19.353701,-99.176003],["Xola",19.395201,-99.137802],["Zapata",19.370701,-99.164902],["Zaragoza",19.4123,-99.082397],["Zócalo",19.433001,-99.1325]];
+        var STATIONS = [
+          ["Acatitla", 19.3647, -99.005699],
+          ["Aculco", 19.3738, -99.107697],
+          ["Agrícola Oriental", 19.4048, -99.069901],
+          ["Allende", 19.4356, -99.137398],
+          ["Apatlaco", 19.379299, -99.109596],
+          ["Aquiles Serdán", 19.490499, -99.194901],
+          ["Aragón", 19.4512, -99.096397],
+          ["Atlalilco", 19.356199, -99.101303],
+          ["Auditorio", 19.425501, -99.192001],
+          ["Autobuses del Norte", 19.479099, -99.140701],
+          ["Balbuena", 19.423, -99.102501],
+          ["Balderas", 19.427401, -99.149101],
+          ["Barranca del Muerto", 19.360701, -99.189598],
+          ["Bellas Artes", 19.436199, -99.141899],
+          ["Bondojito", 19.464701, -99.1119],
+          ["Bosque de Aragón", 19.458105, -99.069257],
+          ["Boulevard Puerto Aéreo", 19.419701, -99.096001],
+          ["Buenavista", 19.446501, -99.153198],
+          ["Camarones", 19.4792, -99.190201],
+          ["Canal de San Juan", 19.3985, -99.059303],
+          ["Canal del Norte", 19.4489, -99.116096],
+          ["Candelaria", 19.428801, -99.1194],
+          ["Centro Médico", 19.4069, -99.155197],
+          ["Cerro de la Estrella", 19.3561, -99.085503],
+          ["Chabacano", 19.4084, -99.135803],
+          ["Chapultepec", 19.420799, -99.1763],
+          ["Chilpancingo", 19.4062, -99.168404],
+          ["Ciudad Azteca", 19.534599, -99.027496],
+          ["Ciudad Deportiva", 19.408501, -99.091202],
+          ["Colegio Militar", 19.449301, -99.171402],
+          ["Constitución de 1917", 19.346001, -99.063904],
+          ["Constituyentes", 19.4119, -99.191299],
+          ["Consulado", 19.458099, -99.113899],
+          ["Copilco", 19.335899, -99.176598],
+          ["Coyoacán", 19.3615, -99.170502],
+          ["Coyuya", 19.3986, -99.113503],
+          ["Cuatro Caminos", 19.4596, -99.215897],
+          ["Cuauhtémoc", 19.4259, -99.154701],
+          ["Cuitláhuac", 19.4575, -99.182198],
+          ["Deportivo 18 de Marzo", 19.483801, -99.126602],
+          ["Deportivo Oceanía", 19.451, -99.079399],
+          ["División del Norte", 19.379849, -99.159111],
+          ["Doctores", 19.4217, -99.143303],
+          ["Ecatepec", 19.515301, -99.036003],
+          ["Eduardo Molina", 19.451401, -99.1054],
+          ["El Rosario", 19.504601, -99.200104],
+          ["Ermita", 19.3619, -99.142899],
+          ["Escuadrón 201", 19.365, -99.1092],
+          ["Etiopía", 19.395599, -99.156303],
+          ["Eugenia", 19.3855, -99.157501],
+          ["Ferrería", 19.490499, -99.173897],
+          ["Fray Servando", 19.4217, -99.120499],
+          ["Garibaldi/Lagunilla", 19.444401, -99.139801],
+          ["General Anaya", 19.3533, -99.144997],
+          ["Gómez Farías", 19.4158, -99.090302],
+          ["Guelatao", 19.385099, -99.035599],
+          ["Guerrero", 19.444799, -99.145401],
+          ["Hangares", 19.4242, -99.087898],
+          ["Hidalgo", 19.4373, -99.147102],
+          ["Hospital General", 19.413601, -99.1539],
+          ["Impulsora", 19.485901, -99.048897],
+          ["Indios Verdes", 19.495399, -99.119499],
+          ["Instituto del Petróleo", 19.4908, -99.14709],
+          ["Insurgentes", 19.423599, -99.162804],
+          ["Isabel la Católica", 19.4265, -99.137497],
+          ["Iztacalco", 19.3887, -99.112198],
+          ["Iztapalapa", 19.357901, -99.093498],
+          ["Jamaica", 19.4088, -99.1222],
+          ["Juanacatlán", 19.412901, -99.182198],
+          ["Juárez", 19.433599, -99.147903],
+          ["La Paz", 19.3507, -98.960999],
+          ["La Raza", 19.470301, -99.136902],
+          ["La Viga", 19.406601, -99.126297],
+          ["La Villa / Basílica", 19.4816, -99.117897],
+          ["Lagunilla", 19.4433, -99.130997],
+          ["Lázaro Cárdenas", 19.4069, -99.144699],
+          ["Lindavista", 19.4879, -99.134598],
+          ["Los Reyes", 19.358999, -98.976898],
+          ["Martín Carrera", 19.485001, -99.104401],
+          ["Merced", 19.425501, -99.124702],
+          ["Miguel Ángel de Quevedo", 19.3468, -99.181],
+          ["Misterios", 19.4634, -99.130798],
+          ["Mixcoac", 19.3762, -99.187798],
+          ["Mixiuhca", 19.4086, -99.1129],
+          ["Moctezuma", 19.4272, -99.110298],
+          ["Morelos", 19.4391, -99.11959],
+          ["Múzquiz", 19.500999, -99.041901],
+          ["Nativitas", 19.379499, -99.140198],
+          ["Nezahualcóyotl", 19.473101, -99.054497],
+          ["Niños Héroes", 19.421, -99.150497],
+          ["Normal", 19.444401, -99.167397],
+          ["Norte 45", 19.488899, -99.163498],
+          ["Obrera", 19.413099, -99.144096],
+          ["Observatorio", 19.398551, -99.200449],
+          ["Oceanía", 19.445801, -99.087196],
+          ["Olímpica", 19.521299, -99.033401],
+          ["Panteones", 19.458799, -99.203201],
+          ["Pantitlán", 19.4154, -99.072197],
+          ["Patriotismo", 19.4062, -99.178902],
+          ["Peñón Viejo", 19.373301, -99.017097],
+          ["Pino Suárez", 19.4259, -99.133202],
+          ["Plaza Aragón", 19.5285, -99.030197],
+          ["Polanco", 19.433701, -99.190697],
+          ["Politécnico", 19.5009, -99.1493],
+          ["Popotla", 19.4522, -99.174797],
+          ["Portales", 19.3699, -99.141602],
+          ["Potrero", 19.476999, -99.132202],
+          ["Puebla", 19.4072, -99.081902],
+          ["Refinería", 19.4701, -99.1903],
+          ["Revolución", 19.4417, -99.161102],
+          ["Ricardo Flores Magón", 19.4366, -99.103699],
+          ["Río de los Remedios", 19.490999, -99.0467],
+          ["Romero Rubio", 19.4408, -99.094299],
+          ["Salto del Agua", 19.4268, -99.142197],
+          ["San Antonio", 19.3848, -99.186302],
+          ["San Antonio Abad", 19.418699, -99.134102],
+          ["San Cosme", 19.441799, -99.161102],
+          ["San Joaquín", 19.445801, -99.191803],
+          ["San Juan de Letrán", 19.431299, -99.141602],
+          ["San Lázaro", 19.4303, -99.114799],
+          ["San Pedro de los Pinos", 19.3913, -99.186096],
+          ["Santa Anita", 19.4027, -99.121696],
+          ["Santa Marta", 19.3603, -98.995102],
+          ["Sevilla", 19.4219, -99.170601],
+          ["Tacuba", 19.459499, -99.188698],
+          ["Tacubaya", 19.4032, -99.187103],
+          ["Talismán", 19.4746, -99.108002],
+          ["Tasqueña", 19.3442, -99.142502],
+          ["Tepalcates", 19.3913, -99.046402],
+          ["Tepito", 19.442801, -99.123703],
+          ["Terminal Aérea", 19.4338, -99.0877],
+          ["Tezozómoc", 19.494699, -99.19559],
+          ["Tlatelolco", 19.455218, -99.143164],
+          ["UAM Azcapotzalco", 19.490999, -99.186401],
+          ["UAM-I", 19.3508, -99.074699],
+          ["Universidad", 19.324499, -99.174004],
+          ["Valle Gómez", 19.4594, -99.119499],
+          ["Vallejo", 19.490299, -99.155602],
+          ["Velódromo", 19.4086, -99.102997],
+          ["Viaducto", 19.4009, -99.136902],
+          ["Villa de Aragón", 19.4617, -99.061302],
+          ["Villa de Cortés", 19.3876, -99.139],
+          ["Viveros", 19.353701, -99.176003],
+          ["Xola", 19.395201, -99.137802],
+          ["Zapata", 19.370701, -99.164902],
+          ["Zaragoza", 19.4123, -99.082397],
+          ["Zócalo", 19.433001, -99.1325]
+        ];
 
         var START_DATE_KEY = '2026-09-12';
         var MAX_ATTEMPTS = 5;
@@ -422,6 +570,19 @@
           return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         }
 
+        // Great-circle distance between two lat/lng points, in km, via the
+        // Haversine formula. Treats Earth as a sphere of radius R = 6371 km
+        // (its mean radius) rather than the true oblate spheroid - the
+        // resulting error is a fraction of a percent, which is irrelevant
+        // at the city scale this game deals in (a few dozen km at most).
+        //
+        // Derivation: for two points with latitude/longitude differences
+        // dLat/dLng (in radians), the haversine of the central angle
+        // between them is
+        //   hav(angle) = sin²(dLat/2) + cos(lat1)·cos(lat2)·sin²(dLng/2)
+        // `h` below computes exactly that. Taking asin(sqrt(h)) recovers
+        // half the central angle, so doubling it and multiplying by R
+        // converts the angle into an arc length along the sphere's surface.
         function haversineKm(a, b) {
           var R = 6371;
           var dLat = (b.lat - a.lat) * Math.PI / 180;
@@ -432,6 +593,22 @@
           return 2 * R * Math.asin(Math.sqrt(h));
         }
 
+        // Initial compass bearing from `from` to `to`, collapsed to one of
+        // 8 arrow glyphs (N/NE/E/SE/S/SW/W/NW), for the "which way was I
+        // off" hint shown after a wrong guess.
+        //
+        // The bearing formula below is the standard spherical-trigonometry
+        // one for initial bearing on a great-circle path:
+        //   y = sin(dLng)·cos(lat2)
+        //   x = cos(lat1)·sin(lat2) - sin(lat1)·cos(lat2)·cos(dLng)
+        //   bearing = atan2(y, x)
+        // atan2 returns radians in (-180°, 180°], measured clockwise from
+        // north but negative to the west of it; `+ 360) % 360` shifts that
+        // into the usual 0-360° compass range. Dividing by 45° and rounding
+        // then buckets the bearing into one of 8 equal 45°-wide octants
+        // (e.g. anything from 337.5° to 22.5° rounds to octant 0, "north"),
+        // and `% 8` wraps the one case (exactly 360°) that would otherwise
+        // round up past the last index back to octant 0.
         function bearingArrow(from, to) {
           var lat1 = from.lat * Math.PI / 180, lat2 = to.lat * Math.PI / 180;
           var dLng = (to.lng - from.lng) * Math.PI / 180;

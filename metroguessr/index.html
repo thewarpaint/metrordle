@@ -75,9 +75,9 @@
       }
 
       .target-marker {
-        stroke: var(--marker-color, #ffffff);
+        stroke: #ffffff;
         stroke-width: 3;
-        fill: var(--marker-color, #ffffff);
+        fill: #ffffff;
         fill-opacity: 0.22;
       }
 
@@ -90,6 +90,28 @@
 
       @media (prefers-reduced-motion: reduce) {
         .target-marker--live { animation: none; }
+      }
+
+      /* Reveal marker: the station's own pictogram (same style as
+         Conexión's board tiles) on a badge colored with its Metro line,
+         swapped in for the plain circle once the round ends. Leaflet's
+         .leaflet-div-icon default (white box, gray border) is reset here
+         so only this styling paints. */
+      .leaflet-div-icon.target-icon-marker {
+        background: var(--badge-bg, var(--ink));
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 2px 10px var(--shadow), 0 0 0 2px var(--paper);
+        color: var(--badge-ink, var(--paper));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .target-icon-marker svg {
+        display: block;
+        width: 60%;
+        height: 60%;
       }
 
       /* --- floating topbar --- */
@@ -169,21 +191,11 @@
         -webkit-backdrop-filter: blur(10px);
         border: 1px solid var(--rule);
         border-bottom: none;
-        border-radius: 1.3rem 1.3rem 0 0;
         box-shadow: 0 -6px 24px var(--shadow);
-        padding: 0.5rem 1.1rem calc(0.9rem + env(safe-area-inset-bottom));
+        padding: 0.7rem 1.1rem calc(0.9rem + env(safe-area-inset-bottom));
         display: flex;
         flex-direction: column;
         gap: 0.55rem;
-      }
-
-      .panel__handle {
-        width: 2.4rem;
-        height: 0.28rem;
-        background: var(--rule);
-        border-radius: 999px;
-        margin: 0.15rem auto 0.1rem;
-        flex: none;
       }
 
       .guess-form {
@@ -348,8 +360,6 @@
     </div>
 
     <div class="panel">
-      <div class="panel__handle"></div>
-
       <div class="guess-form" id="guess-form">
         <div class="search-box">
           <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
@@ -647,11 +657,28 @@
         // first match in MetroShared.LINES's own order - there's no single
         // "correct" line to prefer for those, so this keeps it deterministic
         // rather than picking one some other way.
-        function lineColorForStation(name) {
+        function lineForStation(name) {
           for (var i = 0; i < MetroShared.LINES.length; i++) {
-            if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i].color;
+            if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i];
           }
           return null;
+        }
+
+        // Same pictogram-on-a-badge look as Conexión's board tiles: the
+        // station's icon (from the shared /station-icons.svg sprite,
+        // fill="currentColor" inside each <symbol>) on a circle colored
+        // with its Metro line, icon tinted with the line's own text color.
+        function buildStationIconEl(name) {
+          var slug = MetroShared.STATION_ICON_SLUGS[name];
+          if (!slug) return null;
+          var svgNS = 'http://www.w3.org/2000/svg';
+          var svg = document.createElementNS(svgNS, 'svg');
+          svg.setAttribute('aria-hidden', 'true');
+          var use = document.createElementNS(svgNS, 'use');
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+          use.setAttribute('href', '/station-icons.svg#' + slug);
+          svg.appendChild(use);
+          return svg;
         }
 
         function prefersDark() {
@@ -696,6 +723,11 @@
           className: 'target-marker',
           interactive: false,
         }).addTo(map);
+
+        // The revealed station's icon badge, swapped in for targetMarker
+        // once a round ends (built fresh each reveal since it depends on
+        // that day's target/line).
+        var targetIconMarker = null;
 
         // The map starts fully locked (see the interaction handlers all
         // set to false above) so the puzzle can't be panned/zoomed away
@@ -761,11 +793,13 @@
           showLabels = false;
           setTileLayer();
           setMapInteractive(false);
-          var markerEl = targetMarker.getElement();
-          if (markerEl) {
-            markerEl.classList.add('target-marker--live');
-            markerEl.style.removeProperty('--marker-color');
+          if (targetIconMarker) {
+            map.removeLayer(targetIconMarker);
+            targetIconMarker = null;
           }
+          if (!map.hasLayer(targetMarker)) targetMarker.addTo(map);
+          var markerEl = targetMarker.getElement();
+          if (markerEl) markerEl.classList.add('target-marker--live');
 
           $('reveal').hidden = true;
           $('guess-form').hidden = false;
@@ -838,12 +872,25 @@
         }
 
         function showReveal(won) {
-          var markerEl = targetMarker.getElement();
-          if (markerEl) {
-            markerEl.classList.remove('target-marker--live');
-            var lineColor = lineColorForStation(state.target);
-            if (lineColor) markerEl.style.setProperty('--marker-color', lineColor);
+          if (map.hasLayer(targetMarker)) map.removeLayer(targetMarker);
+          if (targetIconMarker) map.removeLayer(targetIconMarker);
+
+          var pos = stationByName[state.target];
+          var line = lineForStation(state.target);
+          targetIconMarker = L.marker([pos.lat, pos.lng], {
+            icon: L.divIcon({ className: 'target-icon-marker', iconSize: [34, 34], iconAnchor: [17, 17] }),
+            interactive: false,
+          }).addTo(map);
+          var iconEl = targetIconMarker.getElement();
+          if (iconEl) {
+            if (line) {
+              iconEl.style.setProperty('--badge-bg', line.color);
+              iconEl.style.setProperty('--badge-ink', line.textColor);
+            }
+            var svg = buildStationIconEl(state.target);
+            if (svg) iconEl.appendChild(svg);
           }
+
           showLabels = true;
           setTileLayer();
           setMapInteractive(true);

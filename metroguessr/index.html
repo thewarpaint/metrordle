@@ -101,14 +101,6 @@
         gap: 0.3rem;
       }
 
-      .eyebrow {
-        font-weight: 700;
-        font-size: 0.68rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
-      }
-
       h1 {
         font-family: 'Overpass', sans-serif;
         font-weight: 800;
@@ -184,15 +176,6 @@
         flex: none;
       }
 
-      .search-label {
-        font-weight: 700;
-        font-size: 0.68rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
-        display: block;
-      }
-
       .search-box { position: relative; flex: none; }
 
       input[type="text"] {
@@ -263,22 +246,6 @@
 
       .guess-btn:disabled { opacity: 0.4; cursor: default; }
 
-      .meter-track {
-        flex: none;
-        height: 0.28rem;
-        background: var(--rule);
-        border-radius: 999px;
-        overflow: hidden;
-      }
-
-      .meter-fill {
-        height: 100%;
-        background: var(--line);
-        border-radius: 999px;
-        transition: width 0.4s ease;
-        width: 0%;
-      }
-
       .status-line {
         flex: none;
         text-align: center;
@@ -341,8 +308,7 @@
     </div>
 
     <div class="topbar">
-      <p class="eyebrow">Metrordle</p>
-      <h1 id="game-title">Metroguessr</h1>
+      <h1 id="game-title">Metrordle: Metroguessr</h1>
       <div class="date-row" id="date-row" hidden>
         <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug-label" id="date-debug-label"></span>
@@ -354,22 +320,18 @@
     <div class="panel">
       <div class="panel__handle"></div>
 
-      <label class="search-label" for="guess-input">¿Qué estación es?</label>
       <div class="search-box">
-        <input type="text" id="guess-input" autocomplete="off" placeholder="Escribe el nombre de una estación&hellip;">
+        <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
         <div class="suggestions" id="suggestions" hidden></div>
       </div>
       <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
-
-      <div class="meter-track" id="meter-track" hidden>
-        <div class="meter-fill" id="meter-fill"></div>
-      </div>
 
       <p class="status-line" id="status-line"></p>
 
       <div class="reveal" id="reveal" hidden>
         <p class="reveal__banner" id="reveal-banner"></p>
         <p class="reveal__station" id="reveal-station"></p>
+        <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
       </div>
 
       <div class="history-scroll">
@@ -543,11 +505,21 @@
         var START_DATE_KEY = '2026-09-12';
         var MAX_ATTEMPTS = 5;
         var MAP_ZOOM = 15;
+        // "plain" is the puzzle's no-labels map; "labeled" is CARTO's
+        // regular basemap (street/place names on), swapped in once a
+        // round ends so the reveal shows real geographic context.
         var TILE_URLS = {
-          light: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-          dark: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+          light: {
+            plain: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+            labeled: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          },
+          dark: {
+            plain: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+            labeled: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          },
         };
         var TILE_ATTRIBUTION = '&copy; <a href="https://carto.com/attributions">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        var SHARE_URL = 'https://metrordle.com/metroguessr/';
 
         function $(id) { return document.getElementById(id); }
 
@@ -626,19 +598,22 @@
           .addAttribution(TILE_ATTRIBUTION)
           .addTo(map);
 
-        var tileLayer = L.tileLayer(TILE_URLS[prefersDark() ? 'dark' : 'light'], {
-          maxZoom: 19,
-          subdomains: 'abcd',
-        }).addTo(map);
+        var tileLayer = null;
+        var showLabels = false;
+
+        function setTileLayer() {
+          if (tileLayer) map.removeLayer(tileLayer);
+          var variant = TILE_URLS[prefersDark() ? 'dark' : 'light'];
+          tileLayer = L.tileLayer(variant[showLabels ? 'labeled' : 'plain'], {
+            maxZoom: 19,
+            subdomains: 'abcd',
+          }).addTo(map);
+        }
+
+        setTileLayer();
 
         if (window.matchMedia) {
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-            map.removeLayer(tileLayer);
-            tileLayer = L.tileLayer(TILE_URLS[e.matches ? 'dark' : 'light'], {
-              maxZoom: 19,
-              subdomains: 'abcd',
-            }).addTo(map);
-          });
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTileLayer);
         }
 
         var targetMarker = L.circleMarker([19.4326, -99.1332], {
@@ -667,8 +642,11 @@
             done: false,
           };
 
-          $('game-title').textContent = 'Metroguessr #' + gameNumber;
+          $('game-title').textContent = 'Metrordle: Metroguessr #' + gameNumber;
           renderDateDebugLabel();
+
+          showLabels = false;
+          setTileLayer();
 
           var pos = stationByName[target];
           map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
@@ -679,7 +657,6 @@
           $('history').innerHTML = '';
           $('reveal').hidden = true;
           $('status-line').textContent = 'Tienes ' + MAX_ATTEMPTS + ' intentos.';
-          $('meter-track').hidden = true;
           $('guess-input').disabled = false;
           $('guess-input').value = '';
           $('guess-btn').disabled = true;
@@ -695,21 +672,6 @@
             wrap.appendChild(span);
           }
         }
-
-        // Farthest two real stations in the network set the meter's 0% end.
-        var MAX_NETWORK_KM = (function () {
-          var max = 0;
-          for (var i = 0; i < STATIONS.length; i++) {
-            for (var j = i + 1; j < STATIONS.length; j++) {
-              var d = haversineKm(
-                { lat: STATIONS[i][1], lng: STATIONS[i][2] },
-                { lat: STATIONS[j][1], lng: STATIONS[j][2] }
-              );
-              if (d > max) max = d;
-            }
-          }
-          return max;
-        })();
 
         function submitGuess(name) {
           if (!state || state.done || !stationByName[name]) return;
@@ -732,12 +694,6 @@
             '<span class="history-chip__dir">' + arrow + '</span>';
           $('history').appendChild(chip);
 
-          var meterTrack = $('meter-track');
-          var meterFill = $('meter-fill');
-          meterTrack.hidden = false;
-          var closeness = Math.max(0, 1 - dist / MAX_NETWORK_KM) * 100;
-          meterFill.style.width = closeness.toFixed(0) + '%';
-
           renderPips();
 
           if (correct || state.attempts >= MAX_ATTEMPTS) {
@@ -756,6 +712,8 @@
           state.done = true;
           var markerEl = targetMarker.getElement();
           if (markerEl) markerEl.classList.remove('target-marker--live');
+          showLabels = true;
+          setTileLayer();
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;
           $('status-line').textContent = '';
@@ -766,6 +724,35 @@
           banner.textContent = won ? '¡Correcto!' : 'Se acabaron los intentos';
           banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
           $('reveal-station').textContent = 'La estación era: ' + state.target;
+        }
+
+        // Distance -> emoji square for the share text, closest to
+        // farthest: an exact match is always the bullseye, then a
+        // blue/green/yellow/orange/red scale by how close the guess was.
+        function guessEmoji(guess) {
+          if (guess.correct) return '🎯';
+          if (guess.dist < 0.5) return '🟦';
+          if (guess.dist < 1) return '🟩';
+          if (guess.dist < 2.5) return '🟨';
+          if (guess.dist < 5) return '🟧';
+          return '🟥';
+        }
+
+        function buildShareText() {
+          var squares = state.guesses.map(guessEmoji).join('');
+          var won = state.guesses[state.guesses.length - 1].correct;
+          var resultLine = won
+            ? 'Resuelto en ' + state.attempts + '/' + MAX_ATTEMPTS + ' intentos'
+            : 'No lo logré (' + MAX_ATTEMPTS + '/' + MAX_ATTEMPTS + ')';
+
+          return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' +
+            squares + '\n' +
+            resultLine + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          MetroShared.shareOrCopyText(buildShareText(), $('share-btn'));
         }
 
         // --- search / autocomplete ---
@@ -859,6 +846,8 @@
         guessBtn.addEventListener('click', function () {
           if (!guessBtn.disabled) submitGuess(input.value);
         });
+
+        $('share-btn').addEventListener('click', shareResult);
 
         // --- debug date-nav (?debug=true) ---
         function shiftDebugDate(deltaDays) {

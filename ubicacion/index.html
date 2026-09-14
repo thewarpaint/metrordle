@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Like Conexión, this page has no Firebase SDK or leaderboard yet
+      (core-mechanic only), so most of the policy stays as tight as
+      possible. Two hosts are added on top of that baseline: cdnjs for
+      Leaflet's JS/CSS (script-src and style-src), and CARTO's tile
+      subdomains for the actual map imagery (img-src) - Leaflet loads
+      tiles as plain <img> elements, so no connect-src change is needed.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://*.basemaps.cartocdn.com; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="title" content="Metrordle: ¿Dónde Estoy? 🚇">
+    <meta
+      name="description"
+      content="Adivina la estación del Metro CDMX marcada en el mapa antes de que se acaben tus 5 intentos."
+    >
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metrordle.com/ubicacion/">
+    <meta property="og:title" content="Metrordle: ¿Dónde Estoy? 🚇">
+    <meta property="og:description" content="Adivina la estación del Metro CDMX marcada en el mapa antes de que se acaben tus 5 intentos.">
+    <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="715">
+    <meta property="og:image:alt" content="Un tablero estilo Wordle deletrea METRORDLE, con el logo del Metro de la Ciudad de México y la silueta de la ciudad en dos de las casillas.">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: ¿Dónde Estoy?">
+
+    <title>Metrordle: ¿Dónde Estoy? 🚇</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        position: relative;
+      }
+
+      /* --- full-bleed map background --- */
+
+      .map-stage {
+        position: fixed;
+        inset: 0;
+        background: var(--paper-well);
+      }
+
+      #leaflet-map { width: 100%; height: 100%; }
+
+      .target-marker {
+        stroke: var(--line);
+        stroke-width: 3;
+        fill: var(--line);
+        fill-opacity: 0.22;
+      }
+
+      .target-marker--live { animation: pulse 1.8s ease-in-out infinite; }
+
+      @keyframes pulse {
+        0%, 100% { r: 11; stroke-opacity: 0.95; }
+        50% { r: 17; stroke-opacity: 0.3; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .target-marker--live { animation: none; }
+      }
+
+      /* --- floating topbar --- */
+
+      .topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 500;
+        padding: max(0.85rem, env(safe-area-inset-top)) 1rem 0.6rem;
+        background: color-mix(in srgb, var(--paper) 80%, transparent);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+      }
+
+      .eyebrow {
+        font-weight: 700;
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+
+      h1 {
+        font-family: 'Overpass', sans-serif;
+        font-weight: 800;
+        font-size: 1.25rem;
+        letter-spacing: -0.01em;
+        margin: 0;
+        text-wrap: balance;
+      }
+
+      .date-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .game-number {
+        font-size: 0.78rem;
+        color: var(--ink-soft);
+        margin: 0;
+      }
+
+      .date-row[hidden] .game-number { display: none; }
+
+      .pips {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.1rem;
+      }
+
+      .pip {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--rule);
+        transition: background 0.2s ease;
+      }
+
+      .pip--used { background: var(--danger); }
+      .pip--win { background: var(--ok); }
+
+      .map-caption {
+        font-size: 0.62rem;
+        letter-spacing: 0.05em;
+        color: var(--ink-soft);
+        margin: 0.1rem 0 0;
+        text-align: center;
+      }
+
+      .map-caption a { color: inherit; }
+
+      /* --- bottom sheet panel --- */
+
+      .panel {
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 27rem;
+        z-index: 500;
+        max-height: 60vh;
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-bottom: none;
+        border-radius: 1.3rem 1.3rem 0 0;
+        box-shadow: 0 -6px 24px var(--shadow);
+        padding: 0.5rem 1.1rem calc(0.9rem + env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .panel__handle {
+        width: 2.4rem;
+        height: 0.28rem;
+        background: var(--rule);
+        border-radius: 999px;
+        margin: 0.15rem auto 0.1rem;
+        flex: none;
+      }
+
+      .search-label {
+        font-weight: 700;
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        display: block;
+      }
+
+      .search-box { position: relative; flex: none; }
+
+      input[type="text"] {
+        width: 100%;
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--ink);
+        background: var(--paper);
+        border: 1.5px solid var(--rule);
+        border-radius: 0 0.7rem 0 0.7rem;
+        padding: 0.6rem 0.8rem;
+      }
+
+      input[type="text"]:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+      }
+
+      input[type="text"]:disabled { opacity: 0.5; }
+
+      .suggestions {
+        position: absolute;
+        bottom: calc(100% + 0.3rem);
+        left: 0;
+        right: 0;
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-radius: 0.5rem;
+        box-shadow: 0 -4px 14px var(--shadow);
+        max-height: 11rem;
+        overflow-y: auto;
+        z-index: 5;
+      }
+
+      .suggestions[hidden] { display: none; }
+
+      .suggestion {
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: 0.9rem;
+        color: var(--ink);
+        padding: 0.55rem 0.8rem;
+        cursor: pointer;
+      }
+
+      .suggestion:not(:last-child) { border-bottom: 1px solid var(--rule); }
+      .suggestion:hover, .suggestion--active { background: var(--paper-well); }
+
+      .guess-btn {
+        flex: none;
+        width: 100%;
+        font-family: inherit;
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--line-ink);
+        background: var(--line);
+        border: none;
+        border-radius: 0 0.7rem 0 0.7rem;
+        padding: 0.62rem;
+        cursor: pointer;
+      }
+
+      .guess-btn:disabled { opacity: 0.4; cursor: default; }
+
+      .meter-track {
+        flex: none;
+        height: 0.28rem;
+        background: var(--rule);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .meter-fill {
+        height: 100%;
+        background: var(--line);
+        border-radius: 999px;
+        transition: width 0.4s ease;
+        width: 0%;
+      }
+
+      .status-line {
+        flex: none;
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--ink-soft);
+        min-height: 1.1rem;
+        margin: 0;
+      }
+
+      .reveal { flex: none; text-align: center; display: flex; flex-direction: column; gap: 0.15rem; }
+      .reveal[hidden] { display: none; }
+
+      .reveal__banner {
+        font-family: 'Overpass', sans-serif;
+        font-weight: 800;
+        font-size: 1.2rem;
+        margin: 0;
+      }
+
+      .reveal__banner--win { color: var(--ok); }
+      .reveal__banner--lose { color: var(--danger); }
+
+      .reveal__station { font-size: 1rem; font-weight: 700; margin: 0; }
+
+      .history-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+      .history { display: flex; flex-direction: column; gap: 0.35rem; }
+
+      .history-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 0.6rem;
+        align-items: center;
+        padding: 0.45rem 0.6rem;
+        background: var(--paper-well);
+        border-radius: 0 0.5rem 0 0.5rem;
+        font-size: 0.84rem;
+      }
+
+      .history-row__name { font-weight: 700; overflow-wrap: anywhere; }
+      .history-row__dist { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+      .history-row__dir { font-size: 1.05rem; line-height: 1; }
+
+      .footnote {
+        flex: none;
+        text-align: center;
+        font-size: 0.66rem;
+        color: var(--ink-soft);
+        line-height: 1.4;
+        margin: 0;
+      }
+
+      /* Leaflet's own controls, restyled minimally to sit on our paper theme */
+      .leaflet-control-attribution {
+        background: color-mix(in srgb, var(--paper-well) 80%, transparent) !important;
+        color: var(--ink-soft) !important;
+        font-family: 'Overpass', sans-serif !important;
+        font-size: 0.62rem !important;
+      }
+
+      .leaflet-control-attribution a { color: var(--ink-soft) !important; }
+    </style>
+  </head>
+  <body>
+    <div class="map-stage">
+      <div id="leaflet-map"></div>
+    </div>
+
+    <div class="topbar">
+      <p class="eyebrow">Metrordle</p>
+      <h1>¿Dónde Estoy?</h1>
+      <div class="date-row" id="date-row">
+        <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior" hidden>◀</button>
+        <p class="game-number" id="game-number"></p>
+        <button type="button" class="chev chev--compact" id="date-next" aria-label="Día siguiente" hidden>▶</button>
+      </div>
+      <div class="pips" id="pips"></div>
+      <p class="map-caption">Mapa sin nombres de calles ni estaciones</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__handle"></div>
+
+      <label class="search-label" for="guess-input">¿Qué estación es?</label>
+      <div class="search-box">
+        <input type="text" id="guess-input" autocomplete="off" placeholder="Escribe el nombre de una estación&hellip;">
+        <div class="suggestions" id="suggestions" hidden></div>
+      </div>
+      <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
+
+      <div class="meter-track" id="meter-track" hidden>
+        <div class="meter-fill" id="meter-fill"></div>
+      </div>
+
+      <p class="status-line" id="status-line"></p>
+
+      <div class="reveal" id="reveal" hidden>
+        <p class="reveal__banner" id="reveal-banner"></p>
+        <p class="reveal__station" id="reveal-station"></p>
+      </div>
+
+      <div class="history-scroll">
+        <div class="history" id="history"></div>
+      </div>
+
+      <p class="footnote">147 de 163 estaciones con coordenadas verificadas &middot; Línea 12 pendiente &middot; ubicaciones de referencia, no oficiales</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        // [name, lat, lng]. Sourced from a public station-coordinate
+        // dataset and cross-checked against shared.js's own station
+        // lists/counts per line (name spelling normalized to match
+        // shared.js; only cosmetic accent/slug differences found, no
+        // coordinate conflicts across interchange stations). Línea 12
+        // (opened 2012) isn't in the source dataset and its 16
+        // unique stations aren't included here yet.
+        var STATIONS = [["Acatitla",19.3647,-99.005699],["Aculco",19.3738,-99.107697],["Agrícola Oriental",19.4048,-99.069901],["Allende",19.4356,-99.137398],["Apatlaco",19.379299,-99.109596],["Aquiles Serdán",19.490499,-99.194901],["Aragón",19.4512,-99.096397],["Atlalilco",19.356199,-99.101303],["Auditorio",19.425501,-99.192001],["Autobuses del Norte",19.479099,-99.140701],["Balbuena",19.423,-99.102501],["Balderas",19.427401,-99.149101],["Barranca del Muerto",19.360701,-99.189598],["Bellas Artes",19.436199,-99.141899],["Bondojito",19.464701,-99.1119],["Bosque de Aragón",19.458105,-99.069257],["Boulevard Puerto Aéreo",19.419701,-99.096001],["Buenavista",19.446501,-99.153198],["Camarones",19.4792,-99.190201],["Canal de San Juan",19.3985,-99.059303],["Canal del Norte",19.4489,-99.116096],["Candelaria",19.428801,-99.1194],["Centro Médico",19.4069,-99.155197],["Cerro de la Estrella",19.3561,-99.085503],["Chabacano",19.4084,-99.135803],["Chapultepec",19.420799,-99.1763],["Chilpancingo",19.4062,-99.168404],["Ciudad Azteca",19.534599,-99.027496],["Ciudad Deportiva",19.408501,-99.091202],["Colegio Militar",19.449301,-99.171402],["Constitución de 1917",19.346001,-99.063904],["Constituyentes",19.4119,-99.191299],["Consulado",19.458099,-99.113899],["Copilco",19.335899,-99.176598],["Coyoacán",19.3615,-99.170502],["Coyuya",19.3986,-99.113503],["Cuatro Caminos",19.4596,-99.215897],["Cuauhtémoc",19.4259,-99.154701],["Cuitláhuac",19.4575,-99.182198],["Deportivo 18 de Marzo",19.483801,-99.126602],["Deportivo Oceanía",19.451,-99.079399],["División del Norte",19.379849,-99.159111],["Doctores",19.4217,-99.143303],["Ecatepec",19.515301,-99.036003],["Eduardo Molina",19.451401,-99.1054],["El Rosario",19.504601,-99.200104],["Ermita",19.3619,-99.142899],["Escuadrón 201",19.365,-99.1092],["Etiopía",19.395599,-99.156303],["Eugenia",19.3855,-99.157501],["Ferrería",19.490499,-99.173897],["Fray Servando",19.4217,-99.120499],["Garibaldi/Lagunilla",19.444401,-99.139801],["General Anaya",19.3533,-99.144997],["Gómez Farías",19.4158,-99.090302],["Guelatao",19.385099,-99.035599],["Guerrero",19.444799,-99.145401],["Hangares",19.4242,-99.087898],["Hidalgo",19.4373,-99.147102],["Hospital General",19.413601,-99.1539],["Impulsora",19.485901,-99.048897],["Indios Verdes",19.495399,-99.119499],["Instituto del Petróleo",19.4908,-99.14709],["Insurgentes",19.423599,-99.162804],["Isabel la Católica",19.4265,-99.137497],["Iztacalco",19.3887,-99.112198],["Iztapalapa",19.357901,-99.093498],["Jamaica",19.4088,-99.1222],["Juanacatlán",19.412901,-99.182198],["Juárez",19.433599,-99.147903],["La Paz",19.3507,-98.960999],["La Raza",19.470301,-99.136902],["La Viga",19.406601,-99.126297],["La Villa / Basílica",19.4816,-99.117897],["Lagunilla",19.4433,-99.130997],["Lázaro Cárdenas",19.4069,-99.144699],["Lindavista",19.4879,-99.134598],["Los Reyes",19.358999,-98.976898],["Martín Carrera",19.485001,-99.104401],["Merced",19.425501,-99.124702],["Miguel Ángel de Quevedo",19.3468,-99.181],["Misterios",19.4634,-99.130798],["Mixcoac",19.3762,-99.187798],["Mixiuhca",19.4086,-99.1129],["Moctezuma",19.4272,-99.110298],["Morelos",19.4391,-99.11959],["Múzquiz",19.500999,-99.041901],["Nativitas",19.379499,-99.140198],["Nezahualcóyotl",19.473101,-99.054497],["Niños Héroes",19.421,-99.150497],["Normal",19.444401,-99.167397],["Norte 45",19.488899,-99.163498],["Obrera",19.413099,-99.144096],["Observatorio",19.398551,-99.200449],["Oceanía",19.445801,-99.087196],["Olímpica",19.521299,-99.033401],["Panteones",19.458799,-99.203201],["Pantitlán",19.4154,-99.072197],["Patriotismo",19.4062,-99.178902],["Peñón Viejo",19.373301,-99.017097],["Pino Suárez",19.4259,-99.133202],["Plaza Aragón",19.5285,-99.030197],["Polanco",19.433701,-99.190697],["Politécnico",19.5009,-99.1493],["Popotla",19.4522,-99.174797],["Portales",19.3699,-99.141602],["Potrero",19.476999,-99.132202],["Puebla",19.4072,-99.081902],["Refinería",19.4701,-99.1903],["Revolución",19.4417,-99.161102],["Ricardo Flores Magón",19.4366,-99.103699],["Río de los Remedios",19.490999,-99.0467],["Romero Rubio",19.4408,-99.094299],["Salto del Agua",19.4268,-99.142197],["San Antonio",19.3848,-99.186302],["San Antonio Abad",19.418699,-99.134102],["San Cosme",19.441799,-99.161102],["San Joaquín",19.445801,-99.191803],["San Juan de Letrán",19.431299,-99.141602],["San Lázaro",19.4303,-99.114799],["San Pedro de los Pinos",19.3913,-99.186096],["Santa Anita",19.4027,-99.121696],["Santa Marta",19.3603,-98.995102],["Sevilla",19.4219,-99.170601],["Tacuba",19.459499,-99.188698],["Tacubaya",19.4032,-99.187103],["Talismán",19.4746,-99.108002],["Tasqueña",19.3442,-99.142502],["Tepalcates",19.3913,-99.046402],["Tepito",19.442801,-99.123703],["Terminal Aérea",19.4338,-99.0877],["Tezozómoc",19.494699,-99.19559],["Tlatelolco",19.455218,-99.143164],["UAM Azcapotzalco",19.490999,-99.186401],["UAM-I",19.3508,-99.074699],["Universidad",19.324499,-99.174004],["Valle Gómez",19.4594,-99.119499],["Vallejo",19.490299,-99.155602],["Velódromo",19.4086,-99.102997],["Viaducto",19.4009,-99.136902],["Villa de Aragón",19.4617,-99.061302],["Villa de Cortés",19.3876,-99.139],["Viveros",19.353701,-99.176003],["Xola",19.395201,-99.137802],["Zapata",19.370701,-99.164902],["Zaragoza",19.4123,-99.082397],["Zócalo",19.433001,-99.1325]];
+
+        var START_DATE_KEY = '2026-09-12';
+        var MAX_ATTEMPTS = 5;
+        var MAP_ZOOM = 16;
+        var TILE_URLS = {
+          light: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+          dark: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+        };
+        var TILE_ATTRIBUTION = '&copy; <a href="https://carto.com/attributions">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+        function $(id) { return document.getElementById(id); }
+
+        function stripAccents(s) {
+          return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        function haversineKm(a, b) {
+          var R = 6371;
+          var dLat = (b.lat - a.lat) * Math.PI / 180;
+          var dLng = (b.lng - a.lng) * Math.PI / 180;
+          var lat1 = a.lat * Math.PI / 180, lat2 = b.lat * Math.PI / 180;
+          var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+          return 2 * R * Math.asin(Math.sqrt(h));
+        }
+
+        function bearingArrow(from, to) {
+          var lat1 = from.lat * Math.PI / 180, lat2 = to.lat * Math.PI / 180;
+          var dLng = (to.lng - from.lng) * Math.PI / 180;
+          var y = Math.sin(dLng) * Math.cos(lat2);
+          var x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+          var deg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+          var arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+          return arrows[Math.round(deg / 45) % 8];
+        }
+
+        var MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        function humanDate(date) {
+          return date.getDate() + ' ' + MONTHS[date.getMonth()] + ' ' + date.getFullYear();
+        }
+
+        var stationByName = {};
+        STATIONS.forEach(function (s) { stationByName[s[0]] = { lat: s[1], lng: s[2] }; });
+
+        function prefersDark() {
+          return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+
+        var map = L.map('leaflet-map', {
+          zoomControl: false,
+          dragging: false,
+          touchZoom: false,
+          scrollWheelZoom: false,
+          doubleClickZoom: false,
+          boxZoom: false,
+          keyboard: false,
+          attributionControl: false,
+        }).setView([19.4326, -99.1332], MAP_ZOOM);
+
+        L.control.attribution({ prefix: false, position: 'bottomright' })
+          .addAttribution(TILE_ATTRIBUTION)
+          .addTo(map);
+
+        var tileLayer = L.tileLayer(TILE_URLS[prefersDark() ? 'dark' : 'light'], {
+          maxZoom: 19,
+          subdomains: 'abcd',
+        }).addTo(map);
+
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+            map.removeLayer(tileLayer);
+            tileLayer = L.tileLayer(TILE_URLS[e.matches ? 'dark' : 'light'], {
+              maxZoom: 19,
+              subdomains: 'abcd',
+            }).addTo(map);
+          });
+        }
+
+        var targetMarker = L.circleMarker([19.4326, -99.1332], {
+          radius: 11,
+          className: 'target-marker',
+          interactive: false,
+        }).addTo(map);
+
+        // --- game state ---
+        var debugDate = null;
+        var state = null;
+
+        function startGame() {
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          var rand = MetroShared.createSeededRandom('metrordle-ubicacion-' + dateKey);
+          var idx = Math.floor(rand() * STATIONS.length);
+          var target = STATIONS[idx][0];
+
+          state = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            target: target,
+            attempts: 0,
+            guesses: [],
+            done: false,
+          };
+
+          $('game-number').textContent = 'Entrega #' + gameNumber + ' · ' + humanDate(MetroShared.getEffectiveToday(debugDate));
+
+          var pos = stationByName[target];
+          map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
+          targetMarker.setLatLng([pos.lat, pos.lng]);
+          var markerEl = targetMarker.getElement();
+          if (markerEl) markerEl.classList.add('target-marker--live');
+
+          $('history').innerHTML = '';
+          $('reveal').hidden = true;
+          $('status-line').textContent = 'Tienes ' + MAX_ATTEMPTS + ' intentos.';
+          $('meter-track').hidden = true;
+          $('guess-input').disabled = false;
+          $('guess-input').value = '';
+          $('guess-btn').disabled = true;
+          renderPips();
+        }
+
+        function renderPips() {
+          var wrap = $('pips');
+          wrap.innerHTML = '';
+          for (var i = 0; i < MAX_ATTEMPTS; i++) {
+            var span = document.createElement('span');
+            span.className = 'pip' + (i < state.attempts ? (state.done && state.guesses[i].correct ? ' pip--win' : ' pip--used') : '');
+            wrap.appendChild(span);
+          }
+        }
+
+        // Farthest two real stations in the network set the meter's 0% end.
+        var MAX_NETWORK_KM = (function () {
+          var max = 0;
+          for (var i = 0; i < STATIONS.length; i++) {
+            for (var j = i + 1; j < STATIONS.length; j++) {
+              var d = haversineKm(
+                { lat: STATIONS[i][1], lng: STATIONS[i][2] },
+                { lat: STATIONS[j][1], lng: STATIONS[j][2] }
+              );
+              if (d > max) max = d;
+            }
+          }
+          return max;
+        })();
+
+        function submitGuess(name) {
+          if (!state || state.done || !stationByName[name]) return;
+          var guessPos = stationByName[name];
+          var targetPos = stationByName[state.target];
+          var dist = haversineKm(guessPos, targetPos);
+          var correct = name === state.target;
+          var arrow = correct ? '🎯' : bearingArrow(guessPos, targetPos);
+
+          state.attempts++;
+          state.guesses.push({ name: name, dist: dist, correct: correct });
+
+          var row = document.createElement('div');
+          row.className = 'history-row';
+          row.innerHTML =
+            '<span class="history-row__name"></span>' +
+            '<span class="history-row__dist">' + (correct ? '0 km' : dist.toFixed(dist < 10 ? 1 : 0) + ' km') + '</span>' +
+            '<span class="history-row__dir">' + arrow + '</span>';
+          row.querySelector('.history-row__name').textContent = name;
+          $('history').prepend(row);
+
+          var meterTrack = $('meter-track');
+          var meterFill = $('meter-fill');
+          meterTrack.hidden = false;
+          var closeness = Math.max(0, 1 - dist / MAX_NETWORK_KM) * 100;
+          meterFill.style.width = closeness.toFixed(0) + '%';
+
+          renderPips();
+
+          if (correct || state.attempts >= MAX_ATTEMPTS) {
+            endGame(correct);
+          } else {
+            var left = MAX_ATTEMPTS - state.attempts;
+            $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
+          }
+
+          $('guess-input').value = '';
+          $('guess-btn').disabled = true;
+          hideSuggestions();
+        }
+
+        function endGame(won) {
+          state.done = true;
+          var markerEl = targetMarker.getElement();
+          if (markerEl) markerEl.classList.remove('target-marker--live');
+          $('guess-input').disabled = true;
+          $('guess-btn').disabled = true;
+          $('status-line').textContent = '';
+
+          var reveal = $('reveal');
+          reveal.hidden = false;
+          var banner = $('reveal-banner');
+          banner.textContent = won ? '¡Correcto!' : 'Se acabaron los intentos';
+          banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
+          $('reveal-station').textContent = 'La estación era: ' + state.target;
+        }
+
+        // --- search / autocomplete ---
+        var input = $('guess-input');
+        var suggestionsEl = $('suggestions');
+        var guessBtn = $('guess-btn');
+        var activeIndex = -1;
+        var currentMatches = [];
+
+        function hideSuggestions() {
+          suggestionsEl.hidden = true;
+          suggestionsEl.innerHTML = '';
+          activeIndex = -1;
+          currentMatches = [];
+        }
+
+        function renderSuggestions(matches) {
+          currentMatches = matches;
+          activeIndex = -1;
+          suggestionsEl.innerHTML = '';
+          if (!matches.length) { suggestionsEl.hidden = true; return; }
+          matches.slice(0, 8).forEach(function (name) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'suggestion';
+            btn.textContent = name;
+            btn.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+              selectStation(name);
+            });
+            suggestionsEl.appendChild(btn);
+          });
+          suggestionsEl.hidden = false;
+        }
+
+        function selectStation(name) {
+          input.value = name;
+          hideSuggestions();
+          guessBtn.disabled = !stationByName[name];
+        }
+
+        input.addEventListener('input', function () {
+          guessBtn.disabled = true;
+          var q = stripAccents(input.value.trim());
+          if (!q) { hideSuggestions(); return; }
+          var matches = STATIONS
+            .map(function (s) { return s[0]; })
+            .filter(function (name) { return stripAccents(name).indexOf(q) !== -1; })
+            .sort(function (a, b) {
+              var ai = stripAccents(a).indexOf(q), bi = stripAccents(b).indexOf(q);
+              if (ai !== bi) return ai - bi;
+              return a.length - b.length;
+            });
+          renderSuggestions(matches);
+          if (stationByName[input.value]) guessBtn.disabled = false;
+        });
+
+        input.addEventListener('keydown', function (e) {
+          if (suggestionsEl.hidden) {
+            if (e.key === 'Enter' && !guessBtn.disabled) submitGuess(input.value);
+            return;
+          }
+          var items = suggestionsEl.querySelectorAll('.suggestion');
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = Math.max(activeIndex - 1, 0);
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeIndex >= 0 && currentMatches[activeIndex]) {
+              selectStation(currentMatches[activeIndex]);
+            } else if (!guessBtn.disabled) {
+              submitGuess(input.value);
+            }
+            return;
+          } else if (e.key === 'Escape') {
+            hideSuggestions();
+            return;
+          } else {
+            return;
+          }
+          items.forEach(function (el, i) { el.classList.toggle('suggestion--active', i === activeIndex); });
+        });
+
+        document.addEventListener('click', function (e) {
+          if (!e.target.closest('.search-box')) hideSuggestions();
+        });
+
+        guessBtn.addEventListener('click', function () {
+          if (!guessBtn.disabled) submitGuess(input.value);
+        });
+
+        // --- debug date-nav (?debug=true) ---
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startGame();
+        }
+
+        if (MetroShared.isDebugMode()) {
+          $('date-prev').hidden = false;
+          $('date-next').hidden = false;
+          $('date-prev').addEventListener('click', function () { shiftDebugDate(-1); });
+          $('date-next').addEventListener('click', function () { shiftDebugDate(1); });
+        }
+
+        startGame();
+      })();
+    </script>
+  </body>
+</html>

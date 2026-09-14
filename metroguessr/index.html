@@ -52,6 +52,7 @@
 
       body {
         position: relative;
+        background: var(--paper-well);
       }
 
       /* --- full-bleed map background --- */
@@ -62,7 +63,16 @@
         background: var(--paper-well);
       }
 
-      #leaflet-map { width: 100%; height: 100%; }
+      /* Leaflet's own default CSS paints its container a fixed #ddd
+         regardless of theme - this overrides it (an id selector already
+         beats leaflet.css's .leaflet-container class) so the gap while
+         tiles are still loading matches the page instead of flashing
+         light gray/white in dark mode. */
+      #leaflet-map {
+        width: 100%;
+        height: 100%;
+        background: var(--paper-well);
+      }
 
       .target-marker {
         stroke: var(--line);
@@ -797,16 +807,28 @@
           return '🟥';
         }
 
+        // Sub-km distances read as meters ("350m"), not a fiddly "0.35km" -
+        // km otherwise, one decimal under 10 for a bit of precision without
+        // implying false accuracy above it.
+        function shareDistanceText(km) {
+          if (km < 1) return Math.round(km * 1000) + 'm';
+          return (km < 10 ? km.toFixed(1) : Math.round(km)) + 'km';
+        }
+
+        // One line per guess, closest to farthest: the square plus how far
+        // off it was, or just the bullseye with no distance for the match.
+        // How many attempts it took is already implied by the line count,
+        // so there's no separate "solved in N/5" summary line.
+        function shareLineFor(guess) {
+          if (guess.correct) return '🎯';
+          return guessEmoji(guess) + ': ' + shareDistanceText(guess.dist);
+        }
+
         function buildShareText() {
-          var squares = state.guesses.map(guessEmoji).join('');
-          var won = state.guesses[state.guesses.length - 1].correct;
-          var resultLine = won
-            ? 'Resuelto en ' + state.attempts + '/' + MAX_ATTEMPTS + ' intentos'
-            : 'No lo logré (' + MAX_ATTEMPTS + '/' + MAX_ATTEMPTS + ')';
+          var lines = state.guesses.map(shareLineFor).join('\n');
 
           return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' +
-            squares + '\n' +
-            resultLine + '\n\n' +
+            lines + '\n\n' +
             SHARE_URL;
         }
 

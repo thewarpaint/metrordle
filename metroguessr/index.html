@@ -523,6 +523,38 @@
 
         function $(id) { return document.getElementById(id); }
 
+        function storageKeyFor(dateKey) {
+          return 'metroguessr:' + dateKey;
+        }
+
+        // The target itself isn't stored - it's re-derived from dateKey
+        // via the same seeded pick every load, same as every other game
+        // here. Only the player's own guesses (and whether the round is
+        // over) are session state worth persisting.
+        function loadSavedState(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.guesses)) return null;
+            return parsed;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistState() {
+          try {
+            localStorage.setItem(storageKeyFor(state.dateKey), JSON.stringify({
+              guesses: state.guesses,
+              done: state.done,
+            }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the
+            // game stays playable for this session, it just won't persist.
+          }
+        }
+
         function stripAccents(s) {
           return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         }
@@ -632,35 +664,52 @@
           var rand = MetroShared.createSeededRandom('metrordle-metroguessr-' + dateKey);
           var idx = Math.floor(rand() * STATIONS.length);
           var target = STATIONS[idx][0];
+          var saved = loadSavedState(dateKey);
 
           state = {
             dateKey: dateKey,
             gameNumber: gameNumber,
             target: target,
-            attempts: 0,
-            guesses: [],
-            done: false,
+            attempts: saved ? saved.guesses.length : 0,
+            guesses: saved ? saved.guesses : [],
+            done: saved ? !!saved.done : false,
           };
 
           $('game-title').textContent = 'Metrordle: Metroguessr #' + gameNumber;
           renderDateDebugLabel();
 
-          showLabels = false;
-          setTileLayer();
-
           var pos = stationByName[target];
           map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
           targetMarker.setLatLng([pos.lat, pos.lng]);
+
+          $('history').innerHTML = '';
+          state.guesses.forEach(appendHistoryChip);
+          renderPips();
+
+          // A day already played is done for good - restore straight into
+          // the reveal, same as every other game here, instead of letting
+          // a reload hand out a second attempt.
+          if (state.done) {
+            showReveal(state.guesses[state.guesses.length - 1].correct);
+            return;
+          }
+
+          showLabels = false;
+          setTileLayer();
           var markerEl = targetMarker.getElement();
           if (markerEl) markerEl.classList.add('target-marker--live');
 
-          $('history').innerHTML = '';
           $('reveal').hidden = true;
-          $('status-line').textContent = 'Tienes ' + MAX_ATTEMPTS + ' intentos.';
           $('guess-input').disabled = false;
           $('guess-input').value = '';
           $('guess-btn').disabled = true;
-          renderPips();
+
+          if (state.attempts === 0) {
+            $('status-line').textContent = 'Tienes ' + MAX_ATTEMPTS + ' intentos.';
+          } else {
+            var left = MAX_ATTEMPTS - state.attempts;
+            $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
+          }
         }
 
         function renderPips() {
@@ -673,26 +722,30 @@
           }
         }
 
+        function appendHistoryChip(guess) {
+          var distText = guess.correct ? '0 km' : guess.dist.toFixed(guess.dist < 10 ? 1 : 0) + ' km';
+          var arrow = guess.correct ? '🎯' : bearingArrow(stationByName[guess.name], stationByName[state.target]);
+          var chip = document.createElement('span');
+          chip.className = 'history-chip';
+          chip.title = guess.name;
+          chip.setAttribute('aria-label', guess.name + ': ' + distText);
+          chip.innerHTML =
+            '<span class="history-chip__dist">' + distText + '</span>' +
+            '<span class="history-chip__dir">' + arrow + '</span>';
+          $('history').appendChild(chip);
+        }
+
         function submitGuess(name) {
           if (!state || state.done || !stationByName[name]) return;
           var guessPos = stationByName[name];
           var targetPos = stationByName[state.target];
           var dist = haversineKm(guessPos, targetPos);
           var correct = name === state.target;
-          var arrow = correct ? '🎯' : bearingArrow(guessPos, targetPos);
 
           state.attempts++;
-          state.guesses.push({ name: name, dist: dist, correct: correct });
-
-          var distText = correct ? '0 km' : dist.toFixed(dist < 10 ? 1 : 0) + ' km';
-          var chip = document.createElement('span');
-          chip.className = 'history-chip';
-          chip.title = name;
-          chip.setAttribute('aria-label', name + ': ' + distText);
-          chip.innerHTML =
-            '<span class="history-chip__dist">' + distText + '</span>' +
-            '<span class="history-chip__dir">' + arrow + '</span>';
-          $('history').appendChild(chip);
+          var guess = { name: name, dist: dist, correct: correct };
+          state.guesses.push(guess);
+          appendHistoryChip(guess);
 
           renderPips();
 
@@ -703,6 +756,8 @@
             $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
           }
 
+          persistState();
+
           $('guess-input').value = '';
           $('guess-btn').disabled = true;
           hideSuggestions();
@@ -710,6 +765,10 @@
 
         function endGame(won) {
           state.done = true;
+          showReveal(won);
+        }
+
+        function showReveal(won) {
           var markerEl = targetMarker.getElement();
           if (markerEl) markerEl.classList.remove('target-marker--live');
           showLabels = true;

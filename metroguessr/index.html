@@ -16,8 +16,15 @@
       (plain <img> elements), MapLibre fetches vector tiles/style/glyphs/
       sprite via fetch()/XHR, so OpenFreeMap needs connect-src too, not
       just img-src (img-src covers a sprite-image fallback path).
+      gstatic.com is also in connect-src, not just script-src - with
+      DevTools' source maps enabled, the browser fetches the Firebase
+      SDK's own *.js.map files from the same host as a plain connect-src
+      load, same as any other fetch. And MapLibre parses vector tiles in
+      a background Worker it constructs from a blob: URL - worker-src
+      isn't covered by script-src's own blob:-less allowlist (there's no
+      automatic fallback the other way), so it needs its own directive.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://tiles.openfreemap.org; font-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org https://firestore.googleapis.com https://*.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://tiles.openfreemap.org; font-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="title" content="Metrordle: Metroguessr 🚇">
     <meta

@@ -16,8 +16,12 @@
       any host but this site and Firebase's, block plugin/object embeds,
       lock down <base>/form targets, and (via connect-src) keep an
       injected script from exfiltrating data anywhere but Firebase.
+      gstatic.com is in connect-src too, not just script-src - with
+      DevTools' source maps enabled, the browser fetches the Firebase
+      SDK's own *.js.map files from that same already-trusted host as a
+      plain connect-src load.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
 

@@ -8,12 +8,16 @@
       Same defense-in-depth note as Memoria/Laberinto: Firestore-sourced
       leaderboard data (aliases) is always rendered via textContent, never
       innerHTML - see renderLeaderboard() below. On top of that baseline,
-      this page also needs cdnjs for Leaflet's JS/CSS (script-src and
-      style-src) and CARTO's tile subdomains for the map imagery (img-src)
-      - Leaflet loads tiles as plain <img> elements, so no connect-src
-      change is needed for those.
+      this page also needs: cdnjs for Leaflet's and MapLibre GL's JS/CSS
+      (script-src and style-src); cdn.jsdelivr.net for the small
+      maplibre-gl-leaflet bridge script that lets a MapLibre vector layer
+      sit inside the Leaflet map (script-src); and OpenFreeMap's tile
+      host for the actual map data. Unlike CARTO's old raster tiles
+      (plain <img> elements), MapLibre fetches vector tiles/style/glyphs/
+      sprite via fetch()/XHR, so OpenFreeMap needs connect-src too, not
+      just img-src (img-src covers a sprite-image fallback path).
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://*.basemaps.cartocdn.com; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://tiles.openfreemap.org; font-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org https://firestore.googleapis.com https://*.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="title" content="Metrordle: Metroguessr 🚇">
     <meta
@@ -43,6 +47,7 @@
 
     <link rel="stylesheet" href="/shared.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.css">
 
     <style>
       html, body {
@@ -429,6 +434,8 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.3/leaflet-maplibre-gl.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
@@ -597,20 +604,21 @@
         var START_DATE_KEY = '2026-09-12';
         var MAX_ATTEMPTS = 5;
         var MAP_ZOOM = 15;
-        // "plain" is the puzzle's no-labels map; "labeled" is CARTO's
-        // regular basemap (street/place names on), swapped in once a
-        // round ends so the reveal shows real geographic context.
-        var TILE_URLS = {
-          light: {
-            plain: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-            labeled: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          },
-          dark: {
-            plain: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
-            labeled: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-          },
+        // OpenFreeMap's vector styles - no API key, no request cap, free
+        // for good (donation-funded), unlike the CARTO raster tiles this
+        // replaced. Loaded via the maplibre-gl-leaflet bridge (see
+        // setTileLayer() below) so the rest of this file keeps using
+        // Leaflet's own marker/interactivity API untouched - only the
+        // tile engine underneath changed. Each style already has its own
+        // light/dark variant; unlike CARTO, there's no separate
+        // "no labels" style, so applyLabelVisibility() below hides/shows
+        // every label (symbol-type) layer directly instead of swapping
+        // URLs.
+        var MAPLIBRE_STYLES = {
+          light: 'https://tiles.openfreemap.org/styles/positron',
+          dark: 'https://tiles.openfreemap.org/styles/dark',
         };
-        var TILE_ATTRIBUTION = '&copy; <a href="https://carto.com/attributions">CARTO</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        var TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, tiles by <a href="https://openfreemap.org">OpenFreeMap</a>';
         var SHARE_URL = 'https://metrordle.com/metroguessr/';
         var LEADERBOARD_COLLECTION = 'metroguessr-leaderboard';
         var LEADERBOARD_SIZE = 5;
@@ -776,16 +784,47 @@
           .addAttribution(TILE_ATTRIBUTION)
           .addTo(map);
 
-        var tileLayer = null;
+        var glLayer = null;
         var showLabels = false;
 
+        // Every symbol-type layer in the current style is a label (place
+        // names, road names, POI icons+text) - hiding all of them,
+        // rather than hardcoding OpenFreeMap's own layer names, keeps
+        // this working even if a future style revision renames or
+        // reshuffles its layers. The style loads asynchronously, so this
+        // waits for it via isStyleLoaded()/'styledata' when needed
+        // (e.g. right after switching styles) instead of calling
+        // getStyle() too early.
+        function applyLabelVisibility() {
+          if (!glLayer) return;
+          var glMap = glLayer.getMaplibreMap();
+          if (!glMap.isStyleLoaded()) {
+            glMap.once('styledata', applyLabelVisibility);
+            return;
+          }
+          var visibility = showLabels ? 'visible' : 'none';
+          glMap.getStyle().layers.forEach(function (layer) {
+            if (layer.type === 'symbol') glMap.setLayoutProperty(layer.id, 'visibility', visibility);
+          });
+        }
+
         function setTileLayer() {
-          if (tileLayer) map.removeLayer(tileLayer);
-          var variant = TILE_URLS[prefersDark() ? 'dark' : 'light'];
-          tileLayer = L.tileLayer(variant[showLabels ? 'labeled' : 'plain'], {
-            maxZoom: 19,
-            subdomains: 'abcd',
+          if (glLayer) map.removeLayer(glLayer);
+          glLayer = L.maplibreGL({
+            style: MAPLIBRE_STYLES[prefersDark() ? 'dark' : 'light'],
+            attributionControl: false,
           }).addTo(map);
+          applyLabelVisibility();
+        }
+
+        // Unlike CARTO's raster tiles (a genuinely different URL per
+        // labels state, so toggling always meant a full reload), a
+        // vector style can show/hide its own label layers in place -
+        // this flips just those layers on the already-loaded style
+        // instead of tearing down and refetching the whole map.
+        function setLabelsVisible(visible) {
+          showLabels = visible;
+          applyLabelVisibility();
         }
 
         setTileLayer();
@@ -874,8 +913,7 @@
             return;
           }
 
-          showLabels = false;
-          setTileLayer();
+          setLabelsVisible(false);
           setMapInteractive(false);
           if (targetIconMarker) {
             map.removeLayer(targetIconMarker);
@@ -978,8 +1016,7 @@
             if (svg) iconEl.appendChild(svg);
           }
 
-          showLabels = true;
-          setTileLayer();
+          setLabelsVisible(true);
           setMapInteractive(true);
           $('guess-form').hidden = true;
           $('guess-input').disabled = true;

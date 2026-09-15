@@ -792,23 +792,19 @@
           .addTo(map);
 
         var glLayer = null;
+        var glStyleReady = false;
         var showLabels = false;
 
         // Every symbol-type layer in the current style is a label (place
         // names, road names, POI icons+text) - hiding all of them,
         // rather than hardcoding OpenFreeMap's own layer names, keeps
         // this working even if a future style revision renames or
-        // reshuffles its layers. The style loads asynchronously, so this
-        // waits for it via isStyleLoaded()/'styledata' when needed
-        // (e.g. right after switching styles) instead of calling
-        // getStyle() too early.
+        // reshuffles its layers. No-ops until glStyleReady is set (see
+        // setTileLayer() below) - the pending listener there re-applies
+        // this once the style actually is ready.
         function applyLabelVisibility() {
-          if (!glLayer) return;
+          if (!glLayer || !glStyleReady) return;
           var glMap = glLayer.getMaplibreMap();
-          if (!glMap.isStyleLoaded()) {
-            glMap.once('styledata', applyLabelVisibility);
-            return;
-          }
           var visibility = showLabels ? 'visible' : 'none';
           glMap.getStyle().layers.forEach(function (layer) {
             if (layer.type === 'symbol') glMap.setLayoutProperty(layer.id, 'visibility', visibility);
@@ -817,11 +813,34 @@
 
         function setTileLayer() {
           if (glLayer) map.removeLayer(glLayer);
+          glStyleReady = false;
           glLayer = L.maplibreGL({
             style: MAPLIBRE_STYLES[prefersDark() ? 'dark' : 'light'],
             attributionControl: false,
           }).addTo(map);
-          applyLabelVisibility();
+
+          // isStyleLoaded()/'styledata' (tried first) turned out to be
+          // gated on the style's TILE data finishing too, not just the
+          // style definition itself - under any kind of tile-loading
+          // slowness (a flaky connection, or the worker-src CSP block
+          // that briefly existed here) that condition could take a long
+          // time to ever become true, leaving labels stuck visible the
+          // whole time. MapLibre's own 'style.load' event would be the
+          // clean fix but isn't available before v6 (this page pins
+          // v5). The well-established, version-independent signal that
+          // the style itself (not its tiles) is ready is the 'data'
+          // event with dataType 'style' - it doesn't require removing
+          // the listener defensively since it only ever needs to fire
+          // once per style, handled here by unregistering as soon as it
+          // does.
+          var glMap = glLayer.getMaplibreMap();
+          function onStyleData(e) {
+            if (e.dataType !== 'style') return;
+            glMap.off('data', onStyleData);
+            glStyleReady = true;
+            applyLabelVisibility();
+          }
+          glMap.on('data', onStyleData);
         }
 
         // Unlike CARTO's raster tiles (a genuinely different URL per

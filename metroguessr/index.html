@@ -321,17 +321,22 @@
       }
       .reveal[hidden] { display: none; }
 
-      .reveal__banner {
+      /* Banner + station name render as two <span>s inside one <p> so
+         they read as a single line ("¡Correcto! La estación era: X")
+         instead of the two stacked lines this used to be - the
+         whitespace between the spans in the markup below collapses to
+         the separating space, no explicit one needed in JS. */
+      .reveal__line {
         font-family: 'Overpass', sans-serif;
-        font-weight: 800;
-        font-size: 1.2rem;
+        font-size: 1rem;
         margin: 0;
       }
 
+      .reveal__banner { font-weight: 800; }
       .reveal__banner--win { color: var(--ok); }
       .reveal__banner--lose { color: var(--danger); }
 
-      .reveal__station { font-size: 1rem; font-weight: 700; margin: 0; }
+      .reveal__station { font-weight: 700; }
 
       /* .leaderboard* styling itself lives in shared.css, common to every
          game with a leaderboard - these are just this page's own deltas,
@@ -422,8 +427,10 @@
       <p class="status-line" id="status-line"></p>
 
       <div class="reveal" id="reveal" hidden>
-        <p class="reveal__banner" id="reveal-banner"></p>
-        <p class="reveal__station" id="reveal-station"></p>
+        <p class="reveal__line">
+          <span class="reveal__banner" id="reveal-banner"></span>
+          <span class="reveal__station" id="reveal-station"></span>
+        </p>
 
         <div class="leaderboard" id="leaderboard">
           <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -435,7 +442,7 @@
         <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
       </div>
 
-      <div class="history-scroll">
+      <div class="history-scroll" id="history-scroll">
         <div class="history" id="history"></div>
       </div>
     </div>
@@ -950,6 +957,7 @@
           if (markerEl) markerEl.classList.add('target-marker--live');
 
           $('reveal').hidden = true;
+          $('history-scroll').hidden = false;
           $('guess-form').hidden = false;
           $('guess-input').disabled = false;
           $('guess-input').value = '';
@@ -1048,6 +1056,12 @@
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;
           $('status-line').textContent = '';
+          // The guess history's distance/direction hints have nothing
+          // left to add once the target is revealed - dropping them
+          // shrinks the bottom sheet, freeing up vertical space for the
+          // map (see recenterMapAboveReveal() below, which relies on
+          // this being hidden first to measure the sheet's new height).
+          $('history-scroll').hidden = true;
 
           var reveal = $('reveal');
           reveal.hidden = false;
@@ -1058,6 +1072,32 @@
 
           renderAliasRow();
           renderLeaderboard();
+          recenterMapAboveReveal(pos);
+        }
+
+        // The bottom sheet (.panel, fixed/floating over the map) covers
+        // the lower part of the screen, so centering the target in the
+        // FULL viewport (what map.setView() did at round start) leaves
+        // it partly hidden behind the sheet once the reveal panel
+        // renders. Shifting the view south by half the sheet's height
+        // moves the target up on screen by that same amount, landing it
+        // in the middle of the space actually left uncovered above the
+        // sheet - see panBy()'s docs for why a positive y offset does that.
+        function recenterMapAboveReveal(pos) {
+          var panelHeight = document.querySelector('.panel').getBoundingClientRect().height;
+          map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
+          map.panBy([0, panelHeight / 2], { animate: false });
+        }
+
+        // renderLeaderboard() loads its rows/status asynchronously, after
+        // showReveal() already did an initial (necessarily approximate)
+        // recenter - the sheet's height can shift once that content
+        // lands (e.g. an empty "no scores yet" line vs. a full top-5
+        // list), so this re-runs the same recenter with the now-final
+        // height. A no-op while still playing, since only a finished
+        // round has a target worth centering on.
+        function recenterMapIfRevealed() {
+          if (state && state.done) recenterMapAboveReveal(stationByName[state.target]);
         }
 
         // Submits the current result to today's leaderboard, if an alias
@@ -1188,6 +1228,7 @@
               if (entries.length === 0) {
                 statusEl.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
                 statusEl.hidden = false;
+                recenterMapIfRevealed();
                 return;
               }
 
@@ -1216,6 +1257,8 @@
                 li.appendChild(score);
                 list.appendChild(li);
               });
+
+              recenterMapIfRevealed();
             });
         }
 

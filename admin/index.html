@@ -226,6 +226,16 @@
           <p class="leaderboard__status" id="memoria-status" hidden></p>
           <a class="admin-board__link" id="memoria-link" target="_blank" rel="noopener">Ver este día en Memoria →</a>
         </div>
+
+        <div class="sign admin-board" id="metroguessr-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Metroguessr <span class="admin-board__num" id="metroguessr-num"></span></h2>
+            <p class="admin-board__dek">Menos intentos gana</p>
+          </div>
+          <ol class="leaderboard__list" id="metroguessr-list"></ol>
+          <p class="leaderboard__status" id="metroguessr-status" hidden></p>
+          <a class="admin-board__link" id="metroguessr-link" target="_blank" rel="noopener">Ver este día en Metroguessr →</a>
+        </div>
       </div>
     </div>
 
@@ -291,6 +301,19 @@
               var score = document.createElement('span');
               score.className = 'leaderboard__score--plain';
               score.textContent = String(entry.score);
+              return score;
+            },
+          },
+          {
+            key: 'metroguessr',
+            collection: 'metroguessr-leaderboard',
+            startDateKey: '2026-09-12',
+            orderBySpecs: [['attempts', 'asc']],
+            href: '/metroguessr/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score--plain';
+              score.textContent = String(entry.attempts);
               return score;
             },
           },

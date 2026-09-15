@@ -187,12 +187,6 @@
         font-weight: 800;
         margin: 0;
       }
-
-      .admin-stat__caption {
-        color: var(--ink-soft);
-        font-size: 0.78rem;
-        margin: 0.15rem 0 0;
-      }
     </style>
   </head>
 
@@ -218,12 +212,7 @@
       </div>
 
       <div class="admin-stat" id="admin-stat" hidden>
-        <p class="admin-stat__value"><strong id="admin-stat-count"></strong> usuarios únicos ese día</p>
-        <p class="admin-stat__caption">
-          Alias distintos entre los 4 juegos (Firestore-only, no hay tracking de
-          visitas) - solo cuenta quien ganó y ya tenía/puso un alias, así que
-          subestima el tráfico real.
-        </p>
+        <p class="admin-stat__value">Usuarios únicos: <strong id="admin-stat-count"></strong></p>
       </div>
 
       <div class="admin-loading" id="admin-loading">

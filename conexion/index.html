@@ -5,15 +5,19 @@
   <head>
     <meta charset="utf-8">
     <!--
-      Tighter than the other games' CSP: this page loads no Firebase SDK
-      and has no leaderboard yet (core-mechanic prototype, see AGENTS.md/
-      the PR that added this page), so there's nothing to allow beyond
-      the site's own origin. 'unsafe-inline' is needed for script-src/
-      style-src for the same reason as every other page here - no build
-      step to generate per-script hashes/nonces for inline <script>/
-      <style> blocks.
+      Defense-in-depth against XSS, in addition to (not instead of) the
+      app's actual mitigation: every place Firestore-sourced leaderboard
+      data (aliases) gets rendered uses textContent, never innerHTML -
+      see renderLeaderboard() below. 'unsafe-inline' is needed for
+      script-src/style-src because this site has no build step to
+      generate per-script hashes/nonces for its inline <script>/<style>
+      blocks, so this policy does NOT block an injected inline <script>
+      or onerror= handler - but it does block loading a remote script
+      from any host but this site and Firebase's, block plugin/object
+      embeds, lock down <base>/form targets, and (via connect-src) keep
+      an injected script from exfiltrating data anywhere but Firebase.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="title" content="Metrordle: Conexión 🚇">
     <meta
@@ -307,6 +311,91 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
+
+      .leaderboard {
+        margin: 1.1rem 0;
+        text-align: left;
+      }
+
+      .leaderboard__title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem;
+      }
+
+      .leaderboard__alias {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .leaderboard__alias input {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.35rem;
+        color: var(--ink);
+        flex: 1 1 8rem;
+        font: inherit;
+        min-width: 0;
+        padding: 0.35rem 0.5rem;
+      }
+
+      .leaderboard__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        list-style: none;
+        margin: 0 0 0.6rem;
+        padding: 0;
+      }
+
+      .leaderboard__row {
+        align-items: center;
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .leaderboard__row--you {
+        border-color: var(--focus);
+        box-shadow: 0 0 0 1px var(--focus);
+      }
+
+      .leaderboard__rank {
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+        width: 1.4rem;
+      }
+
+      .leaderboard__alias-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .leaderboard__score {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .leaderboard__status {
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        margin: 0 0 0.6rem;
+      }
+
+      .leaderboard__status[hidden] {
+        display: none;
+      }
     </style>
   </head>
 
@@ -392,6 +481,14 @@
               <div class="reveal__stat-label">Fila más larga</div>
             </div>
           </div>
+
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
         </div>
       </div>
@@ -401,6 +498,9 @@
       </p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
@@ -427,6 +527,8 @@
         var HINT_IDLE_MS = 5000;
         var HARD_MODE_MULTIPLIER = 2;
         var SHARE_URL = 'https://metrordle.com/conexion/';
+        var LEADERBOARD_COLLECTION = 'conexion-leaderboard';
+        var LEADERBOARD_SIZE = 5;
 
         var delay = MetroShared.prefersReducedMotion()
           ? function () { return 0; }
@@ -483,6 +585,45 @@
         }
 
         function key(r, c) { return r + ',' + c; }
+
+        function storageKeyFor(dateKey) {
+          return 'conexion:' + dateKey;
+        }
+
+        function loadSavedResult(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed.score !== 'number') return null;
+            return {
+              score: parsed.score,
+              mode: parsed.mode === 'hard' ? 'hard' : 'normal',
+              groupsFormed: typeof parsed.groupsFormed === 'number' ? parsed.groupsFormed : 0,
+              maxCombo: typeof parsed.maxCombo === 'number' ? parsed.maxCombo : 1,
+              maxRunSeen: typeof parsed.maxRunSeen === 'number' ? parsed.maxRunSeen : 3,
+              leaderboardSubmitted: !!parsed.leaderboardSubmitted,
+            };
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistResult(dateKey, score, mode, groupsFormed, maxCombo, maxRunSeen, leaderboardSubmitted) {
+          try {
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
+              score: score,
+              mode: mode,
+              groupsFormed: groupsFormed,
+              maxCombo: maxCombo,
+              maxRunSeen: maxRunSeen,
+              leaderboardSubmitted: !!leaderboardSubmitted,
+            }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the
+            // result just won't be there to reload, same as the other games.
+          }
+        }
 
         var els = {};
         var state = null;
@@ -639,6 +780,52 @@
           if (state && state.timerId) clearInterval(state.timerId);
           if (state && state.idleTimer) clearTimeout(state.idleTimer);
 
+          var saved = loadSavedResult(dateKey);
+
+          if (saved) {
+            // The exact end-of-round board isn't persisted (only the
+            // score/stats needed for the reveal and leaderboard are) -
+            // this regenerates the same deterministic starting board
+            // everyone saw that day, which is all the dimmed board
+            // behind the reveal needs to show.
+            state = {
+              dateKey: dateKey,
+              gameNumber: gameNumber,
+              rand: rand,
+              activeLines: activeLines,
+              board: null,
+              selected: null,
+              mode: saved.mode,
+              score: saved.score,
+              groupsFormed: saved.groupsFormed,
+              maxCombo: saved.maxCombo,
+              maxRunSeen: saved.maxRunSeen,
+              leaderboardSubmitted: saved.leaderboardSubmitted,
+              timeLeft: 0,
+              timerId: null,
+              idleTimer: null,
+              hintCell: null,
+              cascadeStep: 0,
+              busy: false,
+              status: 'done',
+              flagged: {},
+            };
+            state.board = generateBoard(rand);
+
+            $('game-title').textContent = 'Metrordle: Conexión #' + state.gameNumber;
+            renderLegend();
+            renderRevealStats();
+            els.reveal.hidden = false;
+            // submitScore() itself checks state.leaderboardSubmitted and
+            // no-ops if it's already true, so this is only ever a real
+            // retry when an earlier attempt is known to have failed (or
+            // never ran) - not a pointless resubmit on every normal
+            // reload of an already-submitted day.
+            submitScore();
+            render();
+            return;
+          }
+
           state = {
             dateKey: dateKey,
             gameNumber: gameNumber,
@@ -656,6 +843,7 @@
             cascadeStep: 0,
             maxCombo: 1,
             maxRunSeen: 3,
+            leaderboardSubmitted: false,
             busy: false,
             status: 'ready',
             flagged: {},
@@ -808,6 +996,11 @@
 
               els.board.appendChild(btn);
             }
+          }
+
+          if (state.status === 'done') {
+            renderAliasRow();
+            renderLeaderboard();
           }
         }
 
@@ -968,19 +1161,160 @@
           MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
         }
 
-        function endRound() {
-          if (state.timerId) clearInterval(state.timerId);
-          if (state.idleTimer) clearTimeout(state.idleTimer);
-          state.hintCell = null;
-          state.status = 'done';
-          setToast('');
+        function renderRevealStats() {
           els.revealBanner.textContent = '¡Se acabó el tiempo!';
           els.revealScore.textContent = String(state.score);
           els.revealGroups.textContent = String(state.groupsFormed);
           els.revealCombo.textContent = '×' + state.maxCombo;
           els.revealRun.textContent = String(state.maxRunSeen);
+        }
+
+        function endRound() {
+          if (state.timerId) clearInterval(state.timerId);
+          if (state.idleTimer) clearTimeout(state.idleTimer);
+          state.hintCell = null;
+          state.status = 'done';
+          state.leaderboardSubmitted = false;
+          setToast('');
+          persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, false);
+          renderRevealStats();
           els.reveal.hidden = false;
+          submitScore();
           render();
+        }
+
+        // Submits the current result to today's leaderboard, if an alias
+        // is already set. Also called again once the player sets an
+        // alias from the reveal screen, in case a round already
+        // finished before they had one. Skips entirely under
+        // ?debug=true - date-nav testing plays through arbitrary past/
+        // future days and shouldn't pollute the real leaderboard.
+        function submitScore() {
+          if (!state || state.status !== 'done') return;
+          if (state.leaderboardSubmitted) return;
+          if (MetroShared.isDebugMode()) return;
+
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score }, {})
+            .then(function () {
+              state.leaderboardSubmitted = true;
+              persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, true);
+              renderLeaderboard();
+            })
+            .catch(function (err) {
+              // Best-effort - the player's own result is already saved
+              // locally either way, so a failed submission isn't shown
+              // as an error in the UI; it's silently retried the next
+              // time submitScore() runs (e.g. the next reload).
+              console.error('[Leaderboard] submitScore() failed:', err);
+            });
+        }
+
+        function renderAliasRow() {
+          var alias = MetroShared.getAlias();
+          if (alias) {
+            showAliasDisplay(alias);
+          } else {
+            showAliasInput();
+          }
+        }
+
+        function showAliasDisplay(alias) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var label = document.createElement('span');
+          label.textContent = 'Jugando como: ';
+          var strong = document.createElement('strong');
+          strong.textContent = alias;
+          label.appendChild(strong);
+
+          el.appendChild(label);
+        }
+
+        function showAliasInput() {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            showAliasDisplay(normalized);
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') save();
+          });
+
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+        }
+
+        // Can legitimately be called twice in close succession - once
+        // from render() showing the current state, and again from
+        // submitScore()'s success callback refreshing it with the
+        // just-submitted entry - and both are async. Bumped on every
+        // call; a response only renders if it's still the latest.
+        var leaderboardRequestId = 0;
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], {})
+            .then(function (entries) {
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
+
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+
+              els.leaderboardStatus.hidden = true;
+
+              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + (index + 1);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score';
+                score.textContent = entry.score;
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                els.leaderboardList.appendChild(li);
+              });
+            });
         }
 
         function shiftDebugDate(deltaDays) {
@@ -1017,6 +1351,9 @@
             revealGroups: $('reveal-groups'),
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
             shareBtn: $('share-btn'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),

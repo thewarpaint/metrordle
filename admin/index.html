@@ -271,14 +271,14 @@
       (function () {
         'use strict';
 
-        var LEADERBOARD_SIZE = 20;
-        // How many entries to actually fetch per game/day - well above
-        // any realistic daily count for this site, so the result is
-        // effectively "every entry that day," not just the top
-        // LEADERBOARD_SIZE shown in each board. Needed for the unique-
-        // users stat below: it counts distinct aliases across ALL of a
-        // day's entries, not just whoever made each game's top 20.
-        var UNIQUE_USERS_FETCH_LIMIT = 1000;
+        // How many entries to fetch per game/day - well above any
+        // realistic daily count for this site, so the result is
+        // effectively "every entry that day." Unlike each game's own
+        // reveal screen, this admin view shows the full leaderboard, not
+        // just a top N - and the unique-users stat below needs every
+        // entry anyway, to count distinct aliases across the whole day
+        // rather than just whoever made each game's own top slice.
+        var FETCH_LIMIT = 1000;
 
         // One entry per game's own leaderboard - collection/startDateKey/
         // orderBySpecs/href all copied from that game's own <script> block,
@@ -437,7 +437,7 @@
           gameEls.list.innerHTML = '';
           gameEls.status.hidden = true;
 
-          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, UNIQUE_USERS_FETCH_LIMIT, game.orderBySpecs, {})
+          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, FETCH_LIMIT, game.orderBySpecs, {})
             .then(function (entries) {
               // A newer date change (or an unreachable Firebase, which
               // getTopLeaderboardScores() already resolves to [] rather
@@ -451,7 +451,7 @@
                 return entries;
               }
 
-              entries.slice(0, LEADERBOARD_SIZE).forEach(function (entry, index) {
+              entries.forEach(function (entry, index) {
                 var li = document.createElement('li');
                 li.className = 'leaderboard__row';
 

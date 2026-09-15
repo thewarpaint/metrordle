@@ -21,6 +21,14 @@ Site copy/UI is in Spanish (`es-MX`).
   destination station, picking neighbors/lines at each hop.
 - **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
   pairing station icons with names.
+- **`/metroguessr/`** - Metrordle: Metroguessr: guess the Metro station
+  marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
+  distance + compass direction after each guess. Map is locked
+  (no pan/zoom) while playing; unlocks and swaps in the target's real
+  station-icon badge (Conexión's pictogram style, colored by line) once
+  the round ends. Has its own leaderboard (see below) but **no committed
+  Playwright tests yet** - this game and its leaderboard were verified
+  this session only via ad-hoc scratchpad scripts, not `tests/`.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, but always on.
@@ -46,8 +54,11 @@ are impossible without a debug override.
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
   the whole file), and cross-game primitives (`.wrap`, `.brand`,
-  `.sign`, `.date-debug`/`.chev` date-nav, `.btn-primary`/`.btn-secondary`).
-  Game-specific CSS lives in each page's own `<style>` block.
+  `.sign`, `.date-debug`/`.chev` date-nav, `.btn-primary`/`.btn-secondary`,
+  `.leaderboard*`). Game-specific CSS (including a game's own
+  leaderboard sizing deltas, if any) lives in that page's own `<style>`
+  block - **put any leaderboard styling shared by 2+ games in
+  `shared.css`, not copy-pasted per page** (already happened once).
 - **`firebase-config.js`** - **contains the real, live Firebase
   project's credentials on `main`.** See "Firebase credential safety"
   below before ever running tests locally.
@@ -69,7 +80,8 @@ are impossible without a debug override.
 
 Each game has its own daily Firestore leaderboard:
 `{collection}/{dateKey}/entries/{aliasDocId}`, collections
-`metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard`.
+`metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard` /
+`metroguessr-leaderboard`.
 Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
 key, shared across all games) with **no rename** - the alias *is* the
 document ID (lowercased), so changing it would orphan the old entry;
@@ -85,12 +97,15 @@ asc is always auto-appended as the final tiebreak by
   JS comparator ordering `false < true`).
 - Laberinto: fewest stations, then fewest transfers, both ascending.
 - Memoria: highest score, descending.
+- Metroguessr: fewest attempts, ascending (`[['attempts','asc']]`) - like
+  Metrordle/Laberinto, not Memoria: a loss has no meaningful "attempts to
+  solve," so (see below) it only submits on a win.
 
-Submission pattern (identical across all 3 games): a
+Submission pattern (identical across all 4 games): a
 `leaderboardSubmitted` flag persisted alongside the game result, so a
 reload never resubmits; `submitScore()` no-ops without an alias, under
-`?debug=true`, or (Metrordle/Laberinto only) on a loss/give-up - only a
-genuine win has a meaningful score to rank. `renderLeaderboard()` never
+`?debug=true`, or (Metrordle/Laberinto/Metroguessr only) on a loss/give-up
+- only a genuine win has a meaningful score to rank. `renderLeaderboard()` never
 clears the DOM before its fetch resolves (avoids a flicker on reload),
 guarded by a monotonically increasing request-id so a stale response
 can't paint over a newer one.

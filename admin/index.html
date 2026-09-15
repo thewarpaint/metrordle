@@ -171,6 +171,22 @@
       .admin-boards[hidden] {
         display: none;
       }
+
+      .admin-stat {
+        margin: 0 0 1rem;
+        text-align: center;
+      }
+
+      .admin-stat[hidden] {
+        display: none;
+      }
+
+      .admin-stat__value {
+        font-family: 'Overpass', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin: 0;
+      }
     </style>
   </head>
 
@@ -193,6 +209,10 @@
         <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug__label" id="date-debug-label"></span>
         <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="admin-stat" id="admin-stat" hidden>
+        <p class="admin-stat__value">Usuarios únicos: <strong id="admin-stat-count"></strong></p>
       </div>
 
       <div class="admin-loading" id="admin-loading">
@@ -251,7 +271,14 @@
       (function () {
         'use strict';
 
-        var LEADERBOARD_SIZE = 20;
+        // How many entries to fetch per game/day - well above any
+        // realistic daily count for this site, so the result is
+        // effectively "every entry that day." Unlike each game's own
+        // reveal screen, this admin view shows the full leaderboard, not
+        // just a top N - and the unique-users stat below needs every
+        // entry anyway, to count distinct aliases across the whole day
+        // rather than just whoever made each game's own top slice.
+        var FETCH_LIMIT = 1000;
 
         // One entry per game's own leaderboard - collection/startDateKey/
         // orderBySpecs/href all copied from that game's own <script> block,
@@ -373,16 +400,32 @@
 
           els.loading.hidden = false;
           els.boards.hidden = true;
+          els.stat.hidden = true;
 
           var pending = GAMES.map(function (game) {
             return renderGame(game, dateKey, token);
           });
 
-          Promise.all(pending).then(function () {
+          Promise.all(pending).then(function (allEntries) {
             if (token !== renderToken) return;
             els.loading.hidden = true;
             els.boards.hidden = false;
+            renderUniqueUsersStat(allEntries);
           });
+        }
+
+        // Aliases are already the site's own cross-game identity anchor
+        // (one localStorage key, shared by every game - see AGENTS.md),
+        // so a player using the same alias in two games' leaderboards
+        // the same day is exactly the case this should collapse into
+        // one person, not count twice.
+        function renderUniqueUsersStat(allEntries) {
+          var uniqueIds = {};
+          allEntries.forEach(function (entries) {
+            entries.forEach(function (entry) { uniqueIds[entry.id] = true; });
+          });
+          els.statCount.textContent = Object.keys(uniqueIds).length;
+          els.stat.hidden = false;
         }
 
         function renderGame(game, dateKey, token) {
@@ -394,18 +437,18 @@
           gameEls.list.innerHTML = '';
           gameEls.status.hidden = true;
 
-          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, LEADERBOARD_SIZE, game.orderBySpecs, {})
+          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, FETCH_LIMIT, game.orderBySpecs, {})
             .then(function (entries) {
               // A newer date change (or an unreachable Firebase, which
               // getTopLeaderboardScores() already resolves to [] rather
               // than rejecting - see shared.js) both land here; either
               // way, a stale response never overwrites the current date.
-              if (token !== renderToken) return;
+              if (token !== renderToken) return [];
 
               if (entries.length === 0) {
                 gameEls.status.textContent = 'Sin resultados para esta fecha.';
                 gameEls.status.hidden = false;
-                return;
+                return entries;
               }
 
               entries.forEach(function (entry, index) {
@@ -425,6 +468,8 @@
                 li.appendChild(game.scoreCell(entry));
                 gameEls.list.appendChild(li);
               });
+
+              return entries;
             });
         }
 
@@ -432,6 +477,8 @@
           els.dateLabel = $('date-debug-label');
           els.loading = $('admin-loading');
           els.boards = $('admin-boards');
+          els.stat = $('admin-stat');
+          els.statCount = $('admin-stat-count');
           GAMES.forEach(function (game) {
             els[game.key] = {
               num: $(game.key + '-num'),

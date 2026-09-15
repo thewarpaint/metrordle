@@ -335,6 +335,96 @@ h1 {
   line-height: 1.3;
 }
 
+/* Daily leaderboard (Firestore-backed) - shared by every game that has
+   one (Metrordle, Laberinto, Memoria, Metroguessr). Metrordle's own combined
+   normal/hard-mode score display (.leaderboard__score-badge/-number, and
+   the flex layout on .leaderboard__score itself) stays local to its own
+   page, since no other game needs it. */
+
+.leaderboard {
+  margin-bottom: 1.1rem;
+}
+
+.leaderboard__title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}
+
+.leaderboard__alias {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.leaderboard__alias input {
+  background: var(--paper-well);
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  color: var(--ink);
+  flex: 1 1 8rem;
+  font: inherit;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+}
+
+.leaderboard__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+}
+
+.leaderboard__row {
+  align-items: center;
+  background: var(--paper-well);
+  border: 1px solid var(--rule);
+  border-radius: 0.4rem;
+  display: flex;
+  font-size: 0.85rem;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.leaderboard__row--you {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 1px var(--focus);
+}
+
+.leaderboard__rank {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  width: 1.4rem;
+}
+
+.leaderboard__alias-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard__score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.leaderboard__status {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  margin: 0 0 0.6rem;
+}
+
+.leaderboard__status[hidden] {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.001ms !important;

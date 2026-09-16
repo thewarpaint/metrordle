@@ -133,11 +133,22 @@
          sitting in the history row - see paintGuessMarkers() below. A
          custom className on L.divIcon() replaces Leaflet's default
          'leaflet-div-icon' outright (same trick as .target-icon-marker
-         above), and since the label's width varies with its text,
-         `transform: translate(-50%, -50%)` centers it on the point
-         itself rather than relying on a fixed iconSize/iconAnchor. */
-      .guess-marker {
-        position: relative;
+         above).
+         .guess-marker itself is Leaflet's own icon element - it
+         positions markers by setting that exact element's inline
+         `transform: translate3d(x,y,0)` on every update (see
+         L.DomUtil.setPosition()), which silently overwrites any
+         `transform` this stylesheet gives the SAME element (inline
+         style always wins a same-property conflict, regardless of
+         selector specificity). Centering therefore has to live on a
+         nested child instead - .guess-marker__pill - whose own
+         `transform: translate(-50%, -50%)` Leaflet never touches. */
+      .guess-marker { position: relative; }
+
+      .guess-marker__pill {
+        position: absolute;
+        left: 0;
+        top: 0;
         transform: translate(-50%, -50%);
         display: inline-flex;
         align-items: center;
@@ -734,7 +745,18 @@
           var lat1 = a.lat * Math.PI / 180, lat2 = b.lat * Math.PI / 180;
           var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-          return 2 * R * Math.asin(Math.sqrt(h));
+          var km = 2 * R * Math.asin(Math.sqrt(h));
+          // Temporary diagnostic logging while chasing a report of
+          // distances that don't match the guess/target pins' visual
+          // positions on the map - remove once that's confirmed fixed.
+          // Logs the raw input points (not just names) since a bad
+          // lookup upstream (wrong station resolved to the wrong
+          // coordinate) would otherwise look identical to a bad
+          // formula from here alone.
+          console.log('[Distance] haversineKm a=' + JSON.stringify(a) + ' b=' + JSON.stringify(b) +
+            ' dLat=' + dLat.toFixed(6) + ' dLng=' + dLng.toFixed(6) + ' h=' + h.toFixed(8) +
+            ' -> ' + km.toFixed(4) + ' km');
+          return km;
         }
 
         // Initial compass bearing from `from` to `to`, collapsed to one of
@@ -1049,6 +1071,11 @@
           if (!state || state.done || !stationByName[name]) return;
           var guessPos = stationByName[name];
           var targetPos = stationByName[state.target];
+          // See haversineKm()'s own logging for the raw math - this
+          // one ties that back to the station NAMES involved, since
+          // haversineKm only ever sees plain {lat, lng} points.
+          console.log('[Distance] guess "' + name + '" ' + JSON.stringify(guessPos) +
+            ' vs target "' + state.target + '" ' + JSON.stringify(targetPos));
           var dist = haversineKm(guessPos, targetPos);
           var correct = name === state.target;
 
@@ -1136,7 +1163,13 @@
         // Guessing the same wrong station more than once (allowed,
         // if unlikely) collapses to a single pin rather than stacking
         // duplicates on top of each other.
+        //
+        // Debug-only (?debug=true): these are a debugging aid for
+        // checking guesses against real station coordinates, not
+        // something a normal player needs cluttering the reveal map.
         function paintGuessMarkers() {
+          if (!MetroShared.isDebugMode()) return;
+
           var seen = {};
           state.guesses.forEach(function (guess) {
             if (guess.correct || seen[guess.name]) return;
@@ -1149,8 +1182,10 @@
                 className: 'guess-marker',
                 iconSize: null,
                 html:
+                  '<span class="guess-marker__pill">' +
                   '<span class="guess-marker__dist">' + hint.distText + '</span>' +
-                  '<span class="guess-marker__dir">' + hint.arrow + '</span>',
+                  '<span class="guess-marker__dir">' + hint.arrow + '</span>' +
+                  '</span>',
               }),
               interactive: false,
             }).addTo(map);

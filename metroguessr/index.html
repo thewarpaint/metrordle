@@ -128,6 +128,35 @@
         height: 60%;
       }
 
+      /* Same pill look as the (now-hidden-on-reveal) .history-chip, but
+         pinned to the guessed station's own map coordinate instead of
+         sitting in the history row - see paintGuessMarkers() below. A
+         custom className on L.divIcon() replaces Leaflet's default
+         'leaflet-div-icon' outright (same trick as .target-icon-marker
+         above), and since the label's width varies with its text,
+         `transform: translate(-50%, -50%)` centers it on the point
+         itself rather than relying on a fixed iconSize/iconAnchor. */
+      .guess-marker {
+        position: relative;
+        transform: translate(-50%, -50%);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.5rem;
+        background: var(--paper-well);
+        border: 1.5px solid var(--rule);
+        border-radius: 999px;
+        font-family: 'Overpass', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--ink);
+        white-space: nowrap;
+        box-shadow: 0 2px 8px var(--shadow);
+      }
+
+      .guess-marker__dist { font-variant-numeric: tabular-nums; }
+      .guess-marker__dir { font-size: 0.85rem; line-height: 1; }
+
       /* --- floating topbar --- */
 
       .topbar {
@@ -877,6 +906,17 @@
         // that day's target/line).
         var targetIconMarker = null;
 
+        // One pin per wrong guess, placed at that guess's own station
+        // once the round ends - see paintGuessMarkers(). Rebuilt fresh
+        // each reveal same as targetIconMarker, and cleared in
+        // startGame() below when a new round begins.
+        var guessMarkers = [];
+
+        function clearGuessMarkers() {
+          guessMarkers.forEach(function (marker) { map.removeLayer(marker); });
+          guessMarkers = [];
+        }
+
         // The map starts fully locked (see the interaction handlers all
         // set to false above) so the puzzle can't be panned/zoomed away
         // from while playing. Once a round ends there's nothing left to
@@ -952,6 +992,7 @@
             map.removeLayer(targetIconMarker);
             targetIconMarker = null;
           }
+          clearGuessMarkers();
           if (!map.hasLayer(targetMarker)) targetMarker.addTo(map);
           var markerEl = targetMarker.getElement();
           if (markerEl) markerEl.classList.add('target-marker--live');
@@ -981,16 +1022,26 @@
           }
         }
 
+        // Shared by the history chips (shown while playing) and the map
+        // pins (shown once the round ends, see paintGuessMarkers()) -
+        // same distance/direction hint, just two different places to
+        // display it.
+        function formatGuessHint(guess) {
+          return {
+            distText: guess.correct ? '0 km' : guess.dist.toFixed(guess.dist < 10 ? 1 : 0) + ' km',
+            arrow: guess.correct ? '🎯' : bearingArrow(stationByName[guess.name], stationByName[state.target]),
+          };
+        }
+
         function appendHistoryChip(guess) {
-          var distText = guess.correct ? '0 km' : guess.dist.toFixed(guess.dist < 10 ? 1 : 0) + ' km';
-          var arrow = guess.correct ? '🎯' : bearingArrow(stationByName[guess.name], stationByName[state.target]);
+          var hint = formatGuessHint(guess);
           var chip = document.createElement('span');
           chip.className = 'history-chip';
           chip.title = guess.name;
-          chip.setAttribute('aria-label', guess.name + ': ' + distText);
+          chip.setAttribute('aria-label', guess.name + ': ' + hint.distText);
           chip.innerHTML =
-            '<span class="history-chip__dist">' + distText + '</span>' +
-            '<span class="history-chip__dir">' + arrow + '</span>';
+            '<span class="history-chip__dist">' + hint.distText + '</span>' +
+            '<span class="history-chip__dir">' + hint.arrow + '</span>';
           $('history').appendChild(chip);
         }
 
@@ -1056,12 +1107,15 @@
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;
           $('status-line').textContent = '';
-          // The guess history's distance/direction hints have nothing
-          // left to add once the target is revealed - dropping them
-          // shrinks the bottom sheet, freeing up vertical space for the
-          // map (see recenterMapAboveReveal() below, which relies on
-          // this being hidden first to measure the sheet's new height).
+          // The guess history's distance/direction hints move onto the
+          // map itself once the round ends (see paintGuessMarkers()
+          // below, pinned at each guess's real station) - hiding the
+          // row here instead of just leaving it shrinks the bottom
+          // sheet, freeing up vertical space for the now-unlocked map
+          // (see recenterMapAboveReveal() below, which relies on this
+          // being hidden first to measure the sheet's new height).
           $('history-scroll').hidden = true;
+          paintGuessMarkers();
 
           var reveal = $('reveal');
           reveal.hidden = false;
@@ -1073,6 +1127,35 @@
           renderAliasRow();
           renderLeaderboard();
           recenterMapAboveReveal(pos);
+        }
+
+        // One pin per unique WRONG guess, placed at that guess's own
+        // station now that the round's map is unlocked to explore -
+        // the correct guess (if any) is already marked by
+        // targetIconMarker at that same spot, so it's skipped here.
+        // Guessing the same wrong station more than once (allowed,
+        // if unlikely) collapses to a single pin rather than stacking
+        // duplicates on top of each other.
+        function paintGuessMarkers() {
+          var seen = {};
+          state.guesses.forEach(function (guess) {
+            if (guess.correct || seen[guess.name]) return;
+            seen[guess.name] = true;
+
+            var guessPos = stationByName[guess.name];
+            var hint = formatGuessHint(guess);
+            var marker = L.marker([guessPos.lat, guessPos.lng], {
+              icon: L.divIcon({
+                className: 'guess-marker',
+                iconSize: null,
+                html:
+                  '<span class="guess-marker__dist">' + hint.distText + '</span>' +
+                  '<span class="guess-marker__dir">' + hint.arrow + '</span>',
+              }),
+              interactive: false,
+            }).addTo(map);
+            guessMarkers.push(marker);
+          });
         }
 
         // The bottom sheet (.panel, fixed/floating over the map) covers

@@ -109,5 +109,29 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // metrocrush-leaderboard/{dateKey}/entries/{aliasId} - same shape as
+    // Memoria's (a single descending score), but the bound is generous
+    // rather than tight: score is a cumulative total over a whole
+    // 60-second round with cascading multipliers (see resolveStep() in
+    // metrocrush/index.html), not capped by a fixed puzzle size like
+    // Memoria's "163 stations" ceiling, so there's no similarly tight
+    // ceiling to derive from.
+    match /metrocrush-leaderboard/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'score', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 20000 &&
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
   }
 }

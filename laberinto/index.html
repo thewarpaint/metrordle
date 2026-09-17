@@ -413,20 +413,9 @@
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
 
-          <div class="game-promo">
+          <div class="game-promo" id="game-promo" hidden>
             <p class="game-promo__eyebrow">Sigue jugando hoy</p>
-            <div class="game-promo__grid">
-              <a class="game-promo__card" href="/">
-                <span class="game-promo__glyph" aria-hidden="true">🚇</span>
-                <span class="game-promo__name">Metrordle</span>
-                <span class="game-promo__sub">Ordena la línea →</span>
-              </a>
-              <a class="game-promo__card" href="/memoria/">
-                <span class="game-promo__glyph" aria-hidden="true">⏳</span>
-                <span class="game-promo__name">Memoria</span>
-                <span class="game-promo__sub">Parejas en 60 segundos →</span>
-              </a>
-            </div>
+            <div class="game-promo__grid" id="game-promo-grid"></div>
           </div>
         </div>
       </div>
@@ -947,6 +936,54 @@
             li.appendChild(text);
             list.appendChild(li);
           });
+
+          renderGamePromo('laberinto');
+        }
+
+        // Fills the end screen's "sigue jugando hoy" cards with whatever
+        // other games are still unplayed today, in their fixed priority
+        // order (see SUGGESTABLE_GAMES in shared.js) - hides the whole
+        // section rather than showing it empty if every other game is
+        // already done. Uses the real calendar day, not this page's own
+        // (possibly debug-simulated) dateKey - suggestions reflect actual
+        // daily activity, not whatever day is being previewed.
+        function renderGamePromo(currentGameKey) {
+          var todayKey = MetroShared.getDateKey(new Date());
+          var suggestions = MetroShared.getSuggestedGames(currentGameKey, todayKey);
+          var promoEl = $('game-promo');
+          var gridEl = $('game-promo-grid');
+          if (!promoEl || !gridEl) return;
+
+          if (suggestions.length === 0) {
+            promoEl.hidden = true;
+            return;
+          }
+
+          gridEl.innerHTML = '';
+          suggestions.forEach(function (game) {
+            var a = document.createElement('a');
+            a.className = 'game-promo__card';
+            a.href = game.href;
+
+            var glyph = document.createElement('span');
+            glyph.className = 'game-promo__glyph';
+            glyph.setAttribute('aria-hidden', 'true');
+            glyph.textContent = game.glyph;
+
+            var name = document.createElement('span');
+            name.className = 'game-promo__name';
+            name.textContent = game.name;
+
+            var sub = document.createElement('span');
+            sub.className = 'game-promo__sub';
+            sub.textContent = game.sub;
+
+            a.appendChild(glyph);
+            a.appendChild(name);
+            a.appendChild(sub);
+            gridEl.appendChild(a);
+          });
+          promoEl.hidden = false;
         }
 
         // Two-state alias control: an input+save row when no alias is

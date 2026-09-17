@@ -57,7 +57,9 @@ are impossible without a debug override.
   (`submitLeaderboardScore`/`getTopLeaderboardScores`, collection- and
   field-shape-agnostic - see "Leaderboards" below), clipboard/share
   helpers (`shareOrCopyText`, native `navigator.share` with a
-  clipboard-copy fallback).
+  clipboard-copy fallback), and `getSuggestedGames(currentGameKey,
+  dateKey)` for the "sigue jugando hoy" cards on every game's own end
+  screen - see "Game suggestions" below.
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
@@ -128,6 +130,31 @@ reload never resubmits; `submitScore()` no-ops without an alias, under
 clears the DOM before its fetch resolves (avoids a flicker on reload),
 guarded by a monotonically increasing request-id so a stale response
 can't paint over a newer one.
+
+## Game suggestions
+
+Every game's end screen (the `#reveal` state, once a round is over)
+shows a "Sigue jugando hoy" `.game-promo` block suggesting other games -
+`#game-promo`/`#game-promo-grid` in the markup, a `renderGamePromo(key)`
+function duplicated per page (same pattern as leaderboard rendering:
+`shared.js` owns the data/logic, each page owns its own DOM-building),
+calling `MetroShared.getSuggestedGames(currentGameKey, dateKey)`.
+
+Suggestions follow a fixed priority order - Metrordle, Memoria,
+Metroguessr, Laberinto, Metro Crush (see `SUGGESTABLE_GAMES` in
+`shared.js`) - minus the current game and minus anything already
+completed **today**, checked via that game's own `'<key>:' + dateKey`
+localStorage entry (every game's key matches its `storageKeyFor()`
+prefix, which is what makes one shared check possible instead of one
+per game): `gameOver`/`status !== 'playing'`/`done` for
+Metrordle/Laberinto/Metroguessr, whose saved state can also represent
+an in-progress round; any saved entry at all for Memoria/Metro Crush,
+which only ever persist a result once a round is actually over. Always
+uses the real calendar day (`new Date()`), never the page's own
+possibly-`?debug=true`-simulated `dateKey` - suggestions reflect actual
+play activity, not whatever day is being previewed. The whole section
+hides (`hidden` on `#game-promo`) rather than rendering empty if every
+other game is already done today.
 
 ## Rendering safety
 

@@ -655,6 +655,32 @@
           ["Zócalo", 19.433001, -99.1325]
         ];
 
+        function shuffle(array, rand) {
+          var copy = array.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        // A single fixed shuffle of every station, seeded once (not per
+        // day) - this guarantees no station repeats until every other
+        // one has come up, unlike picking independently at random each
+        // day the way this used to work, which could (and did - games
+        // #5 and #6 landed on the same station) put the same station up
+        // on two different days well before the full list was
+        // exhausted. gameNumber - 1 indexes into this fixed permutation
+        // below, wrapping via modulo once a full cycle completes - still
+        // fully deterministic (every player computes the identical
+        // sequence from gameNumber alone) and needs no persisted state.
+        var STATION_ORDER = shuffle(
+          STATIONS.map(function (s) { return s[0]; }),
+          MetroShared.createSeededRandom('metrordle-metroguessr-station-order')
+        );
+
         var START_DATE_KEY = '2026-09-12';
         var MAX_ATTEMPTS = 5;
         var MAP_ZOOM = 15;
@@ -967,9 +993,13 @@
         function startGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
-          var rand = MetroShared.createSeededRandom('metrordle-metroguessr-' + dateKey);
-          var idx = Math.floor(rand() * STATIONS.length);
-          var target = STATIONS[idx][0];
+          // Wrapped with an extra + STATION_ORDER.length before the final
+          // % so a gameNumber at or before START_DATE_KEY (reachable via
+          // the debug date-nav, where it can go to 0 or negative) still
+          // lands on a valid, positive index instead of JS's negative-
+          // modulo result for a negative dividend.
+          var orderIdx = (((gameNumber - 1) % STATION_ORDER.length) + STATION_ORDER.length) % STATION_ORDER.length;
+          var target = STATION_ORDER[orderIdx];
           var saved = loadSavedState(dateKey);
 
           state = {

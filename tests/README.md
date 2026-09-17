@@ -7,12 +7,21 @@ test file spins up a plain `python3 -m http.server` rooted at the repo
 and drives it with a real (headless) browser, the same way a player's
 browser would.
 
-Memoria (`memoria/`) has the fullest coverage; Laberinto (`laberinto/`),
-the main game (`metrordle/`), and the admin leaderboard browser
-(`admin/`) have leaderboard coverage only so far; `security/` covers
+Memoria (`memoria/`) has the fullest coverage; Metroguessr
+(`metroguessr/`) has core-mechanics + leaderboard coverage; Laberinto
+(`laberinto/`), the main game (`metrordle/`), and the admin leaderboard
+browser (`admin/`) have leaderboard coverage only so far;
+Metro Crush (`metrocrush/`) has none committed yet - still only the
+ad-hoc scratchpad checks used during development. `security/` covers
 site-wide checks (currently just the CSP) that aren't specific to any
 one game. Add new games/checks under their own subdirectory following
 the same pattern.
+
+Metroguessr's own tests stub the real map (Leaflet/MapLibre/OpenFreeMap)
+via `tests/lib/leaflet-stub.js` - see that file's comment for why this
+is the one dependency in the whole suite that gets a fake instead of
+being left to fail gracefully like Firebase everywhere else (it's a
+hard rendering dependency, not an optional one).
 
 ## Setup
 
@@ -35,6 +44,8 @@ npm run test:leaderboard  # Memoria's leaderboard checks (~10s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
 npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
 npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
+npm run test:metroguessr  # Metroguessr's core-mechanics checks (~15s)
+npm run test:metroguessr-leaderboard  # Metroguessr's leaderboard checks (~10s)
 npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
 npm run test:csp  # Content-Security-Policy checks, every page (~10s)
 ```
@@ -160,6 +171,50 @@ the same attempts count - entries render as the attempts count with a
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
 
+**`metroguessr/fast.test.js`** (no real-time waiting - guessing has no
+timer, unlike Memoria/Metro Crush's 60s round) covers the core game
+loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
+- The daily target is deterministic - two independent sessions on the
+  same date reveal the same station.
+- No two of ten consecutive dates on or after `NO_REPEAT_CUTOVER_DATE_KEY`
+  (2026-09-18, see `metroguessr/index.html`'s `pickTarget()`) reveal the
+  same target - the no-repeat guarantee the `STATION_ORDER` permutation
+  is meant to provide.
+- A wrong guess adds exactly one distance+direction history chip;
+  guessing the real target ends the round immediately as a win.
+- Five wrong guesses end the round as a loss, with a single-line reveal
+  (`.reveal__line`, not two separate paragraphs) and the history chips
+  hidden once the round is over.
+- The reveal shows the target's own station-icon badge, colored by its
+  line, matching the pictogram Metrordle/Metro Crush already use.
+- The debug-only distance/direction map pins (see
+  `paintGuessMarkers()`) don't render outside `?debug=true`, and under
+  it collapse a repeated wrong guess to a single pin.
+- Reloading mid-round restores the guesses so far (not the reveal);
+  reloading after the round ends restores the same reveal/result
+  instead of starting over, and a further guess attempt on an
+  already-done day is a no-op.
+
+**`metroguessr/leaderboard.test.js`** (no real-time waiting - plants a
+fabricated `guesses` array directly in `localStorage`, since
+`loadSavedState()` only checks that `guesses` is an array and looks at
+the last entry's `correct` flag, not that it's the real target), same
+structure as `metrordle/leaderboard.test.js` and
+`laberinto/leaderboard.test.js` above - fewest attempts wins, ascending,
+no hard-mode split:
+- The leaderboard section renders with the right title, and degrades
+  gracefully to an empty-state message rather than erroring when
+  Firebase isn't reachable.
+- Saving an alias persists it under the site-wide `metrordle:alias` key,
+  without a page error, even under `?debug=true`.
+- A play under `?debug=true` never marks `leaderboardSubmitted` true.
+- A loss never has anything to submit (there's no meaningful attempts
+  count to rank) - `leaderboardSubmitted` stays false, but the
+  leaderboard section still renders without error.
+
+Same real-Firestore-submission coverage gap as Memoria's leaderboard
+test, for the same reason.
+
 **`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads all three games' own collections):
@@ -180,10 +235,17 @@ leaderboard browser (no game state of its own to plant in
 tag every page carries (defense-in-depth alongside the app's actual XSS
 mitigation - every leaderboard alias render uses `textContent`, never
 `innerHTML`, see each `*/leaderboard.test.js` above):
-- Every page (`/`, `/memoria/`, `/laberinto/`, `/admin/`, `/purge/`)
-  loads with zero `securitypolicyviolation` events and zero page errors
-  - a policy that's too strict would otherwise silently break the page's
-    own inline `<script>`, its embedded font, or the Firebase SDK.
+- Every page (`/`, `/memoria/`, `/laberinto/`, `/metroguessr/`,
+  `/metrocrush/`, `/admin/`, `/purge/`) loads with zero
+  `securitypolicyviolation` events and zero page errors - a policy
+  that's too strict would otherwise silently break the page's own
+  inline `<script>`, its embedded font, the Firebase SDK, or (for
+  Metroguessr specifically) Leaflet/MapLibre/OpenFreeMap. Unlike every
+  other page's Firebase dependency, Metroguessr's map is NOT optional -
+  a network-restricted environment that can't reach those hosts will
+  see this page itself fail to load (not a CSP violation), so this
+  particular page's result here is only meaningful with real internet
+  access.
 - A positive control: a `fetch()` and a `<script src>` to a host
   deliberately left off the allowlist are both actually blocked - a
   regression here (rather than just "no violations") is what would catch

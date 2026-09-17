@@ -19,12 +19,25 @@
 // leaderboard alias render uses textContent, never innerHTML - see
 // tests/*/leaderboard.test.js and the CSP meta tag's own comment for
 // why 'unsafe-inline' is still needed on script-src/style-src here).
+//
+// Unlike every other page here, /metroguessr/'s own script-src/
+// connect-src/worker-src allowlist a handful of real third-party hosts
+// it needs to actually function (Leaflet/MapLibre/OpenFreeMap tiles -
+// see its own CSP comment) rather than just Firebase's - if those hosts
+// are unreachable (as in a network-restricted CI runner), the page
+// itself fails to load (`L is not defined`), which check 1 above would
+// wrongly report as a CSP problem. This test doesn't special-case that;
+// it's the same tradeoff already accepted for Firebase everywhere else
+// in this file (a real player whose network blocks Firebase gets a
+// working page anyway, since that dependency is optional - Metroguessr's
+// map isn't). Run this file somewhere with real internet access to get
+// a meaningful result for /metroguessr/ specifically.
 
 const assert = require('assert');
 const { chromium } = require('playwright');
 const { startServer, test, runAll } = require('../lib/harness');
 
-const PAGES = ['/', '/memoria/', '/laberinto/', '/admin/', '/purge/'];
+const PAGES = ['/', '/memoria/', '/laberinto/', '/metroguessr/', '/metrocrush/', '/admin/', '/purge/'];
 
 async function collectCspViolations(page) {
   await page.addInitScript(() => {

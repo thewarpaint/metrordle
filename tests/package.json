@@ -9,6 +9,8 @@
     "test:lifecycle": "node memoria/round-lifecycle.test.js",
     "test:laberinto-leaderboard": "node laberinto/leaderboard.test.js",
     "test:metrordle-leaderboard": "node metrordle/leaderboard.test.js",
+    "test:metroguessr": "node metroguessr/fast.test.js",
+    "test:metroguessr-leaderboard": "node metroguessr/leaderboard.test.js",
     "test:admin": "node admin/admin.test.js",
     "test:csp": "node security/csp.test.js"
   },

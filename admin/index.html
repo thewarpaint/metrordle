@@ -104,10 +104,14 @@
         white-space: nowrap;
       }
 
-      /* Metrordle's score is a two-slot badge+number cell (see /index.html) -
-         the fixed widths keep the 🧠 hard-mode badge and the number each in
-         their own column, aligned down the list whether or not a given row
-         has a badge. Laberinto/Memoria use the simpler plain variant below. */
+      /* Metrordle's and Metro Crush's scores are both a two-slot
+         badge+number cell (see /index.html and /metrocrush/index.html) -
+         the fixed width on the badge keeps the 🧠 hard-mode flag in its
+         own column, aligned down the list whether or not a given row has
+         one. The number itself has no fixed width (only Metrordle's
+         always-one-digit attempts count could use one; Metro Crush's
+         score runs to several digits and would clip). Laberinto/Memoria/
+         Metroguessr use the simpler plain variant below. */
       .leaderboard__score {
         align-items: center;
         display: flex;
@@ -123,8 +127,6 @@
         flex: none;
         font-variant-numeric: tabular-nums;
         font-weight: 700;
-        text-align: right;
-        width: 1rem;
       }
 
       .leaderboard__score--plain {
@@ -260,6 +262,16 @@
           <p class="leaderboard__status" id="metroguessr-status" hidden></p>
           <a class="admin-board__link" id="metroguessr-link" target="_blank" rel="noopener">Ver este día en Metroguessr →</a>
         </div>
+
+        <div class="sign admin-board" id="metrocrush-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Metro Crush <span class="admin-board__num" id="metrocrush-num"></span></h2>
+            <p class="admin-board__dek">Más puntos gana</p>
+          </div>
+          <ol class="leaderboard__list" id="metrocrush-list"></ol>
+          <p class="leaderboard__status" id="metrocrush-status" hidden></p>
+          <a class="admin-board__link" id="metrocrush-link" target="_blank" rel="noopener">Ver este día en Metro Crush →</a>
+        </div>
       </div>
     </div>
 
@@ -345,6 +357,29 @@
               var score = document.createElement('span');
               score.className = 'leaderboard__score--plain';
               score.textContent = String(entry.attempts);
+              return score;
+            },
+          },
+          {
+            key: 'metrocrush',
+            collection: 'metrocrush-leaderboard',
+            startDateKey: '2026-09-12',
+            orderBySpecs: [['score', 'desc']],
+            href: '/metrocrush/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score';
+
+              var badge = document.createElement('span');
+              badge.className = 'leaderboard__score-badge';
+              if (entry.hardMode) badge.textContent = '🧠';
+
+              var number = document.createElement('span');
+              number.className = 'leaderboard__score-number';
+              number.textContent = entry.score;
+
+              score.appendChild(badge);
+              score.appendChild(number);
               return score;
             },
           },

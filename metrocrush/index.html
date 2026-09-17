@@ -315,6 +315,32 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
+
+      /* Metro Crush-only leaderboard styling: everything else
+         (.leaderboard, .leaderboard__title, .leaderboard__row, etc.)
+         lives in shared.css, common to every game with a leaderboard.
+         Same badge-next-to-the-number trick as Metrordle's own
+         leaderboard (see its .leaderboard__score comment), but without
+         a fixed width on the number - Metrordle's attempts count is
+         always exactly one digit (1-5), while a Metro Crush score can
+         run to several digits, so a fixed width there would clip
+         instead of aligning. */
+      .leaderboard__score {
+        align-items: center;
+        display: flex;
+      }
+
+      .leaderboard__score-badge {
+        flex: none;
+        text-align: center;
+        width: 1.1rem;
+      }
+
+      .leaderboard__score-number {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
     </style>
   </head>
 
@@ -1110,7 +1136,7 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score }, {})
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard' }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, true);
@@ -1185,6 +1211,12 @@
         // call; a response only renders if it's still the latest.
         var leaderboardRequestId = 0;
 
+        // Ranked purely by score, descending - unlike Metrordle's combined
+        // leaderboard, hardMode isn't part of orderBySpecs here (there's
+        // no tie to break on it): hard mode already doubles every point
+        // scored (see HARD_MODE_MULTIPLIER in resolveStep()), so its
+        // effect is already priced into the score itself. hardMode is
+        // only submitted/rendered for the 🧠 badge below.
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
@@ -1220,7 +1252,21 @@
 
                 var score = document.createElement('span');
                 score.className = 'leaderboard__score';
-                score.textContent = entry.score;
+
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                // Matches the share text's own "🧠 Modo difícil" wording.
+                // Always rendered (empty when not hard mode) with a fixed
+                // width so the number after it lines up the same way
+                // across every row, hard-mode or not.
+                if (entry.hardMode) badge.textContent = '🧠';
+
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number';
+                number.textContent = entry.score;
+
+                score.appendChild(badge);
+                score.appendChild(number);
 
                 li.appendChild(rank);
                 li.appendChild(name);

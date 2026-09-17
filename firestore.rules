@@ -116,18 +116,22 @@ service cloud.firestore {
     // 60-second round with cascading multipliers (see resolveStep() in
     // metrocrush/index.html), not capped by a fixed puzzle size like
     // Memoria's "163 stations" ceiling, so there's no similarly tight
-    // ceiling to derive from.
+    // ceiling to derive from. hardMode just needs to be a plausible bool
+    // here (same as Metrordle's own leaderboard) - unlike Metrordle,
+    // it's not part of the ranking (see renderLeaderboard()'s
+    // orderBySpecs comment), only the 🧠 badge shown next to the score.
     match /metrocrush-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.score is int &&
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 20000 &&
+        request.resource.data.hardMode is bool &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

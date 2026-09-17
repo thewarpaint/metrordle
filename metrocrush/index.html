@@ -15,15 +15,15 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="title" content="Metrordle: Conexión 🚇">
+    <meta name="title" content="Metrordle: Metro Crush 🚇">
     <meta
       name="description"
       content="Intercambia estaciones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo."
     >
 
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://metrordle.com/conexion/">
-    <meta property="og:title" content="Metrordle: Conexión 🚇">
+    <meta property="og:url" content="https://metrordle.com/metrocrush/">
+    <meta property="og:title" content="Metrordle: Metro Crush 🚇">
     <meta property="og:description" content="Intercambia estaciones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo.">
     <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
     <meta property="og:image:width" content="1200">
@@ -33,9 +33,9 @@
     <meta name="theme-color" content="#0057a8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Metrordle: Conexión">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Metro Crush">
 
-    <title>Metrordle: Conexión 🚇</title>
+    <title>Metrordle: Metro Crush 🚇</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/favicon.png">
@@ -319,7 +319,7 @@
           <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
           <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
         </svg>
-        <span class="brand__text">Metrordle: Conexión · Minijuego del Metro CDMX</span>
+        <span class="brand__text">Metrordle: Metro Crush · Minijuego del Metro CDMX</span>
       </div>
 
       <div class="date-debug" id="date-debug" hidden>
@@ -330,7 +330,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1 id="game-title">Metrordle: Conexión</h1>
+          <h1 id="game-title">Metrordle: Metro Crush</h1>
           <p class="dek">
             Intercambia dos estaciones adyacentes para formar filas de 3 o más
             de la misma línea. Filas más largas valen más puntos, y si
@@ -357,11 +357,6 @@
 
           <div class="start-overlay" id="start-overlay">
             <div class="start-overlay__panel">
-              <p class="start-overlay__text">
-                Intercambia dos estaciones para formar filas de 3 o más de la
-                misma línea. Filas más largas valen más puntos, y si
-                encadenas varias seguidas, todavía más.
-              </p>
               <p class="start-overlay__text">
                 <strong>Modo difícil:</strong> las estaciones no muestran su
                 línea — solo se revelan un instante al formar un grupo.
@@ -426,7 +421,7 @@
         var SWAP_MS = 140;
         var HINT_IDLE_MS = 5000;
         var HARD_MODE_MULTIPLIER = 2;
-        var SHARE_URL = 'https://metrordle.com/conexion/';
+        var SHARE_URL = 'https://metrordle.com/metrocrush/';
 
         var delay = MetroShared.prefersReducedMotion()
           ? function () { return 0; }
@@ -453,7 +448,7 @@
         // two active lines showing the same pictogram would make hard
         // mode's icon-only board ambiguous.
         function pickStationIcons(lines, dateKey) {
-          var iconRand = MetroShared.createSeededRandom('metrordle-conexion-icons-' + dateKey);
+          var iconRand = MetroShared.createSeededRandom('metrordle-metrocrush-icons-' + dateKey);
           var usedSlugs = {};
           return lines.map(function (line) {
             var candidates = shuffle(line.stations, iconRand);
@@ -633,7 +628,7 @@
         function startNewGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
-          var rand = MetroShared.createSeededRandom('metrordle-conexion-' + dateKey);
+          var rand = MetroShared.createSeededRandom('metrordle-metrocrush-' + dateKey);
           var activeLines = pickActiveLines(rand, dateKey);
 
           if (state && state.timerId) clearInterval(state.timerId);
@@ -662,10 +657,9 @@
           };
           state.board = generateBoard(rand);
 
-          $('game-title').textContent = 'Metrordle: Conexión #' + state.gameNumber;
+          $('game-title').textContent = 'Metrordle: Metro Crush #' + state.gameNumber;
           renderLegend();
           els.reveal.hidden = true;
-          setToast('Elige dos estaciones adyacentes para intercambiarlas.');
           render();
         }
 
@@ -943,7 +937,7 @@
         }
 
         // Open scale, no "complete" state to measure against - same
-        // shape as Memoria's own getRating, tuned to Conexión's scoring.
+        // shape as Memoria's own getRating, tuned to Metro Crush's scoring.
         function getRating(score) {
           if (score === 0) return { label: 'Mala', square: '🟥' };
           if (score <= 150) return { label: 'Regular', square: '🟧' };
@@ -957,7 +951,7 @@
           var rating = getRating(state.score);
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
-          return 'Metrordle: Conexión #' + state.gameNumber + '\n' + hardModeLine + '\n' +
+          return 'Metrordle: Metro Crush #' + state.gameNumber + '\n' + hardModeLine + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Puntaje: ' + state.score + '\n' +
             'Grupos: ' + state.groupsFormed + ' · Combo máximo: ×' + state.maxCombo + '\n\n' +

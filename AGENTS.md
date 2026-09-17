@@ -25,7 +25,7 @@ Site copy/UI is in Spanish (`es-MX`).
   marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
   distance + compass direction after each guess. Map is locked
   (no pan/zoom) while playing; unlocks and swaps in the target's real
-  station-icon badge (Conexión's pictogram style, colored by line) once
+  station-icon badge (Metro Crush's pictogram style, colored by line) once
   the round ends. Has its own leaderboard (see below) but **no committed
   Playwright tests yet** - only verified via ad-hoc scratchpad scripts
   so far, not `tests/`.

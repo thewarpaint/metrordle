@@ -320,14 +320,20 @@
          (.leaderboard, .leaderboard__title, .leaderboard__row, etc.)
          lives in shared.css, common to every game with a leaderboard.
          Same badge-next-to-the-number trick as Metrordle's own
-         leaderboard (see its .leaderboard__score comment), but without
-         a fixed width on the number - Metrordle's attempts count is
-         always exactly one digit (1-5), while a Metro Crush score can
-         run to several digits, so a fixed width there would clip
-         instead of aligning. */
+         leaderboard (see its .leaderboard__score comment in
+         /admin/index.html), plus the gap for spacing between them. The
+         number itself gets a min-width + right-align rather than a
+         fixed width - unlike Metrordle's always-one-digit attempts
+         count, a Metro Crush score can run to several digits, so a
+         fixed width would clip a big one, but with no width at all a
+         short vs. long score shifts the 🧠 badge's own column instead
+         of just the number. min-width covers up to firestore.rules'
+         own 20000 ceiling for this collection (5 digits) before it has
+         to grow past that and shift the badge anyway. */
       .leaderboard__score {
         align-items: center;
         display: flex;
+        gap: 0.35rem;
       }
 
       .leaderboard__score-badge {
@@ -340,6 +346,8 @@
         flex: none;
         font-variant-numeric: tabular-nums;
         font-weight: 700;
+        min-width: 2.7rem;
+        text-align: right;
       }
     </style>
   </head>

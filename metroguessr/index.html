@@ -672,16 +672,50 @@
         // day the way this used to work, which could (and did - games
         // #5 and #6 landed on the same station) put the same station up
         // on two different days well before the full list was
-        // exhausted. gameNumber - 1 indexes into this fixed permutation
-        // below, wrapping via modulo once a full cycle completes - still
-        // fully deterministic (every player computes the identical
-        // sequence from gameNumber alone) and needs no persisted state.
+        // exhausted. Only used from NO_REPEAT_CUTOVER_DATE_KEY on -
+        // see pickTarget() below - but computed unconditionally since
+        // it's cheap and every day from the cutover onward needs it.
         var STATION_ORDER = shuffle(
           STATIONS.map(function (s) { return s[0]; }),
           MetroShared.createSeededRandom('metrordle-metroguessr-station-order')
         );
 
         var START_DATE_KEY = '2026-09-12';
+
+        // Everything up to (not including) this date keeps the original
+        // per-day independent pick, exactly as it always worked -
+        // switching every past day over to the STATION_ORDER scheme
+        // would silently change what an already-played day's puzzle
+        // was for anyone replaying it via the debug date-nav, which is
+        // worse than the rare collision (see games #5 and #6 above)
+        // that prompted this fix in the first place. Every day from
+        // here on gets the no-repeat guarantee instead.
+        var NO_REPEAT_CUTOVER_DATE_KEY = '2026-09-18';
+
+        // dateKey and NO_REPEAT_CUTOVER_DATE_KEY are both zero-padded
+        // 'YYYY-MM-DD' strings, so a plain string comparison already
+        // sorts chronologically - no Date parsing needed.
+        function pickTarget(dateKey, gameNumber) {
+          if (dateKey < NO_REPEAT_CUTOVER_DATE_KEY) {
+            var rand = MetroShared.createSeededRandom('metrordle-metroguessr-' + dateKey);
+            var idx = Math.floor(rand() * STATIONS.length);
+            return STATIONS[idx][0];
+          }
+
+          // gameNumber - 1 indexes into the fixed STATION_ORDER
+          // permutation, wrapping via modulo once a full cycle
+          // completes - still fully deterministic (every player
+          // computes the identical sequence from gameNumber alone) and
+          // needs no persisted state. Wrapped with an extra
+          // + STATION_ORDER.length before the final % so a gameNumber
+          // at or before START_DATE_KEY (reachable via the debug
+          // date-nav, where it can go to 0 or negative) still lands on
+          // a valid, positive index instead of JS's negative-modulo
+          // result for a negative dividend.
+          var orderIdx = (((gameNumber - 1) % STATION_ORDER.length) + STATION_ORDER.length) % STATION_ORDER.length;
+          return STATION_ORDER[orderIdx];
+        }
+
         var MAX_ATTEMPTS = 5;
         var MAP_ZOOM = 15;
         // OpenFreeMap's vector styles - no API key, no request cap, free
@@ -993,13 +1027,7 @@
         function startGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
-          // Wrapped with an extra + STATION_ORDER.length before the final
-          // % so a gameNumber at or before START_DATE_KEY (reachable via
-          // the debug date-nav, where it can go to 0 or negative) still
-          // lands on a valid, positive index instead of JS's negative-
-          // modulo result for a negative dividend.
-          var orderIdx = (((gameNumber - 1) % STATION_ORDER.length) + STATION_ORDER.length) % STATION_ORDER.length;
-          var target = STATION_ORDER[orderIdx];
+          var target = pickTarget(dateKey, gameNumber);
           var saved = loadSavedState(dateKey);
 
           state = {

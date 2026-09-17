@@ -29,6 +29,14 @@ Site copy/UI is in Spanish (`es-MX`).
   the round ends. Has its own leaderboard (see below) but **no committed
   Playwright tests yet** - only verified via ad-hoc scratchpad scripts
   so far, not `tests/`.
+- **`/metrocrush/`** - Metrordle: Metro Crush: swap two adjacent stations
+  to form rows of 3+ of the same line before a 60-second timer runs out,
+  Bejeweled-style, with a normal/hard mode toggle (hard hides each
+  tile's line color, revealing it only mid-pop) and cascading combos.
+  Has its own leaderboard (see below), but like Metroguessr above,
+  **no committed Playwright tests yet** - only ad-hoc scratchpad
+  scripts so far, not `tests/`. Not linked from any other game's nav
+  yet.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, but always on.
@@ -88,7 +96,7 @@ are impossible without a debug override.
 Each game has its own daily Firestore leaderboard:
 `{collection}/{dateKey}/entries/{aliasDocId}`, collections
 `metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard` /
-`metroguessr-leaderboard`.
+`metroguessr-leaderboard` / `metrocrush-leaderboard`.
 Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
 key, shared across all games) with **no rename** - the alias *is* the
 document ID (lowercased), so changing it would orphan the old entry;
@@ -107,8 +115,12 @@ asc is always auto-appended as the final tiebreak by
 - Metroguessr: fewest attempts, ascending (`[['attempts','asc']]`) - like
   Metrordle/Laberinto, not Memoria: a loss has no meaningful "attempts to
   solve," so (see below) it only submits on a win.
+- Metro Crush: highest score, descending - same shape as Memoria's, but
+  a cumulative round total rather than a fixed-size puzzle's score, so
+  its Firestore rule bounds `score` generously (20000) instead of
+  tightly (see `firestore.rules`).
 
-Submission pattern (identical across all 4 games): a
+Submission pattern (identical across all 5 games): a
 `leaderboardSubmitted` flag persisted alongside the game result, so a
 reload never resubmits; `submitScore()` no-ops without an alias, under
 `?debug=true`, or (Metrordle/Laberinto/Metroguessr only) on a loss/give-up

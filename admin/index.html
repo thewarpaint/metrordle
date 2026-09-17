@@ -107,14 +107,26 @@
       /* Metrordle's and Metro Crush's scores are both a two-slot
          badge+number cell (see /index.html and /metrocrush/index.html) -
          the fixed width on the badge keeps the 🧠 hard-mode flag in its
-         own column, aligned down the list whether or not a given row has
-         one. The number itself has no fixed width (only Metrordle's
-         always-one-digit attempts count could use one; Metro Crush's
-         score runs to several digits and would clip). Laberinto/Memoria/
-         Metroguessr use the simpler plain variant below. */
+         own column, aligned down the list whether or not a given row
+         has one, and the gap keeps it from sitting flush against the
+         number. Metrordle's number needs no further help: its attempts
+         count is always exactly one digit, so it's already the same
+         width on every row. Metro Crush's score isn't - a 5 vs. a
+         999999 render at very different widths, and since .leaderboard__
+         score itself has no fixed width, a wider number pushes the
+         WHOLE badge+number block (and so the badge) further left,
+         breaking the badge's own column alignment despite its fixed
+         width. leaderboard__score-number--wide (used only for Metro
+         Crush, see its GAMES entry below) fixes that with a min-width
+         sized to firestore.rules' own 20000 ceiling for that collection
+         (5 digits) plus right-alignment, so the badge lands at the same
+         spot on every row unless a score is large enough to need more
+         room than that. Laberinto/Memoria/Metroguessr use the simpler
+         plain variant below. */
       .leaderboard__score {
         align-items: center;
         display: flex;
+        gap: 0.35rem;
       }
 
       .leaderboard__score-badge {
@@ -127,6 +139,11 @@
         flex: none;
         font-variant-numeric: tabular-nums;
         font-weight: 700;
+      }
+
+      .leaderboard__score-number--wide {
+        min-width: 2.7rem;
+        text-align: right;
       }
 
       .leaderboard__score--plain {
@@ -375,7 +392,7 @@
               if (entry.hardMode) badge.textContent = '🧠';
 
               var number = document.createElement('span');
-              number.className = 'leaderboard__score-number';
+              number.className = 'leaderboard__score-number leaderboard__score-number--wide';
               number.textContent = entry.score;
 
               score.appendChild(badge);

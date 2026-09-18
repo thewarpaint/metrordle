@@ -308,13 +308,18 @@ function isGamePlayedToday(gameKey, dateKey) {
   }
 }
 
+// How many suggestions a game's end screen shows at once - capped so the
+// promo section stays a quick glance rather than a full game menu.
+var MAX_SUGGESTED_GAMES = 2;
+
 // The ordered, filtered list a game's own end screen should suggest:
-// every other game in SUGGESTABLE_GAMES's fixed priority order, minus
-// the current game and minus anything already completed today.
+// the top MAX_SUGGESTED_GAMES games from SUGGESTABLE_GAMES's fixed
+// priority order, minus the current game and minus anything already
+// completed today.
 function getSuggestedGames(currentGameKey, dateKey) {
   return SUGGESTABLE_GAMES.filter(function (game) {
     return game.key !== currentGameKey && !isGamePlayedToday(game.key, dateKey);
-  });
+  }).slice(0, MAX_SUGGESTED_GAMES);
 }
 
 function loadStreak(storageKey) {

@@ -143,7 +143,9 @@ calling `MetroShared.getSuggestedGames(currentGameKey, dateKey)`.
 Suggestions follow a fixed priority order - Metrordle, Memoria,
 Metroguessr, Laberinto, Metro Crush (see `SUGGESTABLE_GAMES` in
 `shared.js`) - minus the current game and minus anything already
-completed **today**, checked via that game's own `'<key>:' + dateKey`
+completed **today**, capped to the top `MAX_SUGGESTED_GAMES` (2) so the
+section stays a quick glance rather than a full game menu, checked via
+that game's own `'<key>:' + dateKey`
 localStorage entry (every game's key matches its `storageKeyFor()`
 prefix, which is what makes one shared check possible instead of one
 per game): `gameOver`/`status !== 'playing'`/`done` for

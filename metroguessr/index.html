@@ -480,6 +480,8 @@
         </div>
 
         <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+
+        <div id="game-promo-slot"></div>
       </div>
 
       <div class="history-scroll" id="history-scroll">
@@ -1212,6 +1214,22 @@
           renderAliasRow();
           renderLeaderboard();
           recenterMapAboveReveal(pos);
+          renderGamePromo('metroguessr');
+        }
+
+        // Mounts the end screen's "sigue jugando hoy" component into this
+        // page's own slot - shared.js only builds the component itself
+        // (MetroShared.buildGamePromo), it never reaches into this
+        // page's DOM. Uses the real calendar day, not this page's own
+        // (possibly debug-simulated) dateKey - suggestions reflect
+        // actual daily activity, not whatever day is being previewed.
+        function renderGamePromo(currentGameKey) {
+          var slot = $('game-promo-slot');
+          if (!slot) return;
+          var todayKey = MetroShared.getDateKey(new Date());
+          var promo = MetroShared.buildGamePromo(currentGameKey, todayKey);
+          slot.innerHTML = '';
+          if (promo) slot.appendChild(promo);
         }
 
         // One pin per unique WRONG guess, placed at that guess's own

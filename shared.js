@@ -268,6 +268,108 @@ function getGameNumberForDateKey(dateKey, startDateKey) {
   return Math.round((target.getTime() - start.getTime()) / msPerDay) + 1;
 }
 
+// Fixed priority order for the "sigue jugando hoy" suggestions on every
+// game's own end screen - not the same order as AGENTS.md's "The games"
+// section, which is roughly chronological by ship date. Every game's
+// own localStorage key follows the same '<key>:' + dateKey shape (see
+// each page's own storageKeyFor()), which is what makes a single
+// shared isGamePlayedToday() possible below instead of one per game.
+var SUGGESTABLE_GAMES = [
+  { key: 'metrordle', href: '/', name: 'Metrordle', glyph: '🚇', sub: 'Ordena la línea →' },
+  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '⏳', sub: 'Parejas en 60 segundos →' },
+  { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación →' },
+  { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Encuentra la ruta →' },
+  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🧩', sub: 'Forma filas de 3 →' },
+];
+
+// Whether `gameKey` already has a completed result for `dateKey`, read
+// straight from that game's own saved state - "completed" rather than
+// merely "has an entry" matters for Metrordle/Laberinto/Metroguessr,
+// whose saved state can also represent an in-progress round; Memoria
+// and Metro Crush only ever persist a result once a round is actually
+// over, so any saved entry there already means done. Deliberately
+// ignores the debug date-nav's simulated "today" (a caller passes the
+// real dateKey it wants checked) - suggestions reflect the player's
+// actual daily activity, not whatever day they happen to be previewing.
+function isGamePlayedToday(gameKey, dateKey) {
+  try {
+    var raw = localStorage.getItem(gameKey + ':' + dateKey);
+    if (!raw) return false;
+    var parsed = JSON.parse(raw);
+    if (!parsed) return false;
+    switch (gameKey) {
+      case 'metrordle': return parsed.gameOver === true;
+      case 'laberinto': return !!parsed.status && parsed.status !== 'playing';
+      case 'metroguessr': return parsed.done === true;
+      default: return true; // memoria, metrocrush
+    }
+  } catch (e) {
+    return false;
+  }
+}
+
+// How many suggestions a game's end screen shows at once - capped so the
+// promo section stays a quick glance rather than a full game menu.
+var MAX_SUGGESTED_GAMES = 2;
+
+// The ordered, filtered list a game's own end screen should suggest:
+// the top MAX_SUGGESTED_GAMES games from SUGGESTABLE_GAMES's fixed
+// priority order, minus the current game and minus anything already
+// completed today.
+function getSuggestedGames(currentGameKey, dateKey) {
+  return SUGGESTABLE_GAMES.filter(function (game) {
+    return game.key !== currentGameKey && !isGamePlayedToday(game.key, dateKey);
+  }).slice(0, MAX_SUGGESTED_GAMES);
+}
+
+// Builds the "sigue jugando hoy" promo component for currentGameKey, or
+// null if every other game is already done today (the caller should
+// remove/hide any previously-inserted promo in that case). Returns a
+// detached element - it only knows the component's own markup, never
+// the page's - so every page stays free to mount it wherever its own
+// layout wants, without this shared code reaching into that page's DOM.
+function buildGamePromo(currentGameKey, dateKey) {
+  var suggestions = getSuggestedGames(currentGameKey, dateKey);
+  if (suggestions.length === 0) return null;
+
+  var section = document.createElement('div');
+  section.className = 'game-promo';
+
+  var eyebrow = document.createElement('p');
+  eyebrow.className = 'game-promo__eyebrow';
+  eyebrow.textContent = 'Sigue jugando hoy';
+  section.appendChild(eyebrow);
+
+  var grid = document.createElement('div');
+  grid.className = 'game-promo__grid';
+  suggestions.forEach(function (game) {
+    var a = document.createElement('a');
+    a.className = 'game-promo__card';
+    a.href = game.href;
+
+    var glyph = document.createElement('span');
+    glyph.className = 'game-promo__glyph';
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.textContent = game.glyph;
+
+    var name = document.createElement('span');
+    name.className = 'game-promo__name';
+    name.textContent = game.name;
+
+    var sub = document.createElement('span');
+    sub.className = 'game-promo__sub';
+    sub.textContent = game.sub;
+
+    a.appendChild(glyph);
+    a.appendChild(name);
+    a.appendChild(sub);
+    grid.appendChild(a);
+  });
+  section.appendChild(grid);
+
+  return section;
+}
+
 function loadStreak(storageKey) {
   try {
     var raw = localStorage.getItem(storageKey);
@@ -612,6 +714,8 @@ window.MetroShared = {
   getDateKey: getDateKey,
   getPreviousDateKey: getPreviousDateKey,
   getGameNumberForDateKey: getGameNumberForDateKey,
+  getSuggestedGames: getSuggestedGames,
+  buildGamePromo: buildGamePromo,
   isDebugMode: isDebugMode,
   getEffectiveToday: getEffectiveToday,
   prefersReducedMotion: prefersReducedMotion,

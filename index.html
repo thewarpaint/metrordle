@@ -1858,7 +1858,18 @@
         // score instead of actually updating it. Keeping whatever the
         // player first entered avoids that; revisit if there's ever a
         // real need to rename (e.g. by moving the old entry too).
+        // A loss never has anything to submit (see submitScore()), so
+        // there's nothing for the alias input to do there - hide the
+        // whole row rather than showing a form that would silently no-op.
         function renderAliasRow() {
+          var el = els.leaderboardAliasRow;
+          if (!state.won) {
+            el.hidden = true;
+            el.innerHTML = '';
+            return;
+          }
+
+          el.hidden = false;
           var alias = MetroShared.getAlias();
           if (alias) {
             showAliasDisplay(alias);

@@ -1333,7 +1333,18 @@
         // methods and textContent throughout, never innerHTML with the
         // alias itself, since it's free text from anyone who's played,
         // not trusted data like a station name.
+        // A loss never has anything to submit (see submitScore()), so
+        // there's nothing for the alias input to do there - hide the
+        // whole row rather than showing a form that would silently no-op.
         function renderAliasRow() {
+          var el = $('leaderboard-alias-row');
+          if (!state.won) {
+            el.hidden = true;
+            el.innerHTML = '';
+            return;
+          }
+
+          el.hidden = false;
           var alias = MetroShared.getAlias();
           if (alias) {
             showAliasDisplay(alias);

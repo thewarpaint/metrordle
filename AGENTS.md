@@ -126,10 +126,14 @@ Submission pattern (identical across all 5 games): a
 `leaderboardSubmitted` flag persisted alongside the game result, so a
 reload never resubmits; `submitScore()` no-ops without an alias, under
 `?debug=true`, or (Metrordle/Laberinto/Metroguessr only) on a loss/give-up
-- only a genuine win has a meaningful score to rank. `renderLeaderboard()` never
-clears the DOM before its fetch resolves (avoids a flicker on reload),
-guarded by a monotonically increasing request-id so a stale response
-can't paint over a newer one.
+- only a genuine win has a meaningful score to rank. On those same three
+games, `renderAliasRow()` hides the whole `#leaderboard-alias-row` on a
+loss/give-up too (rather than a no-alias player seeing an entry form
+that would silently do nothing if filled in) - Memoria/Metro Crush
+always have a meaningful score, so their alias row always shows.
+`renderLeaderboard()` never clears the DOM before its fetch resolves
+(avoids a flicker on reload), guarded by a monotonically increasing
+request-id so a stale response can't paint over a newer one.
 
 ## Game suggestions
 

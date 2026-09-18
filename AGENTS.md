@@ -57,9 +57,9 @@ are impossible without a debug override.
   (`submitLeaderboardScore`/`getTopLeaderboardScores`, collection- and
   field-shape-agnostic - see "Leaderboards" below), clipboard/share
   helpers (`shareOrCopyText`, native `navigator.share` with a
-  clipboard-copy fallback), and `getSuggestedGames(currentGameKey,
-  dateKey)` for the "sigue jugando hoy" cards on every game's own end
-  screen - see "Game suggestions" below.
+  clipboard-copy fallback), and `buildGamePromo(currentGameKey,
+  dateKey)` for the "sigue jugando hoy" component on every game's own
+  end screen - see "Game suggestions" below.
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
@@ -134,29 +134,36 @@ can't paint over a newer one.
 ## Game suggestions
 
 Every game's end screen (the `#reveal` state, once a round is over)
-shows a "Sigue jugando hoy" `.game-promo` block suggesting other games -
-`#game-promo`/`#game-promo-grid` in the markup, a `renderGamePromo(key)`
-function duplicated per page (same pattern as leaderboard rendering:
-`shared.js` owns the data/logic, each page owns its own DOM-building),
-calling `MetroShared.getSuggestedGames(currentGameKey, dateKey)`.
+shows a "Sigue jugando hoy" `.game-promo` component suggesting other
+games. Unlike leaderboard rendering, this one isn't split
+data-in-`shared.js`/DOM-in-the-page: `MetroShared.buildGamePromo(currentGameKey,
+dateKey)` builds and returns the whole detached `.game-promo` element
+(or `null` if there's nothing to suggest) - it only knows the
+component's own markup, never the page's, so it never reaches into a
+page's DOM itself. Each page's own `renderGamePromo(key)` (duplicated
+per page, since mounting into that page's layout is still page-owned
+work) just finds its own `#game-promo-slot` placeholder and inserts
+(or clears) whatever `buildGamePromo()` returns.
 
 Suggestions follow a fixed priority order - Metrordle, Memoria,
 Metroguessr, Laberinto, Metro Crush (see `SUGGESTABLE_GAMES` in
 `shared.js`) - minus the current game and minus anything already
 completed **today**, capped to the top `MAX_SUGGESTED_GAMES` (2) so the
-section stays a quick glance rather than a full game menu, checked via
-that game's own `'<key>:' + dateKey`
-localStorage entry (every game's key matches its `storageKeyFor()`
-prefix, which is what makes one shared check possible instead of one
-per game): `gameOver`/`status !== 'playing'`/`done` for
+section stays a quick glance rather than a full game menu (this list-building
+part is also exposed standalone as `MetroShared.getSuggestedGames(currentGameKey,
+dateKey)`, which `buildGamePromo()` calls internally). "Completed" is
+checked via that game's own `'<key>:' + dateKey` localStorage entry
+(every game's key matches its `storageKeyFor()` prefix, which is what
+makes one shared check possible instead of one per game):
+`gameOver`/`status !== 'playing'`/`done` for
 Metrordle/Laberinto/Metroguessr, whose saved state can also represent
 an in-progress round; any saved entry at all for Memoria/Metro Crush,
 which only ever persist a result once a round is actually over. Always
 uses the real calendar day (`new Date()`), never the page's own
 possibly-`?debug=true`-simulated `dateKey` - suggestions reflect actual
-play activity, not whatever day is being previewed. The whole section
-hides (`hidden` on `#game-promo`) rather than rendering empty if every
-other game is already done today.
+play activity, not whatever day is being previewed. `buildGamePromo()`
+returns `null` (nothing to mount) rather than an empty component if
+every other game is already done today.
 
 ## Rendering safety
 

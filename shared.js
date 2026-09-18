@@ -322,6 +322,54 @@ function getSuggestedGames(currentGameKey, dateKey) {
   }).slice(0, MAX_SUGGESTED_GAMES);
 }
 
+// Builds the "sigue jugando hoy" promo component for currentGameKey, or
+// null if every other game is already done today (the caller should
+// remove/hide any previously-inserted promo in that case). Returns a
+// detached element - it only knows the component's own markup, never
+// the page's - so every page stays free to mount it wherever its own
+// layout wants, without this shared code reaching into that page's DOM.
+function buildGamePromo(currentGameKey, dateKey) {
+  var suggestions = getSuggestedGames(currentGameKey, dateKey);
+  if (suggestions.length === 0) return null;
+
+  var section = document.createElement('div');
+  section.className = 'game-promo';
+
+  var eyebrow = document.createElement('p');
+  eyebrow.className = 'game-promo__eyebrow';
+  eyebrow.textContent = 'Sigue jugando hoy';
+  section.appendChild(eyebrow);
+
+  var grid = document.createElement('div');
+  grid.className = 'game-promo__grid';
+  suggestions.forEach(function (game) {
+    var a = document.createElement('a');
+    a.className = 'game-promo__card';
+    a.href = game.href;
+
+    var glyph = document.createElement('span');
+    glyph.className = 'game-promo__glyph';
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.textContent = game.glyph;
+
+    var name = document.createElement('span');
+    name.className = 'game-promo__name';
+    name.textContent = game.name;
+
+    var sub = document.createElement('span');
+    sub.className = 'game-promo__sub';
+    sub.textContent = game.sub;
+
+    a.appendChild(glyph);
+    a.appendChild(name);
+    a.appendChild(sub);
+    grid.appendChild(a);
+  });
+  section.appendChild(grid);
+
+  return section;
+}
+
 function loadStreak(storageKey) {
   try {
     var raw = localStorage.getItem(storageKey);
@@ -667,6 +715,7 @@ window.MetroShared = {
   getPreviousDateKey: getPreviousDateKey,
   getGameNumberForDateKey: getGameNumberForDateKey,
   getSuggestedGames: getSuggestedGames,
+  buildGamePromo: buildGamePromo,
   isDebugMode: isDebugMode,
   getEffectiveToday: getEffectiveToday,
   prefersReducedMotion: prefersReducedMotion,

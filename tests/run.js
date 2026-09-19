@@ -12,6 +12,7 @@ const FILES = [
   'memoria/round-lifecycle.test.js',
   'memoria/leaderboard.test.js',
   'memoria/share.test.js',
+  'laberinto/fast.test.js',
   'laberinto/leaderboard.test.js',
   'metrordle/leaderboard.test.js',
   'metroguessr/fast.test.js',

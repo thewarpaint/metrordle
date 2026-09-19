@@ -13,16 +13,21 @@ Memoria (`memoria/`) has the fullest coverage; Metroguessr
 coverage; the main game (`metrordle/`) and the admin leaderboard
 browser (`admin/`) have leaderboard coverage only so far;
 Metro Crush (`metrocrush/`) has none committed yet - still only the
-ad-hoc scratchpad checks used during development. `security/` covers
-site-wide checks (currently just the CSP) that aren't specific to any
-one game. Add new games/checks under their own subdirectory following
-the same pattern.
+ad-hoc scratchpad checks used during development. `security/` and
+`shared/` cover site-wide/cross-game checks (the CSP, and
+`shared.js`'s leaderboard query logic, respectively) that aren't
+specific to any one game. Add new games/checks under their own
+subdirectory following the same pattern.
 
 Metroguessr's own tests stub the real map (Leaflet/MapLibre/OpenFreeMap)
 via `tests/lib/leaflet-stub.js` - see that file's comment for why this
 is the one dependency in the whole suite that gets a fake instead of
 being left to fail gracefully like Firebase everywhere else (it's a
-hard rendering dependency, not an optional one).
+hard rendering dependency, not an optional one). `shared/leaderboard-query.test.js`
+similarly fakes the Firestore compat SDK's query surface itself
+(`tests/lib/firestore-stub.js`) - the one place in the whole suite that
+needs to exercise a REAL (simulated) Firestore query rather than just
+the "Firebase unreachable" path every other leaderboard test covers.
 
 ## Setup
 
@@ -49,6 +54,7 @@ npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 npm run test:metroguessr  # Metroguessr's core-mechanics checks (~15s)
 npm run test:metroguessr-leaderboard  # Metroguessr's leaderboard checks (~10s)
 npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
+npm run test:leaderboard-query  # getTopLeaderboardScores()'s real Firestore query logic (~10s)
 npm run test:csp  # Content-Security-Policy checks, every page (~10s)
 ```
 
@@ -251,6 +257,28 @@ leaderboard browser (no game state of its own to plant in
   renders with each game's own ranking and score formatting: Metrordle's
   badge+number cell, Laberinto's `stations-transfers`, Memoria's plain
   score.
+
+**`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
+real Firestore query-construction logic in `shared.js` - unlike every
+leaderboard test above (which only ever exercises its "Firebase
+unreachable, degrade gracefully" early return, since this sandboxed
+environment can't reach a real Firestore project at all), this one
+fakes just enough of the Firestore compat SDK's query surface itself
+(`tests/lib/firestore-stub.js`) to run the real query-building code
+against realistic Firestore semantics. Specifically reproduces the bug
+that broke `/admin/`'s Metroguessr leaderboard in production: an entry
+submitted before a later `orderBySpecs` field (e.g. `hardMode`) existed
+on that collection has no such field at all, and Firestore's own
+`.orderBy(field)` silently **excludes** any document missing that
+field from the results - no error, just fewer rows. See AGENTS.md's
+"Leaderboards" section for the fix (`getTopLeaderboardScores()` only
+ever orders by `orderBySpecs[0]` server-side, then applies the rest
+client-side).
+- An entry missing a later `orderBySpecs` field (`hardMode`) still
+  appears in the results, correctly ranked as if that field were
+  `false` - not silently dropped.
+- The 🧠 badge only shows for an entry that actually has `hardMode:
+  true` - a missing field must not render as truthy.
 
 **`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
 tag every page carries (defense-in-depth alongside the app's actual XSS

@@ -572,13 +572,25 @@ function saveFallbackEntries(collectionName, dateKey, entries) {
 // e.g. [['score', 'desc']] for Memoria (higher wins), or
 // [['stations', 'asc'], ['transfers', 'asc']] for Laberinto (fewer of
 // both wins, stations breaking ties first). submittedAt ascending is
-// always the final tiebreak, same as Firestore's own query below.
+// always the final tiebreak. Used for both the real Firestore path in
+// getTopLeaderboardScores() below (which only asks Firestore itself to
+// sort by orderBySpecs[0] - see that function's own comment for why)
+// and the local fallback path.
 function compareByOrderSpecs(orderBySpecs) {
   return function (a, b) {
     for (var i = 0; i < orderBySpecs.length; i++) {
       var field = orderBySpecs[i][0];
       var dir = orderBySpecs[i][1] === 'desc' ? -1 : 1;
-      if (a[field] !== b[field]) return dir * (a[field] - b[field]);
+      // A field can be missing entirely on an entry submitted before
+      // that field existed on this collection (e.g. hardMode, added to
+      // Metrordle/Metroguessr's leaderboards after each already had
+      // real entries) - treated as false/0 rather than left undefined,
+      // which would otherwise make the arithmetic below NaN and silently
+      // treat every entry as tied on this field regardless of its real
+      // value.
+      var av = a[field] === undefined ? false : a[field];
+      var bv = b[field] === undefined ? false : b[field];
+      if (av !== bv) return dir * (av - bv);
     }
     return a.submittedAt - b.submittedAt;
   };
@@ -661,6 +673,24 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 // [fieldName, 'asc'|'desc'] pairs (see compareByOrderSpecs above) - each
 // returned entry carries whichever of those fields the doc has, plus id
 // and alias.
+//
+// Only orderBySpecs[0] is ever passed to Firestore's own .orderBy() -
+// Firestore silently EXCLUDES a document from the results (no error)
+// if it's missing ANY field an active .orderBy() clause names, which
+// is exactly what happens to every entry submitted before a later
+// orderBySpecs field existed on that collection (e.g. hardMode, added
+// to Metrordle's and then Metroguessr's leaderboards well after each
+// already had real entries - see AGENTS.md's "Leaderboards" section).
+// orderBySpecs[0] itself is safe there because it's each collection's
+// original ranking field, present on every entry since the collection
+// was created. Every later field is instead applied client-side via
+// compareByOrderSpecs() (which already treats a missing field as
+// false/0, so an old entry just never wins a tiebreak it predates
+// rather than vanishing outright) - fetched well past limitCount first
+// so that re-sort still has every real contender to promote ahead of a
+// same-orderBySpecs[0] entry it should beat on a later tiebreak. This
+// is a casual, low-traffic leaderboard, not a paginated one, so
+// over-fetching like this is cheap.
 function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpecs, options) {
   var path = collectionName + '/' + dateKey + '/entries';
   console.log('[Leaderboard] getTopLeaderboardScores()', Object.assign({
@@ -677,25 +707,30 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
   }
 
   console.log('[Leaderboard] Querying Firestore:', path);
-  var query = firebase.firestore().collection(collectionName).doc(dateKey).collection('entries');
-  orderBySpecs.forEach(function (spec) {
-    query = query.orderBy(spec[0], spec[1]);
-  });
+  var primarySpec = orderBySpecs[0];
+  var fetchLimit = Math.max(limitCount, 1000);
+  var query = firebase.firestore().collection(collectionName).doc(dateKey).collection('entries')
+    .orderBy(primarySpec[0], primarySpec[1])
+    .limit(fetchLimit);
 
   return query
-    .orderBy('submittedAt', 'asc')
-    .limit(limitCount)
     .get()
     .then(function (snapshot) {
       var results = [];
       snapshot.forEach(function (doc) {
         var data = doc.data();
-        var entry = { id: doc.id, alias: data.alias };
+        var entry = {
+          id: doc.id,
+          alias: data.alias,
+          submittedAt: data.submittedAt ? data.submittedAt.toMillis() : 0,
+        };
         orderBySpecs.forEach(function (spec) {
           entry[spec[0]] = data[spec[0]];
         });
         results.push(entry);
       });
+      results.sort(compareByOrderSpecs(orderBySpecs));
+      results = results.slice(0, limitCount);
       console.log('[Leaderboard] Query succeeded:', path, '- got', results.length, 'result(s):', results);
       return results;
     })

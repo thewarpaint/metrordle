@@ -1239,13 +1239,7 @@
         // Guessing the same wrong station more than once (allowed,
         // if unlikely) collapses to a single pin rather than stacking
         // duplicates on top of each other.
-        //
-        // Debug-only (?debug=true): these are a debugging aid for
-        // checking guesses against real station coordinates, not
-        // something a normal player needs cluttering the reveal map.
         function paintGuessMarkers() {
-          if (!MetroShared.isDebugMode()) return;
-
           var seen = {};
           state.guesses.forEach(function (guess) {
             if (guess.correct || seen[guess.name]) return;

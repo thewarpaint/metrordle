@@ -3,7 +3,7 @@
 // Covers Metroguessr's core mechanics: the daily target pick (and its
 // no-repeat-per-cycle guarantee from NO_REPEAT_CUTOVER_DATE_KEY on -
 // see metroguessr/index.html's pickTarget()), the guess/history flow,
-// win/loss reveal, the debug-only distance/direction map pins, and
+// win/loss reveal, the reveal-map distance/direction guess pins, and
 // persistence across reload. The real map (Leaflet/MapLibre/OpenFreeMap)
 // is stubbed - see tests/lib/leaflet-stub.js's own comment for why -
 // so none of this depends on those hosts being reachable or on real
@@ -183,57 +183,44 @@ async function main() {
     }
   });
 
-  test('guess pins on the map are hidden by default and only shown (deduped) under ?debug=true', async () => {
+  test('guess pins on the reveal map show for every player, deduped per station', async () => {
     const DATE = '2026-09-24';
 
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
     const page = await context.newPage();
     try {
       await stubMap(page);
+      // No ?debug=true - these pins are an ordinary part of the reveal
+      // now, not a debugging aid gated behind date-nav testing.
       await page.goto(server.baseUrl + '/metroguessr/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
-      await playToReveal(page);
-      const markerCount = await page.evaluate(() => (window.__mgMarkers || []).filter((m) => m.className === 'guess-marker').length);
-      assert.strictEqual(markerCount, 0, 'guess pins should not render outside debug mode');
-      await context.close();
-    } catch (e) {
-      await context.close();
-      throw e;
-    }
-
-    const debugContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
-    const debugPage = await debugContext.newPage();
-    try {
-      await stubMap(debugPage);
-      await debugPage.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
-      await debugPage.waitForTimeout(200);
 
       // Repeat one wrong guess deliberately - it should collapse to a
       // single pin instead of stacking duplicates.
-      await guess(debugPage, FILLER_GUESSES[0]);
-      await guess(debugPage, FILLER_GUESSES[1]);
-      await guess(debugPage, FILLER_GUESSES[0]);
-      await guess(debugPage, FILLER_GUESSES[2]);
-      await guess(debugPage, FILLER_GUESSES[3]);
-      if (!(await debugPage.locator('#reveal').isVisible())) {
-        await guess(debugPage, FILLER_GUESSES[4]);
+      await guess(page, FILLER_GUESSES[0]);
+      await guess(page, FILLER_GUESSES[1]);
+      await guess(page, FILLER_GUESSES[0]);
+      await guess(page, FILLER_GUESSES[2]);
+      await guess(page, FILLER_GUESSES[3]);
+      if (!(await page.locator('#reveal').isVisible())) {
+        await guess(page, FILLER_GUESSES[4]);
       }
-      assert.strictEqual(await debugPage.locator('#reveal').isVisible(), true, 'the round should be over');
+      assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the round should be over');
 
       // Computed inside evaluate() and reduced to plain data before
       // returning - m.el is a DOM element live in the page and doesn't
       // survive the page-to-Node boundary Playwright serializes across.
-      const markers = await debugPage.evaluate(() => (window.__mgMarkers || [])
+      const markers = await page.evaluate(() => (window.__mgMarkers || [])
         .filter((m) => m.className === 'guess-marker')
         .map((m) => ({ pillCount: m.el.querySelectorAll('.guess-marker__pill').length })));
       const uniqueWrongGuesses = new Set(FILLER_GUESSES.slice(0, 4)).size; // FILLER_GUESSES[0] repeated once
       assert.ok(markers.length <= uniqueWrongGuesses, 'expected no more pins than unique wrong guesses, got ' + markers.length);
-      assert.ok(markers.length >= 1, 'expected at least one guess pin under debug mode');
+      assert.ok(markers.length >= 1, 'expected at least one guess pin');
       for (const m of markers) {
         assert.strictEqual(m.pillCount, 1, 'each pin should have exactly one .guess-marker__pill child');
       }
     } finally {
-      await debugContext.close();
+      await context.close();
     }
   });
 

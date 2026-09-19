@@ -179,11 +179,21 @@
 
       .tile--shake { animation: tileShake 0.32s ease; }
 
+      /* --pop-scale lets a chained combo's pop hit visibly harder than
+         a lone match - set inline per tile by render() from the
+         cascade step in play, defaulting here to the original,
+         no-combo intensity when it isn't. */
       .tile--pop { animation: tilePop 0.22s ease forwards; }
 
       .tile--drop { animation: tileDrop 0.26s ease; }
 
       .tile--hint { animation: tileHint 0.9s ease-in-out infinite; }
+
+      /* Slides a tile in from wherever the OTHER half of a swap used to
+         sit, instead of the two just teleporting into their new slots -
+         --swap-dx/--swap-dy are set inline per tile by animateSwapIn()
+         from that tile's own pre-swap bounding rect. */
+      .tile--swap-in { animation: tileSwapIn 0.16s ease; }
 
       @keyframes tileHint {
         0%, 100% { transform: none; }
@@ -197,11 +207,51 @@
         40%, 60% { transform: translateX(6px); }
       }
 
-      @keyframes tilePop { to { transform: scale(1.3); opacity: 0; } }
+      @keyframes tilePop { to { transform: scale(var(--pop-scale, 1.3)); opacity: 0; } }
 
       @keyframes tileDrop {
         from { transform: translateY(-135%); opacity: 0.3; }
         to { transform: none; opacity: 1; }
+      }
+
+      @keyframes tileSwapIn {
+        from { transform: translate(var(--swap-dx, 0), var(--swap-dy, 0)); }
+        to { transform: none; }
+      }
+
+      /* A brief punch-in on the whole board for a 3+ chained combo, on
+         top of each tile's own (bigger) pop - see triggerBoardImpact().
+         A scale pulse rather than reusing .tile--shake's motion, since
+         shake already reads as "invalid move" (flashInvalid()) and a
+         big combo is the opposite of that. */
+      .board--impact { animation: boardImpact 0.25s ease; }
+
+      @keyframes boardImpact {
+        0%, 100% { transform: scale(1); }
+        30% { transform: scale(1.015); }
+      }
+
+      /* A "+N" that rises and fades over a match, positioned by
+         showScorePopup() from the matched group's own on-screen
+         centroid - absolute against .board-wrap (position: relative
+         above), which is also why it's excluded from .board's own
+         full-teardown render() (a sibling, not a board child). */
+      .score-popup {
+        position: absolute;
+        pointer-events: none;
+        font-weight: 800;
+        font-size: 1.05rem;
+        color: var(--ok);
+        text-shadow: 0 1px 3px var(--shadow);
+        transform: translate(-50%, -50%);
+        animation: scorePopupRise 0.7s ease forwards;
+        z-index: 10;
+      }
+
+      @keyframes scorePopupRise {
+        0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        15% { transform: translate(-50%, -60%) scale(1.05); opacity: 1; }
+        100% { transform: translate(-50%, -160%) scale(1); opacity: 0; }
       }
 
       .toast {
@@ -394,7 +444,7 @@
 
         <p class="toast" id="toast" aria-live="polite"></p>
 
-        <div class="board-wrap">
+        <div class="board-wrap" id="board-wrap">
           <div class="board" id="board" style="--cols: 7;"></div>
 
           <div class="start-overlay" id="start-overlay">
@@ -473,7 +523,9 @@
         var ROUND_SECONDS = 60;
         var POP_MS = 220;
         var DROP_MS = 260;
-        var SWAP_MS = 140;
+        // Slightly longer than .tile--swap-in's own 0.16s animation so
+        // resolveStep() never cuts the slide short.
+        var SWAP_MS = 180;
         var HINT_IDLE_MS = 5000;
         var HARD_MODE_MULTIPLIER = 2;
         var SHARE_URL = 'https://metrordle.com/metrocrush/';
@@ -827,6 +879,86 @@
           return els.board.children[r * COLS + c];
         }
 
+        // Slides a just-rendered tile in from where the OTHER half of
+        // its swap used to sit (fromRect), relative to this tile's own
+        // new position (toRect) - both real bounding rects captured
+        // before the swap, so the distance is exact regardless of
+        // viewport size/grid gap, no hardcoded measurements needed.
+        // Mirrors flashInvalid()'s trick below of poking the
+        // just-rendered DOM directly by position rather than routing
+        // this one-shot cue through state/render().
+        function animateSwapIn(cell, fromRect, toRect) {
+          var el = tileElementAt(cell[0], cell[1]);
+          if (!el) return;
+          el.style.setProperty('--swap-dx', (fromRect.left - toRect.left) + 'px');
+          el.style.setProperty('--swap-dy', (fromRect.top - toRect.top) + 'px');
+          el.classList.add('tile--swap-in');
+        }
+
+        // Scales a match's pop-out further for each additional step
+        // already resolved in the same cascade (comboStep is 1 for a
+        // standalone match), so a long chain visibly hits harder than
+        // the first pop in it - capped so an extreme cascade doesn't
+        // balloon into something silly-looking.
+        function popScaleForCombo(comboStep) {
+          return 1.3 + Math.min(comboStep - 1, 3) * 0.15;
+        }
+
+        var boardImpactTimer = null;
+
+        // A brief whole-board punch-in for a 3+ chained combo, layered
+        // on top of each matched tile's own (bigger, see
+        // popScaleForCombo()) pop. classList.remove() + a forced reflow
+        // before re-adding lets this restart mid-animation if combos
+        // keep chaining faster than .board--impact's own 0.25s.
+        function triggerBoardImpact() {
+          els.board.classList.remove('board--impact');
+          void els.board.offsetWidth;
+          els.board.classList.add('board--impact');
+          if (boardImpactTimer) clearTimeout(boardImpactTimer);
+          boardImpactTimer = setTimeout(function () {
+            els.board.classList.remove('board--impact');
+          }, delay(280));
+        }
+
+        // Average on-screen center (relative to .board-wrap, the
+        // positioned ancestor a score popup is placed against) of every
+        // matched cell, read from the just-rendered pop-phase DOM
+        // rather than computed from grid math - exact regardless of
+        // viewport size/gap. Returns null if none of the matched tiles
+        // could be found (shouldn't happen, but a missing popup is a
+        // much smaller problem than a crash on a would-be edge case).
+        function matchCentroid(matchedKeys) {
+          var wrapRect = els.boardWrap.getBoundingClientRect();
+          var sumX = 0, sumY = 0, count = 0;
+          matchedKeys.forEach(function (k) {
+            var parts = k.split(',');
+            var el = tileElementAt(+parts[0], +parts[1]);
+            if (!el) return;
+            var rect = el.getBoundingClientRect();
+            sumX += rect.left + rect.width / 2;
+            sumY += rect.top + rect.height / 2;
+            count++;
+          });
+          if (count === 0) return null;
+          return { x: sumX / count - wrapRect.left, y: sumY / count - wrapRect.top };
+        }
+
+        // A "+N" (or "×comboStep +N" mid-cascade) that rises and fades
+        // over where a match just popped - purely decorative, appended
+        // straight to .board-wrap (a sibling of .board, so it survives
+        // .board's own innerHTML teardown on the very next render()) and
+        // removed on its own timer once the rise animation finishes.
+        function showScorePopup(origin, points, comboStep) {
+          var el = document.createElement('div');
+          el.className = 'score-popup';
+          el.style.left = origin.x + 'px';
+          el.style.top = origin.y + 'px';
+          el.textContent = (comboStep > 1 ? '×' + comboStep + ' ' : '') + '+' + points;
+          els.boardWrap.appendChild(el);
+          setTimeout(function () { el.remove(); }, delay(700));
+        }
+
         // Nudges a stuck or thinking player: if 5s pass with no swap
         // attempt, one tile from a real valid move starts bouncing until
         // the next interaction clears it (see every call site below -
@@ -927,6 +1059,10 @@
                 btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
 
                 if (flag) btn.className += ' tile--' + flag;
+                // cascadeStep still holds the count of matches already
+                // resolved BEFORE this one at pop time (see
+                // resolveStep()), so + 1 is this match's own combo step.
+                if (flag === 'pop') btn.style.setProperty('--pop-scale', String(popScaleForCombo(state.cascadeStep + 1)));
 
                 if (state.selected && state.selected[0] === r && state.selected[1] === c) {
                   btn.className += ' tile--selected';
@@ -978,6 +1114,11 @@
 
           var a = state.selected;
           var b = [r, c];
+          // Captured before the swap (and well before the next
+          // render() tears these exact elements down) so a valid swap
+          // can slide each tile in from the other's real on-screen spot.
+          var rectA = tileElementAt(a[0], a[1]).getBoundingClientRect();
+          var rectB = tileElementAt(b[0], b[1]).getBoundingClientRect();
           swapCells(state.board, a, b);
           var wouldMatch = findMatches(state.board).matched.size > 0;
 
@@ -994,6 +1135,8 @@
           state.busy = true;
           state.cascadeStep = 0;
           render();
+          animateSwapIn(a, rectB, rectA);
+          animateSwapIn(b, rectA, rectB);
 
           setTimeout(function () { resolveStep(); }, delay(SWAP_MS));
         }
@@ -1034,6 +1177,14 @@
           result.matched.forEach(function (k) { state.flagged[k] = 'pop'; });
           render();
 
+          // comboStep here is this match's own step in the chain (see
+          // popScaleForCombo()'s comment) - both the board-wide impact
+          // and the popup's "×N" prefix want that same number, computed
+          // once before cascadeStep itself increments below.
+          var comboStep = state.cascadeStep + 1;
+          if (comboStep >= 3) triggerBoardImpact();
+          var popupOrigin = matchCentroid(result.matched);
+
           setTimeout(function () {
             if (state.status !== 'playing') return;
 
@@ -1045,6 +1196,8 @@
             state.score += stepPoints;
             state.maxCombo = Math.max(state.maxCombo, state.cascadeStep);
             state.maxRunSeen = Math.max(state.maxRunSeen, result.maxRun);
+
+            if (popupOrigin) showScorePopup(popupOrigin, stepPoints, comboStep);
 
             result.matched.forEach(function (k) {
               var parts = k.split(',');
@@ -1326,6 +1479,7 @@
             timerTrack: $('timer-track'),
             timerBar: $('timer-bar'),
             toast: $('toast'),
+            boardWrap: $('board-wrap'),
             board: $('board'),
             startOverlay: $('start-overlay'),
             startNormalBtn: $('start-normal-btn'),

@@ -29,9 +29,21 @@ Site copy/UI is in Spanish (`es-MX`).
   while playing, same as this game always worked before the split;
   normal mode leaves it free throughout. Either way the map unlocks and
   swaps in the target's real station-icon badge (Metro Crush's
-  pictogram style, colored by line) once the round ends. Has its own
-  leaderboard (see below) and core-mechanics + leaderboard Playwright
-  coverage under `tests/metroguessr/`.
+  pictogram style, colored by line) once the round ends. Once the first
+  guess is in, a hint button unlocks - up to two sequential hints,
+  each burning one of the round's 5 attempts like a wrong guess would:
+  the first reveals the target's line (recolors the live marker to
+  that line's color and names it in `#hint-status`, since color alone
+  isn't accessible), the second reveals street/place labels early
+  (`setLabelsVisible(true)`, otherwise only shown once the round ends).
+  Tracked as `state.hintsUsed` (0-2), kept separate from
+  `state.guesses` since a hint has no station name/distance of its own
+  and must not show up as a fake guess in the history chips or map
+  pins - `state.attempts` is `guesses.length + hintsUsed`, and that's
+  what's submitted to the leaderboard (not `guesses.length` alone), so
+  a hint-assisted win still ranks behind an unassisted one at the same
+  guess count. Has its own leaderboard (see below) and core-mechanics +
+  leaderboard Playwright coverage under `tests/metroguessr/`.
 - **`/metrocrush/`** - Metrordle: Metro Crush: swap two adjacent stations
   to form rows of 3+ of the same line before a 60-second timer runs out,
   Bejeweled-style, with a normal/hard mode toggle (hard hides each

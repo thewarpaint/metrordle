@@ -88,22 +88,26 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // metroguessr-leaderboard/{dateKey}/entries/{aliasId} - ranked
-    // ascending (fewer attempts is better), same shape as Metrordle's own
-    // attempts field but without a hard-mode split - Metroguessr has no
-    // hard mode. Bounded 1-5 since only a win submits (see submitScore()
-    // in metroguessr/index.html) and MAX_ATTEMPTS there is 5.
+    // metroguessr-leaderboard/{dateKey}/entries/{aliasId} - ranked by
+    // fewest attempts, with a hard-mode entry beating a normal-mode
+    // entry at the same attempts count, same convention as Metrordle's
+    // own combined leaderboard (see renderLeaderboard()'s orderBySpecs)
+    // - the hardMode field just needs to be a plausible bool here, the
+    // ordering itself lives client-side. Bounded 1-5 since only a win
+    // submits (see submitScore() in metroguessr/index.html) and
+    // MAX_ATTEMPTS there is 5.
     match /metroguessr-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'attempts', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.attempts is int &&
         request.resource.data.attempts >= 1 &&
         request.resource.data.attempts <= 5 &&
+        request.resource.data.hardMode is bool &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

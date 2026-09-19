@@ -23,12 +23,15 @@ Site copy/UI is in Spanish (`es-MX`).
   pairing station icons with names.
 - **`/metroguessr/`** - Metrordle: Metroguessr: guess the Metro station
   marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
-  distance + compass direction after each guess. Map is locked
-  (no pan/zoom) while playing; unlocks and swaps in the target's real
-  station-icon badge (Metro Crush's pictogram style, colored by line) once
-  the round ends. Has its own leaderboard (see below) but **no committed
-  Playwright tests yet** - only verified via ad-hoc scratchpad scripts
-  so far, not `tests/`.
+  distance + compass direction after each guess. Has a "normal"/"hard"
+  mode toggle (`state.mode`), chosen via a modal on a fresh day, same
+  pattern as Metrordle's own - hard mode locks the map (no pan/zoom)
+  while playing, same as this game always worked before the split;
+  normal mode leaves it free throughout. Either way the map unlocks and
+  swaps in the target's real station-icon badge (Metro Crush's
+  pictogram style, colored by line) once the round ends. Has its own
+  leaderboard (see below) and core-mechanics + leaderboard Playwright
+  coverage under `tests/metroguessr/`.
 - **`/metrocrush/`** - Metrordle: Metro Crush: swap two adjacent stations
   to form rows of 3+ of the same line before a 60-second timer runs out,
   Bejeweled-style, with a normal/hard mode toggle (hard hides each
@@ -64,11 +67,15 @@ are impossible without a debug override.
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
   the whole file), and cross-game primitives (`.wrap`, `.brand`,
-  `.sign`, `.date-debug`/`.chev` date-nav, `.btn-primary`/`.btn-secondary`,
-  `.leaderboard*`). Game-specific CSS (including a game's own
-  leaderboard sizing deltas, if any) lives in that page's own `<style>`
-  block - **put any leaderboard styling shared by 2+ games in
-  `shared.css`, not copy-pasted per page** (already happened once).
+  `.sign`, `.date-debug`/`.chev` date-nav, `.debug-mode-toggle`,
+  `.mode-modal`/`.mode-option*` pre-game normal/hard choice,
+  `.btn-primary`/`.btn-secondary`, `.leaderboard*` including the
+  `.leaderboard__score-badge` hard-mode 🧠 flag). Game-specific CSS
+  (including a game's own leaderboard sizing deltas, if any) lives in
+  that page's own `<style>` block - **put any styling shared by 2+
+  pages in `shared.css`, not copy-pasted per page** (this has already
+  happened more than once - check for an existing shared rule before
+  adding a new page's version of something another game already has).
 - **`firebase-config.js`** - **contains the real, live Firebase
   project's credentials on `main`.** See "Firebase credential safety"
   below before ever running tests locally.
@@ -114,9 +121,11 @@ asc is always auto-appended as the final tiebreak by
   JS comparator ordering `false < true`).
 - Laberinto: fewest stations, then fewest transfers, both ascending.
 - Memoria: highest score, descending.
-- Metroguessr: fewest attempts, ascending (`[['attempts','asc']]`) - like
-  Metrordle/Laberinto, not Memoria: a loss has no meaningful "attempts to
-  solve," so (see below) it only submits on a win.
+- Metroguessr: fewest attempts, hard-mode beats normal-mode at a tie -
+  same shape as Metrordle's own combined ranking
+  (`[['attempts','asc'],['hardMode','desc']]`). Like Metrordle/Laberinto,
+  not Memoria: a loss has no meaningful "attempts to solve," so (see
+  below) it only submits on a win.
 - Metro Crush: highest score, descending - same shape as Memoria's, but
   a cumulative round total rather than a fixed-size puzzle's score, so
   its Firestore rule bounds `score` generously (20000) instead of

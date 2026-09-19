@@ -3,16 +3,17 @@
 // Covers Metroguessr's core mechanics: the daily target pick (and its
 // no-repeat-per-cycle guarantee from NO_REPEAT_CUTOVER_DATE_KEY on -
 // see metroguessr/index.html's pickTarget()), the guess/history flow,
-// win/loss reveal, the reveal-map distance/direction guess pins, and
-// persistence across reload. The real map (Leaflet/MapLibre/OpenFreeMap)
-// is stubbed - see tests/lib/leaflet-stub.js's own comment for why -
-// so none of this depends on those hosts being reachable or on real
-// tiles rendering; it exercises the game logic layered on top instead.
+// win/loss reveal, the reveal-map distance/direction guess pins, the
+// normal/hard mode choice, and persistence across reload. The real map
+// (Leaflet/MapLibre/OpenFreeMap) is stubbed - see tests/lib/leaflet-stub.js's
+// own comment for why - so none of this depends on those hosts being
+// reachable or on real tiles rendering; it exercises the game logic
+// layered on top instead.
 
 const assert = require('assert');
 const { chromium } = require('playwright');
 const { startServer, test, runAll } = require('../lib/harness');
-const { stubMap, guess, FILLER_GUESSES, playToReveal, revealedTarget } = require('../lib/metroguessr-helpers');
+const { stubMap, chooseMode, guess, FILLER_GUESSES, playToReveal, revealedTarget } = require('../lib/metroguessr-helpers');
 
 async function main() {
   const server = await startServer();
@@ -191,9 +192,12 @@ async function main() {
     try {
       await stubMap(page);
       // No ?debug=true - these pins are an ordinary part of the reveal
-      // now, not a debugging aid gated behind date-nav testing.
+      // now, not a debugging aid gated behind date-nav testing. That
+      // also means the mode-modal actually shows (it's skipped under
+      // ?debug=true) - dismiss it before anything else can happen.
       await page.goto(server.baseUrl + '/metroguessr/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
+      await chooseMode(page, 'hard');
 
       // Repeat one wrong guess deliberately - it should collapse to a
       // single pin instead of stacking duplicates.
@@ -221,6 +225,63 @@ async function main() {
       }
     } finally {
       await context.close();
+    }
+  });
+
+  test('a fresh day shows the mode modal, and the chosen mode controls whether the map stays locked', async () => {
+    const DATE = '2026-09-28';
+
+    // Normal mode: the modal shows on a fresh day (no ?debug=true, no
+    // saved state) and picking it leaves the map free to drag/zoom
+    // immediately, not just once the round ends.
+    const normalContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const normalPage = await normalContext.newPage();
+    try {
+      await stubMap(normalPage);
+      await normalPage.goto(server.baseUrl + '/metroguessr/?date=' + DATE, { waitUntil: 'networkidle' });
+      await normalPage.waitForTimeout(150);
+      assert.strictEqual(await normalPage.locator('#mode-modal').isVisible(), true, 'expected the mode modal on a fresh day');
+
+      await normalPage.click('#mode-normal-btn');
+      await normalPage.waitForTimeout(100);
+      assert.strictEqual(await normalPage.locator('#mode-modal').isVisible(), false, 'expected the modal to close after picking a mode');
+
+      const draggingEnabled = await normalPage.evaluate(() => window.__mgHandlers.dragging._enabled);
+      assert.strictEqual(draggingEnabled, true, 'expected the map to be draggable immediately in normal mode');
+
+      // Mode (like the rest of the round) is only persisted once there's
+      // an actual guess to save alongside it (see persistState()) - a
+      // reload before that point has nothing saved yet either way, so
+      // the modal reappearing there just means "nothing happened yet,"
+      // not a lost choice. Make one guess first, matching what a real
+      // reload-mid-round actually looks like.
+      await guess(normalPage, FILLER_GUESSES[0]);
+      await normalPage.reload({ waitUntil: 'networkidle' });
+      await normalPage.waitForTimeout(150);
+      assert.strictEqual(await normalPage.locator('#mode-modal').isVisible(), false, 'expected no second mode prompt on a reload after a real guess');
+
+      const draggingStillEnabled = await normalPage.evaluate(() => window.__mgHandlers.dragging._enabled);
+      assert.strictEqual(draggingStillEnabled, true, 'expected normal mode to survive the reload');
+    } finally {
+      await normalContext.close();
+    }
+
+    // Hard mode: a different fresh day, picking hard keeps the map
+    // locked while playing - the pre-existing behavior from before the
+    // normal/hard split.
+    const hardContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const hardPage = await hardContext.newPage();
+    try {
+      await stubMap(hardPage);
+      await hardPage.goto(server.baseUrl + '/metroguessr/?date=2026-09-29', { waitUntil: 'networkidle' });
+      await hardPage.waitForTimeout(150);
+      await hardPage.click('#mode-hard-btn');
+      await hardPage.waitForTimeout(100);
+
+      const draggingEnabled = await hardPage.evaluate(() => window.__mgHandlers.dragging._enabled);
+      assert.strictEqual(draggingEnabled, false, 'expected the map to stay locked while playing in hard mode');
+    } finally {
+      await hardContext.close();
     }
   });
 

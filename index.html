@@ -53,101 +53,6 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       }
 
-      .mode-modal {
-        align-items: center;
-        display: flex;
-        inset: 0;
-        justify-content: center;
-        padding: 1rem;
-        position: fixed;
-        z-index: 50;
-      }
-
-      .mode-modal[hidden] {
-        display: none;
-      }
-
-      .mode-modal__backdrop {
-        background: rgba(20, 24, 26, 0.55);
-        inset: 0;
-        position: absolute;
-      }
-
-      .mode-modal__card {
-        background: var(--paper-raised);
-        border: 3px solid var(--rule-strong);
-        border-radius: 0.6rem;
-        box-shadow: 0 10px 26px var(--shadow);
-        max-width: 26rem;
-        padding: 1.3rem;
-        position: relative;
-        width: 100%;
-      }
-
-      .mode-modal__card h2 {
-        font-family: 'Overpass', sans-serif;
-        font-size: 1.2rem;
-        font-weight: 800;
-        margin: 0 0 0.4rem;
-      }
-
-      .mode-modal__dek {
-        color: var(--ink-soft);
-        font-size: 0.88rem;
-        line-height: 1.4;
-        margin: 0 0 1rem;
-      }
-
-      .mode-modal__options {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-      }
-
-      .mode-option {
-        background: var(--paper);
-        border: 2px solid var(--rule-strong);
-        border-radius: 0.5rem;
-        color: var(--ink);
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        font-family: 'Overpass', sans-serif;
-        gap: 0.15rem;
-        padding: 0.9rem 1rem;
-        text-align: left;
-        transition: border-color 0.2s ease, transform 0.05s ease;
-      }
-
-      .mode-option:hover {
-        border-color: var(--line);
-      }
-
-      .mode-option:active {
-        transform: scale(0.98);
-      }
-
-      .mode-option--hard {
-        border-color: var(--danger);
-      }
-
-      .mode-option--hard:hover {
-        border-color: var(--danger);
-      }
-
-      .mode-option__title {
-        font-size: 1rem;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-      }
-
-      .mode-option__desc {
-        color: var(--ink-soft);
-        font-size: 0.8rem;
-        font-weight: 400;
-      }
-
       .roundel-row {
         align-items: center;
         display: flex;
@@ -608,20 +513,14 @@
       }
 
       /* Metrordle-only leaderboard styling: everything else
-         (.leaderboard, .leaderboard__title, .leaderboard__row, etc.) now
-         lives in shared.css, common to every game with a leaderboard.
-         This page is the only one that combines normal/hard-mode into
-         one ranking, so it's also the only one that needs a badge next
-         to the plain attempts count. */
+         (.leaderboard, .leaderboard__title, .leaderboard__row, etc.,
+         including .leaderboard__score-badge - identical across every
+         game with a hard-mode badge) now lives in shared.css. The
+         number's own width stays here since it's always one digit for
+         this page's attempts count, unlike e.g. Metro Crush's score. */
       .leaderboard__score {
         align-items: center;
         display: flex;
-      }
-
-      .leaderboard__score-badge {
-        flex: none;
-        text-align: center;
-        width: 1.1rem;
       }
 
       .leaderboard__score-number {

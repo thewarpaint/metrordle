@@ -153,6 +153,107 @@ a {
   border-color: var(--line);
 }
 
+/* Pre-game normal/hard mode choice, shown on a fresh (not-yet-played)
+   day - originally Metrordle-only, moved here once Metroguessr needed
+   the identical dialog too (see AGENTS.md's "put shared styling in
+   shared.css, not copy-pasted per page"). Each page's own <script>
+   still owns exactly when it shows/hides this and what "hard" means
+   for that game. */
+.mode-modal {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 50;
+}
+
+.mode-modal[hidden] {
+  display: none;
+}
+
+.mode-modal__backdrop {
+  background: rgba(20, 24, 26, 0.55);
+  inset: 0;
+  position: absolute;
+}
+
+.mode-modal__card {
+  background: var(--paper-raised);
+  border: 3px solid var(--rule-strong);
+  border-radius: 0.6rem;
+  box-shadow: 0 10px 26px var(--shadow);
+  max-width: 26rem;
+  padding: 1.3rem;
+  position: relative;
+  width: 100%;
+}
+
+.mode-modal__card h2 {
+  font-family: 'Overpass', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0 0 0.4rem;
+}
+
+.mode-modal__dek {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0 0 1rem;
+}
+
+.mode-modal__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mode-option {
+  background: var(--paper);
+  border: 2px solid var(--rule-strong);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Overpass', sans-serif;
+  gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  text-align: left;
+  transition: border-color 0.2s ease, transform 0.05s ease;
+}
+
+.mode-option:hover {
+  border-color: var(--line);
+}
+
+.mode-option:active {
+  transform: scale(0.98);
+}
+
+.mode-option--hard {
+  border-color: var(--danger);
+}
+
+.mode-option--hard:hover {
+  border-color: var(--danger);
+}
+
+.mode-option__title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mode-option__desc {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
 .sign {
   background: var(--paper-raised);
   border: 3px solid var(--rule-strong);
@@ -336,10 +437,20 @@ h1 {
 }
 
 /* Daily leaderboard (Firestore-backed) - shared by every game that has
-   one (Metrordle, Laberinto, Memoria, Metroguessr). Metrordle's own combined
-   normal/hard-mode score display (.leaderboard__score-badge/-number, and
-   the flex layout on .leaderboard__score itself) stays local to its own
-   page, since no other game needs it. */
+   one (Metrordle, Laberinto, Memoria, Metroguessr, Metro Crush). The
+   badge+number combined score display (Metrordle/Metro Crush/
+   Metroguessr's own normal/hard-mode 🧠 badge next to the number) got
+   copy-pasted per page a couple of times before this was caught -
+   .leaderboard__score-badge is identical across all three, so it lives
+   here; .leaderboard__score's own flex layout and .leaderboard__score-number's
+   width stay page-local, since they genuinely differ (Metrordle/
+   Metroguessr's number is always one digit, Metro Crush's can run to
+   several). */
+.leaderboard__score-badge {
+  flex: none;
+  text-align: center;
+  width: 1.1rem;
+}
 
 .leaderboard {
   margin-bottom: 1.1rem;

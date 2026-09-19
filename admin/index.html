@@ -104,35 +104,30 @@
         white-space: nowrap;
       }
 
-      /* Metrordle's and Metro Crush's scores are both a two-slot
-         badge+number cell (see /index.html and /metrocrush/index.html) -
-         the fixed width on the badge keeps the 🧠 hard-mode flag in its
-         own column, aligned down the list whether or not a given row
-         has one, and the gap keeps it from sitting flush against the
-         number. Metrordle's number needs no further help: its attempts
-         count is always exactly one digit, so it's already the same
-         width on every row. Metro Crush's score isn't - a 5 vs. a
-         999999 render at very different widths, and since .leaderboard__
-         score itself has no fixed width, a wider number pushes the
-         WHOLE badge+number block (and so the badge) further left,
-         breaking the badge's own column alignment despite its fixed
-         width. leaderboard__score-number--wide (used only for Metro
-         Crush, see its GAMES entry below) fixes that with a min-width
-         sized to firestore.rules' own 20000 ceiling for that collection
-         (5 digits) plus right-alignment, so the badge lands at the same
-         spot on every row unless a score is large enough to need more
-         room than that. Laberinto/Memoria/Metroguessr use the simpler
-         plain variant below. */
+      /* Metrordle's, Metroguessr's, and Metro Crush's scores are all a
+         two-slot badge+number cell (see /index.html, /metroguessr/index.html,
+         and /metrocrush/index.html) - .leaderboard__score-badge itself
+         (the fixed-width column the 🧠 hard-mode flag lives in,
+         aligned down the list whether or not a given row has one) is
+         shared, see shared.css; the gap here keeps it from sitting
+         flush against the number. Metrordle's/Metroguessr's number
+         needs no further help: their attempts count is always exactly
+         one digit, so it's already the same width on every row. Metro
+         Crush's score isn't - a 5 vs. a 999999 render at very different
+         widths, and since .leaderboard__score itself has no fixed
+         width, a wider number pushes the WHOLE badge+number block (and
+         so the badge) further left, breaking the badge's own column
+         alignment despite its fixed width. leaderboard__score-number--wide
+         (used only for Metro Crush, see its GAMES entry below) fixes
+         that with a min-width sized to firestore.rules' own 20000
+         ceiling for that collection (5 digits) plus right-alignment,
+         so the badge lands at the same spot on every row unless a
+         score is large enough to need more room than that.
+         Laberinto/Memoria use the simpler plain variant below. */
       .leaderboard__score {
         align-items: center;
         display: flex;
         gap: 0.35rem;
-      }
-
-      .leaderboard__score-badge {
-        flex: none;
-        text-align: center;
-        width: 1.1rem;
       }
 
       .leaderboard__score-number {
@@ -368,12 +363,22 @@
             key: 'metroguessr',
             collection: 'metroguessr-leaderboard',
             startDateKey: '2026-09-12',
-            orderBySpecs: [['attempts', 'asc']],
+            orderBySpecs: [['attempts', 'asc'], ['hardMode', 'desc']],
             href: '/metroguessr/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
-              score.className = 'leaderboard__score--plain';
-              score.textContent = String(entry.attempts);
+              score.className = 'leaderboard__score';
+
+              var badge = document.createElement('span');
+              badge.className = 'leaderboard__score-badge';
+              if (entry.hardMode) badge.textContent = '🧠';
+
+              var number = document.createElement('span');
+              number.className = 'leaderboard__score-number';
+              number.textContent = entry.attempts;
+
+              score.appendChild(badge);
+              score.appendChild(number);
               return score;
             },
           },

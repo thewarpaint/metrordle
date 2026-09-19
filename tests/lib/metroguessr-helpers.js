@@ -44,6 +44,17 @@ async function guess(page, name) {
   await page.waitForTimeout(120);
 }
 
+// Dismisses the pre-game normal/hard mode-modal by picking `mode` - a
+// no-op if it isn't showing (e.g. under ?debug=true, which always skips
+// it - see startGame() in metroguessr/index.html). Needed by any test
+// that loads the page WITHOUT ?debug=true on a fresh day, since the
+// modal otherwise blocks every other interaction.
+async function chooseMode(page, mode) {
+  const modalShowing = await page.$('#mode-modal:not([hidden])');
+  if (!modalShowing) return;
+  await page.click(mode === 'normal' ? '#mode-normal-btn' : '#mode-hard-btn');
+}
+
 // Five stations spread across different lines/areas of the network -
 // used whenever a test just needs to end a round (win or lose, doesn't
 // matter which - whichever one happens to match that day's real target
@@ -63,6 +74,7 @@ function revealedTarget(page) {
 
 module.exports = {
   stubMap: stubMap,
+  chooseMode: chooseMode,
   guess: guess,
   FILLER_GUESSES: FILLER_GUESSES,
   playToReveal: playToReveal,

@@ -4,8 +4,10 @@
 // prev/next date-nav each game's own ?debug=true mode uses (see
 // index.html's #date-debug), but always on, plus one leaderboard section
 // per game (metrordle-leaderboard, laberinto-leaderboard,
-// memoria-leaderboard), each reusing that game's own collection/
-// orderBySpecs/score-formatting - see admin/index.html's GAMES array.
+// memoria-leaderboard, metroguessr-leaderboard), each reusing that
+// game's own collection/orderBySpecs/score-formatting - see
+// admin/index.html's GAMES array. Metro Crush's own section isn't
+// covered here yet.
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), so the "real data" checks stub
@@ -27,6 +29,9 @@ const SAMPLE_DATA = {
   ],
   'memoria-leaderboard': [
     { id: 'pao', alias: 'Pao', score: 7 },
+  ],
+  'metroguessr-leaderboard': [
+    { id: 'oscar', alias: 'Oscar', attempts: 1, hardMode: true },
   ],
 };
 
@@ -147,6 +152,15 @@ async function main() {
       // Memoria: plain score number.
       const memoriaScore = await page.$eval('#memoria-list .leaderboard__score--plain', (el) => el.textContent);
       assert.strictEqual(memoriaScore, '7');
+
+      // Metroguessr: same badge (left) + fixed-width number (right)
+      // layout as Metrordle's, added once Metroguessr grew its own
+      // normal/hard mode split.
+      const metroguessrRows = page.locator('#metroguessr-list .leaderboard__row');
+      assert.strictEqual(await metroguessrRows.count(), 1);
+      assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Oscar');
+      assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
+      assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-number').textContent(), '1');
 
       // No empty-state message should show once real entries render.
       for (const key of ['metrordle', 'laberinto', 'memoria']) {

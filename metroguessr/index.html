@@ -393,6 +393,21 @@
       .leaderboard__row { font-size: 0.82rem; padding: 0.35rem 0.55rem; }
       .leaderboard__status { font-size: 0.8rem; margin: 0 0 0.5rem; }
 
+      /* Badge-next-to-the-number hard-mode display, same trick as
+         Metrordle's own leaderboard (.leaderboard__score-badge itself
+         is shared, see shared.css) - the number's own width stays here
+         since "N intentos" is longer than Metrordle's bare digit. */
+      .leaderboard__score {
+        align-items: center;
+        display: flex;
+      }
+
+      .leaderboard__score-number {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
       .history-scroll { flex: none; max-height: 4.6rem; overflow-y: auto; }
       .history { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
@@ -441,6 +456,24 @@
     </style>
   </head>
   <body>
+    <div class="mode-modal" id="mode-modal" hidden>
+      <div class="mode-modal__backdrop"></div>
+      <div class="mode-modal__card" role="dialog" aria-modal="true" aria-labelledby="mode-modal-title">
+        <h2 id="mode-modal-title">Elige tu modo</h2>
+        <p class="mode-modal__dek">¿Cómo quieres jugar el Metroguessr de hoy?</p>
+        <div class="mode-modal__options">
+          <button type="button" class="mode-option" id="mode-normal-btn">
+            <span class="mode-option__title">Normal</span>
+            <span class="mode-option__desc">Puedes mover y hacer zoom en el mapa</span>
+          </button>
+          <button type="button" class="mode-option" id="mode-hard-btn">
+            <span class="mode-option__title">Difícil</span>
+            <span class="mode-option__desc">El mapa está bloqueado mientras juegas</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="map-stage">
       <div id="leaflet-map"></div>
     </div>
@@ -451,6 +484,10 @@
         <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug-label" id="date-debug-label"></span>
         <button type="button" class="chev chev--compact" id="date-next" aria-label="Día siguiente">▶</button>
+        <span class="debug-mode-toggle">
+          <button type="button" class="debug-mode-toggle__btn" id="debug-mode-normal" aria-label="Ver modo normal">Normal</button>
+          <button type="button" class="debug-mode-toggle__btn" id="debug-mode-hard" aria-label="Ver modo difícil">Difícil</button>
+        </span>
       </div>
       <div class="pips" id="pips"></div>
     </div>
@@ -764,11 +801,15 @@
             // shipped, so a result saved by an older version won't have
             // it - falling back to false just means one harmless
             // retry-submit next load, same as a genuine earlier failure
-            // would cause (see submitScore()).
+            // would cause (see submitScore()). mode is newer still - a
+            // save from before the normal/hard split didn't have a
+            // choice to make, so it defaults to 'hard', the locked-map
+            // behavior that existed back then.
             return {
               guesses: parsed.guesses,
               done: !!parsed.done,
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
+              mode: parsed.mode === 'normal' ? 'normal' : 'hard',
             };
           } catch (e) {
             return null;
@@ -781,6 +822,7 @@
               guesses: state.guesses,
               done: state.done,
               leaderboardSubmitted: state.leaderboardSubmitted,
+              mode: state.mode,
             }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the
@@ -1030,12 +1072,50 @@
         // --- game state ---
         var debugDate = null;
         var state = null;
+        var pendingGameSetup = null;
+
+        // Remembered across mode-modal choices this session (and used to
+        // pick a mode without asking again under ?debug=true - see
+        // startGame() below) - defaults to 'hard' since that's the
+        // locked-map behavior that existed before this split, not
+        // Metrordle's own 'normal' default (there, normal was always the
+        // pre-existing behavior instead).
+        var lastPickedMode = 'hard';
 
         function startGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
           var target = pickTarget(dateKey, gameNumber);
           var saved = loadSavedState(dateKey);
+
+          pendingGameSetup = { dateKey: dateKey, gameNumber: gameNumber, target: target, saved: saved };
+
+          if (saved) {
+            // Already playing/played today (in whichever mode that was) -
+            // resume as-is, no choice to make.
+            finishStartingGame(saved.mode);
+          } else if (MetroShared.isDebugMode()) {
+            // The date-nav buttons call startGame() on every click; showing
+            // the modal for each fake "fresh day" would make date-browsing
+            // unusable, so debug mode skips it and reuses whatever mode was
+            // last picked (via the modal or the debug mode-toggle buttons).
+            finishStartingGame(lastPickedMode);
+          } else {
+            $('mode-modal').hidden = false;
+          }
+        }
+
+        function resolveModeChoice(mode) {
+          lastPickedMode = mode;
+          $('mode-modal').hidden = true;
+          finishStartingGame(mode);
+        }
+
+        function finishStartingGame(mode) {
+          var dateKey = pendingGameSetup.dateKey;
+          var gameNumber = pendingGameSetup.gameNumber;
+          var target = pendingGameSetup.target;
+          var saved = pendingGameSetup.saved;
 
           state = {
             dateKey: dateKey,
@@ -1045,6 +1125,7 @@
             guesses: saved ? saved.guesses : [],
             done: saved ? !!saved.done : false,
             won: false,
+            mode: mode,
             leaderboardSubmitted: saved ? saved.leaderboardSubmitted : false,
           };
 
@@ -1074,7 +1155,10 @@
           }
 
           setLabelsVisible(false);
-          setMapInteractive(false);
+          // Hard mode keeps the map locked while playing, same as always;
+          // normal mode leaves it free to pan/zoom from the start, same as
+          // it already is once a round ends (see showReveal()).
+          setMapInteractive(state.mode === 'normal');
           if (targetIconMarker) {
             map.removeLayer(targetIconMarker);
             targetIconMarker = null;
@@ -1301,6 +1385,12 @@
         // Also called again once the player sets an alias from the reveal
         // screen, in case a round already finished before they had one.
         //
+        // hardMode is stored alongside attempts so the combined
+        // leaderboard (one ranking, not split by mode) can rank a
+        // hard-mode entry ahead of a normal-mode one at the same
+        // attempts count - same convention as Metrordle's own hardMode
+        // tiebreak.
+        //
         // Skips entirely under ?debug=true - date-nav testing plays
         // through arbitrary past/future days and shouldn't pollute the
         // real leaderboard with them.
@@ -1312,7 +1402,8 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { attempts: state.guesses.length }, {})
+          var fields = { attempts: state.guesses.length, hardMode: state.mode === 'hard' };
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistState();
@@ -1415,7 +1506,7 @@
           // already-submitted day), and blanking the list before the
           // fetch resolves would cause a visible flicker.
 
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc']], {})
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['hardMode', 'desc']], {})
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer
@@ -1454,7 +1545,19 @@
 
                 var score = document.createElement('span');
                 score.className = 'leaderboard__score';
-                score.textContent = entry.attempts + (entry.attempts === 1 ? ' intento' : ' intentos');
+
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                // Matches the share text's own "🧠 Modo difícil" wording
+                // (see buildShareText()).
+                if (entry.hardMode) badge.textContent = '🧠';
+
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number';
+                number.textContent = entry.attempts + (entry.attempts === 1 ? ' intento' : ' intentos');
+
+                score.appendChild(badge);
+                score.appendChild(number);
 
                 li.appendChild(rank);
                 li.appendChild(name);
@@ -1497,8 +1600,9 @@
 
         function buildShareText() {
           var lines = state.guesses.map(shareLineFor).join('\n');
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
-          return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' +
+          return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' + hardModeLine +
             lines + '\n\n' +
             SHARE_URL;
         }
@@ -1601,6 +1705,9 @@
 
         $('share-btn').addEventListener('click', shareResult);
 
+        $('mode-normal-btn').addEventListener('click', function () { resolveModeChoice('normal'); });
+        $('mode-hard-btn').addEventListener('click', function () { resolveModeChoice('hard'); });
+
         // --- debug date-nav (?debug=true) ---
         function shiftDebugDate(deltaDays) {
           var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
@@ -1621,6 +1728,18 @@
           $('date-row').hidden = false;
           $('date-prev').addEventListener('click', function () { shiftDebugDate(-1); });
           $('date-next').addEventListener('click', function () { shiftDebugDate(1); });
+
+          // The real modal never shows in debug mode (see startGame()),
+          // so these are the only way to flip modes while browsing dates -
+          // they re-render the *current* effective day, no date change.
+          $('debug-mode-normal').addEventListener('click', function () {
+            lastPickedMode = 'normal';
+            finishStartingGame('normal');
+          });
+          $('debug-mode-hard').addEventListener('click', function () {
+            lastPickedMode = 'hard';
+            finishStartingGame('hard');
+          });
         }
 
         startGame();

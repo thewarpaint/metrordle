@@ -114,8 +114,28 @@ two players choosing the same alias silently share/overwrite one entry
 
 Per-game conventions, each with its own ranking rule baked into
 `orderBySpecs` (an ordered `[field, 'asc'|'desc']` list; `submittedAt`
-asc is always auto-appended as the final tiebreak by
-`getTopLeaderboardScores()` itself):
+asc is always the final tiebreak). **Only `orderBySpecs[0]` is ever
+passed to Firestore's own `.orderBy()`** - `getTopLeaderboardScores()`
+fetches ordered (and capped) by that one field alone, then applies the
+*whole* `orderBySpecs` list (plus the `submittedAt` tiebreak) itself
+client-side via `compareByOrderSpecs()`. This is deliberate, not an
+optimization to undo: Firestore's `.orderBy(field)` silently **excludes**
+any document missing that field from the query's results entirely (no
+error, just fewer rows) - ordering server-side by every field in
+`orderBySpecs` would silently drop any entry submitted before a later
+field existed on that collection. This isn't hypothetical - it's
+exactly what broke `/admin/`'s Metroguessr leaderboard the day
+`hardMode` was added to its `orderBySpecs`: every entry from earlier
+that same day (before that field existed on writes) vanished from
+every query ordering by it, with nothing visibly erroring anywhere.
+**Adding a new field to an existing collection's `orderBySpecs`
+requires no code changes to stay safe** (the split above already
+handles it, and `compareByOrderSpecs()` treats a missing field as
+`false`/`0` rather than crashing) - just be aware that any entry
+submitted before that PR won't have the new field, and will rank
+accordingly (lowest) until/unless it's backfilled. `orderBySpecs[0]`
+itself doesn't have this risk, since it's each collection's original
+ranking field, present since the collection was created.
 - Metrordle: fewest attempts, hard-mode beats normal-mode at a tie
   (`[['attempts','asc'],['hardMode','desc']]` - relies on Firestore/the
   JS comparator ordering `false < true`).

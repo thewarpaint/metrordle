@@ -96,6 +96,18 @@
 
       .target-marker--live { animation: pulse 1.8s ease-in-out infinite; }
 
+      /* --reveal-line-color set inline by applyHintEffects() once the
+         "reveal línea" hint is used (including on restore after a
+         reload) - recolors the otherwise-neutral live marker to the
+         target's real line color. #hint-status names the line as text
+         too, since color alone isn't enough (including for a colorblind
+         player). */
+      .target-marker--line-revealed {
+        stroke: var(--reveal-line-color, #ffffff);
+        fill: var(--reveal-line-color, #ffffff);
+        fill-opacity: 0.45;
+      }
+
       @keyframes pulse {
         0%, 100% { r: 11; stroke-opacity: 0.95; }
         50% { r: 17; stroke-opacity: 0.3; }
@@ -343,6 +355,28 @@
         margin: 0;
       }
 
+      .hint-btn {
+        flex: none;
+        margin: 0.5rem 0 0;
+      }
+
+      /* shared.css's .btn-secondary sets display:block as an author
+         rule, which otherwise beats the browser's own [hidden] {
+         display: none } UA rule - without this override, toggling the
+         hidden PROPERTY in JS (renderHintButton()) has no visible
+         effect. */
+      .hint-btn[hidden] {
+        display: none;
+      }
+
+      .hint-status {
+        flex: none;
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--ink-soft);
+        margin: 0.35rem 0 0;
+      }
+
       /* flex:1 1 auto + min-height:0 (rather than the flex:none every
          other child here uses) lets this shrink and scroll internally
          once the leaderboard makes it taller than the panel's own
@@ -502,6 +536,9 @@
       </div>
 
       <p class="status-line" id="status-line"></p>
+
+      <button type="button" class="btn-secondary hint-btn" id="hint-btn" hidden></button>
+      <p class="hint-status" id="hint-status" aria-live="polite" hidden></p>
 
       <div class="reveal" id="reveal" hidden>
         <p class="reveal__line">
@@ -810,6 +847,9 @@
               done: !!parsed.done,
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
               mode: parsed.mode === 'normal' ? 'normal' : 'hard',
+              // hintsUsed is newer too - a save from before hints existed
+              // just means no hint was ever used, i.e. 0.
+              hintsUsed: typeof parsed.hintsUsed === 'number' ? parsed.hintsUsed : 0,
             };
           } catch (e) {
             return null;
@@ -823,6 +863,7 @@
               done: state.done,
               leaderboardSubmitted: state.leaderboardSubmitted,
               mode: state.mode,
+              hintsUsed: state.hintsUsed,
             }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the
@@ -1121,8 +1162,9 @@
             dateKey: dateKey,
             gameNumber: gameNumber,
             target: target,
-            attempts: saved ? saved.guesses.length : 0,
+            attempts: (saved ? saved.guesses.length : 0) + (saved ? saved.hintsUsed : 0),
             guesses: saved ? saved.guesses : [],
+            hintsUsed: saved ? saved.hintsUsed : 0,
             done: saved ? !!saved.done : false,
             won: false,
             mode: mode,
@@ -1139,6 +1181,14 @@
           $('history').innerHTML = '';
           state.guesses.forEach(appendHistoryChip);
           renderPips();
+          renderHintButton();
+          // Runs even on a done-day restore below (a stray reload, or
+          // debug date-nav landing back on a day already played with
+          // hints on it) so #hint-status reflects THIS day's
+          // state.hintsUsed rather than whatever an earlier day left it
+          // showing - the live marker's own recoloring is reapplied
+          // separately below, once a fresh round is confirmed.
+          applyHintEffects();
 
           // A day already played is done for good - restore straight into
           // the reveal, same as every other game here, instead of letting
@@ -1166,7 +1216,16 @@
           clearGuessMarkers();
           if (!map.hasLayer(targetMarker)) targetMarker.addTo(map);
           var markerEl = targetMarker.getElement();
-          if (markerEl) markerEl.classList.add('target-marker--live');
+          if (markerEl) {
+            markerEl.classList.add('target-marker--live');
+            // A fresh round reuses this same marker element from whatever
+            // the previous round left it as - clear any line-reveal
+            // leftovers before applyHintEffects() below re-applies them
+            // for THIS round's own state.hintsUsed (0 for a brand new
+            // round, restored back on for an in-progress reload).
+            markerEl.classList.remove('target-marker--line-revealed');
+          }
+          applyHintEffects();
 
           $('reveal').hidden = true;
           $('history-scroll').hidden = false;
@@ -1186,9 +1245,24 @@
         function renderPips() {
           var wrap = $('pips');
           wrap.innerHTML = '';
+          // A hint burns an attempt without pushing to state.guesses, so
+          // pip index i no longer lines up with state.guesses[i] once any
+          // hint has been used - state.guesses[i] would either be the
+          // wrong guess for that pip or (once hints outnumber guesses at
+          // that point) undefined outright. A correct guess always ends
+          // the round immediately, though, so the winning action (if any)
+          // is always the LAST one taken overall, i.e. always at pip
+          // index state.attempts - 1 - checked here against the last
+          // entry in state.guesses rather than any per-index lookup.
+          // This also has to work before state.won is actually set: this
+          // runs during a done-state restore in finishStartingGame()
+          // BEFORE that assignment happens, so it can't rely on it either.
+          var lastGuess = state.guesses.length > 0 ? state.guesses[state.guesses.length - 1] : null;
+          var winPipIndex = (state.done && lastGuess && lastGuess.correct) ? state.attempts - 1 : -1;
           for (var i = 0; i < MAX_ATTEMPTS; i++) {
             var span = document.createElement('span');
-            span.className = 'pip' + (i < state.attempts ? (state.done && state.guesses[i].correct ? ' pip--win' : ' pip--used') : '');
+            var used = i < state.attempts;
+            span.className = 'pip' + (used ? (i === winPipIndex ? ' pip--win' : ' pip--used') : '');
             wrap.appendChild(span);
           }
         }
@@ -1241,6 +1315,7 @@
             var left = MAX_ATTEMPTS - state.attempts;
             $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
           }
+          renderHintButton();
 
           persistState();
 
@@ -1255,6 +1330,76 @@
           state.leaderboardSubmitted = false;
           submitScore();
           showReveal(won);
+        }
+
+        // Unlocked only after the first guess (there's nothing to reveal
+        // yet before then), and only up to two uses - one to reveal the
+        // target's line, one more to reveal street names. Each use burns
+        // one of the round's 5 attempt slots exactly like a wrong guess
+        // does, but WITHOUT pushing a fake entry into state.guesses (a
+        // hint has no station name/distance of its own, and would
+        // otherwise show up as a bogus history chip/map pin) - so
+        // state.attempts and state.guesses.length can diverge from here
+        // on, tracked apart via state.hintsUsed. See renderPips()'s own
+        // comment for how the pip rendering stays correct once that's
+        // true.
+        function useHint() {
+          if (!state || state.done || state.guesses.length === 0 || state.hintsUsed >= 2) return;
+          state.hintsUsed++;
+          state.attempts++;
+          applyHintEffects();
+          renderPips();
+
+          if (state.attempts >= MAX_ATTEMPTS) {
+            endGame(false);
+          } else {
+            var left = MAX_ATTEMPTS - state.attempts;
+            $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
+          }
+          renderHintButton();
+
+          persistState();
+        }
+
+        // Idempotent and safe to call any number of times, since it's
+        // called both right after a live useHint() and again during
+        // finishStartingGame()'s restore path for an in-progress round
+        // that already had one or both hints spent - either way it just
+        // makes the DOM/map match state.hintsUsed as it stands right now.
+        function applyHintEffects() {
+          var hintStatusEl = $('hint-status');
+          if (!state || state.hintsUsed === 0) {
+            hintStatusEl.hidden = true;
+            hintStatusEl.textContent = '';
+            return;
+          }
+
+          var line = lineForStation(state.target);
+          var markerEl = targetMarker.getElement();
+          if (line && markerEl) {
+            markerEl.style.setProperty('--reveal-line-color', line.color);
+            markerEl.classList.add('target-marker--line-revealed');
+          }
+
+          var text = line ? 'Pista: está en la ' + line.name + '.' : '';
+          if (state.hintsUsed >= 2) {
+            setLabelsVisible(true);
+            text += (text ? ' ' : '') + 'Los nombres de calles ya son visibles.';
+          }
+          hintStatusEl.textContent = text;
+          hintStatusEl.hidden = !text;
+        }
+
+        function renderHintButton() {
+          var btn = $('hint-btn');
+          if (!state || state.done || state.guesses.length === 0 || state.hintsUsed >= 2) {
+            btn.hidden = true;
+            return;
+          }
+          btn.hidden = false;
+          btn.textContent = state.hintsUsed === 0
+            ? '🔎 Revelar línea (-1 intento)'
+            : '🔎 Revelar calles (-1 intento)';
         }
 
         function showReveal(won) {
@@ -1402,7 +1547,12 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          var fields = { attempts: state.guesses.length, hardMode: state.mode === 'hard' };
+          // state.attempts, not state.guesses.length - a hint burns an
+          // attempt without adding a guess (see useHint()), and the
+          // leaderboard should rank a hint-assisted win behind an
+          // unassisted one at the same guess count, not hide the hints
+          // used to get there.
+          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard' };
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
@@ -1704,6 +1854,8 @@
         });
 
         $('share-btn').addEventListener('click', shareResult);
+
+        $('hint-btn').addEventListener('click', useHint);
 
         $('mode-normal-btn').addEventListener('click', function () { resolveModeChoice('normal'); });
         $('mode-hard-btn').addEventListener('click', function () { resolveModeChoice('hard'); });

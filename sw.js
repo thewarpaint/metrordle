@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v59';
+var CACHE_NAME = 'metrordle-v60';
 
 // How long a page navigation waits on the network before falling back to
 // the cached version - see the fetch handler below.

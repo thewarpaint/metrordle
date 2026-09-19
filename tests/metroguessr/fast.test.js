@@ -355,6 +355,156 @@ async function main() {
     }
   });
 
+  test('the hint button unlocks after the first guess, reveals the line then street labels, and burns an attempt each time', async () => {
+    const DATE = '2026-09-30';
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      // Figure out today's real target first (via a throwaway session,
+      // in its OWN context - sharing this test's own context would play
+      // that date out to a done state in the shared localStorage before
+      // the main page below ever loads it) so the actual test session
+      // can guess something guaranteed wrong - guessing the target
+      // outright would end the round before any hint could be used.
+      const throwawayContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+      const throwaway = await throwawayContext.newPage();
+      await stubMap(throwaway);
+      await throwaway.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await throwaway.waitForTimeout(150);
+      await playToReveal(throwaway);
+      const target = await revealedTarget(throwaway);
+      await throwawayContext.close();
+      const wrongGuess = FILLER_GUESSES.find((name) => name !== target);
+
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      assert.strictEqual(await page.locator('#hint-btn').isVisible(), false, 'no hint before the first guess');
+
+      await guess(page, wrongGuess);
+      assert.strictEqual(await page.locator('#hint-btn').isVisible(), true, 'expected the hint button after the first guess');
+      assert.ok((await page.locator('#hint-btn').textContent()).includes('línea'), 'first hint should offer to reveal the line');
+      const usedPipsAfterGuess = await page.locator('.pip--used, .pip--win').count();
+
+      await page.click('#hint-btn');
+      await page.waitForTimeout(80);
+
+      const usedPipsAfterHint1 = await page.locator('.pip--used, .pip--win').count();
+      assert.strictEqual(usedPipsAfterHint1, usedPipsAfterGuess + 1, 'a hint should burn one attempt/pip');
+
+      const targetLine = await page.evaluate((name) => {
+        for (var i = 0; i < MetroShared.LINES.length; i++) {
+          if (MetroShared.LINES[i].stations.indexOf(name) !== -1) return MetroShared.LINES[i];
+        }
+        return null;
+      }, target);
+      const markerAfterHint1 = await page.evaluate(() => ({
+        hasClass: window.__mgMarkerEl.classList.contains('target-marker--line-revealed'),
+        color: window.__mgMarkerEl.style.getPropertyValue('--reveal-line-color'),
+      }));
+      assert.strictEqual(markerAfterHint1.hasClass, true, 'the live marker should get the line-revealed class');
+      assert.strictEqual(markerAfterHint1.color, targetLine.color, 'the marker should recolor to the target line\'s color');
+      assert.ok((await page.locator('#hint-status').textContent()).includes(targetLine.name), 'the hint status should name the line as text too');
+
+      assert.ok((await page.locator('#hint-btn').textContent()).includes('calles'), 'second hint should offer to reveal street labels');
+      const labelsBeforeHint2 = await page.evaluate(() => (window.__mgLayoutProps || {})['place-labels']);
+      assert.ok(!labelsBeforeHint2 || labelsBeforeHint2.visibility !== 'visible', 'labels should stay hidden before the second hint');
+
+      await page.click('#hint-btn');
+      await page.waitForTimeout(80);
+
+      const usedPipsAfterHint2 = await page.locator('.pip--used, .pip--win').count();
+      assert.strictEqual(usedPipsAfterHint2, usedPipsAfterHint1 + 1, 'the second hint should also burn one attempt/pip');
+      assert.strictEqual(await page.locator('#hint-btn').isVisible(), false, 'no more hints left after both are used');
+      const labelsAfterHint2 = await page.evaluate(() => (window.__mgLayoutProps || {})['place-labels']);
+      assert.strictEqual(labelsAfterHint2 && labelsAfterHint2.visibility, 'visible', 'the second hint should reveal street labels early');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('hint state survives a reload mid-round', async () => {
+    const DATE = '2026-10-01';
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    try {
+      const throwawayContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+      const throwaway = await throwawayContext.newPage();
+      await stubMap(throwaway);
+      await throwaway.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await throwaway.waitForTimeout(150);
+      await playToReveal(throwaway);
+      const target = await revealedTarget(throwaway);
+      await throwawayContext.close();
+      const wrongGuess = FILLER_GUESSES.find((name) => name !== target);
+
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      await guess(page, wrongGuess);
+      await page.click('#hint-btn');
+      await page.waitForTimeout(80);
+      const hintStatusBefore = await page.locator('#hint-status').textContent();
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      assert.ok((await page.locator('#hint-btn').textContent()).includes('calles'), 'the second hint should still be offered after reload');
+      assert.strictEqual(await page.locator('#hint-status').textContent(), hintStatusBefore, 'the line hint text should survive the reload');
+      const markerAfterReload = await page.evaluate(() => window.__mgMarkerEl.classList.contains('target-marker--line-revealed'));
+      assert.strictEqual(markerAfterReload, true, 'the marker recoloring should be reapplied after reload');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('using both hints as the final attempts ends the round as a loss', async () => {
+    const DATE = '2026-10-02';
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    try {
+      const throwawayContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+      const throwaway = await throwawayContext.newPage();
+      await stubMap(throwaway);
+      await throwaway.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await throwaway.waitForTimeout(150);
+      await playToReveal(throwaway);
+      const target = await revealedTarget(throwaway);
+      await throwawayContext.close();
+      const wrongGuesses = FILLER_GUESSES.filter((name) => name !== target);
+
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      // Three wrong guesses (3 attempts) + two hints (2 more) = 5, the
+      // round's cap - the round should end right on the second hint,
+      // without needing a fifth guess.
+      await guess(page, wrongGuesses[0]);
+      await guess(page, wrongGuesses[1]);
+      await guess(page, wrongGuesses[2]);
+      assert.strictEqual(await page.locator('#reveal').isVisible(), false, 'three wrong guesses alone should not end the round yet');
+
+      await page.click('#hint-btn');
+      await page.waitForTimeout(80);
+      assert.strictEqual(await page.locator('#reveal').isVisible(), false, 'one hint after three guesses should still leave one attempt');
+
+      await page.click('#hint-btn');
+      await page.waitForTimeout(80);
+
+      assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the fifth burned attempt (via hint) should end the round');
+      assert.strictEqual(await page.locator('#reveal-banner').textContent(), 'Se acabaron los intentos');
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

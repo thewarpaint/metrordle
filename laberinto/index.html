@@ -441,9 +441,26 @@
         // Game #1 is the day Laberinto launched.
         var START_DATE_KEY = '2026-08-26';
 
-        // Minimum puzzle difficulty: reject any origin/destination pair
-        // whose shortest path is shorter than this many stations (5 hops).
+        // Minimum puzzle difficulty (pre-cutover, see
+        // PATH_DIFFICULTY_CUTOVER_DATE_KEY below): reject any
+        // origin/destination pair whose shortest path is shorter than
+        // this many stations (6 hops).
         var MIN_PATH_STATIONS = 7;
+
+        // Everything up to (not including) this date keeps the original
+        // difficulty floor above - just a minimum station count, no
+        // minimum transfer count. That let #23 (2026-09-17) slip through
+        // as a 6-hop, zero-transfer puzzle: origin/destination are always
+        // picked from two different lines, but the actual shortest route
+        // can still avoid switching if either endpoint is also served by
+        // some third line that reaches the other directly. Bumping the
+        // floor retroactively would silently change an already-played
+        // day's puzzle for anyone replaying it via the debug date-nav -
+        // same reasoning as Metroguessr's own NO_REPEAT_CUTOVER_DATE_KEY.
+        // Every day from here on requires a real transfer and a longer
+        // walk instead.
+        var PATH_DIFFICULTY_CUTOVER_DATE_KEY = '2026-09-20';
+        var MIN_STOPS_SINCE_CUTOVER = 10;
 
         var adjacency = buildAdjacency(MetroShared.LINES);
 
@@ -585,9 +602,18 @@
         // one random station from each, so origin and destination always
         // start on different lines. Reject-and-retry (same pattern
         // Metrordle uses for its own shuffle-validity check) until the
-        // shortest path clears the difficulty floor.
+        // shortest path clears the difficulty floor - a plain station
+        // count pre-cutover, or (from PATH_DIFFICULTY_CUTOVER_DATE_KEY on)
+        // both a longer walk AND at least one real transfer, so a repeat
+        // of #23 (see MIN_STOPS_SINCE_CUTOVER's comment above) can't slip
+        // through the same way.
+        //
+        // dateKey and PATH_DIFFICULTY_CUTOVER_DATE_KEY are both
+        // zero-padded 'YYYY-MM-DD' strings, so a plain string comparison
+        // already sorts chronologically - no Date parsing needed.
         function getPuzzleForDateKey(dateKey) {
           var rand = MetroShared.createSeededRandom('metrordle-laberinto-' + dateKey);
+          var useNewDifficulty = dateKey >= PATH_DIFFICULTY_CUTOVER_DATE_KEY;
           var origin, destination, path;
 
           do {
@@ -600,7 +626,9 @@
             origin = lineA.stations[Math.floor(rand() * lineA.stations.length)];
             destination = lineB.stations[Math.floor(rand() * lineB.stations.length)];
             path = shortestPath(origin, destination);
-          } while (!path || path.length < MIN_PATH_STATIONS);
+          } while (!path || (useNewDifficulty
+            ? (countStops(path) < MIN_STOPS_SINCE_CUTOVER || countTransfers(path) < 1)
+            : path.length < MIN_PATH_STATIONS));
 
           return { origin: origin, destination: destination, shortestPath: path };
         }

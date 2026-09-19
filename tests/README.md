@@ -9,7 +9,8 @@ browser would.
 
 Memoria (`memoria/`) has the fullest coverage; Metroguessr
 (`metroguessr/`) has core-mechanics + leaderboard coverage; Laberinto
-(`laberinto/`), the main game (`metrordle/`), and the admin leaderboard
+(`laberinto/`) has a puzzle-difficulty check alongside its leaderboard
+coverage; the main game (`metrordle/`) and the admin leaderboard
 browser (`admin/`) have leaderboard coverage only so far;
 Metro Crush (`metrocrush/`) has none committed yet - still only the
 ad-hoc scratchpad checks used during development. `security/` covers
@@ -42,6 +43,7 @@ npm test               # everything (~95s total)
 npm run test:fast       # fast checks only (~15s)
 npm run test:leaderboard  # Memoria's leaderboard checks (~10s)
 npm run test:lifecycle  # the round-completion checks only (~65s)
+npm run test:laberinto  # Laberinto's puzzle-difficulty checks (~15s)
 npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
 npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 npm run test:metroguessr  # Metroguessr's core-mechanics checks (~15s)
@@ -125,6 +127,25 @@ it's called with the correctly-built share text; a cancelled share sheet
 (`AbortError`) does *not* also fall back to a clipboard copy; a share
 sheet that fails for another reason *does* fall back, with the button
 showing the clipboard-copy confirmation label.
+
+**`laberinto/fast.test.js`** (no real-time waiting - origin/destination
+show in the header as soon as a page loads, without needing to solve
+anything) covers the daily puzzle's difficulty floor
+(`getPuzzleForDateKey()`'s `PATH_DIFFICULTY_CUTOVER_DATE_KEY` split,
+added after Game #23 slipped through as a 6-hop, zero-transfer puzzle -
+origin/destination are always drawn from two different lines, but the
+actual shortest route can still avoid transferring if either endpoint
+happens to also sit on some third, shared line). Each check
+independently recomputes the shortest-path stats for the shown
+origin/destination via its own BFS over `window.MetroShared.LINES`,
+deliberately not calling into the app's own (closure-private)
+`shortestPath()`:
+- Every date on or after the cutover (2026-09-20) needs both a 10+ stop
+  walk and at least one real transfer.
+- Game #23 (2026-09-17) itself, and the day right before the cutover,
+  still only need to clear the old floor (>= 6 stops, no transfer
+  requirement) - proving the new rule doesn't retroactively change an
+  already-played day's puzzle.
 
 **`laberinto/leaderboard.test.js`** (no real-time waiting - plants a
 "won" state with a fabricated path directly in `localStorage`, since

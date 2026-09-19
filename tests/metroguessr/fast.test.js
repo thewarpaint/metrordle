@@ -224,6 +224,34 @@ async function main() {
     }
   });
 
+  test('a narrow (mobile-width) viewport starts one zoom level further out than a wide one', async () => {
+    const DATE = '2026-09-26';
+
+    const narrowContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const narrowPage = await narrowContext.newPage();
+    try {
+      await stubMap(narrowPage);
+      await narrowPage.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await narrowPage.waitForTimeout(150);
+      const narrowZoom = await narrowPage.evaluate(() => window.__mgMap && window.__mgMap._zoom);
+      assert.strictEqual(narrowZoom, 14, 'a 400px-wide (mobile) viewport should start one level further out');
+    } finally {
+      await narrowContext.close();
+    }
+
+    const wideContext = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+    const widePage = await wideContext.newPage();
+    try {
+      await stubMap(widePage);
+      await widePage.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await widePage.waitForTimeout(150);
+      const wideZoom = await widePage.evaluate(() => window.__mgMap && window.__mgMap._zoom);
+      assert.strictEqual(wideZoom, 15, 'a 1200px-wide (desktop) viewport should keep the original zoom level');
+    } finally {
+      await wideContext.close();
+    }
+  });
+
   test('reloading mid-round restores the guesses so far; reloading after the round ends restores the reveal', async () => {
     const DATE = '2026-09-25';
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });

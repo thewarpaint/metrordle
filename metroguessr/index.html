@@ -719,7 +719,12 @@
         }
 
         var MAX_ATTEMPTS = 5;
-        var MAP_ZOOM = 15;
+        // The map fills the full viewport width, so a narrow phone
+        // screen covers noticeably less real-world ground than a wide
+        // desktop browser window at the identical zoom level - one
+        // level further out (a lower number, wider field of view) on a
+        // narrow viewport closes most of that gap.
+        var MAP_ZOOM = (window.matchMedia && window.matchMedia('(max-width: 480px)').matches) ? 14 : 15;
         // OpenFreeMap's vector styles - no API key, no request cap, free
         // for good (donation-funded), unlike the CARTO raster tiles this
         // replaced. Loaded via the maplibre-gl-leaflet bridge (see

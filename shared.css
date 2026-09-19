@@ -233,14 +233,6 @@ a {
   transform: scale(0.98);
 }
 
-.mode-option--hard {
-  border-color: var(--danger);
-}
-
-.mode-option--hard:hover {
-  border-color: var(--danger);
-}
-
 .mode-option__title {
   font-size: 1rem;
   font-weight: 800;

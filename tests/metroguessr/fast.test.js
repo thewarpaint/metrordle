@@ -407,7 +407,18 @@ async function main() {
       }));
       assert.strictEqual(markerAfterHint1.hasClass, true, 'the live marker should get the line-revealed class');
       assert.strictEqual(markerAfterHint1.color, targetLine.color, 'the marker should recolor to the target line\'s color');
-      assert.ok((await page.locator('#hint-status').textContent()).includes(targetLine.name), 'the hint status should name the line as text too');
+
+      // The line number itself lives in a separate small badge marker
+      // pinned on top of the live one, not as text elsewhere on the
+      // page - see applyHintEffects().
+      const lineBadge = await page.evaluate(() => {
+        var m = (window.__mgMarkers || []).find((m) => m.className === 'hint-line-badge');
+        return m ? { text: m.el.textContent, bg: m.el.style.getPropertyValue('--badge-bg'), ink: m.el.style.getPropertyValue('--badge-ink') } : null;
+      });
+      assert.ok(lineBadge, 'expected a hint-line-badge marker after the first hint');
+      assert.strictEqual(lineBadge.text, targetLine.id, 'the badge should show the target line\'s own short id');
+      assert.strictEqual(lineBadge.bg, targetLine.color, 'the badge background should match the target line\'s color');
+      assert.strictEqual(lineBadge.ink, targetLine.textColor, 'the badge text color should match the target line\'s text color');
 
       assert.ok((await page.locator('#hint-btn').textContent()).includes('calles'), 'second hint should offer to reveal street labels');
       const labelsBeforeHint2 = await page.evaluate(() => (window.__mgLayoutProps || {})['place-labels']);
@@ -450,13 +461,21 @@ async function main() {
       await guess(page, wrongGuess);
       await page.click('#hint-btn');
       await page.waitForTimeout(80);
-      const hintStatusBefore = await page.locator('#hint-status').textContent();
+      const badgeTextBefore = await page.evaluate(() => {
+        var m = (window.__mgMarkers || []).find((m) => m.className === 'hint-line-badge');
+        return m ? m.el.textContent : null;
+      });
+      assert.ok(badgeTextBefore, 'expected the hint-line-badge to show before reload');
 
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
       assert.ok((await page.locator('#hint-btn').textContent()).includes('calles'), 'the second hint should still be offered after reload');
-      assert.strictEqual(await page.locator('#hint-status').textContent(), hintStatusBefore, 'the line hint text should survive the reload');
+      const badgeTextAfter = await page.evaluate(() => {
+        var m = (window.__mgMarkers || []).find((m) => m.className === 'hint-line-badge');
+        return m ? m.el.textContent : null;
+      });
+      assert.strictEqual(badgeTextAfter, badgeTextBefore, 'the line badge should survive the reload and still show the same line');
       const markerAfterReload = await page.evaluate(() => window.__mgMarkerEl.classList.contains('target-marker--line-revealed'));
       assert.strictEqual(markerAfterReload, true, 'the marker recoloring should be reapplied after reload');
     } finally {
@@ -500,6 +519,15 @@ async function main() {
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the fifth burned attempt (via hint) should end the round');
       assert.strictEqual(await page.locator('#reveal-banner').textContent(), 'Se acabaron los intentos');
+
+      // The line hint's own badge marker should be cleaned up once the
+      // round ends, same as the plain live marker it was pinned on top
+      // of - otherwise it would linger over the final reveal badge.
+      const hintBadgeStillOnMap = await page.evaluate(() => {
+        var m = (window.__mgMarkers || []).find((m) => m.className === 'hint-line-badge');
+        return m ? window.__mgMap.hasLayer(m.marker) : false;
+      });
+      assert.strictEqual(hintBadgeStillOnMap, false, 'the hint-line-badge marker should be removed from the map once the round ends');
     } finally {
       await context.close();
     }

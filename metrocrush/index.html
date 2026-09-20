@@ -343,6 +343,7 @@
         display: grid;
         gap: 0.5rem;
         grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 1.1rem;
       }
 
       .reveal__stat {
@@ -367,18 +368,27 @@
       }
 
       /* Metro Crush-only leaderboard styling: everything else
-         (.leaderboard, .leaderboard__title, .leaderboard__row, etc.,
-         including .leaderboard__score-badge - identical across every
-         game with a hard-mode badge) lives in shared.css. The number
-         itself gets a min-width + right-align rather than a fixed
-         width - unlike Metrordle/Metroguessr's always-one-digit
-         attempts count, a Metro Crush score can run to several digits,
-         so a fixed width would clip a big one, but with no width at
-         all a short vs. long score shifts the 🧠 badge's own column
-         instead of just the number. min-width covers up to
-         firestore.rules' own 20000 ceiling for this collection (5
-         digits) before it has to grow past that and shift the badge
-         anyway. */
+         (.leaderboard__title, .leaderboard__row, etc., including
+         .leaderboard__score-badge - identical across every game with a
+         hard-mode badge) lives in shared.css. The number itself gets a
+         min-width + right-align rather than a fixed width - unlike
+         Metrordle/Metroguessr's always-one-digit attempts count, a
+         Metro Crush score can run to several digits, so a fixed width
+         would clip a big one, but with no width at all a short vs.
+         long score shifts the 🧠 badge's own column instead of just
+         the number. min-width covers up to firestore.rules' own 20000
+         ceiling for this collection (5 digits) before it has to grow
+         past that and shift the badge anyway. */
+      .leaderboard {
+        /* .reveal (this section's own parent, above) centers
+           everything by default - left-aligned here instead, same
+           fix Metroguessr's own leaderboard already needed for the
+           same reason (Memoria's own .reveal never centers to begin
+           with, so it never needed this), so alias names read like a
+           list rather than each floating in the middle of its row. */
+        text-align: left;
+      }
+
       .leaderboard__score {
         align-items: center;
         display: flex;

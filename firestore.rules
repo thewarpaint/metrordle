@@ -95,12 +95,13 @@ service cloud.firestore {
     // - the hardMode field just needs to be a plausible bool here, the
     // ordering itself lives client-side. Bounded 1-5 since only a win
     // submits (see submitScore() in metroguessr/index.html) and
-    // MAX_ATTEMPTS there is 5.
+    // MAX_ATTEMPTS there is 5. hintsUsed (0-2) is display-only - not
+    // part of orderBySpecs, just the 🪄 count on the leaderboard row.
     match /metroguessr-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'hintsUsed', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -108,6 +109,9 @@ service cloud.firestore {
         request.resource.data.attempts >= 1 &&
         request.resource.data.attempts <= 5 &&
         request.resource.data.hardMode is bool &&
+        request.resource.data.hintsUsed is int &&
+        request.resource.data.hintsUsed >= 0 &&
+        request.resource.data.hintsUsed <= 2 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

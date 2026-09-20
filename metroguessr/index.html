@@ -97,15 +97,35 @@
       .target-marker--live { animation: pulse 1.8s ease-in-out infinite; }
 
       /* --reveal-line-color set inline by applyHintEffects() once the
-         "reveal línea" hint is used (including on restore after a
-         reload) - recolors the otherwise-neutral live marker to the
-         target's real line color. #hint-status names the line as text
-         too, since color alone isn't enough (including for a colorblind
+         "reveal línea" hint is used - recolors the otherwise-neutral
+         live marker to the target's real line color. The line NUMBER
+         itself is named by the separate .hint-line-badge marker below,
+         since color alone isn't enough (including for a colorblind
          player). */
       .target-marker--line-revealed {
         stroke: var(--reveal-line-color, #ffffff);
         fill: var(--reveal-line-color, #ffffff);
         fill-opacity: 0.45;
+      }
+
+      /* The "reveal línea" hint's own badge - a small divIcon marker
+         (see applyHintEffects()) pinned right on top of the live
+         circle marker, showing just the line's short id ('4', 'A',
+         '12', ...). Sized a bit bigger than the live marker's own
+         resting radius (22px across at rest) so the number stays
+         legible. Same --badge-bg/--badge-ink custom-property
+         convention as .target-icon-marker's own reveal badge. */
+      .hint-line-badge {
+        background: var(--badge-bg, var(--ink));
+        color: var(--badge-ink, var(--paper));
+        border-radius: 50%;
+        box-shadow: 0 2px 8px var(--shadow), 0 0 0 2px var(--paper);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Overpass', sans-serif;
+        font-weight: 800;
+        font-size: 0.95rem;
       }
 
       @keyframes pulse {
@@ -355,26 +375,16 @@
         margin: 0;
       }
 
+      /* .guess-btn already gives this the same look as "Adivinar" -
+         this just adds the standalone spacing .guess-form's own flex
+         gap would otherwise have provided. Unlike .btn-secondary
+         (used elsewhere on this page), .guess-btn never sets its own
+         `display`, so toggling the `hidden` PROPERTY in JS
+         (renderHintButton()) is left free to work via the browser's
+         own default [hidden] { display: none } rule. */
       .hint-btn {
         flex: none;
         margin: 0.5rem 0 0;
-      }
-
-      /* shared.css's .btn-secondary sets display:block as an author
-         rule, which otherwise beats the browser's own [hidden] {
-         display: none } UA rule - without this override, toggling the
-         hidden PROPERTY in JS (renderHintButton()) has no visible
-         effect. */
-      .hint-btn[hidden] {
-        display: none;
-      }
-
-      .hint-status {
-        flex: none;
-        text-align: center;
-        font-size: 0.8rem;
-        color: var(--ink-soft);
-        margin: 0.35rem 0 0;
       }
 
       /* flex:1 1 auto + min-height:0 (rather than the flex:none every
@@ -434,6 +444,14 @@
       .leaderboard__score {
         align-items: center;
         display: flex;
+      }
+
+      /* Widened past shared.css's own 1.1rem - unlike every other
+         game's leaderboard, this badge can hold up to three emoji at
+         once (🧠 plus up to two 🪄, one per hint used - see
+         renderLeaderboard()), not just one. */
+      .leaderboard__score-badge {
+        width: 2.5rem;
       }
 
       .leaderboard__score-number {
@@ -537,8 +555,7 @@
 
       <p class="status-line" id="status-line"></p>
 
-      <button type="button" class="btn-secondary hint-btn" id="hint-btn" hidden></button>
-      <p class="hint-status" id="hint-status" aria-live="polite" hidden></p>
+      <button type="button" class="guess-btn hint-btn" id="hint-btn" hidden></button>
 
       <div class="reveal" id="reveal" hidden>
         <p class="reveal__line">
@@ -1078,6 +1095,13 @@
         // that day's target/line).
         var targetIconMarker = null;
 
+        // The "reveal línea" hint's own small badge, pinned on top of
+        // the live targetMarker while a round is still in progress - see
+        // applyHintEffects(). Cleared there (never rebuilt until the
+        // next hint is actually used) and in showReveal() once the
+        // round ends.
+        var hintLineMarker = null;
+
         // One pin per wrong guess, placed at that guess's own station
         // once the round ends - see paintGuessMarkers(). Rebuilt fresh
         // each reveal same as targetIconMarker, and cleared in
@@ -1182,13 +1206,6 @@
           state.guesses.forEach(appendHistoryChip);
           renderPips();
           renderHintButton();
-          // Runs even on a done-day restore below (a stray reload, or
-          // debug date-nav landing back on a day already played with
-          // hints on it) so #hint-status reflects THIS day's
-          // state.hintsUsed rather than whatever an earlier day left it
-          // showing - the live marker's own recoloring is reapplied
-          // separately below, once a fresh round is confirmed.
-          applyHintEffects();
 
           // A day already played is done for good - restore straight into
           // the reveal, same as every other game here, instead of letting
@@ -1216,15 +1233,11 @@
           clearGuessMarkers();
           if (!map.hasLayer(targetMarker)) targetMarker.addTo(map);
           var markerEl = targetMarker.getElement();
-          if (markerEl) {
-            markerEl.classList.add('target-marker--live');
-            // A fresh round reuses this same marker element from whatever
-            // the previous round left it as - clear any line-reveal
-            // leftovers before applyHintEffects() below re-applies them
-            // for THIS round's own state.hintsUsed (0 for a brand new
-            // round, restored back on for an in-progress reload).
-            markerEl.classList.remove('target-marker--line-revealed');
-          }
+          if (markerEl) markerEl.classList.add('target-marker--live');
+          // Idempotent - resets any line-reveal leftovers from whatever
+          // the previous round left this same marker/hintLineMarker as,
+          // then reapplies for THIS round's own state.hintsUsed (0 for a
+          // brand new round, restored back on for an in-progress reload).
           applyHintEffects();
 
           $('reveal').hidden = true;
@@ -1361,33 +1374,52 @@
           persistState();
         }
 
-        // Idempotent and safe to call any number of times, since it's
-        // called both right after a live useHint() and again during
-        // finishStartingGame()'s restore path for an in-progress round
-        // that already had one or both hints spent - either way it just
-        // makes the DOM/map match state.hintsUsed as it stands right now.
+        // Idempotent and safe to call any number of times - always
+        // resets to baseline first (no recolor, no badge), then
+        // reapplies whatever state.hintsUsed calls for right now. Called
+        // both right after a live useHint() and again during
+        // finishStartingGame()'s restore path for a resumed round (0
+        // hints on a brand new one, back on for an in-progress reload) -
+        // resetting unconditionally first is what makes it safe to reuse
+        // across a debug date-nav jump between two different days too,
+        // without needing a separate manual cleanup step at each call
+        // site.
         function applyHintEffects() {
-          var hintStatusEl = $('hint-status');
-          if (!state || state.hintsUsed === 0) {
-            hintStatusEl.hidden = true;
-            hintStatusEl.textContent = '';
-            return;
+          var markerEl = targetMarker.getElement();
+          if (markerEl) markerEl.classList.remove('target-marker--line-revealed');
+          if (hintLineMarker) {
+            map.removeLayer(hintLineMarker);
+            hintLineMarker = null;
           }
 
+          if (!state || state.hintsUsed === 0) return;
+
           var line = lineForStation(state.target);
-          var markerEl = targetMarker.getElement();
           if (line && markerEl) {
             markerEl.style.setProperty('--reveal-line-color', line.color);
             markerEl.classList.add('target-marker--line-revealed');
           }
-
-          var text = line ? 'Pista: está en la ' + line.name + '.' : '';
-          if (state.hintsUsed >= 2) {
-            setLabelsVisible(true);
-            text += (text ? ' ' : '') + 'Los nombres de calles ya son visibles.';
+          if (line) {
+            // A separate small badge marker, pinned right on top of the
+            // live circle, rather than text elsewhere on the page -
+            // naming the line's number right where the target already
+            // is reads faster than a sentence, and doesn't need its own
+            // aria-live line since it's just as discoverable as the
+            // marker itself already was.
+            var pos = stationByName[state.target];
+            hintLineMarker = L.marker([pos.lat, pos.lng], {
+              icon: L.divIcon({ className: 'hint-line-badge', iconSize: [30, 30], iconAnchor: [15, 15] }),
+              interactive: false,
+            }).addTo(map);
+            var badgeEl = hintLineMarker.getElement();
+            if (badgeEl) {
+              badgeEl.style.setProperty('--badge-bg', line.color);
+              badgeEl.style.setProperty('--badge-ink', line.textColor);
+              badgeEl.textContent = line.id;
+            }
           }
-          hintStatusEl.textContent = text;
-          hintStatusEl.hidden = !text;
+
+          if (state.hintsUsed >= 2) setLabelsVisible(true);
         }
 
         function renderHintButton() {
@@ -1398,13 +1430,17 @@
           }
           btn.hidden = false;
           btn.textContent = state.hintsUsed === 0
-            ? '🔎 Revelar línea (-1 intento)'
-            : '🔎 Revelar calles (-1 intento)';
+            ? '🪄 Revelar línea (-1 intento)'
+            : '🪄 Revelar calles (-1 intento)';
         }
 
         function showReveal(won) {
           if (map.hasLayer(targetMarker)) map.removeLayer(targetMarker);
           if (targetIconMarker) map.removeLayer(targetIconMarker);
+          if (hintLineMarker) {
+            map.removeLayer(hintLineMarker);
+            hintLineMarker = null;
+          }
 
           var pos = stationByName[state.target];
           var line = lineForStation(state.target);
@@ -1551,8 +1587,10 @@
           // attempt without adding a guess (see useHint()), and the
           // leaderboard should rank a hint-assisted win behind an
           // unassisted one at the same guess count, not hide the hints
-          // used to get there.
-          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard' };
+          // used to get there. hintsUsed is submitted too, purely for
+          // display (see renderLeaderboard()'s 🪄 badge) - ranking
+          // itself only ever needs attempts/hardMode.
+          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard', hintsUsed: state.hintsUsed };
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
@@ -1698,9 +1736,15 @@
 
                 var badge = document.createElement('span');
                 badge.className = 'leaderboard__score-badge';
-                // Matches the share text's own "🧠 Modo difícil" wording
-                // (see buildShareText()).
-                if (entry.hardMode) badge.textContent = '🧠';
+                // 🧠 matches the share text's own "🧠 Modo difícil"
+                // wording (see buildShareText()). One 🪄 per hint used -
+                // entry.hintsUsed is submitted purely for this display
+                // (see submitScore()), never part of orderBySpecs, so an
+                // entry that predates it just shows no wands rather than
+                // ranking any differently.
+                var badgeText = entry.hardMode ? '🧠' : '';
+                if (entry.hintsUsed) badgeText += '🪄'.repeat(entry.hintsUsed);
+                badge.textContent = badgeText;
 
                 var number = document.createElement('span');
                 number.className = 'leaderboard__score-number';

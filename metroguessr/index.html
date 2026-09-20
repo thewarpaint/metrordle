@@ -450,10 +450,14 @@
          every other game's leaderboard, this badge can hold up to three
          emoji at once (up to two 🪄, one per hint used, plus 🧠 - see
          renderLeaderboard()), not just one, and shared.css's own rule
-         never needed to keep multiple emoji on one line. */
+         never needed to keep multiple emoji on one line. Right-aligned
+         (overriding shared.css's own centered default) so a 1- or
+         2-emoji row's icons sit right next to the score number instead
+         of floating in the middle of this wider column. */
       .leaderboard__score-badge {
         width: 3.4rem;
         white-space: nowrap;
+        text-align: right;
       }
 
       .leaderboard__score-number {

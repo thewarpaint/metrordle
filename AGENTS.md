@@ -54,8 +54,10 @@ Site copy/UI is in Spanish (`es-MX`).
   for display - not part of `orderBySpecs` - rendered as one 🪄 per
   hint used, before the existing 🧠 hard-mode flag, in the same
   `.leaderboard__score-badge` slot (widened past shared.css's default
-  in this page's own CSS, with `white-space: nowrap` added, since it
-  can hold up to three emoji on one line here).
+  in this page's own CSS, with `white-space: nowrap` and
+  `text-align: right` added, since it can hold up to three emoji on
+  one line here and should still sit flush against the score number
+  when it only holds one or two).
   Has its own leaderboard (see below) and core-mechanics + leaderboard
   Playwright coverage under `tests/metroguessr/`.
 - **`/metrocrush/`** - Metrordle: Metro Crush: swap two adjacent stations

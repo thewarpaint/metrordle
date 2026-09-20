@@ -19,18 +19,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // memoria-leaderboard/{dateKey}/entries/{aliasId}
+    // memoria-leaderboard/{dateKey}/entries/{aliasId}. streak (display
+    // -only, the 🔥 flag on /admin/ - see getTopLeaderboardScores()'s
+    // own comment in shared.js on why it's never part of orderBySpecs)
+    // can legitimately be 0 here, unlike the other three - Memoria
+    // submits on every completed round, win or lose, unlike Metrordle/
+    // Laberinto/Metroguessr's win-only submission.
     match /memoria-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.score is int &&
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 200 && // the whole network is 163 stations
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 0 &&
+        request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 
@@ -42,12 +50,14 @@ service cloud.firestore {
     // score, but the same shape/plausibility validation otherwise. Bounds
     // are generous rather than tight since a player can wander the network
     // indefinitely before reaching the destination - there's no move limit
-    // to derive a tighter cap from.
+    // to derive a tighter cap from. streak is display-only (see Memoria's
+    // own comment above) - only a win submits here, so unlike Memoria's
+    // it's always at least 1.
     match /laberinto-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'stations', 'transfers', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'stations', 'transfers', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -57,6 +67,9 @@ service cloud.firestore {
         request.resource.data.transfers is int &&
         request.resource.data.transfers >= 0 &&
         request.resource.data.transfers <= 100 &&
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 1 &&
+        request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 
@@ -69,12 +82,14 @@ service cloud.firestore {
     // same attempts count (see renderLeaderboard()'s orderBySpecs) - the
     // hardMode field just needs to be a plausible bool here, the ordering
     // itself lives client-side. attempts is bounded by TOTAL_ATTEMPTS (a
-    // puzzle is only ever solved in 1-5 tries).
+    // puzzle is only ever solved in 1-5 tries). streak is display-only
+    // (see Memoria's own comment above) - only a win submits here, so
+    // it's always at least 1.
     match /metrordle-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -82,6 +97,9 @@ service cloud.firestore {
         request.resource.data.attempts >= 1 &&
         request.resource.data.attempts <= 5 &&
         request.resource.data.hardMode is bool &&
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 1 &&
+        request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 
@@ -95,13 +113,15 @@ service cloud.firestore {
     // - the hardMode field just needs to be a plausible bool here, the
     // ordering itself lives client-side. Bounded 1-5 since only a win
     // submits (see submitScore() in metroguessr/index.html) and
-    // MAX_ATTEMPTS there is 5. hintsUsed (0-2) is display-only - not
-    // part of orderBySpecs, just the 🪄 count on the leaderboard row.
+    // MAX_ATTEMPTS there is 5. hintsUsed (0-2) and streak (display-only,
+    // see Memoria's own comment above - always at least 1 here, same
+    // win-only submission as Metrordle/Laberinto) are both display-only,
+    // neither part of orderBySpecs.
     match /metroguessr-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'hintsUsed', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'hintsUsed', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -112,6 +132,9 @@ service cloud.firestore {
         request.resource.data.hintsUsed is int &&
         request.resource.data.hintsUsed >= 0 &&
         request.resource.data.hintsUsed <= 2 &&
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 1 &&
+        request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

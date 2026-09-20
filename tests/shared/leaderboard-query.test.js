@@ -11,6 +11,15 @@
 // entry submitted before that (with no hardMode field at all) vanished
 // from every query that ordered by it, with no error anywhere.
 //
+// Also covers the related options.extraFields parameter - which fields
+// beyond orderBySpecs actually get copied from the Firestore document
+// into the entry object a caller receives. This one isn't a Firestore
+// quirk, it's this function's OWN behavior: only orderBySpecs fields
+// were ever copied over until extraFields existed, which silently kept
+// Metroguessr's own hintsUsed field (submitted correctly, but never
+// requested via extraFields until this same change added it) from ever
+// reaching that page's own renderLeaderboard() in production.
+//
 // Every OTHER leaderboard test in this suite only reaches
 // getTopLeaderboardScores()'s "Firebase unreachable, degrade
 // gracefully" early return (this sandboxed environment can't reach a
@@ -68,6 +77,57 @@ async function main() {
 
       const badges = await rows.locator('.leaderboard__score-badge').allTextContents();
       assert.deepStrictEqual(badges, ['', '🧠', '', ''], 'expected only Ana (hardMode: true) to show the badge - Caro\'s missing field should NOT render as true');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('options.extraFields copies a display-only field (e.g. streak) into the returned entries - and omitting it leaves the field off, not erroring', async () => {
+    const DATE = '2026-12-19';
+    const FIXTURE = {
+      'metrordle-leaderboard': {
+        [DATE]: [
+          { id: 'ana', data: { alias: 'Ana', attempts: 1, hardMode: false, streak: 7, submittedAt: 1000 } },
+          // No streak field at all - simulates an entry submitted
+          // before streak existed on this collection. Since streak is
+          // never part of orderBySpecs, this must NOT be excluded from
+          // the results the way a missing orderBySpecs field would be
+          // (see the other test in this file) - it should just come
+          // back with streak: undefined.
+          { id: 'beto', data: { alias: 'Beto', attempts: 2, hardMode: false, submittedAt: 2000 } },
+        ],
+      },
+    };
+
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await installFirestoreStub(page, FIXTURE);
+      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const withExtraField = await page.evaluate((dateKey) => {
+        return MetroShared.getTopLeaderboardScores('metrordle-leaderboard', dateKey, 5, [['attempts', 'asc'], ['hardMode', 'desc']], { extraFields: ['streak'] });
+      }, DATE);
+      assert.strictEqual(withExtraField[0].streak, 7, 'requesting streak via extraFields should copy it onto the entry');
+      assert.strictEqual(withExtraField[1].streak, undefined, 'an entry missing the field entirely should come back with it undefined, not excluded or defaulted');
+      assert.strictEqual(withExtraField.length, 2, 'a field missing from an entry, when it is NOT part of orderBySpecs, must never exclude that entry from the results');
+
+      // The bug this guards against: Metroguessr's own hintsUsed field
+      // was rendered by that page's renderLeaderboard() for a full PR
+      // before its own getTopLeaderboardScores() call was ever updated
+      // to actually request it - every real entry's badge silently
+      // stayed empty in production despite the field being correctly
+      // submitted, since nothing without extraFields ever copied it
+      // from the Firestore document into the returned entry.
+      const withoutExtraField = await page.evaluate((dateKey) => {
+        return MetroShared.getTopLeaderboardScores('metrordle-leaderboard', dateKey, 5, [['attempts', 'asc'], ['hardMode', 'desc']], {});
+      }, DATE);
+      assert.strictEqual(withoutExtraField[0].streak, undefined, 'without extraFields, a non-orderBySpecs field should not be copied even when the document has it');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

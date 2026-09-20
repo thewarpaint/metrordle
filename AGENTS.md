@@ -93,9 +93,11 @@ are impossible without a debug override.
 ## Shared infrastructure
 
 - **`shared.js`** - `window.MetroShared`: date-key/seeded-RNG helpers,
-  streak tracking (localStorage), alias helpers, the leaderboard API
-  (`submitLeaderboardScore`/`getTopLeaderboardScores`, collection- and
-  field-shape-agnostic - see "Leaderboards" below), clipboard/share
+  streak tracking (localStorage, also submitted to each game's own
+  leaderboard for `/admin/`'s 🔥 display - see "Streaks" below), alias
+  helpers, the leaderboard API (`submitLeaderboardScore`/
+  `getTopLeaderboardScores`, collection- and field-shape-agnostic - see
+  "Leaderboards" below), clipboard/share
   helpers (`shareOrCopyText`, native `navigator.share` with a
   clipboard-copy fallback), and `buildGamePromo(currentGameKey,
   dateKey)` for the "sigue jugando hoy" component on every game's own
@@ -173,6 +175,24 @@ submitted before that PR won't have the new field, and will rank
 accordingly (lowest) until/unless it's backfilled. `orderBySpecs[0]`
 itself doesn't have this risk, since it's each collection's original
 ranking field, present since the collection was created.
+
+A field that's purely informational - rendered somewhere, never
+sorted/tie-broken on (Metroguessr's own `hintsUsed`/🪄 badge, every
+game's `streak`/🔥 one, see below) - should almost never go in
+`orderBySpecs` at all, exactly to sidestep the exclusion risk above.
+But `getTopLeaderboardScores()` only ever copies `orderBySpecs` fields
+(plus `id`/`alias`/`submittedAt`) from the Firestore document into the
+entry object it hands back - **a field left out of `orderBySpecs` still
+needs to be named in `options.extraFields` (an array of field names) to
+reach the caller at all**, or it reads `undefined` even on an entry
+that has it. This bit Metroguessr's own `hintsUsed` field for a full
+PR: it was submitted correctly and rendered via `entry.hintsUsed` in
+that page's own `renderLeaderboard()`, but nothing ever asked
+`getTopLeaderboardScores()` to actually copy it over, so every real,
+Firestore-backed entry's 🪄 badge silently stayed empty in production
+the whole time - caught only once `streak` needed the exact same
+plumbing and a test (`tests/shared/leaderboard-query.test.js`) was
+added to lock the fix in.
 - Metrordle: fewest attempts, hard-mode beats normal-mode at a tie
   (`[['attempts','asc'],['hardMode','desc']]` - relies on Firestore/the
   JS comparator ordering `false < true`).
@@ -200,6 +220,33 @@ always have a meaningful score, so their alias row always shows.
 `renderLeaderboard()` never clears the DOM before its fetch resolves
 (avoids a flicker on reload), guarded by a monotonically increasing
 request-id so a stale response can't paint over a newer one.
+
+### Streaks
+
+Metrordle, Laberinto, Memoria, and Metroguessr all track a consecutive
+-days streak (`MetroShared.loadStreak`/`saveStreak`/
+`updateStreakForResult`/`formatStreak`/`formatMaxStreak` in
+`shared.js`, one `'<key>:streak'` localStorage entry per game,
+separate from that day's own `'<key>:' + dateKey` round-result entry) -
+a win extends it, a loss/give-up resets it to 0, and it's shown on that
+game's own reveal banner/share text (`🔥 Racha: N días`, plus a
+"máxima: M días" mention only when the best-ever streak is still ahead
+of today's). Metro Crush has no streak concept - its games are scored
+per-round, not "won" day to day, so there's no well-defined "extended
+it or not" for a streak to track.
+
+Each of those four games' own `submitScore()` also submits `streak` as
+a leaderboard field now, purely for display - like `hintsUsed` above,
+it's deliberately never part of `orderBySpecs`, so a query's
+ranking/results are identical whether or not a given entry (old or
+new) happens to have it. `/admin/`'s own `streakCell()` renders it the
+same way for all four collections: **`🔥 x N` when `N > 1`, nothing
+otherwise** (a streak of 0 or 1 isn't yet "a streak" worth calling
+out) - each of those four `GAMES` entries needs `extraFields: ['streak']`
+for the value to actually reach that cell at all (see `extraFields`
+above). Metro Crush's own `GAMES` entry has neither the field nor the
+cell showing anything for it, since its entries never carry `streak`
+in the first place.
 
 ## Game suggestions
 

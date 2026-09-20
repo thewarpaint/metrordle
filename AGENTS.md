@@ -60,7 +60,13 @@ Site copy/UI is in Spanish (`es-MX`).
   only holds one or two - `.leaderboard__score`'s own page-local `gap`
   is what keeps a breathing space between the two once the badge itself
   is right-aligned, rather than the badge butting straight up against
-  the number).
+  the number). The score itself is a bare digit with no "intento(s)"
+  suffix (dropped since the rank/badge/number layout already makes it
+  obvious what it counts) in a fixed single-digit-width column, same
+  convention as Metrordle's and `/admin/`'s own leaderboards - together
+  with the badge's own fixed width, this lines every row up into a
+  table-like grid regardless of how many emoji a given row's badge
+  holds.
   Has its own leaderboard (see below) and core-mechanics + leaderboard
   Playwright coverage under `tests/metroguessr/`.
 - **`/metrocrush/`** - Metrordle: Metro Crush: swap two adjacent stations

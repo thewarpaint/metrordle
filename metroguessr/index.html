@@ -439,12 +439,11 @@
 
       /* Badge-next-to-the-number hard-mode display, same trick as
          Metrordle's own leaderboard (.leaderboard__score-badge itself
-         is shared, see shared.css) - the number's own width stays here
-         since "N intentos" is longer than Metrordle's bare digit. gap
-         keeps a breathing space between the two now that the badge
-         itself is right-aligned (see .leaderboard__score-badge below) -
-         without it, a right-aligned badge would butt straight up
-         against the number with no visible separation. */
+         is shared, see shared.css). gap keeps a breathing space between
+         the two now that the badge itself is right-aligned (see
+         .leaderboard__score-badge below) - without it, a right-aligned
+         badge would butt straight up against the number with no
+         visible separation. */
       .leaderboard__score {
         align-items: center;
         display: flex;
@@ -466,10 +465,17 @@
         text-align: right;
       }
 
+      /* Fixed at a single digit's width (matching Metrordle's own
+         leaderboard) now that the "intento(s)" suffix is gone - every
+         row's number lands in the same spot regardless of its own or
+         its neighbors' badge contents, giving the whole list a
+         table-like column alignment. */
       .leaderboard__score-number {
         flex: none;
         font-variant-numeric: tabular-nums;
         font-weight: 700;
+        text-align: right;
+        width: 1rem;
       }
 
       .history-scroll { flex: none; max-height: 4.6rem; overflow-y: auto; }
@@ -1761,7 +1767,10 @@
 
                 var number = document.createElement('span');
                 number.className = 'leaderboard__score-number';
-                number.textContent = entry.attempts + (entry.attempts === 1 ? ' intento' : ' intentos');
+                // Bare digit, no "intento(s)" suffix - the rank/badge/
+                // number layout already makes it obvious what this
+                // number counts, same as Metrordle's own leaderboard.
+                number.textContent = String(entry.attempts);
 
                 score.appendChild(badge);
                 score.appendChild(number);

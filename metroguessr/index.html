@@ -440,10 +440,15 @@
       /* Badge-next-to-the-number hard-mode display, same trick as
          Metrordle's own leaderboard (.leaderboard__score-badge itself
          is shared, see shared.css) - the number's own width stays here
-         since "N intentos" is longer than Metrordle's bare digit. */
+         since "N intentos" is longer than Metrordle's bare digit. gap
+         keeps a breathing space between the two now that the badge
+         itself is right-aligned (see .leaderboard__score-badge below) -
+         without it, a right-aligned badge would butt straight up
+         against the number with no visible separation. */
       .leaderboard__score {
         align-items: center;
         display: flex;
+        gap: 0.4rem;
       }
 
       /* Widened past shared.css's own 1.1rem, and nowrap added - unlike
@@ -452,8 +457,9 @@
          renderLeaderboard()), not just one, and shared.css's own rule
          never needed to keep multiple emoji on one line. Right-aligned
          (overriding shared.css's own centered default) so a 1- or
-         2-emoji row's icons sit right next to the score number instead
-         of floating in the middle of this wider column. */
+         2-emoji row's icons sit close to the score number (separated by
+         .leaderboard__score's own gap above) instead of floating in the
+         middle of this wider column. */
       .leaderboard__score-badge {
         width: 3.4rem;
         white-space: nowrap;

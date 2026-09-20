@@ -261,23 +261,31 @@
       .pip--used { background: var(--danger); }
       .pip--win { background: var(--ok); }
 
-      /* --- bottom sheet panel --- */
-
+      /* --- bottom sheet panel ---
+         Split in two: .panel is the full-bleed shell (background, blur,
+         top border, shadow) that always spans edge-to-edge, so there's
+         never a side border sitting awkwardly at the screen's own edge
+         on a narrow phone. .panel__inner is what actually caps at the
+         old 27rem max-width and centers - same visual width as before
+         on anything wider than that, just without the outer shell
+         itself narrowing (and exposing side borders) along with it. */
       .panel {
         position: fixed;
-        left: 50%;
+        left: 0;
+        right: 0;
         bottom: 0;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 27rem;
         z-index: 500;
-        max-height: 60vh;
         background: color-mix(in srgb, var(--paper-raised) 66%, transparent);
         backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
-        border: 1px solid var(--rule);
-        border-bottom: none;
+        border-top: 1px solid var(--rule);
         box-shadow: 0 -6px 24px var(--shadow);
+      }
+
+      .panel__inner {
+        max-width: 27rem;
+        margin: 0 auto;
+        max-height: 60vh;
         padding: 0.7rem 1.1rem calc(0.9rem + env(safe-area-inset-bottom));
         display: flex;
         flex-direction: column;
@@ -389,11 +397,11 @@
 
       /* flex:1 1 auto + min-height:0 (rather than the flex:none every
          other child here uses) lets this shrink and scroll internally
-         once the leaderboard makes it taller than the panel's own
+         once the leaderboard makes it taller than .panel__inner's own
          max-height, instead of pushing content off the bottom of the
-         screen - .panel itself stays overflow:visible so the guess
-         suggestions dropdown (only ever shown while this is hidden) isn't
-         clipped by a scroll container. */
+         screen - .panel__inner itself stays overflow:visible so the
+         guess suggestions dropdown (only ever shown while this is
+         hidden) isn't clipped by a scroll container. */
       .reveal {
         flex: 1 1 auto;
         min-height: 0;
@@ -563,38 +571,40 @@
     </div>
 
     <div class="panel">
-      <div class="guess-form" id="guess-form">
-        <div class="search-box">
-          <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
-          <div class="suggestions" id="suggestions" hidden></div>
-        </div>
-        <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
-      </div>
-
-      <p class="status-line" id="status-line"></p>
-
-      <button type="button" class="guess-btn hint-btn" id="hint-btn" hidden></button>
-
-      <div class="reveal" id="reveal" hidden>
-        <p class="reveal__line">
-          <span class="reveal__banner" id="reveal-banner"></span>
-          <span class="reveal__station" id="reveal-station"></span>
-        </p>
-
-        <div class="leaderboard" id="leaderboard">
-          <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
-          <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
-          <ol class="leaderboard__list" id="leaderboard-list"></ol>
-          <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+      <div class="panel__inner">
+        <div class="guess-form" id="guess-form">
+          <div class="search-box">
+            <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
+            <div class="suggestions" id="suggestions" hidden></div>
+          </div>
+          <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
         </div>
 
-        <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+        <p class="status-line" id="status-line"></p>
 
-        <div id="game-promo-slot"></div>
-      </div>
+        <button type="button" class="guess-btn hint-btn" id="hint-btn" hidden></button>
 
-      <div class="history-scroll" id="history-scroll">
-        <div class="history" id="history"></div>
+        <div class="reveal" id="reveal" hidden>
+          <p class="reveal__line">
+            <span class="reveal__banner" id="reveal-banner"></span>
+            <span class="reveal__station" id="reveal-station"></span>
+          </p>
+
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+
+          <div id="game-promo-slot"></div>
+        </div>
+
+        <div class="history-scroll" id="history-scroll">
+          <div class="history" id="history"></div>
+        </div>
       </div>
     </div>
 
@@ -1218,6 +1228,15 @@
 
           var pos = stationByName[target];
           map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
+          // The floating topbar covers the top of the viewport, so
+          // centering in the FULL viewport (what setView() just did)
+          // leaves the target sitting visibly above center in the
+          // space actually left uncovered below it. Panning north by
+          // half the topbar's height moves the target down on screen
+          // by that same amount - the mirror image of
+          // recenterMapAboveReveal()'s own south pan for the bottom
+          // sheet's height, just for the opposite edge.
+          map.panBy([0, -topbarEl.offsetHeight / 2], { animate: false });
           targetMarker.setLatLng([pos.lat, pos.lng]);
 
           $('history').innerHTML = '';

@@ -446,12 +446,14 @@
         display: flex;
       }
 
-      /* Widened past shared.css's own 1.1rem - unlike every other
-         game's leaderboard, this badge can hold up to three emoji at
-         once (🧠 plus up to two 🪄, one per hint used - see
-         renderLeaderboard()), not just one. */
+      /* Widened past shared.css's own 1.1rem, and nowrap added - unlike
+         every other game's leaderboard, this badge can hold up to three
+         emoji at once (up to two 🪄, one per hint used, plus 🧠 - see
+         renderLeaderboard()), not just one, and shared.css's own rule
+         never needed to keep multiple emoji on one line. */
       .leaderboard__score-badge {
-        width: 2.5rem;
+        width: 3.4rem;
+        white-space: nowrap;
       }
 
       .leaderboard__score-number {
@@ -1736,14 +1738,15 @@
 
                 var badge = document.createElement('span');
                 badge.className = 'leaderboard__score-badge';
-                // 🧠 matches the share text's own "🧠 Modo difícil"
-                // wording (see buildShareText()). One 🪄 per hint used -
-                // entry.hintsUsed is submitted purely for this display
-                // (see submitScore()), never part of orderBySpecs, so an
-                // entry that predates it just shows no wands rather than
-                // ranking any differently.
-                var badgeText = entry.hardMode ? '🧠' : '';
-                if (entry.hintsUsed) badgeText += '🪄'.repeat(entry.hintsUsed);
+                // Wands before the brain - one 🪄 per hint used, then 🧠
+                // (matches the share text's own "🧠 Modo difícil" wording,
+                // see buildShareText()). entry.hintsUsed is submitted
+                // purely for this display (see submitScore()), never
+                // part of orderBySpecs, so an entry that predates it
+                // just shows no wands rather than ranking any
+                // differently.
+                var badgeText = entry.hintsUsed ? '🪄'.repeat(entry.hintsUsed) : '';
+                if (entry.hardMode) badgeText += '🧠';
                 badge.textContent = badgeText;
 
                 var number = document.createElement('span');

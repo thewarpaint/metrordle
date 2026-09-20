@@ -52,9 +52,10 @@ Site copy/UI is in Spanish (`es-MX`).
   still ranks behind an unassisted one at the same guess count.
   `hintsUsed` is also submitted as its own leaderboard field, purely
   for display - not part of `orderBySpecs` - rendered as one 🪄 per
-  hint used, alongside the existing 🧠 hard-mode flag, in the same
+  hint used, before the existing 🧠 hard-mode flag, in the same
   `.leaderboard__score-badge` slot (widened past shared.css's default
-  in this page's own CSS, since it can hold more than one emoji here).
+  in this page's own CSS, with `white-space: nowrap` added, since it
+  can hold up to three emoji on one line here).
   Has its own leaderboard (see below) and core-mechanics + leaderboard
   Playwright coverage under `tests/metroguessr/`.
 - **`/metrocrush/`** - Metrordle: Metro Crush: swap two adjacent stations

@@ -146,6 +146,19 @@
         font-weight: 700;
       }
 
+      /* Always rendered (see streakCell() below), empty text or not -
+         a fixed min-width keeps every row's score column landing in
+         the same spot whether or not that particular row has a streak
+         worth showing. */
+      .leaderboard__streak {
+        color: var(--ink-soft);
+        flex: none;
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        min-width: 3rem;
+        text-align: right;
+      }
+
       .leaderboard__status {
         color: var(--ink-soft);
         font-size: 0.82rem;
@@ -308,13 +321,22 @@
         // orderBySpecs/href all copied from that game's own <script> block,
         // so this stays a read-only view onto the exact same data and
         // ranking rules each game already uses (see index.html, laberinto/
-        // index.html, memoria/index.html).
+        // index.html, memoria/index.html). extraFields is passed straight
+        // through to getTopLeaderboardScores() below - streak is display
+        // -only (rendered by the shared streakCell() below, never part of
+        // orderBySpecs), so without naming it here it would never actually
+        // reach the entries this page renders (see getTopLeaderboardScores()'s
+        // own comment in shared.js for why). Metro Crush has no streak
+        // concept (its games are scored per-round, not "won" day to day) -
+        // its own entries just never carry the field, same as any entry
+        // predating this feature on the other four collections.
         var GAMES = [
           {
             key: 'metrordle',
             collection: 'metrordle-leaderboard',
             startDateKey: '2026-08-13',
             orderBySpecs: [['attempts', 'asc'], ['hardMode', 'desc']],
+            extraFields: ['streak'],
             href: '/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -338,6 +360,7 @@
             collection: 'laberinto-leaderboard',
             startDateKey: '2026-08-26',
             orderBySpecs: [['stations', 'asc'], ['transfers', 'asc']],
+            extraFields: ['streak'],
             href: '/laberinto/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -351,6 +374,7 @@
             collection: 'memoria-leaderboard',
             startDateKey: '2026-08-29',
             orderBySpecs: [['score', 'desc']],
+            extraFields: ['streak'],
             href: '/memoria/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -364,6 +388,7 @@
             collection: 'metroguessr-leaderboard',
             startDateKey: '2026-09-12',
             orderBySpecs: [['attempts', 'asc'], ['hardMode', 'desc']],
+            extraFields: ['streak'],
             href: '/metroguessr/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -485,6 +510,18 @@
           els.stat.hidden = false;
         }
 
+        // Same shape for every game (unlike scoreCell, which each game
+        // customizes) - a lone streak of 1 is just "played today," not
+        // yet a streak worth calling out, so it renders nothing, same
+        // as a Metro Crush entry (no streak concept there at all) or
+        // any entry predating this field.
+        function streakCell(entry) {
+          var span = document.createElement('span');
+          span.className = 'leaderboard__streak';
+          if (entry.streak > 1) span.textContent = '🔥 x ' + entry.streak;
+          return span;
+        }
+
         function renderGame(game, dateKey, token) {
           var gameEls = els[game.key];
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, game.startDateKey);
@@ -494,7 +531,7 @@
           gameEls.list.innerHTML = '';
           gameEls.status.hidden = true;
 
-          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, FETCH_LIMIT, game.orderBySpecs, {})
+          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, FETCH_LIMIT, game.orderBySpecs, { extraFields: game.extraFields || [] })
             .then(function (entries) {
               // A newer date change (or an unreachable Firebase, which
               // getTopLeaderboardScores() already resolves to [] rather
@@ -523,6 +560,7 @@
                 li.appendChild(rank);
                 li.appendChild(name);
                 li.appendChild(game.scoreCell(entry));
+                li.appendChild(streakCell(entry));
                 gameEls.list.appendChild(li);
               });
 

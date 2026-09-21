@@ -683,7 +683,14 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score }, {})
+          // streak is submitted purely for display (see /admin/'s own
+          // 🔥 badge) - never part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not an entry (old
+          // or new) happens to have it. Unlike Metrordle/Laberinto/
+          // Metroguessr, this can legitimately be 0 (a loss still
+          // submits here), which is fine - just below the >1 threshold
+          // that badge uses to show at all.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.won, state.matchedStations, true);

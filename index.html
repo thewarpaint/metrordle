@@ -1079,7 +1079,11 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          var fields = { attempts: state.history.length, hardMode: state.mode === 'hard' };
+          // streak is submitted purely for display (see /admin/'s own
+          // 🔥 badge) - never part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not an entry (old
+          // or new) happens to have it.
+          var fields = { attempts: state.history.length, hardMode: state.mode === 'hard', streak: state.streak };
 
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {

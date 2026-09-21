@@ -6,14 +6,18 @@
 // per game (metrordle-leaderboard, laberinto-leaderboard,
 // memoria-leaderboard, metroguessr-leaderboard), each reusing that
 // game's own collection/orderBySpecs/score-formatting - see
-// admin/index.html's GAMES array. Metro Crush's own section isn't
-// covered here yet.
+// admin/index.html's GAMES array - plus the shared streakCell() 🔥 x N
+// badge (N > 1 only) every one of those four games' rows gets. Metro
+// Crush's own section isn't covered here yet, and has no streak concept
+// at all (see AGENTS.md).
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), so the "real data" checks stub
 // MetroShared.getTopLeaderboardScores() via a route-intercepted,
 // patched shared.js (same trick used to produce the leaderboard
-// screenshots during development) rather than exercising a real query.
+// screenshots during development) rather than exercising a real query -
+// see tests/shared/leaderboard-query.test.js for coverage of that
+// function's own real query-construction/extraFields logic instead.
 
 const assert = require('assert');
 const { chromium } = require('playwright');
@@ -21,17 +25,20 @@ const { startServer, test, runAll } = require('../lib/harness');
 
 const SAMPLE_DATA = {
   'metrordle-leaderboard': [
-    { id: 'fer', alias: 'Fer', attempts: 2, hardMode: true },
-    { id: 'eduardo', alias: 'Eduardo', attempts: 2, hardMode: false },
+    { id: 'fer', alias: 'Fer', attempts: 2, hardMode: true, streak: 5 },
+    // streak: 1 ("played today" but not yet a streak worth calling
+    // out) and no streak field at all (predates the field) should both
+    // render nothing - see streakCell()'s own N > 1 threshold.
+    { id: 'eduardo', alias: 'Eduardo', attempts: 2, hardMode: false, streak: 1 },
   ],
   'laberinto-leaderboard': [
     { id: 'karla', alias: 'Karla', stations: 9, transfers: 1 },
   ],
   'memoria-leaderboard': [
-    { id: 'pao', alias: 'Pao', score: 7 },
+    { id: 'pao', alias: 'Pao', score: 7, streak: 0 },
   ],
   'metroguessr-leaderboard': [
-    { id: 'oscar', alias: 'Oscar', attempts: 1, hardMode: true },
+    { id: 'oscar', alias: 'Oscar', attempts: 1, hardMode: true, streak: 12 },
   ],
 };
 
@@ -142,16 +149,25 @@ async function main() {
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Fer');
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__score-number').textContent(), '2');
+      assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 x 5', 'a streak of 5 (>1) should show');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Eduardo');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__score-badge').textContent(), '');
+      assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__streak').textContent(), '', 'a streak of 1 (not > 1) should show nothing');
 
-      // Laberinto: "stations-transfers" single cell.
+      // Laberinto: "stations-transfers" single cell. No streak field on
+      // this one entry at all (predates the feature) - same nothing-
+      // shown outcome as Eduardo's streak: 1 above.
       const laberintoScore = await page.$eval('#laberinto-list .leaderboard__score--plain', (el) => el.textContent);
       assert.strictEqual(laberintoScore, '9-1');
+      const laberintoStreak = await page.$eval('#laberinto-list .leaderboard__streak', (el) => el.textContent);
+      assert.strictEqual(laberintoStreak, '', 'a missing streak field should show nothing, not "undefined" or an error');
 
-      // Memoria: plain score number.
+      // Memoria: plain score number. streak: 0 (a real, valid value -
+      // Memoria submits on a loss too) is still not > 1, so nothing shows.
       const memoriaScore = await page.$eval('#memoria-list .leaderboard__score--plain', (el) => el.textContent);
       assert.strictEqual(memoriaScore, '7');
+      const memoriaStreak = await page.$eval('#memoria-list .leaderboard__streak', (el) => el.textContent);
+      assert.strictEqual(memoriaStreak, '', 'a streak of 0 should show nothing');
 
       // Metroguessr: same badge (left) + fixed-width number (right)
       // layout as Metrordle's, added once Metroguessr grew its own
@@ -161,6 +177,7 @@ async function main() {
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Oscar');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-number').textContent(), '1');
+      assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 x 12', 'a double-digit streak should still render correctly');
 
       // No empty-state message should show once real entries render.
       for (const key of ['metrordle', 'laberinto', 'memoria']) {

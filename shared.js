@@ -671,8 +671,19 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 // fine degraded state for a read, unlike a failed write, which callers
 // may want to surface differently. `orderBySpecs` is an ordered list of
 // [fieldName, 'asc'|'desc'] pairs (see compareByOrderSpecs above) - each
-// returned entry carries whichever of those fields the doc has, plus id
-// and alias.
+// returned entry carries whichever of those fields the doc has, plus id,
+// alias, and any `options.extraFields` (an array of field names) too -
+// for a field that's purely informational (rendered somewhere, never
+// sorted/tie-broken on), passing it as an orderBySpecs entry would only
+// buy it the exclusion risk described below for no benefit; extraFields
+// is how such a field still reaches the returned entry at all, since
+// otherwise it's silently dropped even though the Firestore document
+// itself has it - Metroguessr's own hintsUsed field originally tripped
+// over exactly this before this parameter existed: it was rendered via
+// entry.hintsUsed in that page's own renderLeaderboard(), but nothing
+// ever asked this function to actually copy it over, so it read
+// undefined for every real, Firestore-backed entry despite being
+// correctly submitted by submitScore().
 //
 // Only orderBySpecs[0] is ever passed to Firestore's own .orderBy() -
 // Firestore silently EXCLUDES a document from the results (no error)
@@ -694,7 +705,8 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpecs, options) {
   var path = collectionName + '/' + dateKey + '/entries';
   console.log('[Leaderboard] getTopLeaderboardScores()', Object.assign({
-    path: path, limitCount: limitCount, orderBySpecs: orderBySpecs, useLocalFallback: !!(options && options.useLocalFallback),
+    path: path, limitCount: limitCount, orderBySpecs: orderBySpecs, extraFields: (options && options.extraFields) || [],
+    useLocalFallback: !!(options && options.useLocalFallback),
   }, firebaseStatusForLog()));
 
   if (!firebaseReady()) {
@@ -709,6 +721,7 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
   console.log('[Leaderboard] Querying Firestore:', path);
   var primarySpec = orderBySpecs[0];
   var fetchLimit = Math.max(limitCount, 1000);
+  var extraFields = (options && options.extraFields) || [];
   var query = firebase.firestore().collection(collectionName).doc(dateKey).collection('entries')
     .orderBy(primarySpec[0], primarySpec[1])
     .limit(fetchLimit);
@@ -726,6 +739,9 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
         };
         orderBySpecs.forEach(function (spec) {
           entry[spec[0]] = data[spec[0]];
+        });
+        extraFields.forEach(function (field) {
+          entry[field] = data[field];
         });
         results.push(entry);
       });

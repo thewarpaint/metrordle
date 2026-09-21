@@ -860,6 +860,7 @@
         };
         var TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, tiles by <a href="https://openfreemap.org">OpenFreeMap</a>';
         var SHARE_URL = 'https://metrordle.com/metroguessr/';
+        var STREAK_STORAGE_KEY = 'metroguessr:streak';
         var LEADERBOARD_COLLECTION = 'metroguessr-leaderboard';
         var LEADERBOARD_SIZE = 5;
 
@@ -1210,6 +1211,13 @@
           var target = pendingGameSetup.target;
           var saved = pendingGameSetup.saved;
 
+          // Only load the streak on a done-day restore - a fresh/
+          // in-progress round hasn't affected it yet, and endGame()
+          // computes it fresh (via updateStreakForResult()) the moment
+          // this round actually ends, same as Metrordle/Laberinto/
+          // Memoria's own identical pattern.
+          var savedStreak = (saved && saved.done) ? MetroShared.loadStreak(STREAK_STORAGE_KEY) : null;
+
           state = {
             dateKey: dateKey,
             gameNumber: gameNumber,
@@ -1219,6 +1227,8 @@
             hintsUsed: saved ? saved.hintsUsed : 0,
             done: saved ? !!saved.done : false,
             won: false,
+            streak: savedStreak ? savedStreak.count : 0,
+            maxStreak: savedStreak ? savedStreak.max : 0,
             mode: mode,
             leaderboardSubmitted: saved ? saved.leaderboardSubmitted : false,
           };
@@ -1377,6 +1387,8 @@
         function endGame(won) {
           state.done = true;
           state.won = won;
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, won);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           state.leaderboardSubmitted = false;
           submitScore();
           showReveal(won);
@@ -1471,6 +1483,16 @@
             : '🪄 Revelar calles (-1 intento)';
         }
 
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information. Same
+        // helper as Metrordle/Laberinto/Memoria's own identical one.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
         function showReveal(won) {
           if (map.hasLayer(targetMarker)) map.removeLayer(targetMarker);
           if (targetIconMarker) map.removeLayer(targetIconMarker);
@@ -1514,7 +1536,8 @@
           var reveal = $('reveal');
           reveal.hidden = false;
           var banner = $('reveal-banner');
-          banner.textContent = won ? '¡Correcto!' : 'Se acabaron los intentos';
+          banner.textContent = (won ? '¡Correcto!' : 'Se acabaron los intentos') + ' 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
           banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
           $('reveal-station').textContent = 'La estación era: ' + state.target;
 
@@ -1624,10 +1647,13 @@
           // attempt without adding a guess (see useHint()), and the
           // leaderboard should rank a hint-assisted win behind an
           // unassisted one at the same guess count, not hide the hints
-          // used to get there. hintsUsed is submitted too, purely for
-          // display (see renderLeaderboard()'s 🪄 badge) - ranking
-          // itself only ever needs attempts/hardMode.
-          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard', hintsUsed: state.hintsUsed };
+          // used to get there. hintsUsed/streak are submitted too,
+          // purely for display (this page's own 🪄 badge, /admin/'s
+          // own 🔥 one) - ranking itself only ever needs attempts/
+          // hardMode, and neither is part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not an entry (old
+          // or new) happens to have them.
+          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard', hintsUsed: state.hintsUsed, streak: state.streak };
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
@@ -1731,7 +1757,13 @@
           // already-submitted day), and blanking the list before the
           // fetch resolves would cause a visible flicker.
 
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['hardMode', 'desc']], {})
+          // extraFields: hintsUsed is rendered below (the 🪄 badge) but
+          // deliberately isn't part of orderBySpecs (see submitScore()'s
+          // own comment) - without naming it here too,
+          // getTopLeaderboardScores() would never actually copy it from
+          // the Firestore document into the returned entry, and every
+          // real entry's badge would silently stay wandless.
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed'] })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer
@@ -1838,7 +1870,7 @@
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
           return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' + hardModeLine +
-            lines + '\n\n' +
+            lines + '\n\n🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
             SHARE_URL;
         }
 

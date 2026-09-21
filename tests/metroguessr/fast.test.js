@@ -103,7 +103,13 @@ async function main() {
       await guess(page, target);
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'guessing the real target should end the round');
       const bannerText = await page.locator('#reveal-banner').textContent();
-      assert.strictEqual(bannerText, '¡Correcto!');
+      // A first-ever win on a fresh streak key always lands on 1,
+      // regardless of the throwaway session's own earlier loss above -
+      // updateStreakForResult() only extends a streak when the new
+      // result's date immediately follows the last one it recorded,
+      // and this page's own win is dated the same day as that loss,
+      // not the day after it.
+      assert.strictEqual(bannerText, '¡Correcto! 🔥 Racha: 1 día');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {
@@ -518,7 +524,7 @@ async function main() {
       await page.waitForTimeout(80);
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the fifth burned attempt (via hint) should end the round');
-      assert.strictEqual(await page.locator('#reveal-banner').textContent(), 'Se acabaron los intentos');
+      assert.strictEqual(await page.locator('#reveal-banner').textContent(), 'Se acabaron los intentos 🔥 Racha: 0 días');
 
       // The line hint's own badge marker should be cleaned up once the
       // round ends, same as the plain live marker it was pinned on top

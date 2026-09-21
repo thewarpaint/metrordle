@@ -57,6 +57,23 @@
   --shadow: rgba(0, 0, 0, 0.5);
 }
 
+/* Keeps browser-native chrome (scrollbars, form control chrome) in
+   sync with an explicit /configurar/ override too, not just the
+   custom-property palette above - without this, choosing "oscuro"
+   while the OS itself is set to light would flip every custom-styled
+   element but leave native widgets rendering with light-mode chrome. */
+:root {
+  color-scheme: light dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -108,6 +125,24 @@ a {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+
+/* Links to /configurar/ from every game's own header - pushed to the
+   far right of the (flex) .brand row via margin-left: auto rather than
+   needing its own wrapper. Emoji-only like the site's other
+   single-glyph UI (🔥/🪄/🧠), so it carries an aria-label instead of
+   visible text. */
+.brand__settings {
+  margin-left: auto;
+  font-size: 1.05rem;
+  line-height: 1;
+  text-decoration: none;
+  opacity: 0.7;
+}
+
+.brand__settings:hover,
+.brand__settings:focus-visible {
+  opacity: 1;
 }
 
 .date-debug {

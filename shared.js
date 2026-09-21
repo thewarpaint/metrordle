@@ -530,6 +530,78 @@ function setAlias(alias) {
   return normalized;
 }
 
+// Site-wide app config (one localStorage key shared across every page,
+// same pattern as the alias above) - starts with just the appearance
+// mode, meant to grow more settings later without a new key or a
+// migration. saveConfig() always merges its argument into whatever's
+// already stored, so setting one key never clobbers another one a
+// future feature added.
+var CONFIG_STORAGE_KEY = 'metrordle:config';
+var THEME_MODES = ['light', 'dark', 'system'];
+
+function loadConfig() {
+  try {
+    var raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+    var parsed = raw ? JSON.parse(raw) : null;
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveConfig(partialConfig) {
+  var merged = Object.assign({}, loadConfig(), partialConfig);
+  try {
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(merged));
+  } catch (e) {
+    // localStorage unavailable (private mode, quota, etc.) - the
+    // setting just won't persist across reloads, same tradeoff as
+    // every other localStorage-backed value on this site.
+  }
+  return merged;
+}
+
+// 'system' (the default, same as never having configured anything) or
+// an unrecognized/corrupted stored value both mean "no override" -
+// only 'light'/'dark' are ever treated as an explicit choice.
+function getThemeMode() {
+  var mode = loadConfig().mode;
+  return THEME_MODES.indexOf(mode) === -1 ? 'system' : mode;
+}
+
+// Applies a theme mode to the DOM by itself - no storage read/write.
+// shared.css's [data-theme] rules already implement both forced modes
+// (:root[data-theme="dark"] forces dark regardless of the OS
+// preference; :root:not([data-theme="light"]) is what lets
+// prefers-color-scheme keep applying dark unless light was explicitly
+// forced) - this only toggles the attribute they key off of. 'system'
+// (or anything else) removes the override entirely, which is the same
+// as never having set it.
+function applyThemeMode(mode) {
+  if (mode === 'light' || mode === 'dark') {
+    document.documentElement.setAttribute('data-theme', mode);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+// Persists + applies in one call, immediately, no reload needed - what
+// /configurar/'s mode picker calls on each click.
+function setThemeMode(mode) {
+  var normalized = THEME_MODES.indexOf(mode) === -1 ? 'system' : mode;
+  saveConfig({ mode: normalized });
+  applyThemeMode(normalized);
+  return normalized;
+}
+
+// Every page's own inline <head> snippet already applies the stored
+// theme before first paint (right after shared.css's own <link>, see
+// any page's <head>) to avoid a flash of the wrong theme - shared.js
+// loads too late in <body> for that job and can't be the mechanism
+// that prevents it. This call is only a harmless, idempotent safety
+// net for a page whose snippet is missing or out of date.
+applyThemeMode(getThemeMode());
+
 function firebaseReady() {
   return typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0;
 }
@@ -782,6 +854,11 @@ window.MetroShared = {
   aliasDocId: aliasDocId,
   getAlias: getAlias,
   setAlias: setAlias,
+  loadConfig: loadConfig,
+  saveConfig: saveConfig,
+  getThemeMode: getThemeMode,
+  applyThemeMode: applyThemeMode,
+  setThemeMode: setThemeMode,
   submitLeaderboardScore: submitLeaderboardScore,
   getTopLeaderboardScores: getTopLeaderboardScores,
 };

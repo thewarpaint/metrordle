@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Tighter than the game pages' CSP (see index.html) since this page
+      loads no Firebase SDK and renders no user-controlled data at all -
+      defense-in-depth only.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Configuración · Metrordle 🚇</title>
+
+    <link rel="icon" href="/favicon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!--
+      Applies a saved theme override before first paint, so a
+      light/dark choice made here doesn't flash the OS default for a
+      frame on the next load - shared.js (loaded at the end of <body>)
+      runs too late for that. Self-contained on purpose: mirrors
+      shared.js's own loadConfig()/applyThemeMode(), but shared.js
+      hasn't loaded yet at this point in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .config-section {
+        padding: 0 1.3rem 1.3rem;
+      }
+
+      .config-section__title {
+        font-family: 'Overpass', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin: 0 0 0.7rem;
+      }
+
+      .theme-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      /* .mode-option itself (shared.css) has no persistent "selected"
+         state - the pre-game normal/hard modal it was built for is
+         dismissed the moment one is picked, so it never needed one.
+         This page's picker stays on screen showing the current choice,
+         so it needs its own. */
+      .mode-option[aria-pressed="true"] {
+        border-color: var(--line);
+        box-shadow: 0 0 0 2px var(--line) inset;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" stroke="var(--ink)" stroke-width="2"/>
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="brand__text">Metrordle · Configuración</span>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1>Configuración</h1>
+          <p class="dek">Personaliza cómo se ve y juega Metrordle en este dispositivo.</p>
+        </div>
+
+        <div class="config-section">
+          <h2 class="config-section__title">Apariencia</h2>
+          <div class="theme-options" id="theme-options" role="group" aria-label="Modo de apariencia">
+            <button type="button" class="mode-option" id="theme-option-light" data-mode="light" aria-pressed="false">
+              <span class="mode-option__title">Claro</span>
+              <span class="mode-option__desc">Siempre usa el tema claro</span>
+            </button>
+            <button type="button" class="mode-option" id="theme-option-dark" data-mode="dark" aria-pressed="false">
+              <span class="mode-option__title">Oscuro</span>
+              <span class="mode-option__desc">Siempre usa el tema oscuro</span>
+            </button>
+            <button type="button" class="mode-option" id="theme-option-system" data-mode="system" aria-pressed="false">
+              <span class="mode-option__title">Sistema</span>
+              <span class="mode-option__desc">Usa el tema de tu dispositivo</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="credit">
+        <a href="/">← Volver a Metrordle</a>
+      </p>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var OPTIONS = ['light', 'dark', 'system'].map(function (mode) {
+          return { mode: mode, el: document.getElementById('theme-option-' + mode) };
+        });
+
+        function render(mode) {
+          OPTIONS.forEach(function (opt) {
+            opt.el.setAttribute('aria-pressed', String(opt.mode === mode));
+          });
+        }
+
+        OPTIONS.forEach(function (opt) {
+          opt.el.addEventListener('click', function () {
+            MetroShared.setThemeMode(opt.mode);
+            render(opt.mode);
+          });
+        });
+
+        render(MetroShared.getThemeMode());
+      })();
+    </script>
+  </body>
+</html>

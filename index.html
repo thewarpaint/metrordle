@@ -48,6 +48,26 @@
 
     <link rel="stylesheet" href="/shared.css">
 
+    <!--
+      Applies a saved theme override (see /configurar/) before first
+      paint, so a light/dark choice doesn't flash the OS default for a
+      frame - shared.js (loaded at the end of <body>) runs too late for
+      that. Self-contained on purpose: mirrors shared.js's own
+      loadConfig()/applyThemeMode(), but shared.js hasn't loaded yet at
+      this point in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <style>
       .body-font {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -562,6 +582,7 @@
           <line x1="1" y1="11" x2="23" y2="11" stroke="var(--ink)" stroke-width="1.5"/>
         </svg>
         <span class="brand__text">Metrordle · Minijuego del Metro CDMX</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
       </div>
 
       <div class="date-debug" id="date-debug" hidden>

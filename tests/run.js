@@ -18,6 +18,7 @@ const FILES = [
   'metroguessr/fast.test.js',
   'metroguessr/leaderboard.test.js',
   'admin/admin.test.js',
+  'configurar/config.test.js',
   'shared/leaderboard-query.test.js',
   'security/csp.test.js',
 ];

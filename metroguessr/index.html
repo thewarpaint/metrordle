@@ -87,10 +87,15 @@
         background: var(--paper-well);
       }
 
+      /* --ink flips dark (light mode) / light (dark mode) with the
+         theme, same as everything else on this page that needs to
+         read against a background that itself flips - a hardcoded
+         white stroke/fill here was invisible against light mode's own
+         pale map tiles. */
       .target-marker {
-        stroke: #ffffff;
+        stroke: var(--ink);
         stroke-width: 3;
-        fill: #ffffff;
+        fill: var(--ink);
         fill-opacity: 0.22;
       }
 
@@ -103,8 +108,8 @@
          since color alone isn't enough (including for a colorblind
          player). */
       .target-marker--line-revealed {
-        stroke: var(--reveal-line-color, #ffffff);
-        fill: var(--reveal-line-color, #ffffff);
+        stroke: var(--reveal-line-color, var(--ink));
+        fill: var(--reveal-line-color, var(--ink));
         fill-opacity: 0.45;
       }
 

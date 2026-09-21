@@ -13,11 +13,12 @@ Memoria (`memoria/`) has the fullest coverage; Metroguessr
 coverage; the main game (`metrordle/`) and the admin leaderboard
 browser (`admin/`) have leaderboard coverage only so far;
 Metro Crush (`metrocrush/`) has none committed yet - still only the
-ad-hoc scratchpad checks used during development. `security/` and
-`shared/` cover site-wide/cross-game checks (the CSP, and
-`shared.js`'s leaderboard query logic, respectively) that aren't
-specific to any one game. Add new games/checks under their own
-subdirectory following the same pattern.
+ad-hoc scratchpad checks used during development. `configurar/` covers
+the site-wide settings page (`/configurar/`). `security/` and `shared/`
+cover site-wide/cross-game checks (the CSP, and `shared.js`'s
+leaderboard query logic, respectively) that aren't specific to any one
+game. Add new games/checks under their own subdirectory following the
+same pattern.
 
 Metroguessr's own tests stub the real map (Leaflet/MapLibre/OpenFreeMap)
 via `tests/lib/leaflet-stub.js` - see that file's comment for why this
@@ -54,6 +55,7 @@ npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 npm run test:metroguessr  # Metroguessr's core-mechanics checks (~15s)
 npm run test:metroguessr-leaderboard  # Metroguessr's leaderboard checks (~10s)
 npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
+npm run test:configurar  # the /configurar/ settings page checks (~10s)
 npm run test:leaderboard-query  # getTopLeaderboardScores()'s real Firestore query logic (~10s)
 npm run test:csp  # Content-Security-Policy checks, every page (~10s)
 ```
@@ -258,6 +260,27 @@ leaderboard browser (no game state of its own to plant in
   badge+number cell, Laberinto's `stations-transfers`, Memoria's plain
   score.
 
+**`configurar/config.test.js`** covers `/configurar/`, the site-wide
+settings page (for now, just the light/dark/system appearance picker -
+see AGENTS.md's "Site config" section):
+- With no saved config, "Sistema" shows selected and no `data-theme`
+  override is applied to `<html>`.
+- Picking "Oscuro"/"Claro" persists `{mode: 'dark'|'light'}` to the
+  `metrordle:config` localStorage key and applies the matching
+  `data-theme` attribute immediately, no reload needed; picking
+  "Sistema" removes the attribute entirely rather than setting it to
+  some third value.
+- A saved mode survives a reload, applied before `shared.js` itself
+  even runs (checked at `domcontentloaded`, not after `networkidle`) -
+  proving the page's own `<head>` flash-prevention snippet does the
+  job, not `shared.js`'s later, redundant safety-net re-application.
+- A mode saved on `/configurar/` also applies on an unrelated page
+  (`/`) - the setting is site-wide, not scoped to the settings page
+  itself.
+- Saving a mode merges into, rather than replaces, whatever's already
+  in the config object - the whole point of a single growable object
+  instead of one localStorage key per setting.
+
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
 real Firestore query-construction logic in `shared.js` - unlike every
 leaderboard test above (which only ever exercises its "Firebase
@@ -285,7 +308,7 @@ tag every page carries (defense-in-depth alongside the app's actual XSS
 mitigation - every leaderboard alias render uses `textContent`, never
 `innerHTML`, see each `*/leaderboard.test.js` above):
 - Every page (`/`, `/memoria/`, `/laberinto/`, `/metroguessr/`,
-  `/metrocrush/`, `/admin/`, `/purge/`) loads with zero
+  `/metrocrush/`, `/admin/`, `/configurar/`, `/purge/`) loads with zero
   `securitypolicyviolation` events and zero page errors - a policy
   that's too strict would otherwise silently break the page's own
   inline `<script>`, its embedded font, the Firebase SDK, or (for

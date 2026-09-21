@@ -53,6 +53,27 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <link rel="stylesheet" href="/shared.css">
+
+    <!--
+      Applies a saved theme override (see /configurar/) before first
+      paint, so a light/dark choice doesn't flash the OS default for a
+      frame - shared.js (loaded at the end of <body>) runs too late for
+      that. Self-contained on purpose: mirrors shared.js's own
+      loadConfig()/applyThemeMode(), but shared.js hasn't loaded yet at
+      this point in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.css">
 
@@ -231,6 +252,25 @@
         letter-spacing: -0.01em;
         margin: 0;
         text-wrap: balance;
+      }
+
+      /* .topbar is a centered column layout (see above), not a
+         .brand row like every other page's own settings link sits in
+         - positioned in its top-right corner instead, same fixed
+         positioning context .topbar itself already establishes. */
+      .topbar__settings {
+        position: absolute;
+        top: max(0.85rem, env(safe-area-inset-top));
+        right: 1rem;
+        font-size: 1.05rem;
+        line-height: 1;
+        text-decoration: none;
+        opacity: 0.7;
+      }
+
+      .topbar__settings:hover,
+      .topbar__settings:focus-visible {
+        opacity: 1;
       }
 
       .date-row {
@@ -562,6 +602,7 @@
     </div>
 
     <div class="topbar">
+      <a class="topbar__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
       <h1 id="game-title">Metrordle: Metroguessr</h1>
       <div class="date-row" id="date-row" hidden>
         <button type="button" class="chev chev--compact" id="date-prev" aria-label="Día anterior">◀</button>

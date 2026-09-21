@@ -31,6 +31,26 @@
 
     <link rel="stylesheet" href="/shared.css">
 
+    <!--
+      Applies a saved theme override (see /configurar/) before first
+      paint, so a light/dark choice doesn't flash the OS default for a
+      frame - shared.js (loaded at the end of <body>) runs too late for
+      that. Self-contained on purpose: mirrors shared.js's own
+      loadConfig()/applyThemeMode(), but shared.js hasn't loaded yet at
+      this point in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <style>
       .admin-boards {
         display: flex;
@@ -227,6 +247,7 @@
           <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
         </svg>
         <span class="brand__text">Metrordle · Admin</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
       </div>
 
       <!-- Same prev/next date-nav as each game's own ?debug=true date

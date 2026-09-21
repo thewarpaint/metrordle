@@ -80,6 +80,12 @@ Site copy/UI is in Spanish (`es-MX`).
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, but always on.
+- **`/configurar/`** - site-wide settings page, linked from every game's
+  header (a small ⚙️ in `.brand`, or `.topbar` for Metroguessr's own
+  layout) via `.brand__settings`/`.topbar__settings`. For now just a
+  Claro/Oscuro/Sistema appearance picker - see "Site config" below for
+  the storage/theming mechanism, meant to grow more settings later
+  without a new page or a new localStorage key.
 - **`/purge/`** - a recovery page that clears Cache Storage + unregisters
   the service worker, then redirects home. Deliberately self-contained
   (no `/shared.js`/`/shared.css` dependency), since it exists to recover
@@ -99,9 +105,11 @@ are impossible without a debug override.
   `getTopLeaderboardScores`, collection- and field-shape-agnostic - see
   "Leaderboards" below), clipboard/share
   helpers (`shareOrCopyText`, native `navigator.share` with a
-  clipboard-copy fallback), and `buildGamePromo(currentGameKey,
+  clipboard-copy fallback), `buildGamePromo(currentGameKey,
   dateKey)` for the "sigue jugando hoy" component on every game's own
-  end screen - see "Game suggestions" below.
+  end screen (see "Game suggestions" below), and the site-wide config
+  object (`loadConfig`/`saveConfig`/`getThemeMode`/`applyThemeMode`/
+  `setThemeMode` - see "Site config" below).
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
@@ -286,6 +294,58 @@ possibly-`?debug=true`-simulated `dateKey` - suggestions reflect actual
 play activity, not whatever day is being previewed. `buildGamePromo()`
 returns `null` (nothing to mount) rather than an empty component if
 every other game is already done today.
+
+## Site config
+
+`/configurar/` is a site-wide settings page (not a game), reachable
+from a small ⚙️ in every other page's header - `.brand__settings` for
+every `.brand`-based page, `.topbar__settings` for Metroguessr's own
+full-viewport `.topbar` layout instead, since it has no `.brand` row to
+attach one to. `/admin/` and `/purge/` are the only exceptions worth
+noting: `/admin/` still gets the link (harmless, even though it's
+itself unlinked from any game's nav); `/purge/` doesn't, since it's
+deliberately self-contained with no `shared.css`/`shared.js` at all
+(see its own bullet above).
+
+All settings live in one `'metrordle:config'` localStorage key holding
+a plain object - `MetroShared.loadConfig()`/`saveConfig(partialConfig)`
+in `shared.js`, same site-wide-single-key pattern as the alias. This
+starts with just one field, `mode` (`'light'`/`'dark'`/`'system'`,
+default `'system'`), but the object is meant to grow more settings
+later without a new page, a new key, or a migration -
+`saveConfig()` always merges its argument into whatever's already
+stored, so setting one key never clobbers another one added since.
+
+The appearance picker's three-way toggle is `MetroShared.getThemeMode()`
+(reads the stored `mode`, defaulting to `'system'` for anything
+missing/invalid) and `MetroShared.setThemeMode(mode)` (persists +
+applies immediately, no reload - what `/configurar/`'s own buttons
+call on each click). Applying a mode just means toggling an attribute:
+`MetroShared.applyThemeMode(mode)` sets `data-theme="light"`/`"dark"`
+on `<html>`, or removes the attribute entirely for `'system'`.
+`shared.css`'s `[data-theme]` rules already existed before this page
+did (previously unused, prepared for exactly this) -
+`:root[data-theme="dark"]` forces the dark palette regardless of the
+OS preference, `:root:not([data-theme="light"])` is what lets
+`prefers-color-scheme: dark` keep applying unless light was explicitly
+forced instead; `color-scheme` (native scrollbar/form-control chrome)
+mirrors the same three states, added alongside this feature since it's
+the first thing that actually exercises the override.
+
+**Every page but `/purge/` needs its own inline `<script>` in `<head>`,
+right after its `<link rel="stylesheet" href="/shared.css">`**, that
+reads `'metrordle:config'` directly and sets `data-theme` before first
+paint - `shared.js` (loaded at the end of `<body>` on every page) runs
+far too late to prevent a flash of the wrong theme on a page load, so
+this snippet is deliberately self-contained (duplicating the bare
+minimum of `loadConfig()`/`applyThemeMode()`'s own logic) rather than
+depending on `shared.js` having loaded yet. `shared.js` itself still
+calls `applyThemeMode(getThemeMode())` once at load time too - not the
+flash-prevention mechanism, just a harmless, idempotent safety net for
+a page whose snippet is missing or goes stale. Adding a new game or
+utility page later means copying this same snippet into its `<head>`,
+same as every other per-page duplication already documented in this
+file.
 
 ## Rendering safety
 

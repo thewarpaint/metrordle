@@ -332,6 +332,16 @@ forced instead; `color-scheme` (native scrollbar/form-control chrome)
 mirrors the same three states, added alongside this feature since it's
 the first thing that actually exercises the override.
 
+Any page-specific logic that branches on light/dark **must** check
+`MetroShared.getThemeMode()` (falling back to
+`window.matchMedia('(prefers-color-scheme: dark)').matches` only for
+`'system'`), never query `prefers-color-scheme` directly - Metroguessr's
+own map tile style (`prefersDark()`, picks between
+`MAPLIBRE_STYLES.light`/`.dark`) shipped doing exactly that and, for a
+few hours after `/configurar/` itself shipped, could show light chrome
+with dark tiles (or vice versa) for anyone with an explicit override
+set. `tests/metroguessr/theme.test.js` locks the fix in.
+
 **Every page but `/purge/` needs its own inline `<script>` in `<head>`,
 right after its `<link rel="stylesheet" href="/shared.css">`**, that
 reads `'metrordle:config'` directly and sets `data-theme` before first

@@ -1058,7 +1058,16 @@
           return svg;
         }
 
+        // An explicit /configurar/ choice overrides the OS preference for
+        // every other piece of styling on this page (shared.css's own
+        // [data-theme] rules) - the map tile style needs to follow the
+        // same choice instead of querying prefers-color-scheme directly,
+        // or a "Claro"/"Oscuro" override would leave the chrome one
+        // theme and the map tiles the OS's, mismatched.
         function prefersDark() {
+          var mode = MetroShared.getThemeMode();
+          if (mode === 'dark') return true;
+          if (mode === 'light') return false;
           return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         }
 
@@ -1155,6 +1164,11 @@
 
         setTileLayer();
 
+        // Re-evaluates prefersDark() on an OS-level scheme change while
+        // the page is open - a no-op re-render when an explicit
+        // /configurar/ override is set (prefersDark() ignores the OS
+        // value in that case), live-updating the tiles only in 'system'
+        // mode, same as everywhere else this page follows the OS.
         if (window.matchMedia) {
           window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', setTileLayer);
         }

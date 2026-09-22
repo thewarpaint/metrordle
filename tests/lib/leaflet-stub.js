@@ -121,6 +121,11 @@ window.L = (function () {
     // dataType === 'style' filter actually discriminating between
     // them, not just reacting to whatever fires first.
     maplibreGL: function (opts) {
+      // Records which style URL setTileLayer() actually picked
+      // (MAPLIBRE_STYLES.light vs .dark) so a test can assert on it
+      // directly, rather than inferring it from rendered tiles that
+      // this stub never really draws.
+      window.__mgLastGlStyle = opts && opts.style;
       var layers = [
         { id: 'background', type: 'background' },
         { id: 'water', type: 'fill' },

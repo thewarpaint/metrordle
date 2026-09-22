@@ -16,6 +16,7 @@ const FILES = [
   'laberinto/leaderboard.test.js',
   'metrordle/leaderboard.test.js',
   'metroguessr/fast.test.js',
+  'metroguessr/theme.test.js',
   'metroguessr/leaderboard.test.js',
   'admin/admin.test.js',
   'configurar/config.test.js',

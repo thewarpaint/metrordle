@@ -53,6 +53,7 @@ npm run test:laberinto  # Laberinto's puzzle-difficulty checks (~15s)
 npm run test:laberinto-leaderboard  # Laberinto's leaderboard checks (~10s)
 npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 npm run test:metroguessr  # Metroguessr's core-mechanics checks (~15s)
+npm run test:metroguessr-theme  # Metroguessr's map-tile/theme-override checks (~10s)
 npm run test:metroguessr-leaderboard  # Metroguessr's leaderboard checks (~10s)
 npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
 npm run test:configurar  # the /configurar/ settings page checks (~10s)
@@ -223,6 +224,17 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   reloading after the round ends restores the same reveal/result
   instead of starting over, and a further guess attempt on an
   already-done day is a no-op.
+
+**`metroguessr/theme.test.js`** covers a bug found right after
+`/configurar/` shipped: the map tile style was queried straight from
+`prefers-color-scheme`, bypassing a saved light/dark override
+entirely, so the map tiles could end up a different theme than the
+rest of the page's own chrome:
+- An explicit "Claro"/"Oscuro" override picks that style regardless of
+  the OS preference.
+- "Sistema", or no saved config at all, still follows the OS
+  preference either way - the fix doesn't change the pre-existing
+  default behavior.
 
 **`metroguessr/leaderboard.test.js`** (no real-time waiting - plants a
 fabricated `guesses` array directly in `localStorage`, since

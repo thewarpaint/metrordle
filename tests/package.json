@@ -11,6 +11,7 @@
     "test:laberinto-leaderboard": "node laberinto/leaderboard.test.js",
     "test:metrordle-leaderboard": "node metrordle/leaderboard.test.js",
     "test:metroguessr": "node metroguessr/fast.test.js",
+    "test:metroguessr-theme": "node metroguessr/theme.test.js",
     "test:metroguessr-leaderboard": "node metroguessr/leaderboard.test.js",
     "test:admin": "node admin/admin.test.js",
     "test:configurar": "node configurar/config.test.js",

@@ -357,7 +357,13 @@
             key: 'metrordle',
             collection: 'metrordle-leaderboard',
             startDateKey: '2026-08-13',
-            orderBySpecs: [['attempts', 'asc'], ['hardMode', 'desc']],
+            // lost asc puts a loss after a win at the same attempts count
+            // (the only way they can tie, since a loss's attempts is
+            // always TOTAL_ATTEMPTS) - attempts asc alone already sorts
+            // every other loss last, since a loss's attempts count is
+            // always the max possible. See index.html's own submitScore()
+            // for why an entry predating this field still ranks as a win.
+            orderBySpecs: [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']],
             extraFields: ['streak'],
             href: '/',
             scoreCell: function (entry) {
@@ -370,7 +376,7 @@
 
               var number = document.createElement('span');
               number.className = 'leaderboard__score-number';
-              number.textContent = entry.attempts;
+              number.textContent = entry.lost ? '-' : entry.attempts;
 
               score.appendChild(badge);
               score.appendChild(number);
@@ -409,7 +415,8 @@
             key: 'metroguessr',
             collection: 'metroguessr-leaderboard',
             startDateKey: '2026-09-12',
-            orderBySpecs: [['attempts', 'asc'], ['hardMode', 'desc']],
+            // Same lost asc tiebreak as Metrordle's own entry above.
+            orderBySpecs: [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']],
             extraFields: ['streak'],
             href: '/metroguessr/',
             scoreCell: function (entry) {
@@ -422,7 +429,7 @@
 
               var number = document.createElement('span');
               number.className = 'leaderboard__score-number';
-              number.textContent = entry.attempts;
+              number.textContent = entry.lost ? '-' : entry.attempts;
 
               score.appendChild(badge);
               score.appendChild(number);

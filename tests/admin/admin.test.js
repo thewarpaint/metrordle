@@ -34,6 +34,11 @@ const SAMPLE_DATA = {
     // out) and no streak field at all (predates the field) should both
     // render nothing - see streakCell()'s own N > 1 threshold.
     { id: 'eduardo', alias: 'Eduardo', attempts: 2, hardMode: false, streak: 1 },
+    // A loss (lost: true) should render "-" instead of a number,
+    // already placed last here since this stub returns entries as-is,
+    // unsorted - the real sort itself is covered by
+    // tests/shared/leaderboard-query.test.js instead.
+    { id: 'carla', alias: 'Carla', attempts: 5, hardMode: false, lost: true, streak: 0 },
   ],
   'laberinto-leaderboard': [
     { id: 'karla', alias: 'Karla', stations: 9, transfers: 1 },
@@ -43,6 +48,7 @@ const SAMPLE_DATA = {
   ],
   'metroguessr-leaderboard': [
     { id: 'oscar', alias: 'Oscar', attempts: 1, hardMode: true, streak: 12 },
+    { id: 'diego', alias: 'Diego', attempts: 5, hardMode: false, lost: true, streak: 0 },
   ],
 };
 
@@ -174,7 +180,7 @@ async function main() {
       // Metrordle: badge (left) + fixed-width number (right), per row -
       // see index.html's own leaderboard for the same two-slot layout.
       const metrordleRows = page.locator('#metrordle-list .leaderboard__row');
-      assert.strictEqual(await metrordleRows.count(), 2);
+      assert.strictEqual(await metrordleRows.count(), 3);
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Fer');
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__score-number').textContent(), '2');
@@ -182,6 +188,9 @@ async function main() {
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Eduardo');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__score-badge').textContent(), '');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__streak').textContent(), '', 'a streak of 1 (not > 1) should show nothing');
+      // A lost entry (Carla) renders "-" instead of a number.
+      assert.strictEqual(await metrordleRows.nth(2).locator('.leaderboard__alias-name').textContent(), 'Carla');
+      assert.strictEqual(await metrordleRows.nth(2).locator('.leaderboard__score-number').textContent(), '-', 'a lost entry should show "-", not a number');
 
       // Laberinto: "stations-transfers" single cell. No streak field on
       // this one entry at all (predates the feature) - same nothing-
@@ -202,11 +211,14 @@ async function main() {
       // layout as Metrordle's, added once Metroguessr grew its own
       // normal/hard mode split.
       const metroguessrRows = page.locator('#metroguessr-list .leaderboard__row');
-      assert.strictEqual(await metroguessrRows.count(), 1);
+      assert.strictEqual(await metroguessrRows.count(), 2);
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Oscar');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-number').textContent(), '1');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 x 12', 'a double-digit streak should still render correctly');
+      // A lost entry (Diego) renders "-" instead of a number.
+      assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Diego');
+      assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__score-number').textContent(), '-', 'a lost entry should show "-", not a number');
 
       // No empty-state message should show once real entries render.
       for (const key of ['metrordle', 'laberinto', 'memoria']) {
@@ -214,11 +226,11 @@ async function main() {
         assert.strictEqual(statusVisible, false, key + ' should hide the empty-state message once it has entries');
       }
 
-      // 5 unique aliases (fer, eduardo, karla, pao, oscar - none
-      // overlap) across 5 total entries (2+1+1+1, Metro Crush's own
-      // collection isn't in SAMPLE_DATA so contributes 0).
-      assert.strictEqual(await page.locator('#admin-stat-users').textContent(), '5');
-      assert.strictEqual(await page.locator('#admin-stat-games').textContent(), '5');
+      // 7 unique aliases (fer, eduardo, carla, karla, pao, oscar, diego
+      // - none overlap) across 7 total entries (3+1+1+2, Metro Crush's
+      // own collection isn't in SAMPLE_DATA so contributes 0).
+      assert.strictEqual(await page.locator('#admin-stat-users').textContent(), '7');
+      assert.strictEqual(await page.locator('#admin-stat-games').textContent(), '7');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

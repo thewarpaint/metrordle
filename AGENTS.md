@@ -212,33 +212,70 @@ Firestore-backed entry's 🪄 badge silently stayed empty in production
 the whole time - caught only once `streak` needed the exact same
 plumbing and a test (`tests/shared/leaderboard-query.test.js`) was
 added to lock the fix in.
-- Metrordle: fewest attempts, hard-mode beats normal-mode at a tie
-  (`[['attempts','asc'],['hardMode','desc']]` - relies on Firestore/the
-  JS comparator ordering `false < true`).
+- Metrordle: fewest attempts, a loss always after every win, hard-mode
+  beats normal-mode at a tie
+  (`[['attempts','asc'],['lost','asc'],['hardMode','desc']]`). See
+  "Losses" below for the `lost` field and why it's second, not first,
+  in that list.
 - Laberinto: fewest stations, then fewest transfers, both ascending.
+  Unlike Metrordle/Metroguessr, a give-up here still has nothing
+  meaningful to rank (no route at all, not just a worse one) - it
+  still only ever submits on a win.
 - Memoria: highest score, descending.
-- Metroguessr: fewest attempts, hard-mode beats normal-mode at a tie -
-  same shape as Metrordle's own combined ranking
-  (`[['attempts','asc'],['hardMode','desc']]`). Like Metrordle/Laberinto,
-  not Memoria: a loss has no meaningful "attempts to solve," so (see
-  below) it only submits on a win.
+- Metroguessr: fewest attempts, a loss always after every win,
+  hard-mode beats normal-mode at a tie - same shape as Metrordle's own
+  combined ranking
+  (`[['attempts','asc'],['lost','asc'],['hardMode','desc']]`).
 - Metro Crush: highest score, descending - same shape as Memoria's, but
   a cumulative round total rather than a fixed-size puzzle's score, so
   its Firestore rule bounds `score` generously (20000) instead of
   tightly (see `firestore.rules`).
 
+### Losses
+
+Metrordle and Metroguessr both submit a loss to the leaderboard now,
+not just a win - relies on `attempts` for a loss always being exactly
+`TOTAL_ATTEMPTS` (5 for both games: Metrordle's own guess limit,
+Metroguessr's `guesses.length + hintsUsed` when the round ends without
+a correct guess), which is already >= any win's own attempts count.
+That alone puts every loss last in `attempts asc` order EXCEPT the one
+case where a win also happens on the very last possible attempt - tied
+with a loss at that same value. `lost` (bool, `true` for a loss) is
+the tiebreak for exactly that collision, which is why it's
+`orderBySpecs[1]`, not `[0]`: `orderBySpecs[0]` is the one field
+Firestore's own `.orderBy()` uses server-side (see above), and any
+document missing that field is silently excluded from the query
+entirely - `attempts` has been on every entry since each collection's
+creation, so keeping it first means introducing `lost` can't
+accidentally drop older entries from the results the way changing
+`orderBySpecs[0]` itself would. A missing `lost` field (any entry from
+before this shipped) is treated as `false` by `compareByOrderSpecs()`
+- exactly correct, since every entry that predates this only ever got
+submitted on a win in the first place (see "Submission pattern"
+below). `renderLeaderboard()`'s own row-building renders a bare `-`
+for `entry.lost`'s score number instead of the (constant, so
+meaningless to actually show) attempts count - `/admin/`'s matching
+`GAMES` entries do the same in their own `scoreCell()`. A loss also
+resets that game's streak to 0 (see "Streaks" below) and now submits
+`streak: 0` rather than skipping submission altogether, which is why
+both collections' `firestore.rules` bound relaxed from `streak >= 1`
+to `>= 0`, matching Memoria's own bound.
+
 Submission pattern (identical across all 5 games): a
 `leaderboardSubmitted` flag persisted alongside the game result, so a
-reload never resubmits; `submitScore()` no-ops without an alias, under
-`?debug=true`, or (Metrordle/Laberinto/Metroguessr only) on a loss/give-up
-- only a genuine win has a meaningful score to rank. On those same three
-games, `renderAliasRow()` hides the whole `#leaderboard-alias-row` on a
-loss/give-up too (rather than a no-alias player seeing an entry form
-that would silently do nothing if filled in) - Memoria/Metro Crush
-always have a meaningful score, so their alias row always shows.
-`renderLeaderboard()` never clears the DOM before its fetch resolves
-(avoids a flicker on reload), guarded by a monotonically increasing
-request-id so a stale response can't paint over a newer one.
+reload never resubmits; `submitScore()` no-ops without an alias or
+under `?debug=true`. Laberinto is the only one of the three
+attempts/route-based games left where a loss (give-up, there) still
+has nothing meaningful to submit - `renderAliasRow()` there still
+hides the whole `#leaderboard-alias-row` on one, rather than a
+no-alias player seeing an entry form that would silently do nothing if
+filled in. Metrordle/Metroguessr's own `renderAliasRow()` always shows
+now, win or loss, since both have a meaningful leaderboard entry to
+submit - same as Memoria/Metro Crush's own alias row, which always
+showed regardless of outcome already. `renderLeaderboard()` never
+clears the DOM before its fetch resolves (avoids a flicker on reload),
+guarded by a monotonically increasing request-id so a stale response
+can't paint over a newer one.
 
 ### Streaks
 
@@ -397,6 +434,24 @@ committing/pushing - never skip this.** The repo's real project is
 live; this sandbox can't reach `gstatic.com`/Firestore at all, which is
 itself exercised as the "Firebase unreachable degrades gracefully" case
 in every leaderboard test.
+
+**A `page.route('**/shared.js', ...)` patch (the trick every "real
+data" leaderboard/admin test uses to fake `getTopLeaderboardScores()`/
+`submitLeaderboardScore()`) stops working across a `page.reload()`
+unless the context is created with `serviceWorkers: 'block'`.** Every
+real page here registers `sw.js`, which precaches `/shared.js` - once
+it's installed (may happen mid-test, not just on a later visit), a
+reload can be served straight from the service worker's own Cache
+Storage instead of hitting the network a second time, which
+`page.route()` does not see at all. Symptom: the route handler fires
+once (the initial load) and never again, so the reload silently runs
+the REAL `shared.js`/Firestore path instead of the patched one -
+looks like the patch "didn't take" rather than a caching issue.
+Belt-and-suspenders: also set `cache-control: no-store` on the
+`route.fulfill()` response, in case regular HTTP caching (unrelated to
+the service worker) has the same effect. Only matters for a test that
+reloads or re-navigates the same page after registering the route -
+a single `goto()` per test (most of this suite) never hits this.
 
 ## Git workflow
 

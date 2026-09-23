@@ -20,6 +20,16 @@
 // requested via extraFields until this same change added it) from ever
 // reaching that page's own renderLeaderboard() in production.
 //
+// Also covers the `lost` field Metrordle/Metroguessr now submit on a
+// loss (see AGENTS.md's "Losses" section): a real Firestore query
+// against realistic data proves a loss sorts after every win at the
+// same attempts count, and - the same missing-field exclusion risk as
+// hardMode above, avoided the same way - an entry predating this
+// feature (no `lost` field at all) still appears in the results,
+// ranked as a win, because orderBySpecs[0] deliberately stayed
+// `attempts` (present on every entry ever written) rather than
+// becoming `lost` itself.
+//
 // Every OTHER leaderboard test in this suite only reaches
 // getTopLeaderboardScores()'s "Firebase unreachable, degrade
 // gracefully" early return (this sandboxed environment can't reach a
@@ -128,6 +138,53 @@ async function main() {
         return MetroShared.getTopLeaderboardScores('metrordle-leaderboard', dateKey, 5, [['attempts', 'asc'], ['hardMode', 'desc']], {});
       }, DATE);
       assert.strictEqual(withoutExtraField[0].streak, undefined, 'without extraFields, a non-orderBySpecs field should not be copied even when the document has it');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a loss ranks after every win at the same attempts count, and an entry predating the lost field still appears, ranked as a win', async () => {
+    const DATE = '2026-12-24';
+    const FIXTURE = {
+      'metrordle-leaderboard': {
+        [DATE]: [
+          { id: 'ana', data: { alias: 'Ana', attempts: 3, hardMode: false, lost: false, submittedAt: 1000 } },
+          // Ties Caro's/Diego's own attempts=5 - lost: false (a
+          // nail-biter win) must still rank ahead of a real loss at the
+          // same count, which is the one case attempts asc alone can't
+          // resolve on its own (see AGENTS.md's "Losses" section).
+          { id: 'beto', data: { alias: 'Beto', attempts: 5, hardMode: false, lost: false, submittedAt: 2000 } },
+          { id: 'caro', data: { alias: 'Caro', attempts: 5, hardMode: false, lost: true, submittedAt: 3000 } },
+          // No lost field at all - simulates an entry submitted before
+          // this feature shipped. attempts (not lost) stays
+          // orderBySpecs[0], so this must NOT be excluded from the
+          // results the way a missing orderBySpecs[0] field would be -
+          // and must rank as a win (missing lost => false), not last.
+          { id: 'diego', data: { alias: 'Diego', attempts: 5, hardMode: false, submittedAt: 500 } },
+        ],
+      },
+    };
+
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await installFirestoreStub(page, FIXTURE);
+      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const rows = page.locator('#metrordle-list .leaderboard__row');
+      const names = await rows.locator('.leaderboard__alias-name').allTextContents();
+      // Ana (3 attempts) first; then the attempts=5 tier, both wins
+      // before the loss - Diego and Beto tiebreak on submittedAt
+      // ascending (500 < 2000) - then Caro (the real loss) last.
+      assert.deepStrictEqual(names, ['Ana', 'Diego', 'Beto', 'Caro'], 'expected Diego (no lost field) to appear and rank as a win, and Caro (the real loss) to rank last');
+
+      const numbers = await rows.locator('.leaderboard__score-number').allTextContents();
+      assert.deepStrictEqual(numbers, ['3', '5', '5', '-'], 'only the real loss should render "-"');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

@@ -185,18 +185,27 @@ fabricated `history` array directly in `localStorage`, since
 guesses are real), covering the leaderboard section on the main game
 (its own `metrordle-leaderboard` Firestore collection, no localStorage
 fallback). One combined leaderboard, not split by normal/hard mode:
-fewer attempts wins, and a hard-mode entry beats a normal-mode entry at
-the same attempts count - entries render as the attempts count with a
-"🧠" suffix on hard-mode ones:
+fewer attempts wins, a loss always sorts after every win, and a
+hard-mode entry beats a normal-mode entry at the same attempts count -
+entries render as the attempts count (or "-" for a loss) with a "🧠"
+suffix on hard-mode ones:
 - The leaderboard section renders above the guess-board details, with
   the right title, and degrades gracefully to an empty-state message
   rather than erroring when Firebase isn't reachable.
 - Saving an alias persists it under the site-wide `metrordle:alias` key,
   without a page error, even under `?debug=true`.
 - A play under `?debug=true` never marks `leaderboardSubmitted` true.
-- A loss never has anything to submit (there's no valid attempts count
-  to rank) - `leaderboardSubmitted` stays false, but the leaderboard
-  section still renders without error.
+- A loss now submits too (`attempts: 5, lost: true`, captured via a
+  route-intercepted, patched `submitLeaderboardScore()`) once an alias
+  is set, and shows the alias row instead of hiding it - a real
+  submission attempt this sandboxed environment can't fully verify
+  landing in Firestore (see the coverage-gap note below), but this at
+  least proves `submitScore()` no longer skips a loss the way it used
+  to.
+- A lost entry renders "-" instead of an attempts number (stubbed
+  `getTopLeaderboardScores()` data), ranked after a tied-attempts win -
+  the real sort logic behind that ordering is covered by
+  `shared/leaderboard-query.test.js` instead.
 
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
@@ -240,18 +249,20 @@ rest of the page's own chrome:
 fabricated `guesses` array directly in `localStorage`, since
 `loadSavedState()` only checks that `guesses` is an array and looks at
 the last entry's `correct` flag, not that it's the real target), same
-structure as `metrordle/leaderboard.test.js` and
-`laberinto/leaderboard.test.js` above - fewest attempts wins, ascending,
-no hard-mode split:
+structure as `metrordle/leaderboard.test.js` above - fewest attempts
+wins, a loss always after every win, no hard-mode split beyond the
+existing hard-mode tiebreak:
 - The leaderboard section renders with the right title, and degrades
   gracefully to an empty-state message rather than erroring when
   Firebase isn't reachable.
 - Saving an alias persists it under the site-wide `metrordle:alias` key,
   without a page error, even under `?debug=true`.
 - A play under `?debug=true` never marks `leaderboardSubmitted` true.
-- A loss never has anything to submit (there's no meaningful attempts
-  count to rank) - `leaderboardSubmitted` stays false, but the
-  leaderboard section still renders without error.
+- A loss now submits too (`attempts: 5, lost: true`, same
+  patched-`submitLeaderboardScore()` trick as Metrordle's own test) once
+  an alias is set, and shows the alias row instead of hiding it.
+- A lost entry renders "-" instead of an attempts number, ranked after
+  a tied-attempts win - same as Metrordle's own leaderboard.
 
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
@@ -270,8 +281,8 @@ leaderboard browser (no game state of its own to plant in
 - Real leaderboard data (stubbed via a route-intercepted, patched
   `shared.js`, since this sandboxed environment can't reach Firestore)
   renders with each game's own ranking and score formatting: Metrordle's
-  badge+number cell, Laberinto's `stations-transfers`, Memoria's plain
-  score.
+  badge+number cell (a lost entry shows "-"), Laberinto's
+  `stations-transfers`, Memoria's plain score.
 - The two `.stat-grid`/`.stat-box` tiles above the boards (unique
   aliases and total entries across every game that day) render
   correctly from the same sample data, including with no reachable
@@ -320,6 +331,13 @@ client-side).
   `false` - not silently dropped.
 - The 🧠 badge only shows for an entry that actually has `hardMode:
   true` - a missing field must not render as truthy.
+- A loss (`lost: true`) ranks after every win at the same attempts
+  count, and an entry predating the `lost` field (no such field at
+  all, from before Metrordle/Metroguessr started submitting losses)
+  still appears in the results, ranked as a win - proving
+  `orderBySpecs[0]` staying `attempts` (rather than becoming `lost`
+  itself) avoids the exact same silent-exclusion risk as the `hardMode`
+  case above.
 
 **`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
 tag every page carries (defense-in-depth alongside the app's actual XSS

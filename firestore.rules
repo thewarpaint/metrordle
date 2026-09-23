@@ -78,18 +78,20 @@ service cloud.firestore {
 
     // metrordle-leaderboard/{dateKey}/entries/{aliasId} - one combined
     // leaderboard (not split by normal/hard mode). Ranked by fewest
-    // attempts, with a hard-mode entry beating a normal-mode entry at the
-    // same attempts count (see renderLeaderboard()'s orderBySpecs) - the
-    // hardMode field just needs to be a plausible bool here, the ordering
-    // itself lives client-side. attempts is bounded by TOTAL_ATTEMPTS (a
-    // puzzle is only ever solved in 1-5 tries). streak is display-only
-    // (see Memoria's own comment above) - only a win submits here, so
-    // it's always at least 1.
+    // attempts, with a loss always sorting after every win and a
+    // hard-mode entry beating a normal-mode entry at the same attempts
+    // count (see renderLeaderboard()'s orderBySpecs) - the hardMode/lost
+    // fields just need to be plausible bools here, the ordering itself
+    // lives client-side. attempts is bounded by TOTAL_ATTEMPTS (1-5 -
+    // a loss's attempts is always exactly 5, the same as the hardest
+    // possible win). Both a win and a loss submit here now, so streak
+    // (display-only, see Memoria's own comment above) can legitimately
+    // be 0 - a loss always resets it.
     match /metrordle-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'lost', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -97,8 +99,9 @@ service cloud.firestore {
         request.resource.data.attempts >= 1 &&
         request.resource.data.attempts <= 5 &&
         request.resource.data.hardMode is bool &&
+        request.resource.data.lost is bool &&
         request.resource.data.streak is int &&
-        request.resource.data.streak >= 1 &&
+        request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
@@ -107,21 +110,22 @@ service cloud.firestore {
     }
 
     // metroguessr-leaderboard/{dateKey}/entries/{aliasId} - ranked by
-    // fewest attempts, with a hard-mode entry beating a normal-mode
-    // entry at the same attempts count, same convention as Metrordle's
-    // own combined leaderboard (see renderLeaderboard()'s orderBySpecs)
-    // - the hardMode field just needs to be a plausible bool here, the
-    // ordering itself lives client-side. Bounded 1-5 since only a win
-    // submits (see submitScore() in metroguessr/index.html) and
-    // MAX_ATTEMPTS there is 5. hintsUsed (0-2) and streak (display-only,
-    // see Memoria's own comment above - always at least 1 here, same
-    // win-only submission as Metrordle/Laberinto) are both display-only,
-    // neither part of orderBySpecs.
+    // fewest attempts, with a loss always sorting after every win and a
+    // hard-mode entry beating a normal-mode entry at the same attempts
+    // count, same convention as Metrordle's own combined leaderboard
+    // (see renderLeaderboard()'s orderBySpecs) - the hardMode/lost
+    // fields just need to be plausible bools here, the ordering itself
+    // lives client-side. Bounded 1-5, same as Metrordle's own attempts
+    // (MAX_ATTEMPTS in metroguessr/index.html is 5, and a loss's
+    // attempts is always exactly that). hintsUsed (0-2) is display-only.
+    // Both a win and a loss submit here now, so streak (display-only,
+    // see Memoria's own comment above) can legitimately be 0 - a loss
+    // always resets it.
     match /metroguessr-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'hintsUsed', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'attempts', 'hardMode', 'lost', 'hintsUsed', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -129,11 +133,12 @@ service cloud.firestore {
         request.resource.data.attempts >= 1 &&
         request.resource.data.attempts <= 5 &&
         request.resource.data.hardMode is bool &&
+        request.resource.data.lost is bool &&
         request.resource.data.hintsUsed is int &&
         request.resource.data.hintsUsed >= 0 &&
         request.resource.data.hintsUsed <= 2 &&
         request.resource.data.streak is int &&
-        request.resource.data.streak >= 1 &&
+        request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();

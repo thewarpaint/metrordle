@@ -2,14 +2,18 @@
 
 // Covers /admin/, the read-only cross-game leaderboard browser: the same
 // prev/next date-nav each game's own ?debug=true mode uses (see
-// index.html's #date-debug), but always on, plus one leaderboard section
-// per game (metrordle-leaderboard, laberinto-leaderboard,
-// memoria-leaderboard, metroguessr-leaderboard), each reusing that
-// game's own collection/orderBySpecs/score-formatting - see
-// admin/index.html's GAMES array - plus the shared streakCell() 🔥 x N
-// badge (N > 1 only) every one of those four games' rows gets. Metro
-// Crush's own section isn't covered here yet, and has no streak concept
-// at all (see AGENTS.md).
+// index.html's #date-debug), gated behind that same param (so is each
+// game's own "Ver este día en ___" deep link) - both hidden by default,
+// shown only under ?debug=true. Plus one leaderboard section per game
+// (metrordle-leaderboard, laberinto-leaderboard, memoria-leaderboard,
+// metroguessr-leaderboard), each reusing that game's own
+// collection/orderBySpecs/score-formatting - see admin/index.html's
+// GAMES array - plus the shared streakCell() 🔥 x N badge (N > 1 only)
+// every one of those four games' rows gets. Metro Crush's own section
+// isn't covered here yet, and has no streak concept at all (see
+// AGENTS.md). Also covers the two .stat-grid/.stat-box tiles above the
+// boards (unique aliases, total entries that day) - these are NOT
+// debug-gated, unlike the date-nav/deep links.
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), so the "real data" checks stub
@@ -62,7 +66,7 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('shows the date picker (always on, unlike the games\' own ?debug=true-gated one) and degrades gracefully with no reachable Firebase', async () => {
+  test('hides the date picker and each game\'s deep link by default, and degrades gracefully with no reachable Firebase', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];
@@ -71,11 +75,14 @@ async function main() {
       await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
-      assert.strictEqual(await page.locator('#date-debug').isVisible(), true, 'the date picker should be visible without ?debug=true');
+      assert.strictEqual(await page.locator('#date-debug').isVisible(), false, 'the date picker should be hidden without ?debug=true');
+      assert.strictEqual(await page.locator('#metrordle-link').isVisible(), false, 'the deep link should be hidden without ?debug=true');
 
-      const labelText = await page.locator('#date-debug-label').textContent();
-      assert.ok(/^\d{4}-\d{2}-\d{2}( \(hoy\))?$/.test(labelText), 'expected a YYYY-MM-DD date label, got: ' + labelText);
-      assert.ok(labelText.endsWith('(hoy)'), 'the initial date should be today\'s, got: ' + labelText);
+      // The stat tiles are NOT debug-gated - they should still show
+      // (as 0/0, with no reachable Firebase) regardless.
+      assert.strictEqual(await page.locator('#admin-stats').isVisible(), true, 'the stat tiles should render even with no reachable Firebase');
+      assert.strictEqual(await page.locator('#admin-stat-users').textContent(), '0');
+      assert.strictEqual(await page.locator('#admin-stat-games').textContent(), '0');
 
       for (const key of ['metrordle', 'laberinto', 'memoria']) {
         const statusVisible = await page.locator('#' + key + '-status').isVisible();
@@ -90,13 +97,35 @@ async function main() {
     }
   });
 
-  test('the date picker moves across dates, and each game\'s deep link tracks the shown date', async () => {
+  test('?debug=true shows the date picker and each game\'s deep link, defaulting to today', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/admin/?debug=true', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#date-debug').isVisible(), true, 'the date picker should be visible under ?debug=true');
+      assert.strictEqual(await page.locator('#metrordle-link').isVisible(), true, 'the deep link should be visible under ?debug=true');
+
+      const labelText = await page.locator('#date-debug-label').textContent();
+      assert.ok(/^\d{4}-\d{2}-\d{2}( \(hoy\))?$/.test(labelText), 'expected a YYYY-MM-DD date label, got: ' + labelText);
+      assert.ok(labelText.endsWith('(hoy)'), 'the initial date should be today\'s, got: ' + labelText);
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('under ?debug=true, the date picker moves across dates, and each game\'s deep link tracks the shown date', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/admin/?debug=true', { waitUntil: 'networkidle' });
       await page.waitForTimeout(300);
 
       const initialLabel = await page.locator('#date-debug-label').textContent();
@@ -184,6 +213,12 @@ async function main() {
         const statusVisible = await page.locator('#' + key + '-status').isVisible();
         assert.strictEqual(statusVisible, false, key + ' should hide the empty-state message once it has entries');
       }
+
+      // 5 unique aliases (fer, eduardo, karla, pao, oscar - none
+      // overlap) across 5 total entries (2+1+1+1, Metro Crush's own
+      // collection isn't in SAMPLE_DATA so contributes 0).
+      assert.strictEqual(await page.locator('#admin-stat-users').textContent(), '5');
+      assert.strictEqual(await page.locator('#admin-stat-games').textContent(), '5');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

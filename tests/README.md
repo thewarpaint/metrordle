@@ -260,17 +260,23 @@ test, for the same reason.
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads all three games' own collections):
 - The date picker (the same prev/next chevrons as each game's own
-  `?debug=true` date-nav) is visible without `?debug=true`, and all
-  three games' sections degrade gracefully to an empty-state message
-  when Firebase isn't reachable.
-- Clicking the chevrons moves the shown date a real calendar day at a
-  time, and each game's "Ver este día en ___" deep link tracks whatever
-  date is currently shown.
+  `?debug=true` date-nav) and each game's "Ver este día en ___" deep
+  link are both hidden without `?debug=true`, shown only with it - and
+  all three games' sections degrade gracefully to an empty-state
+  message when Firebase isn't reachable either way.
+- Under `?debug=true`, the date picker defaults to today; clicking the
+  chevrons moves the shown date a real calendar day at a time, and each
+  game's deep link tracks whatever date is currently shown.
 - Real leaderboard data (stubbed via a route-intercepted, patched
   `shared.js`, since this sandboxed environment can't reach Firestore)
   renders with each game's own ranking and score formatting: Metrordle's
   badge+number cell, Laberinto's `stations-transfers`, Memoria's plain
   score.
+- The two `.stat-grid`/`.stat-box` tiles above the boards (unique
+  aliases and total entries across every game that day) render
+  correctly from the same sample data, including with no reachable
+  Firebase (0/0) - and are NOT debug-gated, unlike the date-nav/deep
+  links above.
 
 **`configurar/config.test.js`** covers `/configurar/`, the site-wide
 settings page (for now, just the light/dark/system appearance picker -

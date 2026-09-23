@@ -359,34 +359,6 @@
         text-transform: uppercase;
       }
 
-      .reveal__stats {
-        display: grid;
-        gap: 0.5rem;
-        grid-template-columns: repeat(3, 1fr);
-        margin-bottom: 1.1rem;
-      }
-
-      .reveal__stat {
-        background: var(--paper-well);
-        border: 1px solid var(--rule);
-        border-radius: 0.4rem;
-        padding: 0.55rem 0.3rem;
-      }
-
-      .reveal__stat-value {
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 1.1rem;
-        font-weight: 700;
-      }
-
-      .reveal__stat-label {
-        color: var(--ink-soft);
-        font-size: 0.6rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-
       /* Metro Crush-only leaderboard styling: everything else
          (.leaderboard__title, .leaderboard__row, etc., including
          .leaderboard__score-badge - identical across every game with a
@@ -489,18 +461,18 @@
           <div class="reveal__banner" id="reveal-banner"></div>
           <div class="reveal__score" id="reveal-score">0</div>
           <div class="reveal__score-label">puntos</div>
-          <div class="reveal__stats">
-            <div class="reveal__stat">
-              <div class="reveal__stat-value" id="reveal-groups">0</div>
-              <div class="reveal__stat-label">Grupos</div>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-groups">0</div>
+              <div class="stat-box__label">Grupos</div>
             </div>
-            <div class="reveal__stat">
-              <div class="reveal__stat-value" id="reveal-combo">×1</div>
-              <div class="reveal__stat-label">Mejor combo</div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-combo">×1</div>
+              <div class="stat-box__label">Mejor combo</div>
             </div>
-            <div class="reveal__stat">
-              <div class="reveal__stat-value" id="reveal-run">3</div>
-              <div class="reveal__stat-label">Fila más larga</div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-run">3</div>
+              <div class="stat-box__label">Fila más larga</div>
             </div>
           </div>
 

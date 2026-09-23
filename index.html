@@ -1071,18 +1071,20 @@
           document.documentElement.style.setProperty('--line', puzzle.line.color);
           document.documentElement.style.setProperty('--line-ink', puzzle.line.textColor);
 
-          // submitScore() itself checks state.won/state.leaderboardSubmitted
-          // and no-ops unless this is a won game that hasn't confirmed a
-          // submission yet - harmless to call unconditionally here.
+          // submitScore() itself checks state.gameOver/state.leaderboardSubmitted
+          // and no-ops unless this is a finished game (win or loss) that
+          // hasn't confirmed a submission yet - harmless to call
+          // unconditionally here.
           submitScore();
           render(false);
         }
 
-        // Submits the current result to today's leaderboard, if the player
-        // actually won (a loss never solved the puzzle, so has no
-        // meaningful attempts count to rank) and an alias is already set.
-        // Also called again once the player sets an alias from the reveal
-        // screen, in case a round already finished before they had one.
+        // Submits the current result to today's leaderboard (win or loss -
+        // a loss still has a meaningful attempts count, always 5 since it
+        // only happens once TOTAL_ATTEMPTS is used up; see the lost field
+        // below) once an alias is already set. Also called again once the
+        // player sets an alias from the reveal screen, in case a round
+        // already finished before they had one.
         //
         // hardMode is stored alongside attempts so the combined leaderboard
         // (one ranking, not split by mode) can rank a hard-mode entry ahead
@@ -1093,18 +1095,27 @@
         // through arbitrary past/future days and shouldn't pollute the
         // real leaderboard with them.
         function submitScore() {
-          if (!state || !state.gameOver || !state.won) return;
+          if (!state || !state.gameOver) return;
           if (state.leaderboardSubmitted) return;
           if (MetroShared.isDebugMode()) return;
 
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          // streak is submitted purely for display (see /admin/'s own
-          // 🔥 badge) - never part of orderBySpecs, so a query's
-          // ranking/results are identical whether or not an entry (old
-          // or new) happens to have it.
-          var fields = { attempts: state.history.length, hardMode: state.mode === 'hard', streak: state.streak };
+          // lost sorts a loss after every win regardless of its own
+          // numeric attempts value (see renderLeaderboard()'s orderBySpecs
+          // - attempts alone already achieves this for every loss but a
+          // win on the very last attempt, which ties a loss's own attempts
+          // count) and is what the leaderboard row renders "-" for
+          // instead of a number. An entry from before this feature has no
+          // such field at all - compareByOrderSpecs() treats that as
+          // false, i.e. a win, which is exactly correct: every entry that
+          // predates this only ever submitted on a win in the first
+          // place. streak is submitted purely for display (see /admin/'s
+          // own 🔥 badge) - never part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not an entry (old or
+          // new) happens to have it.
+          var fields = { attempts: state.history.length, hardMode: state.mode === 'hard', lost: !state.won, streak: state.streak };
 
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
@@ -1782,17 +1793,11 @@
         // score instead of actually updating it. Keeping whatever the
         // player first entered avoids that; revisit if there's ever a
         // real need to rename (e.g. by moving the old entry too).
-        // A loss never has anything to submit (see submitScore()), so
-        // there's nothing for the alias input to do there - hide the
-        // whole row rather than showing a form that would silently no-op.
+        // A win or a loss both have something to submit now (see
+        // submitScore()), so the alias row always shows once the round is
+        // over.
         function renderAliasRow() {
           var el = els.leaderboardAliasRow;
-          if (!state.won) {
-            el.hidden = true;
-            el.innerHTML = '';
-            return;
-          }
-
           el.hidden = false;
           var alias = MetroShared.getAlias();
           if (alias) {
@@ -1870,9 +1875,14 @@
           // wins, and a hard-mode entry beats a normal-mode entry at the
           // same attempts count (Firestore/the fallback comparator both
           // order booleans false < true, so hardMode desc puts true
-          // ahead). submittedAt asc is appended automatically by
-          // getTopLeaderboardScores() as the final tiebreak.
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['hardMode', 'desc']], {})
+          // ahead). lost asc puts a loss after a win at the same attempts
+          // count (the only way they can tie, since a loss's attempts is
+          // always TOTAL_ATTEMPTS) - attempts asc alone already sorts
+          // every other loss last, since a loss's attempts count is
+          // always the max possible. submittedAt asc is appended
+          // automatically by getTopLeaderboardScores() as the final
+          // tiebreak.
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], {})
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1917,7 +1927,10 @@
 
                 var number = document.createElement('span');
                 number.className = 'leaderboard__score-number';
-                number.textContent = entry.attempts;
+                // A loss has no meaningful attempts count to show (it's
+                // always TOTAL_ATTEMPTS, same for every loss) - a bare "-"
+                // instead of the number is what actually communicates that.
+                number.textContent = entry.lost ? '-' : entry.attempts;
 
                 score.appendChild(badge);
                 score.appendChild(number);

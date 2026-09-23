@@ -1678,13 +1678,15 @@
           if (state && state.done) recenterMapAboveReveal(stationByName[state.target]);
         }
 
-        // Submits the current result to today's leaderboard, if an alias
-        // is already set. Only a win has a meaningful "attempts to solve"
-        // to rank - a loss doesn't get an entry, same as Metrordle's and
-        // Laberinto's own attempts-based leaderboards (unlike Memoria's
-        // pairs-matched score, which is always comparable win or lose).
-        // Also called again once the player sets an alias from the reveal
-        // screen, in case a round already finished before they had one.
+        // Submits the current result to today's leaderboard (win or loss -
+        // a loss still has a meaningful attempts count, always
+        // TOTAL_ATTEMPTS since that's the only way a round ends without a
+        // correct guess; see the lost field below), if an alias is
+        // already set. Laberinto's own leaderboard is unaffected by this -
+        // a give-up there still has no meaningful route to rank, unlike a
+        // loss here or on Metrordle's own board. Also called again once
+        // the player sets an alias from the reveal screen, in case a
+        // round already finished before they had one.
         //
         // hardMode is stored alongside attempts so the combined
         // leaderboard (one ranking, not split by mode) can rank a
@@ -1696,7 +1698,7 @@
         // through arbitrary past/future days and shouldn't pollute the
         // real leaderboard with them.
         function submitScore() {
-          if (!state || !state.done || !state.won) return;
+          if (!state || !state.done) return;
           if (state.leaderboardSubmitted) return;
           if (MetroShared.isDebugMode()) return;
 
@@ -1707,13 +1709,17 @@
           // attempt without adding a guess (see useHint()), and the
           // leaderboard should rank a hint-assisted win behind an
           // unassisted one at the same guess count, not hide the hints
-          // used to get there. hintsUsed/streak are submitted too,
-          // purely for display (this page's own 🪄 badge, /admin/'s
-          // own 🔥 one) - ranking itself only ever needs attempts/
-          // hardMode, and neither is part of orderBySpecs, so a query's
-          // ranking/results are identical whether or not an entry (old
-          // or new) happens to have them.
-          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard', hintsUsed: state.hintsUsed, streak: state.streak };
+          // used to get there. lost sorts a loss after every win (see
+          // renderLeaderboard()'s orderBySpecs) and is what the
+          // leaderboard row renders "-" for instead of a number - an
+          // entry from before this feature has no such field at all,
+          // which compareByOrderSpecs() treats as false (a win), exactly
+          // right since every entry that predates this only ever
+          // submitted on a win in the first place. hintsUsed/streak are
+          // submitted too, purely for display (this page's own 🪄 badge,
+          // /admin/'s own 🔥 one) - ranking itself only ever needs
+          // attempts/lost/hardMode.
+          var fields = { attempts: state.attempts, hardMode: state.mode === 'hard', lost: !state.won, hintsUsed: state.hintsUsed, streak: state.streak };
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
@@ -1734,17 +1740,11 @@
         // methods and textContent throughout, never innerHTML with the
         // alias itself, since it's free text from anyone who's played,
         // not trusted data like a station name.
-        // A loss never has anything to submit (see submitScore()), so
-        // there's nothing for the alias input to do there - hide the
-        // whole row rather than showing a form that would silently no-op.
+        // A win or a loss both have something to submit now (see
+        // submitScore()), so the alias row always shows once the round is
+        // over.
         function renderAliasRow() {
           var el = $('leaderboard-alias-row');
-          if (!state.won) {
-            el.hidden = true;
-            el.innerHTML = '';
-            return;
-          }
-
           el.hidden = false;
           var alias = MetroShared.getAlias();
           if (alias) {
@@ -1822,8 +1822,13 @@
           // own comment) - without naming it here too,
           // getTopLeaderboardScores() would never actually copy it from
           // the Firestore document into the returned entry, and every
-          // real entry's badge would silently stay wandless.
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed'] })
+          // real entry's badge would silently stay wandless. lost asc
+          // puts a loss after a win at the same attempts count (the only
+          // way they can tie, since a loss's attempts is always
+          // TOTAL_ATTEMPTS) - attempts asc alone already sorts every
+          // other loss last, since a loss's attempts count is always the
+          // max possible.
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed'] })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer
@@ -1880,8 +1885,12 @@
                 number.className = 'leaderboard__score-number';
                 // Bare digit, no "intento(s)" suffix - the rank/badge/
                 // number layout already makes it obvious what this
-                // number counts, same as Metrordle's own leaderboard.
-                number.textContent = String(entry.attempts);
+                // number counts, same as Metrordle's own leaderboard. A
+                // loss has no meaningful attempts count to show (it's
+                // always TOTAL_ATTEMPTS, same for every loss) - a bare
+                // "-" instead of the number is what actually
+                // communicates that.
+                number.textContent = entry.lost ? '-' : String(entry.attempts);
 
                 score.appendChild(badge);
                 score.appendChild(number);

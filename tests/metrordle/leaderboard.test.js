@@ -4,13 +4,13 @@
 // 'metrordle-leaderboard' Firestore collection, no localStorage fallback -
 // see shared.js's submitLeaderboardScore/getTopLeaderboardScores). One
 // combined leaderboard, not split by normal/hard mode: fewer attempts
-// wins, and a hard-mode entry beats a normal-mode entry at the same
-// attempts count (see index.html's renderLeaderboard() orderBySpecs).
-// This sandboxed test environment can't reach Firestore at all
-// (gstatic.com is unreachable), which is itself a useful case to cover:
-// the leaderboard section must still render (an empty-state message, not
-// an error) and the page must not throw, exactly like a real player
-// whose network blocks Firebase.
+// wins, a loss always sorts after every win, and a hard-mode entry beats
+// a normal-mode entry at the same attempts count (see index.html's
+// renderLeaderboard() orderBySpecs). This sandboxed test environment
+// can't reach Firestore at all (gstatic.com is unreachable), which is
+// itself a useful case to cover: the leaderboard section must still
+// render (an empty-state message, not an error) and the page must not
+// throw, exactly like a real player whose network blocks Firebase.
 //
 // Uses a fabricated-history-planted-in-localStorage trick (see
 // tests/laberinto/leaderboard.test.js's fabricated-path equivalent) to
@@ -37,6 +37,34 @@ async function plantSavedGame(page, dateKey, attempts, won, mode, leaderboardSub
       leaderboardSubmitted: !!args.leaderboardSubmitted,
     }));
   }, { dateKey: dateKey, attempts: attempts, won: won, mode: mode, leaderboardSubmitted: leaderboardSubmitted });
+}
+
+// Captures the fields object a submission would actually send, without
+// needing a real (unreachable in this sandbox) Firestore project -
+// same route-interception trick tests/admin/admin.test.js uses for
+// getTopLeaderboardScores(), applied to submitLeaderboardScore() instead.
+async function stubSubmit(page) {
+  await page.route('**/shared.js', async (route) => {
+    const response = await route.fetch();
+    const body = await response.text();
+    const patched = body + `
+      (function () {
+        window.__submittedFields = null;
+        window.MetroShared.submitLeaderboardScore = function (collectionName, dateKey, alias, fields) {
+          window.__submittedFields = fields;
+          return Promise.resolve();
+        };
+      })();
+    `;
+    // Without this, the test server's own Last-Modified/ETag headers
+    // (copied from `response` by default) make the browser serve the
+    // FIRST patched response straight from its disk cache on the next
+    // navigation (this test's own page.reload()) - no network request
+    // at all, so this route handler never runs a second time and the
+    // real, unpatched shared.js (already loaded before the reload)
+    // keeps controlling window.MetroShared instead.
+    await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+  });
 }
 
 async function main() {
@@ -116,23 +144,89 @@ async function main() {
     }
   });
 
-  test('a loss never has anything to submit, but still shows the leaderboard section without error', async () => {
+  test('a loss now submits too (attempts: 5, lost: true), and shows the alias row instead of hiding it', async () => {
     const DATE = '2026-12-25';
-    const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    // serviceWorkers: 'block' - this page registers a real service
+    // worker (sw.js) that precaches /shared.js; without blocking it, a
+    // page.reload() below can end up served from the SW's own Cache
+    // Storage instead of hitting the network a second time, bypassing
+    // the page.route() patch this test depends on (route() doesn't see
+    // SW-served resources).
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await page.goto(server.baseUrl + '/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      // Deliberately NOT ?debug=true here - that skips submitScore()
+      // entirely, which would defeat the point of this test.
+      await stubSubmit(page);
+      await page.goto(server.baseUrl + '/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.evaluate(() => localStorage.setItem('metrordle:alias', 'Eduardo'));
       await plantSavedGame(page, DATE, 5, false, 'normal', false);
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#leaderboard').isVisible(), true, 'the leaderboard section should still show on a loss');
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), true, 'the alias row should show on a loss now (there is something meaningful to submit), not stay hidden like before');
+
+      const fields = await page.evaluate(() => window.__submittedFields);
+      assert.ok(fields, 'submitScore() should have attempted a submission on a loss now');
+      assert.strictEqual(fields.attempts, 5, 'a loss always uses every attempt');
+      assert.strictEqual(fields.lost, true);
 
       const saved = await page.evaluate((d) => JSON.parse(localStorage.getItem('metrordle:' + d)), DATE);
-      assert.strictEqual(saved.leaderboardSubmitted, false, 'a loss should never mark leaderboardSubmitted true - there is no valid attempts count to rank');
+      assert.strictEqual(saved.leaderboardSubmitted, true, 'a successful submission should mark leaderboardSubmitted true, same as a win');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a lost entry renders "-" instead of an attempts number, ranked after every win', async () => {
+    const DATE = '2026-12-26';
+    // serviceWorkers: 'block' - see the previous test's own comment.
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            var DATA = [
+              { id: 'ana', alias: 'Ana', attempts: 3, hardMode: false, lost: false },
+              // A loss's own attempts (always 5, TOTAL_ATTEMPTS) ties
+              // numerically with a nail-biter win at the same count -
+              // lost is what still has to sort this one last.
+              { id: 'beto', alias: 'Beto', attempts: 5, hardMode: false, lost: true },
+              { id: 'caro', alias: 'Caro', attempts: 5, hardMode: false, lost: false },
+            ];
+            window.MetroShared.getTopLeaderboardScores = function () {
+              return Promise.resolve(DATA.slice().sort(function (a, b) {
+                if (a.attempts !== b.attempts) return a.attempts - b.attempts;
+                return Number(a.lost) - Number(b.lost);
+              }));
+            };
+          })();
+        `;
+        await route.fulfill({ response, body: patched });
+      });
+      await page.goto(server.baseUrl + '/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedGame(page, DATE, 3, true, 'normal', true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const rows = page.locator('#leaderboard-list .leaderboard__row');
+      assert.strictEqual(await rows.count(), 3);
+
+      const names = await rows.locator('.leaderboard__alias-name').allTextContents();
+      assert.deepStrictEqual(names, ['Ana', 'Caro', 'Beto'], 'the loss (Beto) should rank last despite tying Caro\'s own attempts count');
+
+      const numbers = await rows.locator('.leaderboard__score-number').allTextContents();
+      assert.deepStrictEqual(numbers, ['3', '5', '-'], 'the lost row should show "-", not a number');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

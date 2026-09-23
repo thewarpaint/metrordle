@@ -90,6 +90,10 @@
         margin-top: 0.6rem;
       }
 
+      .admin-board__link[hidden] {
+        display: none;
+      }
+
       .leaderboard__list {
         display: flex;
         flex-direction: column;
@@ -176,7 +180,7 @@
         font-size: 0.8rem;
         font-variant-numeric: tabular-nums;
         min-width: 3rem;
-        text-align: right;
+        text-align: left;
       }
 
       .leaderboard__status {
@@ -219,20 +223,8 @@
         display: none;
       }
 
-      .admin-stat {
-        margin: 0 0 1rem;
-        text-align: center;
-      }
-
-      .admin-stat[hidden] {
+      .stat-grid[hidden] {
         display: none;
-      }
-
-      .admin-stat__value {
-        font-family: 'Overpass', sans-serif;
-        font-size: 1.4rem;
-        font-weight: 800;
-        margin: 0;
       }
     </style>
   </head>
@@ -251,16 +243,25 @@
       </div>
 
       <!-- Same prev/next date-nav as each game's own ?debug=true date
-           picker (see index.html's #date-debug) - here it's always on,
-           since this whole page only exists to browse past days. -->
-      <div class="date-debug" id="date-debug">
+           picker (see index.html's #date-debug), and gated behind the
+           same ?debug=true param - unlike a game's own date-nav, this
+           one can jump to any past day's real leaderboard data, so it
+           stays hidden from a casual visitor by default. -->
+      <div class="date-debug" id="date-debug" hidden>
         <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug__label" id="date-debug-label"></span>
         <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
       </div>
 
-      <div class="admin-stat" id="admin-stat" hidden>
-        <p class="admin-stat__value">Usuarios únicos: <strong id="admin-stat-count"></strong></p>
+      <div class="stat-grid" id="admin-stats" style="--cols: 2;" hidden>
+        <div class="stat-box">
+          <div class="stat-box__value" id="admin-stat-users">0</div>
+          <div class="stat-box__label">Usuarios únicos</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box__value" id="admin-stat-games">0</div>
+          <div class="stat-box__label">Total juegos</div>
+        </div>
       </div>
 
       <div class="admin-loading" id="admin-loading">
@@ -276,7 +277,7 @@
           </div>
           <ol class="leaderboard__list" id="metrordle-list"></ol>
           <p class="leaderboard__status" id="metrordle-status" hidden></p>
-          <a class="admin-board__link" id="metrordle-link" target="_blank" rel="noopener">Ver este día en Metrordle →</a>
+          <a class="admin-board__link" id="metrordle-link" target="_blank" rel="noopener" hidden>Ver este día en Metrordle →</a>
         </div>
 
         <div class="sign admin-board" id="laberinto-board">
@@ -286,7 +287,7 @@
           </div>
           <ol class="leaderboard__list" id="laberinto-list"></ol>
           <p class="leaderboard__status" id="laberinto-status" hidden></p>
-          <a class="admin-board__link" id="laberinto-link" target="_blank" rel="noopener">Ver este día en Laberinto →</a>
+          <a class="admin-board__link" id="laberinto-link" target="_blank" rel="noopener" hidden>Ver este día en Laberinto →</a>
         </div>
 
         <div class="sign admin-board" id="memoria-board">
@@ -296,7 +297,7 @@
           </div>
           <ol class="leaderboard__list" id="memoria-list"></ol>
           <p class="leaderboard__status" id="memoria-status" hidden></p>
-          <a class="admin-board__link" id="memoria-link" target="_blank" rel="noopener">Ver este día en Memoria →</a>
+          <a class="admin-board__link" id="memoria-link" target="_blank" rel="noopener" hidden>Ver este día en Memoria →</a>
         </div>
 
         <div class="sign admin-board" id="metroguessr-board">
@@ -306,7 +307,7 @@
           </div>
           <ol class="leaderboard__list" id="metroguessr-list"></ol>
           <p class="leaderboard__status" id="metroguessr-status" hidden></p>
-          <a class="admin-board__link" id="metroguessr-link" target="_blank" rel="noopener">Ver este día en Metroguessr →</a>
+          <a class="admin-board__link" id="metroguessr-link" target="_blank" rel="noopener" hidden>Ver este día en Metroguessr →</a>
         </div>
 
         <div class="sign admin-board" id="metrocrush-board">
@@ -316,7 +317,7 @@
           </div>
           <ol class="leaderboard__list" id="metrocrush-list"></ol>
           <p class="leaderboard__status" id="metrocrush-status" hidden></p>
-          <a class="admin-board__link" id="metrocrush-link" target="_blank" rel="noopener">Ver este día en Metro Crush →</a>
+          <a class="admin-board__link" id="metrocrush-link" target="_blank" rel="noopener" hidden>Ver este día en Metro Crush →</a>
         </div>
       </div>
     </div>
@@ -513,21 +514,27 @@
             if (token !== renderToken) return;
             els.loading.hidden = true;
             els.boards.hidden = false;
-            renderUniqueUsersStat(allEntries);
+            renderStats(allEntries);
           });
         }
 
         // Aliases are already the site's own cross-game identity anchor
         // (one localStorage key, shared by every game - see AGENTS.md),
         // so a player using the same alias in two games' leaderboards
-        // the same day is exactly the case this should collapse into
-        // one person, not count twice.
-        function renderUniqueUsersStat(allEntries) {
+        // the same day is exactly the case "usuarios únicos" should
+        // collapse into one person, not count twice. "Total juegos" is
+        // just every entry across every game's list added up - each one
+        // is a single submitted result, so no such collapsing applies
+        // there.
+        function renderStats(allEntries) {
           var uniqueIds = {};
+          var totalGames = 0;
           allEntries.forEach(function (entries) {
+            totalGames += entries.length;
             entries.forEach(function (entry) { uniqueIds[entry.id] = true; });
           });
-          els.statCount.textContent = Object.keys(uniqueIds).length;
+          els.statUsers.textContent = Object.keys(uniqueIds).length;
+          els.statGames.textContent = totalGames;
           els.stat.hidden = false;
         }
 
@@ -590,11 +597,13 @@
         }
 
         function init() {
+          els.dateDebug = $('date-debug');
           els.dateLabel = $('date-debug-label');
           els.loading = $('admin-loading');
           els.boards = $('admin-boards');
-          els.stat = $('admin-stat');
-          els.statCount = $('admin-stat-count');
+          els.stat = $('admin-stats');
+          els.statUsers = $('admin-stat-users');
+          els.statGames = $('admin-stat-games');
           GAMES.forEach(function (game) {
             els[game.key] = {
               num: $(game.key + '-num'),
@@ -604,8 +613,18 @@
             };
           });
 
-          $('date-prev').addEventListener('click', function () { shiftDate(-1); });
-          $('date-next').addEventListener('click', function () { shiftDate(1); });
+          // The date-nav and each game's "Ver este día en ___" deep
+          // link both let a visitor browse any past day's real
+          // leaderboard data - stay hidden from a casual visitor by
+          // default, same as every game's own ?debug=true-gated
+          // date-nav, rather than always on like this page used to be.
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            GAMES.forEach(function (game) { els[game.key].link.hidden = false; });
+
+            $('date-prev').addEventListener('click', function () { shiftDate(-1); });
+            $('date-next').addEventListener('click', function () { shiftDate(1); });
+          }
 
           renderAll();
         }

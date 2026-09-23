@@ -483,6 +483,42 @@ h1 {
   margin-bottom: 1.1rem;
 }
 
+/* Compact "value over label" stat tiles - originally Metro Crush's own
+   page-local .reveal__stat*, promoted here once /admin/ needed the
+   same look for its own site-wide totals (put shared styling in
+   shared.css, not copied per page). .stat-grid's own --cols custom
+   property (default 3, same "set it on the instance" pattern as Metro
+   Crush's own .board's --cols) controls the column count - Metro
+   Crush keeps its original 3, /admin/ uses 2. */
+.stat-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  margin-bottom: 1.1rem;
+}
+
+.stat-box {
+  background: var(--paper-well);
+  border: 1px solid var(--rule);
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.3rem;
+  text-align: center;
+}
+
+.stat-box__value {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.stat-box__label {
+  color: var(--ink-soft);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .leaderboard__title {
   font-size: 0.95rem;
   font-weight: 800;

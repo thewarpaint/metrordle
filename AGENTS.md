@@ -79,7 +79,13 @@ Site copy/UI is in Spanish (`es-MX`).
   yet.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
-  games' own `?debug=true` mode, but always on.
+  games' own `?debug=true` mode, gated behind that same param (each
+  game's own "Ver este día en ___" deep link too) - shows only today's
+  real data otherwise. Two `.stat-grid`/`.stat-box` tiles (shared with
+  Metro Crush's own reveal screen - see `shared.css`) above the
+  per-game boards: unique aliases across every game that day, and
+  total leaderboard entries across every game that day (every
+  submitted result, not deduped by alias).
 - **`/configurar/`** - site-wide settings page, linked from every game's
   header (a small ⚙️ in `.brand`, or `.topbar` for Metroguessr's own
   layout) via `.brand__settings`/`.topbar__settings`. For now just a

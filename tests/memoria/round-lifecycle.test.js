@@ -77,16 +77,17 @@ async function main() {
       const station1 = 'San Andrés Tomatlán'; // Línea 12
       const station2 = 'Normal'; // Línea 2
       const station3 = 'Candelaria'; // Línea 1
-      // A match now blocks further clicks (state.busy) for its own
-      // MATCH_FLASH_MS (450ms) before the next one can register - each
-      // wait below needs a real margin past that, not just past the
-      // reshuffle's own slide.
+      // A match's own brief flash (MATCH_FLASH_MS) no longer blocks the
+      // rest of the board, so these three pairs (all present on the
+      // initial board already) can be matched back-to-back with just
+      // enough of a gap for each render to settle - no need to wait out
+      // the previous match's flash/refill first.
       await matchSpecificPair(page, station1);
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(100);
       await matchSpecificPair(page, station2);
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(100);
       await matchSpecificPair(page, station3);
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(300);
 
       const midStatus = await page.$eval('#status', (el) => el.textContent);
       assert.ok(midStatus.endsWith('3 parejas'), 'should show 3 parejas after matching three times, got: ' + midStatus);
@@ -117,12 +118,6 @@ async function main() {
       assert.deepStrictEqual(iconLabels, [station3, station2, station1], 'icons should be grouped by line, not shown in match order');
       const columnCount = await page.$eval('#reveal-icons', (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
       assert.strictEqual(columnCount, 6, 'expected the icon grid to lay out 6 per row');
-
-      // Each cell's own corner badge names its line's short id (Línea 1,
-      // 2, 12 - matching the sorted order above), same text-carries-the-
-      // color-information pairing the live match flash uses.
-      const badgeTexts = await page.$$eval('#reveal-icons .memo-card__line-badge', (els) => els.map((e) => e.textContent));
-      assert.deepStrictEqual(badgeTexts, ['1', '2', '12'], 'each reveal icon should show its own line\'s short id');
 
       await page.click('#share-btn');
       await page.waitForTimeout(300);

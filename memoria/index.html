@@ -200,18 +200,14 @@
         box-shadow: 0 0 0 2px var(--focus);
       }
 
-      /* The brief "you got it!" moment right after a pair is found -
-         filled with the matched station's own line color/text color
-         (same colored-by-line convention as Metro Crush's board tiles
-         and Metroguessr's reveal badge), plus .memo-card__line-badge
-         naming the line's own short id, since color alone isn't
-         accessible (same reasoning as Metroguessr's hint marker - see
-         AGENTS.md). --match-bg/--match-ink are set inline per card by
-         renderBoard() from the matched station's real line; onCardClick()
-         holds the board in this state for MATCH_FLASH_MS before the
-         pair is actually replaced by its refill. */
+      /* Colors a card by --match-bg/--match-ink (same colored-by-line
+         convention as Metro Crush's board tiles and Metroguessr's reveal
+         badge) - used only by the cloned "ghost" spawnMatchGhost() makes
+         of a just-matched card, never by a live board cell. This class
+         supplies only the coloring; .memo-card--match-ghost below (always
+         applied alongside it) is what actually positions and animates
+         the clone. */
       .memo-card--match-flash {
-        animation: memo-card-match-pop 0.45s ease;
         background: var(--match-bg, var(--ok));
         border-color: var(--match-bg, var(--ok));
         color: var(--match-ink, var(--ok-ink));
@@ -222,28 +218,28 @@
         color: var(--match-ink, var(--ok-ink));
       }
 
-      @keyframes memo-card-match-pop {
-        0% { transform: scale(1); }
-        40% { transform: scale(1.14); }
-        100% { transform: scale(1.05); }
+      /* Takes a just-matched card's clone out of the grid's own layout
+         flow entirely, so it can pop and fade away on its own timeline
+         completely independent of the grid's own re-render replacing
+         that slot with the next pair right underneath it - seeing the
+         SAME live cell recolor/relabel itself as the new pair landed
+         read as one card confusingly changing its own mind, rather than
+         a clear old-card-leaves/new-card-arrives swap. left/top/width/
+         height are set inline per ghost (see spawnMatchGhost()), pinning
+         it exactly over its source card's on-screen rect at the moment
+         it was cloned. The animation duration matches MATCH_FLASH_MS,
+         which is also how long spawnMatchGhost() waits before actually
+         removing the (by-then invisible) element from the DOM. */
+      .memo-card--match-ghost {
+        position: absolute;
+        pointer-events: none;
+        animation: memo-card-match-ghost-pop 0.2s ease forwards;
       }
 
-      .memo-card__line-badge {
-        align-items: center;
-        background: var(--match-bg, var(--ok));
-        border: 2px solid var(--paper-raised);
-        border-radius: 50%;
-        color: var(--match-ink, var(--ok-ink));
-        display: flex;
-        font-size: 0.6rem;
-        font-weight: 800;
-        height: 1.3rem;
-        justify-content: center;
-        pointer-events: none;
-        position: absolute;
-        right: -0.35rem;
-        top: -0.35rem;
-        width: 1.3rem;
+      @keyframes memo-card-match-ghost-pop {
+        0% { transform: scale(1); opacity: 1; }
+        40% { transform: scale(1.14); opacity: 1; }
+        100% { transform: scale(0.85); opacity: 0; }
       }
 
       .memo-card--empty {
@@ -510,9 +506,13 @@
         // rather than "you filled the whole board".
         var PAR_WIN_SCORE = 8;
 
-        // How long a just-matched pair holds its line-colored flash (see
-        // onCardClick()) before actually being replaced by its refill.
-        var MATCH_FLASH_MS = 450;
+        // How long a just-matched card's ghost clone (see
+        // spawnMatchGhost()) pops and fades before being removed. The
+        // refill/reshuffle itself is never delayed by this - the new
+        // pair is already live and clickable in the grid the instant the
+        // match happens (see onCardClick()) - this only times the ghost's
+        // own independent animation.
+        var MATCH_FLASH_MS = 200;
 
         // Same shape as Metro Crush's own delay() helper (metrocrush/index.html)
         // - every setTimeout below that sequences an animation goes
@@ -592,10 +592,10 @@
 
           var cells = new Array(16);
           iconPositions.forEach(function (pos, i) {
-            cells[pos] = { type: 'icon', station: iconOrder[i], matched: false };
+            cells[pos] = { type: 'icon', station: iconOrder[i] };
           });
           namePositions.forEach(function (pos, i) {
-            cells[pos] = { type: 'name', station: nameOrder[i], matched: false };
+            cells[pos] = { type: 'name', station: nameOrder[i] };
           });
           return cells;
         }
@@ -717,7 +717,6 @@
               maxStreak: savedStreak.max,
               cells: [],
               selectedIndex: null,
-              busy: false,
               timerId: null,
             };
             // submitScore() itself checks state.leaderboardSubmitted and
@@ -744,7 +743,6 @@
             poolIndex: 8,
             cells: cells,
             selectedIndex: null,
-            busy: false,
             score: 0,
             matchedStations: [],
             timeLeft: ROUND_SECONDS,
@@ -831,20 +829,20 @@
         }
 
         function onCardClick(index) {
-          if (!state || state.status !== 'playing' || state.busy) return;
+          if (!state || state.status !== 'playing') return;
 
           var cell = state.cells[index];
-          if (!cell || cell.type === null || cell.matched) return;
+          if (!cell || cell.type === null) return;
 
           if (state.selectedIndex === null) {
             state.selectedIndex = index;
-            renderBoard();
+            updateSelectionClasses();
             return;
           }
 
           if (state.selectedIndex === index) {
             state.selectedIndex = null;
-            renderBoard();
+            updateSelectionClasses();
             return;
           }
 
@@ -858,64 +856,82 @@
             // card is against its own name card.
             var freedA = state.selectedIndex;
             var freedB = index;
-            a.matched = true;
-            b.matched = true;
+            var matchedLine = lineForStation(a.station);
             state.score += 1;
             state.matchedStations.push(a.station);
             state.selectedIndex = null;
-            // Blocks further clicks (see the guard above, and render()'s
-            // own btn.disabled) for the flash below - same busy-gating
-            // convention as Metro Crush's own cascade resolution.
-            state.busy = true;
 
             renderStatus();
-            // Renders the board with a/b still showing their just-matched
-            // station - cell.matched is what renderBoard() now uses to
-            // paint the line-colored flash + badge (see its own comment),
-            // not just a dimmed leftover state. The refill below replaces
-            // them only once MATCH_FLASH_MS has actually been seen.
-            renderBoard();
 
+            // Read/cloned before the refill below moves anything, so the
+            // "+1" lands where the match actually happened, and the ghost
+            // clones below still show the station that was actually just
+            // matched rather than whatever lands in these slots next.
             var popupOrigin = matchCentroid(freedA, freedB);
-            if (popupOrigin) showMatchPopup(popupOrigin);
+            spawnMatchGhost(cardElementAt(freedA), matchedLine);
+            spawnMatchGhost(cardElementAt(freedB), matchedLine);
 
-            setTimeout(function () {
-              // The round ended (timer hit 0) or a new game started
-              // (debug date-nav) while this flash was still showing -
-              // same guard Metro Crush's own deferred cascade step uses
-              // for the same race, so this stale callback doesn't mutate
-              // whatever state/board is showing now.
-              if (!state || state.status !== 'playing') return;
+            // Refill and reshuffle immediately - the new pair is dealt
+            // straight onto the board, with no flash of its own (that's
+            // the ghosts' job, above - see spawnMatchGhost()'s own
+            // comment for why animating it as a change to the LIVE cell
+            // instead reads as confusing, an existing card seeming to
+            // relabel itself rather than a clear old-card-out/new-card-in
+            // swap) - just the same entering pop-in every fresh card gets.
+            if (state.poolIndex < state.pool.length) {
+              var nextStation = state.pool[state.poolIndex];
+              state.poolIndex += 1;
+              state.cells[freedA] = { type: typeForIndex(freedA), station: nextStation };
+              state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation };
+            } else {
+              // The pool (every station in the network) is exhausted -
+              // realistically unreachable within the round, but leave the
+              // cells inert rather than crash or wrap around.
+              state.cells[freedA] = { type: null, station: null };
+              state.cells[freedB] = { type: null, station: null };
+            }
 
-              // Refill the two freed cells with the next station in the
-              // day's pool. Each cell keeps the type its position always
-              // has (see typeForIndex) - only the station occupying it
-              // changes, so the checkerboard never shifts. Both freed
-              // cells then get swapped to other random same-type spots
-              // (see shuffleAfterMatch), so exactly which cells these are
-              // doesn't matter for long.
-              if (state.poolIndex < state.pool.length) {
-                var nextStation = state.pool[state.poolIndex];
-                state.poolIndex += 1;
-                state.cells[freedA] = { type: typeForIndex(freedA), station: nextStation, matched: false };
-                state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation, matched: false };
-              } else {
-                // The pool (every station in the network) is exhausted -
-                // realistically unreachable within the round, but leave the
-                // cells inert rather than crash or wrap around.
-                state.cells[freedA] = { type: null, station: null, matched: true };
-                state.cells[freedB] = { type: null, station: null, matched: true };
-              }
+            shuffleAfterMatch(freedA, freedB);
+            renderBoardAnimated();
 
-              shuffleAfterMatch(freedA, freedB);
-              state.busy = false;
-
-              renderBoardAnimated();
-            }, delay(MATCH_FLASH_MS));
+            if (popupOrigin) showMatchPopup(popupOrigin, matchedLine);
           } else {
             state.selectedIndex = index;
-            renderBoard();
+            updateSelectionClasses();
           }
+        }
+
+        // Clones a just-matched card exactly where it's currently sitting,
+        // then pops and fades it away entirely on its own - out of the
+        // grid's own layout flow (position: absolute, see
+        // .memo-card--match-ghost), so it can play a clear "you got it!"
+        // moment for the station that was ACTUALLY just matched, fully
+        // independent of the grid's own re-render replacing that slot
+        // with a new pair right underneath it. Animating the live cell
+        // in place instead - recoloring/relabeling it as the flash faded
+        // - read as one existing card confusingly relabeling itself
+        // rather than a clear old-card-out/new-card-in swap, which is
+        // exactly what this sidesteps: the grid's own FLIP-diffing only
+        // knows "existing card slides" or "brand new card pops in", not
+        // "old card visibly leaves while a new one arrives in its slot".
+        function spawnMatchGhost(sourceEl, line) {
+          if (!sourceEl || !line) return;
+          var wrapRect = els.boardWrap.getBoundingClientRect();
+          var rect = sourceEl.getBoundingClientRect();
+          var ghost = sourceEl.cloneNode(true);
+          ghost.disabled = true;
+          ghost.tabIndex = -1;
+          ghost.setAttribute('aria-hidden', 'true');
+          ghost.className = 'memo-card memo-card--' + (sourceEl.classList.contains('memo-card--icon') ? 'icon' : 'name') +
+            ' memo-card--match-flash memo-card--match-ghost';
+          ghost.style.left = (rect.left - wrapRect.left) + 'px';
+          ghost.style.top = (rect.top - wrapRect.top) + 'px';
+          ghost.style.width = rect.width + 'px';
+          ghost.style.height = rect.height + 'px';
+          ghost.style.setProperty('--match-bg', line.color);
+          ghost.style.setProperty('--match-ink', line.textColor);
+          els.boardWrap.appendChild(ghost);
+          setTimeout(function () { ghost.remove(); }, delay(MATCH_FLASH_MS));
         }
 
         function makeIcon(stationName, sizeClass) {
@@ -936,19 +952,6 @@
             wrap.textContent = '—';
           }
           return wrap;
-        }
-
-        // A small corner chip naming a line's own short id ('1', 'A',
-        // '12', ...), colored the same as the card it's pinned to
-        // (--match-bg/--match-ink, set by whoever appends this) - the
-        // text half of "colored by line," since color alone isn't
-        // accessible (same reasoning as Metroguessr's own hint marker).
-        function lineBadge(line) {
-          var badge = document.createElement('span');
-          badge.className = 'memo-card__line-badge';
-          badge.setAttribute('aria-hidden', 'true');
-          badge.textContent = line.id;
-          return badge;
         }
 
         function cardElementAt(index) {
@@ -978,12 +981,15 @@
         // of .memo-board, so it survives that element's own innerHTML
         // teardown on the very next render()) and removed on its own
         // timer once the rise animation finishes. Mirrors Metro Crush's
-        // own showScorePopup().
-        function showMatchPopup(origin) {
+        // own showScorePopup(). Colored by the matched station's own
+        // line (falling back to the CSS default) rather than a flat
+        // "success" green, same idea as the card flash itself.
+        function showMatchPopup(origin, line) {
           var el = document.createElement('div');
           el.className = 'memo-score-popup';
           el.style.left = origin.x + 'px';
           el.style.top = origin.y + 'px';
+          if (line) el.style.color = line.color;
           el.textContent = '+1';
           els.boardWrap.appendChild(el);
           setTimeout(function () { el.remove(); }, delay(700));
@@ -1017,6 +1023,25 @@
           els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
+        // Toggles which single card shows .memo-card--selected without
+        // rebuilding anything - a plain selection change (picking a
+        // first card, or swapping which one is picked before a second
+        // click) never alters what any cell actually shows, so there's
+        // no need to run it through renderBoard()'s full teardown/
+        // rebuild. That full rebuild is exactly what used to make every
+        // station icon flash blank for a moment on each click: each
+        // icon is an <svg><use> pointing at an external station-icons.svg
+        // fragment, and destroying + recreating all 16 of those at once
+        // (via el.innerHTML = '') forces the browser to re-resolve every
+        // one of them from scratch, which is visibly slower than moving
+        // a border. Match/refill transitions still go through the real
+        // renderBoard(), since those do change what specific cells show.
+        function updateSelectionClasses() {
+          Array.prototype.forEach.call(els.board.children, function (btn, index) {
+            btn.classList.toggle('memo-card--selected', index === state.selectedIndex);
+          });
+        }
+
         function renderBoard() {
           var el = els.board;
           el.innerHTML = '';
@@ -1034,17 +1059,10 @@
             }
 
             var classes = ['memo-card', 'memo-card--' + cell.type];
-            if (cell.matched) classes.push('memo-card--match-flash');
             if (index === state.selectedIndex) classes.push('memo-card--selected');
             btn.className = classes.join(' ');
-            btn.disabled = cell.matched || state.status !== 'playing' || !!state.busy;
+            btn.disabled = state.status !== 'playing';
             btn.dataset.key = cell.type + ':' + cell.station;
-
-            var line = cell.matched ? lineForStation(cell.station) : null;
-            if (line) {
-              btn.style.setProperty('--match-bg', line.color);
-              btn.style.setProperty('--match-ink', line.textColor);
-            }
 
             if (cell.type === 'icon') {
               btn.appendChild(makeIcon(cell.station, 'memo-card__icon'));
@@ -1055,8 +1073,6 @@
               label.textContent = cell.station;
               btn.appendChild(label);
             }
-
-            if (line) btn.appendChild(lineBadge(line));
 
             btn.addEventListener('click', function () {
               onCardClick(index);
@@ -1195,12 +1211,7 @@
             cell.title = entry.station;
             cell.setAttribute('aria-label', entry.station);
 
-            if (entry.line) {
-              cell.style.setProperty('--match-bg', entry.line.color);
-              cell.style.setProperty('--match-ink', entry.line.textColor);
-              cell.style.borderColor = entry.line.color;
-              cell.appendChild(lineBadge(entry.line));
-            }
+            if (entry.line) cell.style.borderColor = entry.line.color;
 
             if (!reduceMotion) {
               cell.classList.add('reveal__icon-cell--entering');

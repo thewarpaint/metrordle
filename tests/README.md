@@ -85,13 +85,16 @@ seconds):
 - The round timer actually counts down once started.
 - The icon/name checkerboard pattern holds on the initial board.
 - Matching a pair repositions exactly 4 cards (the refilled pair + two
-  existing cards) once its own match-flash settles, and the checkerboard
-  + "8 unique stations, each paired" invariants still hold afterward.
-- A match briefly flashes both cards `--match-bg`-colored by the
-  matched station's own line, with a `.memo-card__line-badge` naming
-  that line's own short id (not just color) and a "+1"
-  `.memo-score-popup` over the pair - all gone once
-  `MATCH_FLASH_MS` (450ms) passes and the refill actually lands.
+  existing cards) once the reshuffle's own slide settles, and the
+  checkerboard + "8 unique stations, each paired" invariants still hold
+  afterward.
+- A match deals the refilled pair onto the board immediately (no delay,
+  no flash of its own) while the just-matched pair gets a `--match-bg`
+  -colored `.memo-card--match-ghost` clone of itself, positioned over its
+  old spot outside `#memo-board` entirely, that pops and fades away on
+  its own; a same-colored "+1" `.memo-score-popup` rises over where the
+  match happened at the same time. Both are gone once `MATCH_FLASH_MS`
+  (200ms) passes, and neither ever blocks the rest of the board.
 - The same date produces an identical board across two independent
   browser sessions (the daily puzzle is deterministic).
 - `?debug=true` date navigation loads a different day's board.
@@ -106,7 +109,7 @@ real, so it's slower):
 - Reloading after a result is saved shows that same result instead of
   starting a new round.
 - The reveal's matched-station icons render grouped by line (not match
-  order), each with its own line-id badge.
+  order).
 
 **`memoria/leaderboard.test.js`** (no real-time waiting - plants a saved
 result directly in `localStorage` to reach the reveal screen instantly),

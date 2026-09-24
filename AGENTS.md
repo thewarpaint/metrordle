@@ -20,7 +20,24 @@ Site copy/UI is in Spanish (`es-MX`).
 - **`/laberinto/`** - Metrordle: Laberinto: navigate from an origin to a
   destination station, picking neighbors/lines at each hop.
 - **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
-  pairing station icons with names.
+  pairing station icons with names. Matching a pair holds a brief
+  line-colored flash (`.memo-card--match-flash`, `MATCH_FLASH_MS`,
+  450ms) on both cards before they're actually replaced by the refill -
+  filled with the matched station's own line color/text color (same
+  colored-by-line convention as Metro Crush's board tiles and
+  Metroguessr's reveal badge) plus a small corner `.memo-card__line-badge`
+  naming the line's own short id, since color alone isn't accessible
+  (same reasoning as Metroguessr's own hint marker). A "+1" rises and
+  fades over the matched pair's own centroid at the same time
+  (`showMatchPopup()`), and the reveal screen's own matched-icon grid
+  gets the same line badge plus a staggered pop-in per cell. All three
+  effects (and the `state.busy` click-gating a match now needs, so a
+  click mid-flash doesn't register) are ported from Metro Crush's own
+  swap-slide/combo-pop/score-popup work (`bd1949b`) - see that page's
+  own `popScaleForCombo()`/`showScorePopup()`/`delay()` for the pattern
+  this was adapted from; Memoria has no cascade/combo dimension to
+  scale a pop against, so its own pop is a single fixed size, not an
+  escalating one.
 - **`/metroguessr/`** - Metrordle: Metroguessr: guess the Metro station
   marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
   distance + compass direction after each guess. Has a "normal"/"hard"

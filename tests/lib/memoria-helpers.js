@@ -30,7 +30,7 @@ function getCells(page) {
     return els.map(function (e) {
       var nameEl = e.querySelector('.memo-card__name');
       return {
-        matched: e.classList.contains('memo-card--matched'),
+        matched: e.classList.contains('memo-card--match-flash'),
         empty: e.classList.contains('memo-card--empty'),
         disabled: e.disabled,
         label: e.getAttribute('aria-label') || (nameEl ? nameEl.textContent : null),
@@ -49,7 +49,7 @@ async function findMatchingStation(page) {
 }
 
 async function clickCardForStation(page, station) {
-  var cards = await page.$$('.memo-card:not(.memo-card--matched):not(.memo-card--empty):not(.memo-card--selected)');
+  var cards = await page.$$('.memo-card:not(.memo-card--match-flash):not(.memo-card--empty):not(.memo-card--selected)');
   for (var i = 0; i < cards.length; i++) {
     var card = cards[i];
     var label = await card.getAttribute('aria-label') ||

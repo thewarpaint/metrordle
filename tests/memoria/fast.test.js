@@ -18,6 +18,8 @@ const {
   getCells,
   matchOnePair,
   keyedRects,
+  findMatchingStation,
+  clickCardForStation,
 } = require('../lib/memoria-helpers');
 
 const TEST_DATE = '2026-09-15';
@@ -97,7 +99,11 @@ async function main() {
         const before = await keyedRects(page);
         const station = await matchOnePair(page);
         assert.ok(station, 'there should always be a matchable pair on the board');
-        await page.waitForTimeout(450); // let the slide/pop-in animation settle
+        // A match now holds its own line-colored flash (MATCH_FLASH_MS,
+        // 450ms in memoria/index.html) before the refill/reshuffle even
+        // starts, plus that reshuffle's own ~350ms slide/pop-in on top -
+        // wait past both, not just the slide alone.
+        await page.waitForTimeout(900);
 
         const after = await keyedRects(page);
         let movedExisting = 0;
@@ -121,6 +127,51 @@ async function main() {
         assert.strictEqual(Object.keys(counts).length, 8, 'board should always show exactly 8 unique stations, round ' + round);
         assert.ok(Object.values(counts).every((v) => v === 2), 'every station should have exactly one icon + one name card, round ' + round);
       }
+
+      assert.deepStrictEqual(pageErrors, [], 'no JS errors during play');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a match briefly flashes both cards with the station\'s own line color/badge and a "+1" popup, before the refill', async () => {
+    const { context, page, pageErrors } = await freshPage(TEST_DATE);
+    try {
+      await page.click('#start-btn');
+      await page.waitForTimeout(150);
+
+      const station = await findMatchingStation(page);
+      const expectedLine = await page.evaluate((name) => {
+        var line = MetroShared.LINES.find((l) => l.stations.includes(name));
+        return { id: line.id, color: line.color };
+      }, station);
+
+      await clickCardForStation(page, station);
+      await page.waitForTimeout(60);
+      await clickCardForStation(page, station);
+
+      // Mid-flash, well before MATCH_FLASH_MS (450ms) elapses.
+      await page.waitForTimeout(150);
+
+      const flashedCards = await page.$$('.memo-card--match-flash');
+      assert.strictEqual(flashedCards.length, 2, 'both matched cards should show the flash');
+
+      for (const card of flashedCards) {
+        const bg = await card.evaluate((el) => getComputedStyle(el).getPropertyValue('--match-bg').trim());
+        assert.strictEqual(bg, expectedLine.color, 'the flash should be colored by the matched station\'s own line');
+
+        const badgeText = await card.$eval('.memo-card__line-badge', (el) => el.textContent);
+        assert.strictEqual(badgeText, expectedLine.id, 'the badge should name the line\'s own short id, not just color it');
+      }
+
+      const popupText = await page.$eval('.memo-score-popup', (el) => el.textContent);
+      assert.strictEqual(popupText, '+1');
+
+      // Past the flash + refill/slide settling - the flash and its popup
+      // are both gone, replaced by the refilled pair.
+      await page.waitForTimeout(900);
+      assert.strictEqual(await page.$$('.memo-card--match-flash').then((els) => els.length), 0, 'the flash should be gone once the refill lands');
+      assert.strictEqual(await page.$('.memo-score-popup'), null, 'the popup should have removed itself');
 
       assert.deepStrictEqual(pageErrors, [], 'no JS errors during play');
     } finally {

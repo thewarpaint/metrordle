@@ -177,6 +177,7 @@
         justify-content: center;
         min-width: 0;
         padding: 0.25rem;
+        position: relative;
         transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
         width: 100%;
       }
@@ -190,21 +191,90 @@
         outline-offset: 2px;
       }
 
+      .memo-card:disabled {
+        cursor: default;
+      }
+
       .memo-card--selected {
         border-color: var(--focus);
         box-shadow: 0 0 0 2px var(--focus);
       }
 
-      .memo-card--matched {
-        cursor: default;
-        opacity: 0.32;
-        transform: scale(0.94);
+      /* The brief "you got it!" moment right after a pair is found -
+         filled with the matched station's own line color/text color
+         (same colored-by-line convention as Metro Crush's board tiles
+         and Metroguessr's reveal badge), plus .memo-card__line-badge
+         naming the line's own short id, since color alone isn't
+         accessible (same reasoning as Metroguessr's hint marker - see
+         AGENTS.md). --match-bg/--match-ink are set inline per card by
+         renderBoard() from the matched station's real line; onCardClick()
+         holds the board in this state for MATCH_FLASH_MS before the
+         pair is actually replaced by its refill. */
+      .memo-card--match-flash {
+        animation: memo-card-match-pop 0.45s ease;
+        background: var(--match-bg, var(--ok));
+        border-color: var(--match-bg, var(--ok));
+        color: var(--match-ink, var(--ok-ink));
+      }
+
+      .memo-card--match-flash .memo-card__icon,
+      .memo-card--match-flash .memo-card__name {
+        color: var(--match-ink, var(--ok-ink));
+      }
+
+      @keyframes memo-card-match-pop {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.14); }
+        100% { transform: scale(1.05); }
+      }
+
+      .memo-card__line-badge {
+        align-items: center;
+        background: var(--match-bg, var(--ok));
+        border: 2px solid var(--paper-raised);
+        border-radius: 50%;
+        color: var(--match-ink, var(--ok-ink));
+        display: flex;
+        font-size: 0.6rem;
+        font-weight: 800;
+        height: 1.3rem;
+        justify-content: center;
+        pointer-events: none;
+        position: absolute;
+        right: -0.35rem;
+        top: -0.35rem;
+        width: 1.3rem;
       }
 
       .memo-card--empty {
         background: transparent;
         border-style: dashed;
         cursor: default;
+      }
+
+      /* A "+1" that rises and fades over a just-matched pair's own
+         on-screen centroid - same shape as Metro Crush's own
+         showScorePopup()/.score-popup, ported here since a match here
+         is just as worth celebrating as a Metro Crush combo. Appended
+         to .board-wrap (a sibling of .memo-board, so it survives that
+         element's own full-teardown renderBoard() on the very next
+         render) rather than .memo-board itself. */
+      .memo-score-popup {
+        color: var(--ok);
+        font-weight: 800;
+        font-size: 1.05rem;
+        pointer-events: none;
+        position: absolute;
+        text-shadow: 0 1px 3px var(--shadow);
+        transform: translate(-50%, -50%);
+        animation: memo-score-popup-rise 0.7s ease forwards;
+        z-index: 10;
+      }
+
+      @keyframes memo-score-popup-rise {
+        0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        15% { transform: translate(-50%, -60%) scale(1.05); opacity: 1; }
+        100% { transform: translate(-50%, -160%) scale(1); opacity: 0; }
       }
 
       .memo-card__icon {
@@ -298,6 +368,24 @@
         display: flex;
         justify-content: center;
         padding: 0.2rem;
+        position: relative;
+      }
+
+      /* Same pop-in as a freshly-refilled .memo-card--entering, staggered
+         a beat apart per cell (--stagger-delay, set inline by
+         renderRevealIcons()) so the whole grid reads as a little cascade
+         landing into place rather than popping in all at once - a nicer
+         beat to land the round on, including for a recorded clip.
+         backwards keeps a not-yet-started cell invisible (its own "from"
+         frame) instead of flashing fully visible before its delay. */
+      .reveal__icon-cell--entering {
+        animation: memo-reveal-icon-pop-in 0.3s ease backwards;
+        animation-delay: var(--stagger-delay, 0s);
+      }
+
+      @keyframes memo-reveal-icon-pop-in {
+        from { opacity: 0; transform: scale(0.7); }
+        to { opacity: 1; transform: scale(1); }
       }
 
       .reveal__icon {
@@ -355,7 +443,7 @@
           <div class="timer-bar" id="timer-bar"></div>
         </div>
 
-        <div class="board-wrap">
+        <div class="board-wrap" id="board-wrap">
           <div class="memo-board" id="memo-board"></div>
 
           <div class="start-overlay" id="start-overlay" hidden>
@@ -421,6 +509,20 @@
         // fixed size any more (see buildDailyPool), so this is a par bar
         // rather than "you filled the whole board".
         var PAR_WIN_SCORE = 8;
+
+        // How long a just-matched pair holds its line-colored flash (see
+        // onCardClick()) before actually being replaced by its refill.
+        var MATCH_FLASH_MS = 450;
+
+        // Same shape as Metro Crush's own delay() helper (metrocrush/index.html)
+        // - every setTimeout below that sequences an animation goes
+        // through this, so reduced-motion means "resolve immediately",
+        // not just "the CSS animation itself is instant" (shared.css's
+        // own prefers-reduced-motion override already handles that half
+        // on its own - this handles the JS-side wait in between).
+        var delay = MetroShared.prefersReducedMotion()
+          ? function () { return 0; }
+          : function (ms) { return ms; };
 
         function shuffle(array, rand) {
           var copy = array.slice();
@@ -615,6 +717,7 @@
               maxStreak: savedStreak.max,
               cells: [],
               selectedIndex: null,
+              busy: false,
               timerId: null,
             };
             // submitScore() itself checks state.leaderboardSubmitted and
@@ -641,6 +744,7 @@
             poolIndex: 8,
             cells: cells,
             selectedIndex: null,
+            busy: false,
             score: 0,
             matchedStations: [],
             timeLeft: ROUND_SECONDS,
@@ -727,7 +831,7 @@
         }
 
         function onCardClick(index) {
-          if (!state || state.status !== 'playing') return;
+          if (!state || state.status !== 'playing' || state.busy) return;
 
           var cell = state.cells[index];
           if (!cell || cell.type === null || cell.matched) return;
@@ -759,31 +863,55 @@
             state.score += 1;
             state.matchedStations.push(a.station);
             state.selectedIndex = null;
-
-            // Refill the two freed cells with the next station in the
-            // day's pool. Each cell keeps the type its position always
-            // has (see typeForIndex) - only the station occupying it
-            // changes, so the checkerboard never shifts. Both freed
-            // cells then get swapped to other random same-type spots
-            // (see shuffleAfterMatch), so exactly which cells these are
-            // doesn't matter for long.
-            if (state.poolIndex < state.pool.length) {
-              var nextStation = state.pool[state.poolIndex];
-              state.poolIndex += 1;
-              state.cells[freedA] = { type: typeForIndex(freedA), station: nextStation, matched: false };
-              state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation, matched: false };
-            } else {
-              // The pool (every station in the network) is exhausted -
-              // realistically unreachable within the round, but leave the
-              // cells inert rather than crash or wrap around.
-              state.cells[freedA] = { type: null, station: null, matched: true };
-              state.cells[freedB] = { type: null, station: null, matched: true };
-            }
-
-            shuffleAfterMatch(freedA, freedB);
+            // Blocks further clicks (see the guard above, and render()'s
+            // own btn.disabled) for the flash below - same busy-gating
+            // convention as Metro Crush's own cascade resolution.
+            state.busy = true;
 
             renderStatus();
-            renderBoardAnimated();
+            // Renders the board with a/b still showing their just-matched
+            // station - cell.matched is what renderBoard() now uses to
+            // paint the line-colored flash + badge (see its own comment),
+            // not just a dimmed leftover state. The refill below replaces
+            // them only once MATCH_FLASH_MS has actually been seen.
+            renderBoard();
+
+            var popupOrigin = matchCentroid(freedA, freedB);
+            if (popupOrigin) showMatchPopup(popupOrigin);
+
+            setTimeout(function () {
+              // The round ended (timer hit 0) or a new game started
+              // (debug date-nav) while this flash was still showing -
+              // same guard Metro Crush's own deferred cascade step uses
+              // for the same race, so this stale callback doesn't mutate
+              // whatever state/board is showing now.
+              if (!state || state.status !== 'playing') return;
+
+              // Refill the two freed cells with the next station in the
+              // day's pool. Each cell keeps the type its position always
+              // has (see typeForIndex) - only the station occupying it
+              // changes, so the checkerboard never shifts. Both freed
+              // cells then get swapped to other random same-type spots
+              // (see shuffleAfterMatch), so exactly which cells these are
+              // doesn't matter for long.
+              if (state.poolIndex < state.pool.length) {
+                var nextStation = state.pool[state.poolIndex];
+                state.poolIndex += 1;
+                state.cells[freedA] = { type: typeForIndex(freedA), station: nextStation, matched: false };
+                state.cells[freedB] = { type: typeForIndex(freedB), station: nextStation, matched: false };
+              } else {
+                // The pool (every station in the network) is exhausted -
+                // realistically unreachable within the round, but leave the
+                // cells inert rather than crash or wrap around.
+                state.cells[freedA] = { type: null, station: null, matched: true };
+                state.cells[freedB] = { type: null, station: null, matched: true };
+              }
+
+              shuffleAfterMatch(freedA, freedB);
+              state.busy = false;
+
+              renderBoardAnimated();
+            }, delay(MATCH_FLASH_MS));
           } else {
             state.selectedIndex = index;
             renderBoard();
@@ -808,6 +936,57 @@
             wrap.textContent = '—';
           }
           return wrap;
+        }
+
+        // A small corner chip naming a line's own short id ('1', 'A',
+        // '12', ...), colored the same as the card it's pinned to
+        // (--match-bg/--match-ink, set by whoever appends this) - the
+        // text half of "colored by line," since color alone isn't
+        // accessible (same reasoning as Metroguessr's own hint marker).
+        function lineBadge(line) {
+          var badge = document.createElement('span');
+          badge.className = 'memo-card__line-badge';
+          badge.setAttribute('aria-hidden', 'true');
+          badge.textContent = line.id;
+          return badge;
+        }
+
+        function cardElementAt(index) {
+          return els.board.children[index];
+        }
+
+        // Average on-screen center (relative to .board-wrap, the
+        // positioned ancestor a score popup is placed against) of the
+        // two just-matched cards, read from the just-rendered DOM rather
+        // than computed from grid math - exact regardless of viewport
+        // size/gap. Mirrors Metro Crush's own matchCentroid().
+        function matchCentroid(indexA, indexB) {
+          var wrapRect = els.boardWrap.getBoundingClientRect();
+          var elA = cardElementAt(indexA);
+          var elB = cardElementAt(indexB);
+          if (!elA || !elB) return null;
+          var rectA = elA.getBoundingClientRect();
+          var rectB = elB.getBoundingClientRect();
+          return {
+            x: (rectA.left + rectA.width / 2 + rectB.left + rectB.width / 2) / 2 - wrapRect.left,
+            y: (rectA.top + rectA.height / 2 + rectB.top + rectB.height / 2) / 2 - wrapRect.top,
+          };
+        }
+
+        // A "+1" that rises and fades over where a pair just matched -
+        // purely decorative, appended straight to .board-wrap (a sibling
+        // of .memo-board, so it survives that element's own innerHTML
+        // teardown on the very next render()) and removed on its own
+        // timer once the rise animation finishes. Mirrors Metro Crush's
+        // own showScorePopup().
+        function showMatchPopup(origin) {
+          var el = document.createElement('div');
+          el.className = 'memo-score-popup';
+          el.style.left = origin.x + 'px';
+          el.style.top = origin.y + 'px';
+          el.textContent = '+1';
+          els.boardWrap.appendChild(el);
+          setTimeout(function () { el.remove(); }, delay(700));
         }
 
         function render() {
@@ -855,15 +1034,16 @@
             }
 
             var classes = ['memo-card', 'memo-card--' + cell.type];
-            if (cell.matched) classes.push('memo-card--matched');
+            if (cell.matched) classes.push('memo-card--match-flash');
             if (index === state.selectedIndex) classes.push('memo-card--selected');
             btn.className = classes.join(' ');
-            btn.disabled = cell.matched || state.status !== 'playing';
+            btn.disabled = cell.matched || state.status !== 'playing' || !!state.busy;
             btn.dataset.key = cell.type + ':' + cell.station;
 
-            if (cell.matched) {
-              var line = lineForStation(cell.station);
-              if (line) btn.style.borderColor = line.color;
+            var line = cell.matched ? lineForStation(cell.station) : null;
+            if (line) {
+              btn.style.setProperty('--match-bg', line.color);
+              btn.style.setProperty('--match-ink', line.textColor);
             }
 
             if (cell.type === 'icon') {
@@ -875,6 +1055,8 @@
               label.textContent = cell.station;
               btn.appendChild(label);
             }
+
+            if (line) btn.appendChild(lineBadge(line));
 
             btn.addEventListener('click', function () {
               onCardClick(index);
@@ -999,13 +1181,31 @@
           el.innerHTML = '';
           el.hidden = state.matchedStations.length === 0;
 
-          sortedMatchedStations().forEach(function (entry) {
+          // Staggering the pop-in only makes sense with motion allowed -
+          // under reduced motion, a per-cell animation-delay would just
+          // hold each cell invisible for a beat (animation-delay isn't
+          // covered by shared.css's own duration-only reduced-motion
+          // override) rather than actually reducing anything, so every
+          // cell shows immediately, in full, instead.
+          var reduceMotion = MetroShared.prefersReducedMotion();
+
+          sortedMatchedStations().forEach(function (entry, index) {
             var cell = document.createElement('span');
             cell.className = 'reveal__icon-cell';
             cell.title = entry.station;
             cell.setAttribute('aria-label', entry.station);
 
-            if (entry.line) cell.style.borderColor = entry.line.color;
+            if (entry.line) {
+              cell.style.setProperty('--match-bg', entry.line.color);
+              cell.style.setProperty('--match-ink', entry.line.textColor);
+              cell.style.borderColor = entry.line.color;
+              cell.appendChild(lineBadge(entry.line));
+            }
+
+            if (!reduceMotion) {
+              cell.classList.add('reveal__icon-cell--entering');
+              cell.style.setProperty('--stagger-delay', (index * 0.04) + 's');
+            }
 
             cell.appendChild(makeIcon(entry.station, 'reveal__icon'));
             el.appendChild(cell);
@@ -1186,6 +1386,7 @@
             status: $('status'),
             timerTrack: $('timer-track'),
             timerBar: $('timer-bar'),
+            boardWrap: $('board-wrap'),
             board: $('memo-board'),
             startOverlay: $('start-overlay'),
             startBtn: $('start-btn'),

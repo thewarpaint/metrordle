@@ -4,6 +4,13 @@
 // through the same classes/attributes a player would see, rather than
 // reaching into the page's internal JS state, so these tests exercise
 // the game the way a browser actually renders it.
+//
+// Every selector here is scoped to #memo-board - a just-matched card's
+// ghost clone (spawnMatchGhost() in memoria/index.html) also carries the
+// .memo-card class (for its coloring/animation) but lives in #board-wrap
+// as a SIBLING of #memo-board, not inside the grid itself, so an
+// unscoped '.memo-card' query would also catch it and skew any of these
+// helpers' counts/lookups while a ghost is still fading out.
 
 function checkerboardOk(types) {
   for (var i = 0; i < 16; i++) {
@@ -18,7 +25,7 @@ function checkerboardOk(types) {
 }
 
 function getCardTypes(page) {
-  return page.$$eval('.memo-card', function (els) {
+  return page.$$eval('#memo-board .memo-card', function (els) {
     return els.map(function (e) {
       return e.classList.contains('memo-card--icon') ? 'icon' : e.classList.contains('memo-card--name') ? 'name' : 'empty';
     });
@@ -26,11 +33,10 @@ function getCardTypes(page) {
 }
 
 function getCells(page) {
-  return page.$$eval('.memo-card', function (els) {
+  return page.$$eval('#memo-board .memo-card', function (els) {
     return els.map(function (e) {
       var nameEl = e.querySelector('.memo-card__name');
       return {
-        matched: e.classList.contains('memo-card--matched'),
         empty: e.classList.contains('memo-card--empty'),
         disabled: e.disabled,
         label: e.getAttribute('aria-label') || (nameEl ? nameEl.textContent : null),
@@ -42,14 +48,14 @@ function getCells(page) {
 async function findMatchingStation(page) {
   var cells = await getCells(page);
   var counts = {};
-  cells.filter(function (c) { return !c.matched && !c.empty; }).forEach(function (c) {
+  cells.filter(function (c) { return !c.empty; }).forEach(function (c) {
     counts[c.label] = (counts[c.label] || 0) + 1;
   });
   return Object.keys(counts).find(function (k) { return counts[k] === 2; }) || null;
 }
 
 async function clickCardForStation(page, station) {
-  var cards = await page.$$('.memo-card:not(.memo-card--matched):not(.memo-card--empty):not(.memo-card--selected)');
+  var cards = await page.$$('#memo-board .memo-card:not(.memo-card--empty):not(.memo-card--selected)');
   for (var i = 0; i < cards.length; i++) {
     var card = cards[i];
     var label = await card.getAttribute('aria-label') ||
@@ -75,7 +81,7 @@ async function matchOnePair(page) {
 }
 
 function keyedRects(page) {
-  return page.$$eval('.memo-card[data-key]', function (els) {
+  return page.$$eval('#memo-board .memo-card[data-key]', function (els) {
     return Object.fromEntries(els.map(function (e) {
       var r = e.getBoundingClientRect();
       return [e.dataset.key, { left: r.left, top: r.top }];

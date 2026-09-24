@@ -18,6 +18,8 @@ const {
   getCells,
   matchOnePair,
   keyedRects,
+  findMatchingStation,
+  clickCardForStation,
 } = require('../lib/memoria-helpers');
 
 const TEST_DATE = '2026-09-15';
@@ -97,7 +99,9 @@ async function main() {
         const before = await keyedRects(page);
         const station = await matchOnePair(page);
         assert.ok(station, 'there should always be a matchable pair on the board');
-        await page.waitForTimeout(450); // let the slide/pop-in animation settle
+        // The refill/reshuffle itself is immediate - only the reshuffle's
+        // own ~350ms slide/pop-in needs waiting out here.
+        await page.waitForTimeout(500);
 
         const after = await keyedRects(page);
         let movedExisting = 0;
@@ -121,6 +125,83 @@ async function main() {
         assert.strictEqual(Object.keys(counts).length, 8, 'board should always show exactly 8 unique stations, round ' + round);
         assert.ok(Object.values(counts).every((v) => v === 2), 'every station should have exactly one icon + one name card, round ' + round);
       }
+
+      assert.deepStrictEqual(pageErrors, [], 'no JS errors during play');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a match deals the next pair immediately, spawning a ghost of the matched pair colored by its own line, plus a same-colored "+1" popup', async () => {
+    const { context, page, pageErrors } = await freshPage(TEST_DATE);
+    try {
+      await page.click('#start-btn');
+      await page.waitForTimeout(150);
+
+      const station = await findMatchingStation(page);
+      const expectedLine = await page.evaluate((name) => {
+        var line = MetroShared.LINES.find((l) => l.stations.includes(name));
+        return { id: line.id, color: line.color };
+      }, station);
+
+      await clickCardForStation(page, station);
+      await page.waitForTimeout(60);
+      await clickCardForStation(page, station);
+
+      // No wait at all here - the refill/reshuffle is no longer delayed
+      // behind the flash, so the board should already show a full 8
+      // unique stations (the matched pair replaced, not just held) the
+      // instant the match resolves. Scoped to #memo-board since the two
+      // ghost clones (still fading out, see below) also briefly show the
+      // matched station and would otherwise double-count it.
+      const uniqueStations = await page.$$eval('#memo-board .memo-card:not(.memo-card--empty)', (els) => {
+        var counts = {};
+        els.forEach((el) => {
+          var label = el.getAttribute('aria-label') || (el.querySelector('.memo-card__name') || {}).textContent;
+          counts[label] = (counts[label] || 0) + 1;
+        });
+        return Object.keys(counts).length;
+      });
+      assert.strictEqual(uniqueStations, 8, 'the refill should already be on the board, not held back behind the flash');
+
+      // The flash lives on two ghost clones outside #memo-board entirely
+      // (see spawnMatchGhost()), not on the live cells now showing the
+      // new pair - those should be plain, uncolored cards.
+      const liveFlashCount = await page.$$('#memo-board .memo-card--match-flash').then((els) => els.length);
+      assert.strictEqual(liveFlashCount, 0, 'the live, freshly-dealt cards should not themselves be colored by the flash');
+
+      const ghosts = await page.$$('.memo-card--match-ghost');
+      assert.strictEqual(ghosts.length, 2, 'the just-matched pair should each get a ghost clone');
+      for (const ghost of ghosts) {
+        const bg = await ghost.evaluate((el) => getComputedStyle(el).getPropertyValue('--match-bg').trim());
+        assert.strictEqual(bg, expectedLine.color, 'the ghost should be colored by the JUST-matched station\'s own line');
+        const label = await ghost.evaluate((el) => el.getAttribute('aria-label') || (el.querySelector('.memo-card__name') || {}).textContent);
+        assert.strictEqual(label, station, 'the ghost should still show the station that was actually matched');
+      }
+
+      const popup = await page.$('.memo-score-popup');
+      const popupText = await popup.evaluate((el) => el.textContent);
+      assert.strictEqual(popupText, '+1');
+      const popupColorMatches = await page.evaluate((expected) => {
+        var probe = document.createElement('div');
+        probe.style.color = expected;
+        document.body.appendChild(probe);
+        var expectedComputed = getComputedStyle(probe).color;
+        probe.remove();
+        return getComputedStyle(document.querySelector('.memo-score-popup')).color === expectedComputed;
+      }, expectedLine.color);
+      assert.ok(popupColorMatches, 'the "+1" popup should be colored by the matched station\'s own line too');
+
+      // A third, unrelated card should be immediately selectable - the
+      // ghosts fading out never block the rest of the board.
+      const thirdCard = await page.$('#memo-board .memo-card:not(.memo-card--empty):not(.memo-card--selected)');
+      await thirdCard.click();
+      assert.ok(await thirdCard.evaluate((el) => el.classList.contains('memo-card--selected')), 'a third card should be selectable right away, not blocked by the ghosts');
+
+      // Past MATCH_FLASH_MS - both ghosts and the popup are gone.
+      await page.waitForTimeout(700);
+      assert.strictEqual(await page.$$('.memo-card--match-ghost').then((els) => els.length), 0, 'the ghosts should be removed once MATCH_FLASH_MS has passed');
+      assert.strictEqual(await page.$('.memo-score-popup'), null, 'the popup should have removed itself');
 
       assert.deepStrictEqual(pageErrors, [], 'no JS errors during play');
     } finally {

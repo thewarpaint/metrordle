@@ -77,12 +77,17 @@ async function main() {
       const station1 = 'San Andrés Tomatlán'; // Línea 12
       const station2 = 'Normal'; // Línea 2
       const station3 = 'Candelaria'; // Línea 1
+      // A match's own brief flash (MATCH_FLASH_MS) no longer blocks the
+      // rest of the board, so these three pairs (all present on the
+      // initial board already) can be matched back-to-back with just
+      // enough of a gap for each render to settle - no need to wait out
+      // the previous match's flash/refill first.
       await matchSpecificPair(page, station1);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(100);
       await matchSpecificPair(page, station2);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(100);
       await matchSpecificPair(page, station3);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
 
       const midStatus = await page.$eval('#status', (el) => el.textContent);
       assert.ok(midStatus.endsWith('3 parejas'), 'should show 3 parejas after matching three times, got: ' + midStatus);

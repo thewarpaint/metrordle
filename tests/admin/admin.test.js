@@ -8,9 +8,12 @@
 // (metrordle-leaderboard, laberinto-leaderboard, memoria-leaderboard,
 // metroguessr-leaderboard), each reusing that game's own
 // collection/orderBySpecs/score-formatting - see admin/index.html's
-// GAMES array - plus the shared streakCell() 🔥 x N badge (N > 1 only)
-// every one of those four games' rows gets. Metro Crush's own section
-// isn't covered here yet, and has no streak concept at all (see
+// GAMES array - plus the shared MetroShared.buildStreakBadge() (shared.js)
+// 🔥 x N badge (N > 1 only) every one of those four games' rows gets -
+// also used by Metrordle/Laberinto/Memoria's own in-page leaderboards
+// (see tests/metrordle|laberinto|memoria/leaderboard.test.js). Metro
+// Crush's own section isn't covered here yet, and has no streak concept
+// at all (see
 // AGENTS.md). Also covers the two .stat-grid/.stat-box tiles above the
 // boards (unique aliases, total entries that day) - these are NOT
 // debug-gated, unlike the date-nav/deep links.
@@ -32,7 +35,7 @@ const SAMPLE_DATA = {
     { id: 'fer', alias: 'Fer', attempts: 2, hardMode: true, streak: 5 },
     // streak: 1 ("played today" but not yet a streak worth calling
     // out) and no streak field at all (predates the field) should both
-    // render nothing - see streakCell()'s own N > 1 threshold.
+    // render nothing - see buildStreakBadge()'s own N > 1 threshold.
     { id: 'eduardo', alias: 'Eduardo', attempts: 2, hardMode: false, streak: 1 },
     // A loss (lost: true) should render "-" instead of a number,
     // already placed last here since this stub returns entries as-is,

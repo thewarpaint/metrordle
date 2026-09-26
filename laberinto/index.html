@@ -1101,7 +1101,7 @@
           // before the fetch resolves would cause a visible flicker. The
           // list is only ever touched once a response actually arrives.
 
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['stations', 'asc'], ['transfers', 'asc']], {})
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['stations', 'asc'], ['transfers', 'asc']], { extraFields: ['streak'] })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1141,6 +1141,7 @@
                 li.appendChild(rank);
                 li.appendChild(name);
                 li.appendChild(score);
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 els.leaderboardList.appendChild(li);
               });
             });

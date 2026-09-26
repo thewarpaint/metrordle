@@ -589,6 +589,20 @@ h1 {
   font-weight: 700;
 }
 
+/* The "🔥 x N" streak badge (see MetroShared.buildStreakBadge() in
+   shared.js) that Metrordle/Laberinto/Memoria's own leaderboards and
+   /admin/'s matching column render for those same three collections -
+   always present (empty text or not) so a row's score column lands in
+   the same spot whether or not that row has a streak worth showing. */
+.leaderboard__streak {
+  color: var(--ink-soft);
+  flex: none;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 3rem;
+  text-align: left;
+}
+
 .leaderboard__status {
   color: var(--ink-soft);
   font-size: 0.82rem;

@@ -22,6 +22,7 @@ const FILES = [
   'configurar/config.test.js',
   'shared/leaderboard-query.test.js',
   'security/csp.test.js',
+  'meta/sw-cache-version.test.js',
 ];
 
 let failed = 0;

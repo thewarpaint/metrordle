@@ -198,7 +198,11 @@ are impossible without a debug override.
   `shared.js`/`shared.css` from diverging in version. **Bump
   `CACHE_NAME` on any change to `sw.js` or any precached asset** -
   check open PRs first for numbering collisions (any two PRs touching
-  that line collide on merge regardless of the number picked).
+  that line collide on merge regardless of the number picked). Missed
+  twice in one session already before `tests/meta/sw-cache-version.test.js`
+  started catching it - run as part of `npm test`, so it only reports the
+  problem to whoever remembers to run that before pushing (see that
+  test's own comment for why it isn't an actual CI gate yet).
   **Every player-facing game route belongs in `PRECACHE_URLS`, both as
   the directory (`/metroguessr/`) and its `index.html`** - Metroguessr
   shipped without either for several PRs before this was caught; when

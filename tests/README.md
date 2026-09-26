@@ -375,6 +375,35 @@ mitigation - every leaderboard alias render uses `textContent`, never
   a typo'd or misspelled policy that looks present in the HTML but isn't
   enforced at all.
 
+**`meta/sw-cache-version.test.js`** guards AGENTS.md's own "Bump
+`CACHE_NAME` on any change to `sw.js` or any precached asset" rule -
+missed twice in one session already (a streak-badge change to
+`shared.js`/`shared.css` needed its own follow-up PR just to bump the
+version). Pure git-diff + static-file inspection, no browser/network/
+Firebase - the actual logic lives in `tests/lib/sw-cache-version.js`
+(`checkCacheVersionBump()`), reused here rather than duplicated so it
+can be run against a synthetic repo too, not just this real one:
+- The real check: diffs this repo's current branch against
+  `origin/main` (`SW_CACHE_VERSION_BASE_REF` env var to override),
+  resolves `sw.js`'s own `PRECACHE_URLS` into local file paths, and (if
+  any of them or `sw.js` itself changed) asserts `CACHE_NAME`'s value
+  also changed. Skips (doesn't fail) if `origin/main` can't be resolved
+  in the current checkout, rather than erroring on a shallow clone or a
+  repo with no `origin` remote.
+- Three self-tests build a throwaway git repo (`os.tmpdir()`, deleted
+  afterward) with a minimal `sw.js` and a couple of files, to prove
+  `checkCacheVersionBump()` itself actually catches a violation (a
+  precached file changes, `CACHE_NAME` doesn't) and doesn't
+  false-positive (a bumped version passes; an unrelated, non-precached
+  file change needs no bump at all) - this real repo's own history is
+  always compliant by the time a check like this exists, so only a
+  synthetic repo can actually exercise the "should fail" path.
+
+This currently only *reports* the problem when someone happens to run
+`npm test` before pushing - the same step that's been getting skipped.
+Actually blocking a PR on it needs a CI workflow (this repo has none
+yet) to run it automatically; not yet wired up.
+
 ## Adding a check
 
 Each test file is a small standalone script (no test framework beyond

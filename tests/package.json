@@ -16,7 +16,8 @@
     "test:admin": "node admin/admin.test.js",
     "test:configurar": "node configurar/config.test.js",
     "test:leaderboard-query": "node shared/leaderboard-query.test.js",
-    "test:csp": "node security/csp.test.js"
+    "test:csp": "node security/csp.test.js",
+    "test:sw-cache-version": "node meta/sw-cache-version.test.js"
   },
   "devDependencies": {
     "playwright": "^1.56.1"

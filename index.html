@@ -1882,7 +1882,7 @@
           // always the max possible. submittedAt asc is appended
           // automatically by getTopLeaderboardScores() as the final
           // tiebreak.
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], {})
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['streak'] })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1938,6 +1938,7 @@
                 li.appendChild(rank);
                 li.appendChild(name);
                 li.appendChild(score);
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 els.leaderboardList.appendChild(li);
               });
             });

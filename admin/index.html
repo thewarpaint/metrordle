@@ -170,19 +170,6 @@
         font-weight: 700;
       }
 
-      /* Always rendered (see streakCell() below), empty text or not -
-         a fixed min-width keeps every row's score column landing in
-         the same spot whether or not that particular row has a streak
-         worth showing. */
-      .leaderboard__streak {
-        color: var(--ink-soft);
-        flex: none;
-        font-size: 0.8rem;
-        font-variant-numeric: tabular-nums;
-        min-width: 3rem;
-        text-align: left;
-      }
-
       .leaderboard__status {
         color: var(--ink-soft);
         font-size: 0.82rem;
@@ -545,18 +532,6 @@
           els.stat.hidden = false;
         }
 
-        // Same shape for every game (unlike scoreCell, which each game
-        // customizes) - a lone streak of 1 is just "played today," not
-        // yet a streak worth calling out, so it renders nothing, same
-        // as a Metro Crush entry (no streak concept there at all) or
-        // any entry predating this field.
-        function streakCell(entry) {
-          var span = document.createElement('span');
-          span.className = 'leaderboard__streak';
-          if (entry.streak > 1) span.textContent = '🔥 x ' + entry.streak;
-          return span;
-        }
-
         function renderGame(game, dateKey, token) {
           var gameEls = els[game.key];
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, game.startDateKey);
@@ -595,7 +570,7 @@
                 li.appendChild(rank);
                 li.appendChild(name);
                 li.appendChild(game.scoreCell(entry));
-                li.appendChild(streakCell(entry));
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 gameEls.list.appendChild(li);
               });
 

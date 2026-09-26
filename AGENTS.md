@@ -344,14 +344,26 @@ Each of those four games' own `submitScore()` also submits `streak` as
 a leaderboard field now, purely for display - like `hintsUsed` above,
 it's deliberately never part of `orderBySpecs`, so a query's
 ranking/results are identical whether or not a given entry (old or
-new) happens to have it. `/admin/`'s own `streakCell()` renders it the
-same way for all four collections: **`🔥 x N` when `N > 1`, nothing
-otherwise** (a streak of 0 or 1 isn't yet "a streak" worth calling
-out) - each of those four `GAMES` entries needs `extraFields: ['streak']`
-for the value to actually reach that cell at all (see `extraFields`
-above). Metro Crush's own `GAMES` entry has neither the field nor the
-cell showing anything for it, since its entries never carry `streak`
-in the first place.
+new) happens to have it. `MetroShared.buildStreakBadge(streak)` in
+`shared.js` is the one shared renderer for it - a `<span
+class="leaderboard__streak">` (styled in `shared.css`, shared since
+this is no longer a single page's own thing) reading **`🔥 × N` when
+`N > 1`, nothing otherwise** (a streak of 0 or 1 isn't yet "a streak"
+worth calling out), always returned (even empty) so a row's score
+column still lands in the same spot whether or not it has one.
+`/admin/`'s own `renderGame()` appends one to every row for all four
+collections; Metrordle's, Laberinto's, and Memoria's own
+`renderLeaderboard()` do the same on their own in-page leaderboards
+(Metroguessr's own leaderboard doesn't, yet - nothing architectural
+stops it, this just hasn't been asked for). Every one of those
+`getTopLeaderboardScores()` calls needs `extraFields: ['streak']` for
+the value to actually reach `entry.streak` at all (see `extraFields`
+above) - `buildStreakBadge()` itself doesn't guard against a missing
+field beyond `streak > 1` already being false for `undefined`, so a
+call that forgets `extraFields` just silently renders an
+always-empty badge, the same failure mode `hintsUsed` hit before.
+Metro Crush has neither the field nor a badge for it, since its
+entries never carry `streak` in the first place.
 
 ## Game suggestions
 

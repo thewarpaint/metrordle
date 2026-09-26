@@ -146,6 +146,50 @@ async function main() {
     }
   });
 
+  test('shows a 🔥 × N streak badge per row (N > 1 only), fed by getTopLeaderboardScores() extraFields', async () => {
+    const DATE = '2026-12-23';
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            var DATA = [
+              { id: 'ana', alias: 'Ana', stations: 6, transfers: 0, streak: 5 },
+              // A streak of 1 ("played today" but not yet a streak worth
+              // calling out) and no streak field at all (predates the
+              // field) should both render nothing.
+              { id: 'beto', alias: 'Beto', stations: 7, transfers: 0, streak: 1 },
+              { id: 'caro', alias: 'Caro', stations: 8, transfers: 1 },
+            ];
+            window.MetroShared.getTopLeaderboardScores = function () {
+              return Promise.resolve(DATA);
+            };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/laberinto/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantWonState(page, DATE, 8, 1, true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const rows = page.locator('#leaderboard-list .leaderboard__row');
+      assert.strictEqual(await rows.count(), 3);
+
+      const streaks = await rows.locator('.leaderboard__streak').allTextContents();
+      assert.deepStrictEqual(streaks, ['🔥 × 5', '', ''], 'only a streak > 1 should render, everything else should show nothing');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

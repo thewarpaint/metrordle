@@ -8,9 +8,12 @@
 // (metrordle-leaderboard, laberinto-leaderboard, memoria-leaderboard,
 // metroguessr-leaderboard), each reusing that game's own
 // collection/orderBySpecs/score-formatting - see admin/index.html's
-// GAMES array - plus the shared streakCell() 🔥 x N badge (N > 1 only)
-// every one of those four games' rows gets. Metro Crush's own section
-// isn't covered here yet, and has no streak concept at all (see
+// GAMES array - plus the shared MetroShared.buildStreakBadge() (shared.js)
+// 🔥 × N badge (N > 1 only) every one of those four games' rows gets -
+// also used by Metrordle/Laberinto/Memoria's own in-page leaderboards
+// (see tests/metrordle|laberinto|memoria/leaderboard.test.js). Metro
+// Crush's own section isn't covered here yet, and has no streak concept
+// at all (see
 // AGENTS.md). Also covers the two .stat-grid/.stat-box tiles above the
 // boards (unique aliases, total entries that day) - these are NOT
 // debug-gated, unlike the date-nav/deep links.
@@ -32,7 +35,7 @@ const SAMPLE_DATA = {
     { id: 'fer', alias: 'Fer', attempts: 2, hardMode: true, streak: 5 },
     // streak: 1 ("played today" but not yet a streak worth calling
     // out) and no streak field at all (predates the field) should both
-    // render nothing - see streakCell()'s own N > 1 threshold.
+    // render nothing - see buildStreakBadge()'s own N > 1 threshold.
     { id: 'eduardo', alias: 'Eduardo', attempts: 2, hardMode: false, streak: 1 },
     // A loss (lost: true) should render "-" instead of a number,
     // already placed last here since this stub returns entries as-is,
@@ -184,7 +187,7 @@ async function main() {
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Fer');
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
       assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__score-number').textContent(), '2');
-      assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 x 5', 'a streak of 5 (>1) should show');
+      assert.strictEqual(await metrordleRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 × 5', 'a streak of 5 (>1) should show');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Eduardo');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__score-badge').textContent(), '');
       assert.strictEqual(await metrordleRows.nth(1).locator('.leaderboard__streak').textContent(), '', 'a streak of 1 (not > 1) should show nothing');
@@ -215,7 +218,7 @@ async function main() {
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__alias-name').textContent(), 'Oscar');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-badge').textContent(), '🧠');
       assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__score-number').textContent(), '1');
-      assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 x 12', 'a double-digit streak should still render correctly');
+      assert.strictEqual(await metroguessrRows.nth(0).locator('.leaderboard__streak').textContent(), '🔥 × 12', 'a double-digit streak should still render correctly');
       // A lost entry (Diego) renders "-" instead of a number.
       assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Diego');
       assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__score-number').textContent(), '-', 'a lost entry should show "-", not a number');

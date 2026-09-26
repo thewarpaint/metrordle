@@ -421,6 +421,23 @@ function formatMaxStreak(count) {
   return 'máxima: ' + count + (count === 1 ? ' día' : ' días');
 }
 
+// The "🔥 × N" streak badge every leaderboard row that tracks a streak
+// uses (Metrordle/Laberinto/Memoria's own leaderboards, and /admin/'s
+// matching column for those same three collections) - a streak of 0 or
+// 1 isn't yet "a streak" worth calling out, so this still returns a
+// span (for the column's own fixed-width alignment, see
+// .leaderboard__streak in shared.css) but leaves it empty in that case.
+// Always built from entry.streak, which only reaches a leaderboard
+// entry at all when the caller's own getTopLeaderboardScores() call
+// names 'streak' in options.extraFields (see that function's own
+// comment for why a field left out of orderBySpecs still needs that).
+function buildStreakBadge(streak) {
+  var span = document.createElement('span');
+  span.className = 'leaderboard__streak';
+  if (streak > 1) span.textContent = '🔥 × ' + streak;
+  return span;
+}
+
 function copyViaExecCommand(text) {
   var textarea = document.createElement('textarea');
   textarea.value = text;
@@ -850,6 +867,7 @@ window.MetroShared = {
   updateStreakForResult: updateStreakForResult,
   formatStreak: formatStreak,
   formatMaxStreak: formatMaxStreak,
+  buildStreakBadge: buildStreakBadge,
   normalizeAlias: normalizeAlias,
   aliasDocId: aliasDocId,
   getAlias: getAlias,

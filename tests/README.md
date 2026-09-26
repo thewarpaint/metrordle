@@ -125,7 +125,7 @@ covering the leaderboard section on the real `/memoria/` page (its own
   under `?debug=true`.
 - A play under `?debug=true` never marks `leaderboardSubmitted` true -
   date-nav testing shouldn't pollute the real leaderboard.
-- Each row shows a "🔥 x N" streak badge (stubbed `getTopLeaderboardScores()`
+- Each row shows a "🔥 × N" streak badge (stubbed `getTopLeaderboardScores()`
   data, `N > 1` only - a streak of 1 or a missing field both render
   nothing) via the shared `MetroShared.buildStreakBadge()`.
 
@@ -185,7 +185,7 @@ single number:
 - Giving up never has anything to submit (there's no route to rank) -
   `leaderboardSubmitted` stays false, but the leaderboard section still
   renders without error.
-- Each row shows a "🔥 x N" streak badge (stubbed `getTopLeaderboardScores()`
+- Each row shows a "🔥 × N" streak badge (stubbed `getTopLeaderboardScores()`
   data, `N > 1` only), same as Metrordle's own.
 
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
@@ -219,7 +219,7 @@ suffix on hard-mode ones:
   `getTopLeaderboardScores()` data), ranked after a tied-attempts win -
   the real sort logic behind that ordering is covered by
   `shared/leaderboard-query.test.js` instead.
-- Each row shows a "🔥 x N" streak badge (stubbed `getTopLeaderboardScores()`
+- Each row shows a "🔥 × N" streak badge (stubbed `getTopLeaderboardScores()`
   data, `N > 1` only), same as `/admin/`'s own copy of this check.
 
 Same real-Firestore-submission coverage gap as Memoria's leaderboard

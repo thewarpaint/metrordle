@@ -146,7 +146,7 @@ async function main() {
     }
   });
 
-  test('shows a 🔥 x N streak badge per row (N > 1 only), fed by getTopLeaderboardScores() extraFields', async () => {
+  test('shows a 🔥 × N streak badge per row (N > 1 only), fed by getTopLeaderboardScores() extraFields', async () => {
     const DATE = '2026-12-23';
     const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
     const page = await context.newPage();
@@ -182,7 +182,7 @@ async function main() {
       assert.strictEqual(await rows.count(), 3);
 
       const streaks = await rows.locator('.leaderboard__streak').allTextContents();
-      assert.deepStrictEqual(streaks, ['🔥 x 5', '', ''], 'only a streak > 1 should render, everything else should show nothing');
+      assert.deepStrictEqual(streaks, ['🔥 × 5', '', ''], 'only a streak > 1 should render, everything else should show nothing');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

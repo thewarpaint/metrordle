@@ -421,7 +421,7 @@ function formatMaxStreak(count) {
   return 'máxima: ' + count + (count === 1 ? ' día' : ' días');
 }
 
-// The "🔥 x N" streak badge every leaderboard row that tracks a streak
+// The "🔥 × N" streak badge every leaderboard row that tracks a streak
 // uses (Metrordle/Laberinto/Memoria's own leaderboards, and /admin/'s
 // matching column for those same three collections) - a streak of 0 or
 // 1 isn't yet "a streak" worth calling out, so this still returns a
@@ -434,7 +434,7 @@ function formatMaxStreak(count) {
 function buildStreakBadge(streak) {
   var span = document.createElement('span');
   span.className = 'leaderboard__streak';
-  if (streak > 1) span.textContent = '🔥 x ' + streak;
+  if (streak > 1) span.textContent = '🔥 × ' + streak;
   return span;
 }
 

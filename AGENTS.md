@@ -347,7 +347,7 @@ ranking/results are identical whether or not a given entry (old or
 new) happens to have it. `MetroShared.buildStreakBadge(streak)` in
 `shared.js` is the one shared renderer for it - a `<span
 class="leaderboard__streak">` (styled in `shared.css`, shared since
-this is no longer a single page's own thing) reading **`🔥 x N` when
+this is no longer a single page's own thing) reading **`🔥 × N` when
 `N > 1`, nothing otherwise** (a streak of 0 or 1 isn't yet "a streak"
 worth calling out), always returned (even empty) so a row's score
 column still lands in the same spot whether or not it has one.

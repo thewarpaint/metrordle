@@ -332,13 +332,15 @@
         // ranking rules each game already uses (see index.html, laberinto/
         // index.html, memoria/index.html). extraFields is passed straight
         // through to getTopLeaderboardScores() below - streak is display
-        // -only (rendered by the shared streakCell() below, never part of
-        // orderBySpecs), so without naming it here it would never actually
-        // reach the entries this page renders (see getTopLeaderboardScores()'s
-        // own comment in shared.js for why). Metro Crush has no streak
-        // concept (its games are scored per-round, not "won" day to day) -
-        // its own entries just never carry the field, same as any entry
-        // predating this feature on the other four collections.
+        // -only (rendered by the shared MetroShared.buildStreakBadge()
+        // below, never part of orderBySpecs), so without naming it here
+        // it would never actually reach the entries this page renders
+        // (see getTopLeaderboardScores()'s own comment in shared.js for
+        // why). All five games now track one - Metro Crush's own means
+        // something slightly different (extended by any non-zero-score
+        // round rather than a "won" outcome, since it has no daily win/
+        // loss puzzle to hook into - see its own STREAK_STORAGE_KEY
+        // comment) but is submitted/rendered exactly the same way.
         var GAMES = [
           {
             key: 'metrordle',
@@ -428,6 +430,7 @@
             collection: 'metrocrush-leaderboard',
             startDateKey: '2026-09-12',
             orderBySpecs: [['score', 'desc']],
+            extraFields: ['streak'],
             href: '/metrocrush/',
             scoreCell: function (entry) {
               var score = document.createElement('span');

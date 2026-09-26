@@ -332,19 +332,22 @@ can't paint over a newer one.
 
 ### Streaks
 
-Metrordle, Laberinto, Memoria, and Metroguessr all track a consecutive
--days streak (`MetroShared.loadStreak`/`saveStreak`/
+Metrordle, Laberinto, Memoria, Metroguessr, and Metro Crush all track a
+consecutive-days streak (`MetroShared.loadStreak`/`saveStreak`/
 `updateStreakForResult`/`formatStreak`/`formatMaxStreak` in
 `shared.js`, one `'<key>:streak'` localStorage entry per game,
-separate from that day's own `'<key>:' + dateKey` round-result entry) -
-a win extends it, a loss/give-up resets it to 0, and it's shown on that
-game's own reveal banner/share text (`🔥 Racha: N días`, plus a
-"máxima: M días" mention only when the best-ever streak is still ahead
-of today's). Metro Crush has no streak concept - its games are scored
-per-round, not "won" day to day, so there's no well-defined "extended
-it or not" for a streak to track.
+separate from that day's own `'<key>:' + dateKey` round-result entry),
+shown on that game's own reveal banner/share text (`🔥 Racha: N días`,
+plus a "máxima: M días" mention only when the best-ever streak is still
+ahead of today's). The first four extend it on a win and reset it to 0
+on a loss/give-up; Metro Crush has no daily win/loss puzzle outcome to
+hook that into (its games are scored per-round, not "won" day to day),
+so it extends the streak on any round that ends with a non-zero score
+instead, and resets it only on a genuine 0-point round (still a real
+result - it submits and resets the streak, rather than being skipped)
+- see `metrocrush/index.html`'s own `STREAK_STORAGE_KEY` comment.
 
-Each of those four games' own `submitScore()` also submits `streak` as
+Each of those five games' own `submitScore()` also submits `streak` as
 a leaderboard field now, purely for display - like `hintsUsed` above,
 it's deliberately never part of `orderBySpecs`, so a query's
 ranking/results are identical whether or not a given entry (old or
@@ -355,19 +358,25 @@ this is no longer a single page's own thing) reading **`🔥 × N` when
 `N > 1`, nothing otherwise** (a streak of 0 or 1 isn't yet "a streak"
 worth calling out), always returned (even empty) so a row's score
 column still lands in the same spot whether or not it has one.
-`/admin/`'s own `renderGame()` appends one to every row for all four
-collections; Metrordle's, Laberinto's, and Memoria's own
+`/admin/`'s own `renderGame()` appends one to every row for all five
+collections now; Metrordle's, Laberinto's, and Memoria's own
 `renderLeaderboard()` do the same on their own in-page leaderboards
-(Metroguessr's own leaderboard doesn't, yet - nothing architectural
-stops it, this just hasn't been asked for). Every one of those
-`getTopLeaderboardScores()` calls needs `extraFields: ['streak']` for
-the value to actually reach `entry.streak` at all (see `extraFields`
-above) - `buildStreakBadge()` itself doesn't guard against a missing
-field beyond `streak > 1` already being false for `undefined`, so a
-call that forgets `extraFields` just silently renders an
+(Metroguessr's and Metro Crush's own leaderboards don't, yet - nothing
+architectural stops either, this just hasn't been asked for). Every one
+of those `getTopLeaderboardScores()` calls needs `extraFields:
+['streak']` for the value to actually reach `entry.streak` at all (see
+`extraFields` above) - `buildStreakBadge()` itself doesn't guard against
+a missing field beyond `streak > 1` already being false for `undefined`,
+so a call that forgets `extraFields` just silently renders an
 always-empty badge, the same failure mode `hintsUsed` hit before.
-Metro Crush has neither the field nor a badge for it, since its
-entries never carry `streak` in the first place.
+Metro Crush's own leaderboard rule bounds `streak` the same generous
+`>= 0`/`<= 5000` as Memoria's (see `firestore.rules`) - **this bound is
+a manual deploy, not something CI applies** (see "Firebase credential
+safety"/`firestore.rules`'s own bullet above); a PR that changes this
+file still needs someone to actually paste it into the Firebase console
+(or run `firebase deploy --only firestore:rules`) after merging, or
+every real Metro Crush submission will fail closed against the *old*
+rule, which doesn't recognize `streak` as an allowed field at all.
 
 ## Game suggestions
 

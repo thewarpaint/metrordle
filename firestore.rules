@@ -156,11 +156,16 @@ service cloud.firestore {
     // here (same as Metrordle's own leaderboard) - unlike Metrordle,
     // it's not part of the ranking (see renderLeaderboard()'s
     // orderBySpecs comment), only the 🧠 badge shown next to the score.
+    // streak (display-only, see Memoria's own comment above) can
+    // legitimately be 0 here, same bound as Memoria's own - Metro Crush
+    // has no daily win/loss outcome to extend/reset a streak on, so it
+    // extends on any round with a non-zero score instead, resetting to 0
+    // on a genuine 0-point round, which still submits.
     match /metrocrush-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -168,6 +173,9 @@ service cloud.firestore {
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 20000 &&
         request.resource.data.hardMode is bool &&
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 0 &&
+        request.resource.data.streak <= 5000 &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

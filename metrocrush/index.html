@@ -527,6 +527,13 @@
         var SHARE_URL = 'https://metrordle.com/metrocrush/';
         var LEADERBOARD_COLLECTION = 'metrocrush-leaderboard';
         var LEADERBOARD_SIZE = 5;
+        // Metro Crush has no daily win/loss outcome the way the other
+        // four games do (its rounds are scored, not "won"), so a streak
+        // here means something different: extended by any round that
+        // ends with a non-zero score, reset to 0 only by a genuine
+        // 0-point round - see endRound()'s own updateStreakForResult()
+        // call.
+        var STREAK_STORAGE_KEY = 'metrocrush:streak';
 
         var delay = MetroShared.prefersReducedMotion()
           ? function () { return 0; }
@@ -781,6 +788,10 @@
           var saved = loadSavedResult(dateKey);
 
           if (saved) {
+            // Same as every other game's own streak - read fresh from its
+            // own separate storage key on every load, not persisted as
+            // part of this day's own saved result (see persistResult()).
+            var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             // The exact end-of-round board isn't persisted (only the
             // score/stats needed for the reveal and leaderboard are) -
             // this regenerates the same deterministic starting board
@@ -798,6 +809,8 @@
               groupsFormed: saved.groupsFormed,
               maxCombo: saved.maxCombo,
               maxRunSeen: saved.maxRunSeen,
+              streak: savedStreak.count,
+              maxStreak: savedStreak.max,
               leaderboardSubmitted: saved.leaderboardSubmitted,
               timeLeft: 0,
               timerId: null,
@@ -841,6 +854,8 @@
             cascadeStep: 0,
             maxCombo: 1,
             maxRunSeen: 3,
+            streak: 0,
+            maxStreak: 0,
             leaderboardSubmitted: false,
             busy: false,
             status: 'ready',
@@ -1244,6 +1259,15 @@
           return { label: 'Sobresaliente', square: '🟪' };
         }
 
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
         function buildShareText() {
           var rating = getRating(state.score);
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
@@ -1251,7 +1275,8 @@
           return 'Metrordle: Metro Crush #' + state.gameNumber + '\n' + hardModeLine + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Puntaje: ' + state.score + '\n' +
-            'Grupos: ' + state.groupsFormed + ' · Combo máximo: ×' + state.maxCombo + '\n\n' +
+            'Grupos: ' + state.groupsFormed + ' · Combo máximo: ×' + state.maxCombo + '\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
             SHARE_URL;
         }
 
@@ -1260,7 +1285,8 @@
         }
 
         function renderRevealStats() {
-          els.revealBanner.textContent = '¡Se acabó el tiempo!';
+          els.revealBanner.textContent = '¡Se acabó el tiempo! 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
           els.revealScore.textContent = String(state.score);
           els.revealGroups.textContent = String(state.groupsFormed);
           els.revealCombo.textContent = '×' + state.maxCombo;
@@ -1290,6 +1316,10 @@
           state.status = 'done';
           state.leaderboardSubmitted = false;
           setToast('');
+          // "Won" here means a non-zero score - there's no puzzle to
+          // actually win or lose, see STREAK_STORAGE_KEY's own comment.
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, false);
           renderRevealStats();
           els.reveal.hidden = false;
@@ -1311,7 +1341,13 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard' }, {})
+          // streak is submitted purely for display (see /admin/'s own
+          // 🔥 badge) - never part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not a given entry
+          // (old or new) happens to have it. Can legitimately be 0 (a
+          // 0-point round still submits and resets it), same bound as
+          // Memoria's own leaderboard rule.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, true);

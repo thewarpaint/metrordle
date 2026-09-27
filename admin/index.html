@@ -565,13 +565,13 @@
               // these per-game boards.
               var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
 
-              entries.forEach(function (entry) {
+              entries.forEach(function (entry, index) {
                 var li = document.createElement('li');
                 li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
 
                 var rank = document.createElement('span');
                 rank.className = 'leaderboard__rank';
-                rank.textContent = '#' + entry.rank;
+                rank.textContent = '#' + MetroShared.formatRank(entry, index);
 
                 var name = document.createElement('span');
                 name.className = 'leaderboard__alias-name';

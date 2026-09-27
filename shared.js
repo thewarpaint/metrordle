@@ -794,10 +794,11 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 //
 // Every returned entry also carries its own real board `rank` (1-based,
 // computed from the full re-sorted list, before limitCount trims it) -
-// a page's own renderLeaderboard() should always show `entry.rank`, not
-// just its position in the returned array, since that position stops
-// matching the real rank the moment `options.myAliasId` (below) pulls
-// in a row from further down the board.
+// a page's own renderLeaderboard() should always show `entry.rank` (via
+// formatRank() below, not a bare `entry.rank` read), not just its
+// position in the returned array, since that position stops matching
+// the real rank the moment `options.myAliasId` (below) pulls in a row
+// from further down the board.
 //
 // `options.myAliasId`, if given, guarantees that alias's own entry is
 // somewhere in the returned list - if it would already be within the
@@ -809,6 +810,59 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 // uncapped view (limitCount far past any real day's entry count) has
 // nothing to guarantee - everyone's already shown - so it never passes
 // this option.
+//
+// The sort/rank/myAliasId-substitution part of this (as opposed to the
+// actual Firestore fetch above it) is pulled out into its own
+// rankAndSelect() below, rather than inlined here, for two reasons: it's
+// unit-testable on its own with a plain array (no Firestore/browser
+// stub needed), and it's the same shape a test's own fixture data should
+// be built with - see formatRank()'s own comment for the bug this is
+// guarding against.
+function rankAndSelect(entries, orderBySpecs, limitCount, myAliasId) {
+  var results = entries.slice();
+  results.sort(compareByOrderSpecs(orderBySpecs));
+  results.forEach(function (entry, index) {
+    entry.rank = index + 1;
+  });
+
+  var top = results.slice(0, limitCount);
+  if (myAliasId) {
+    var alreadyShown = false;
+    for (var i = 0; i < top.length; i++) {
+      if (top[i].id === myAliasId) { alreadyShown = true; break; }
+    }
+    if (!alreadyShown) {
+      var mine = null;
+      for (var j = 0; j < results.length; j++) {
+        if (results[j].id === myAliasId) { mine = results[j]; break; }
+      }
+      if (mine) top = top.slice(0, limitCount - 1).concat([mine]);
+    }
+  }
+  return top;
+}
+
+// The one place that turns an entry into the '#N' text a row actually
+// shows - every one of the 6 leaderboard-rendering pages (5 games +
+// /admin/) should call this instead of reading entry.rank directly.
+// Guards against exactly the bug that shipped once already: a hand-
+// authored test/fixture array (or any other caller that bypasses the
+// real getTopLeaderboardScores()/rankAndSelect() above) that forgets to
+// set .rank rendered the literal string "#undefined" in production-
+// shaped markup, with nothing to catch it - schema drift between the
+// data layer's contract (every entry has a numeric rank) and the render
+// layer's assumption that the contract always holds. Falling back to
+// the entry's own array position isn't always the *correct* rank (it
+// can't be, once myAliasId's own substitution is in play), but it's a
+// plausible-looking number instead of visibly broken text, and the
+// console.warn means a real occurrence is still debuggable rather than
+// silently wrong.
+function formatRank(entry, index) {
+  if (typeof entry.rank === 'number') return entry.rank;
+  console.warn('[Leaderboard] entry missing its own .rank - falling back to array position:', entry);
+  return index + 1;
+}
+
 function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpecs, options) {
   var path = collectionName + '/' + dateKey + '/entries';
   console.log('[Leaderboard] getTopLeaderboardScores()', Object.assign({
@@ -853,27 +907,7 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
         });
         results.push(entry);
       });
-      results.sort(compareByOrderSpecs(orderBySpecs));
-      results.forEach(function (entry, index) {
-        entry.rank = index + 1;
-      });
-
-      var top = results.slice(0, limitCount);
-      var myAliasId = options && options.myAliasId;
-      if (myAliasId) {
-        var alreadyShown = false;
-        for (var i = 0; i < top.length; i++) {
-          if (top[i].id === myAliasId) { alreadyShown = true; break; }
-        }
-        if (!alreadyShown) {
-          var mine = null;
-          for (var j = 0; j < results.length; j++) {
-            if (results[j].id === myAliasId) { mine = results[j]; break; }
-          }
-          if (mine) top = top.slice(0, limitCount - 1).concat([mine]);
-        }
-      }
-
+      var top = rankAndSelect(results, orderBySpecs, limitCount, options && options.myAliasId);
       console.log('[Leaderboard] Query succeeded:', path, '- got', top.length, 'result(s):', top);
       return top;
     })
@@ -917,4 +951,6 @@ window.MetroShared = {
   setThemeMode: setThemeMode,
   submitLeaderboardScore: submitLeaderboardScore,
   getTopLeaderboardScores: getTopLeaderboardScores,
+  rankAndSelect: rankAndSelect,
+  formatRank: formatRank,
 };

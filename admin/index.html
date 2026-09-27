@@ -430,7 +430,13 @@
             collection: 'metrocrush-leaderboard',
             startDateKey: '2026-09-12',
             orderBySpecs: [['score', 'desc']],
-            extraFields: ['streak'],
+            // Unlike Metrordle/Metroguessr above, hardMode isn't part of
+            // this game's own orderBySpecs (see metrocrush/index.html's
+            // own renderLeaderboard() comment - its score already prices
+            // in the hard-mode multiplier), so it has to be named here
+            // too, or its own scoreCell's entry.hardMode read below stays
+            // silently undefined for every real entry.
+            extraFields: ['streak', 'hardMode'],
             href: '/metrocrush/',
             scoreCell: function (entry) {
               var score = document.createElement('span');

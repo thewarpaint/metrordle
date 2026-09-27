@@ -1594,7 +1594,15 @@
         // no tie to break on it): hard mode already doubles every point
         // scored (see HARD_MODE_MULTIPLIER in resolveStep()), so its
         // effect is already priced into the score itself. hardMode is
-        // only submitted/rendered for the 🧠 badge below.
+        // only submitted/rendered for the 🧠 badge below - which means,
+        // unlike Metrordle/Metroguessr where hardMode rides along for
+        // free as an orderBySpecs field, it has to be requested via
+        // extraFields here or getTopLeaderboardScores() never copies it
+        // onto the entry at all. This is exactly the bug that shipped for
+        // Metroguessr's own hintsUsed field once already: the badge below
+        // looked correctly wired (submitted, read via entry.hardMode) but
+        // silently stayed empty for every real entry until extraFields
+        // actually asked for it.
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
@@ -1604,7 +1612,7 @@
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId, extraFields: ['hardMode'] })
             .then(function (entries) {
               if (!state || state.dateKey !== dateKey) return;
               if (requestId !== leaderboardRequestId) return;

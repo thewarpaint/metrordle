@@ -290,6 +290,52 @@ async function main() {
     }
   });
 
+  test('Metro Crush\'s own hardMode field needs extraFields too, since (unlike Metrordle/Metroguessr) it is deliberately not part of orderBySpecs', async () => {
+    // metrocrush-leaderboard ranks purely by score - hardMode already
+    // doubles every point scored (see metrocrush/index.html's own
+    // HARD_MODE_MULTIPLIER), so its own renderLeaderboard() never needs
+    // it as a ranking tiebreak the way Metrordle/Metroguessr do. That's
+    // exactly what let this slip through once already: entry.hardMode
+    // was read for the 🧠 badge on both this page's own leaderboard and
+    // /admin/'s, but neither call ever named it in extraFields, so it
+    // came back undefined for every real entry and the badge silently
+    // never showed.
+    const DATE = '2027-01-12';
+    const FIXTURE = {
+      'metrocrush-leaderboard': {
+        [DATE]: [
+          { id: 'ana', data: { alias: 'Ana', score: 900, hardMode: true, submittedAt: 1000 } },
+          { id: 'beto', data: { alias: 'Beto', score: 500, hardMode: false, submittedAt: 2000 } },
+        ],
+      },
+    };
+
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await installFirestoreStub(page, FIXTURE);
+      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const withExtraField = await page.evaluate((dateKey) => {
+        return MetroShared.getTopLeaderboardScores('metrocrush-leaderboard', dateKey, 5, [['score', 'desc']], { extraFields: ['hardMode'] });
+      }, DATE);
+      assert.strictEqual(withExtraField[0].hardMode, true, 'requesting hardMode via extraFields should copy it onto the entry');
+      assert.strictEqual(withExtraField[1].hardMode, false, 'a real false value should come through as false, not undefined');
+
+      const withoutExtraField = await page.evaluate((dateKey) => {
+        return MetroShared.getTopLeaderboardScores('metrocrush-leaderboard', dateKey, 5, [['score', 'desc']], {});
+      }, DATE);
+      assert.strictEqual(withoutExtraField[0].hardMode, undefined, 'without extraFields, hardMode should not be copied even for a real hard-mode entry - this is the exact bug that shipped');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

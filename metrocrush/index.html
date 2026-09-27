@@ -147,7 +147,16 @@
       .board-wrap {
         padding: 1rem 1.1rem;
         position: relative;
+        transition: height 1s ease, padding-top 1s ease, padding-bottom 1s ease;
       }
+
+      /* Only set once the round is over and the board is being (or
+         already is) collapsed down to make room for the reveal below -
+         never during live play, where a rising .score-popup (see its own
+         scorePopupRise keyframes, up to translate(-50%, -160%) above a
+         top-row match) or the idle-hint bounce can legitimately extend
+         past the wrap's own edges and must not be clipped. */
+      .board-wrap--collapsed { overflow: hidden; }
 
       .board {
         display: grid;
@@ -359,6 +368,47 @@
         text-transform: uppercase;
       }
 
+      /* Per-line tile-match breakdown on the reveal screen, below the
+         .stat-grid above - reuses .legend__chip as-is (same colored
+         pictogram every active line already gets in the pre-round
+         legend) rather than inventing a second icon style for the same
+         thing. */
+      .match-summary { margin-bottom: 1.1rem; }
+
+      .match-summary[hidden] { display: none; }
+
+      .match-summary__title {
+        color: var(--ink-soft);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .match-summary__list {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        justify-content: center;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .match-summary__item {
+        align-items: center;
+        display: flex;
+        gap: 0.3rem;
+      }
+
+      .match-summary__count {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
       /* Metro Crush-only leaderboard styling: everything else
          (.leaderboard__title, .leaderboard__row, etc., including
          .leaderboard__score-badge - identical across every game with a
@@ -474,6 +524,11 @@
               <div class="stat-box__value" id="reveal-run">3</div>
               <div class="stat-box__label">Fila más larga</div>
             </div>
+          </div>
+
+          <div class="match-summary" id="match-summary" hidden>
+            <p class="match-summary__title">Coincidencias por línea</p>
+            <ul class="match-summary__list" id="match-summary-list"></ul>
           </div>
 
           <div class="leaderboard" id="leaderboard">
@@ -607,6 +662,11 @@
               groupsFormed: typeof parsed.groupsFormed === 'number' ? parsed.groupsFormed : 0,
               maxCombo: typeof parsed.maxCombo === 'number' ? parsed.maxCombo : 1,
               maxRunSeen: typeof parsed.maxRunSeen === 'number' ? parsed.maxRunSeen : 3,
+              // A day predating this field (or a corrupt/non-object value)
+              // falls back to {} - the reveal's own match-summary section
+              // just renders nothing for it, same "missing => nothing
+              // shown" convention as a pre-streak-field leaderboard entry.
+              matchCountsByLine: (parsed.matchCountsByLine && typeof parsed.matchCountsByLine === 'object') ? parsed.matchCountsByLine : {},
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
           } catch (e) {
@@ -614,7 +674,7 @@
           }
         }
 
-        function persistResult(dateKey, score, mode, groupsFormed, maxCombo, maxRunSeen, leaderboardSubmitted) {
+        function persistResult(dateKey, score, mode, groupsFormed, maxCombo, maxRunSeen, matchCountsByLine, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               score: score,
@@ -622,6 +682,7 @@
               groupsFormed: groupsFormed,
               maxCombo: maxCombo,
               maxRunSeen: maxRunSeen,
+              matchCountsByLine: matchCountsByLine,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
           } catch (e) {
@@ -809,6 +870,7 @@
               groupsFormed: saved.groupsFormed,
               maxCombo: saved.maxCombo,
               maxRunSeen: saved.maxRunSeen,
+              matchCountsByLine: saved.matchCountsByLine,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
               leaderboardSubmitted: saved.leaderboardSubmitted,
@@ -827,6 +889,7 @@
             renderLegend();
             renderRevealStats();
             els.reveal.hidden = false;
+            collapseBoard(false);
             // submitScore() itself checks state.leaderboardSubmitted and
             // no-ops if it's already true, so this is only ever a real
             // retry when an earlier attempt is known to have failed (or
@@ -847,6 +910,7 @@
             mode: 'normal',
             score: 0,
             groupsFormed: 0,
+            matchCountsByLine: {},
             timeLeft: ROUND_SECONDS,
             timerId: null,
             idleTimer: null,
@@ -866,7 +930,62 @@
           $('game-title').textContent = 'Metrordle: Metro Crush #' + state.gameNumber;
           renderLegend();
           els.reveal.hidden = true;
+          expandBoard();
           render();
+        }
+
+        // Shrinks the now-disabled board out of the way once the round is
+        // over, so the stats/leaderboard below don't need a long scroll
+        // past a board nobody can interact with anymore. A CSS transition
+        // can't animate to/from height: auto, so animating requires first
+        // freezing the wrap's own current rendered height (and padding,
+        // which would otherwise stay visible even at height: 0) as
+        // explicit inline values, forcing a reflow, and only then setting
+        // the real target - that's what gives the browser two different
+        // explicit values to interpolate between instead of jumping
+        // straight to the end state.
+        //
+        // animate is false right after a page load restores an
+        // already-finished day (see startNewGame()'s saved-result
+        // branch) - nothing just happened live on THIS load, so it
+        // should already be shown collapsed, not visibly animate into
+        // that state on every reload. Also downgrades to instant under
+        // prefers-reduced-motion, same as every other animation in this
+        // file (see the delay() helper up top).
+        function collapseBoard(animate) {
+          var wrap = els.boardWrap;
+          wrap.classList.add('board-wrap--collapsed');
+          if (!animate || MetroShared.prefersReducedMotion()) {
+            wrap.style.transition = 'none';
+            wrap.style.height = '0px';
+            wrap.style.paddingTop = '0px';
+            wrap.style.paddingBottom = '0px';
+            void wrap.offsetHeight;
+            wrap.style.transition = '';
+            return;
+          }
+          var startHeight = wrap.getBoundingClientRect().height;
+          wrap.style.height = startHeight + 'px';
+          wrap.style.paddingTop = getComputedStyle(wrap).paddingTop;
+          wrap.style.paddingBottom = getComputedStyle(wrap).paddingBottom;
+          void wrap.offsetHeight;
+          wrap.style.height = '0px';
+          wrap.style.paddingTop = '0px';
+          wrap.style.paddingBottom = '0px';
+        }
+
+        // Restores the board to its natural height - needed when debug
+        // date-nav (the only way to revisit a day after today) moves from
+        // an already-finished day (left collapsed) to one not yet played.
+        function expandBoard() {
+          var wrap = els.boardWrap;
+          wrap.classList.remove('board-wrap--collapsed');
+          wrap.style.transition = 'none';
+          wrap.style.height = '';
+          wrap.style.paddingTop = '';
+          wrap.style.paddingBottom = '';
+          void wrap.offsetHeight;
+          wrap.style.transition = '';
         }
 
         function renderLegend() {
@@ -1212,6 +1331,13 @@
 
             result.matched.forEach(function (k) {
               var parts = k.split(',');
+              var lineId = state.board[+parts[0]][+parts[1]];
+              // Tallied per matched cell, not per group - a single
+              // resolveStep() can clear several same-instant runs of
+              // DIFFERENT lines at once (see findMatches()'s own two
+              // full-board scans above), which is why this can't just be
+              // "result.matched.size credited to one line".
+              state.matchCountsByLine[lineId] = (state.matchCountsByLine[lineId] || 0) + 1;
               state.board[+parts[0]][+parts[1]] = null;
             });
 
@@ -1291,7 +1417,47 @@
           els.revealGroups.textContent = String(state.groupsFormed);
           els.revealCombo.textContent = '×' + state.maxCombo;
           els.revealRun.textContent = String(state.maxRunSeen);
+          renderMatchSummary();
           renderGamePromo('metrocrush');
+        }
+
+        // The reveal's per-line tile-match breakdown, below the stat-grid
+        // above - sorted most-matched-first, since "what did I clear the
+        // most of" is the interesting read, not today's arbitrary legend
+        // order. A line nobody ever matched (count 0, or simply never
+        // added to matchCountsByLine) is left out entirely rather than
+        // shown as "× 0" - same "nothing to show, show nothing" instinct
+        // as buildStreakBadge()'s own N > 1 threshold in shared.js.
+        function renderMatchSummary() {
+          els.matchSummaryList.innerHTML = '';
+          var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
+            return state.matchCountsByLine[id] > 0;
+          });
+          lineIds.sort(function (a, b) { return state.matchCountsByLine[b] - state.matchCountsByLine[a]; });
+
+          lineIds.forEach(function (id) {
+            var line = lineById(id);
+            if (!line) return;
+
+            var li = document.createElement('li');
+            li.className = 'match-summary__item';
+
+            var chip = document.createElement('span');
+            chip.className = 'legend__chip';
+            chip.style.setProperty('--chip-bg', line.color);
+            chip.style.setProperty('--chip-ink', line.textColor);
+            chip.appendChild(makeStationIcon(line.icon));
+            li.appendChild(chip);
+
+            var count = document.createElement('span');
+            count.className = 'match-summary__count';
+            count.textContent = '× ' + state.matchCountsByLine[id];
+            li.appendChild(count);
+
+            els.matchSummaryList.appendChild(li);
+          });
+
+          els.matchSummary.hidden = lineIds.length === 0;
         }
 
         // Mounts the end screen's "sigue jugando hoy" component into this
@@ -1320,11 +1486,12 @@
           // actually win or lose, see STREAK_STORAGE_KEY's own comment.
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
-          persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, false);
+          persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, false);
           renderRevealStats();
           els.reveal.hidden = false;
           submitScore();
           render();
+          collapseBoard(true);
         }
 
         // Submits the current result to today's leaderboard, if an alias
@@ -1350,7 +1517,7 @@
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
-              persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, true);
+              persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, true);
               renderLeaderboard();
             })
             .catch(function (err) {
@@ -1525,6 +1692,8 @@
             revealGroups: $('reveal-groups'),
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
+            matchSummary: $('match-summary'),
+            matchSummaryList: $('match-summary-list'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardList: $('leaderboard-list'),
             leaderboardStatus: $('leaderboard-status'),

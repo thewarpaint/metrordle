@@ -192,6 +192,59 @@ async function main() {
     }
   });
 
+  test('every entry carries its real board rank, and options.myAliasId guarantees the caller\'s own entry is in the result even when ranked below limitCount', async () => {
+    const DATE = '2026-12-25';
+    // Seven entries, ranked 1-7 by attempts ascending - unique
+    // submittedAt values make the order fully deterministic without
+    // needing a tiebreak.
+    const FIXTURE = {
+      'metrordle-leaderboard': {
+        [DATE]: [
+          { id: 'p1', data: { alias: 'P1', attempts: 1, hardMode: false, submittedAt: 1000 } },
+          { id: 'p2', data: { alias: 'P2', attempts: 2, hardMode: false, submittedAt: 2000 } },
+          { id: 'p3', data: { alias: 'P3', attempts: 3, hardMode: false, submittedAt: 3000 } },
+          { id: 'p4', data: { alias: 'P4', attempts: 4, hardMode: false, submittedAt: 4000 } },
+          { id: 'p5', data: { alias: 'P5', attempts: 5, hardMode: false, submittedAt: 5000 } },
+          { id: 'p6', data: { alias: 'P6', attempts: 6, hardMode: false, submittedAt: 6000 } },
+          { id: 'p7', data: { alias: 'P7', attempts: 7, hardMode: false, submittedAt: 7000 } },
+        ],
+      },
+    };
+
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await installFirestoreStub(page, FIXTURE);
+      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const query = (myAliasId) => page.evaluate(({ dateKey, myAliasId }) => {
+        return MetroShared.getTopLeaderboardScores('metrordle-leaderboard', dateKey, 5, [['attempts', 'asc']], myAliasId ? { myAliasId } : {});
+      }, { dateKey: DATE, myAliasId });
+
+      const plain = await query(null);
+      assert.deepStrictEqual(plain.map((e) => e.alias), ['P1', 'P2', 'P3', 'P4', 'P5'], 'with no myAliasId, the plain top 5 by rank');
+      assert.deepStrictEqual(plain.map((e) => e.rank), [1, 2, 3, 4, 5], 'every entry should carry its own real 1-based board rank');
+
+      const rankedOutside = await query('p7');
+      assert.deepStrictEqual(rankedOutside.map((e) => e.alias), ['P1', 'P2', 'P3', 'P4', 'P7'], 'P7 (rank 7, outside the top 5) should replace the last slot, not be left off the board entirely');
+      assert.deepStrictEqual(rankedOutside.map((e) => e.rank), [1, 2, 3, 4, 7], 'P7\'s own row must show its REAL rank (7), not its position (5) in the returned list');
+      assert.strictEqual(rankedOutside.length, 5, 'the list should never grow past the requested limit just to fit the caller in');
+
+      const alreadyInTop = await query('p3');
+      assert.deepStrictEqual(alreadyInTop.map((e) => e.alias), ['P1', 'P2', 'P3', 'P4', 'P5'], 'P3 is already within the top 5 - the list should be completely unchanged, not modified to move P3 anywhere');
+
+      const notPlayingToday = await query('someone-not-on-the-board');
+      assert.deepStrictEqual(notPlayingToday.map((e) => e.alias), ['P1', 'P2', 'P3', 'P4', 'P5'], 'an alias with no entry at all today should fall back to the plain top 5, not throw or shrink the list');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

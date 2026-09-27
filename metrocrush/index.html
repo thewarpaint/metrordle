@@ -1432,7 +1432,12 @@
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
 
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], {})
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+          // myAliasId guarantees the player's own row is somewhere in the
+          // result even if it's ranked below the top LEADERBOARD_SIZE
+          // (see getTopLeaderboardScores()'s own comment).
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId })
             .then(function (entries) {
               if (!state || state.dateKey !== dateKey) return;
               if (requestId !== leaderboardRequestId) return;
@@ -1447,15 +1452,13 @@
 
               els.leaderboardStatus.hidden = true;
 
-              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
-
-              entries.forEach(function (entry, index) {
+              entries.forEach(function (entry) {
                 var li = document.createElement('li');
                 li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
 
                 var rank = document.createElement('span');
                 rank.className = 'leaderboard__rank';
-                rank.textContent = '#' + (index + 1);
+                rank.textContent = '#' + entry.rank;
 
                 var name = document.createElement('span');
                 name.className = 'leaderboard__alias-name';

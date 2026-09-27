@@ -791,10 +791,29 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 // same-orderBySpecs[0] entry it should beat on a later tiebreak. This
 // is a casual, low-traffic leaderboard, not a paginated one, so
 // over-fetching like this is cheap.
+//
+// Every returned entry also carries its own real board `rank` (1-based,
+// computed from the full re-sorted list, before limitCount trims it) -
+// a page's own renderLeaderboard() should always show `entry.rank`, not
+// just its position in the returned array, since that position stops
+// matching the real rank the moment `options.myAliasId` (below) pulls
+// in a row from further down the board.
+//
+// `options.myAliasId`, if given, guarantees that alias's own entry is
+// somewhere in the returned list - if it would already be within the
+// top `limitCount` this changes nothing, otherwise its own row replaces
+// the last slot so the list still holds at most `limitCount` rows (e.g.
+// limitCount 5, the caller's own alias actually ranked #7: returns
+// #1-4 plus #7, not #1-5). A page's own on-page leaderboard uses this so
+// a player can always find themselves on the board; /admin/'s own,
+// uncapped view (limitCount far past any real day's entry count) has
+// nothing to guarantee - everyone's already shown - so it never passes
+// this option.
 function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpecs, options) {
   var path = collectionName + '/' + dateKey + '/entries';
   console.log('[Leaderboard] getTopLeaderboardScores()', Object.assign({
     path: path, limitCount: limitCount, orderBySpecs: orderBySpecs, extraFields: (options && options.extraFields) || [],
+    myAliasId: (options && options.myAliasId) || null,
     useLocalFallback: !!(options && options.useLocalFallback),
   }, firebaseStatusForLog()));
 
@@ -835,9 +854,28 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
         results.push(entry);
       });
       results.sort(compareByOrderSpecs(orderBySpecs));
-      results = results.slice(0, limitCount);
-      console.log('[Leaderboard] Query succeeded:', path, '- got', results.length, 'result(s):', results);
-      return results;
+      results.forEach(function (entry, index) {
+        entry.rank = index + 1;
+      });
+
+      var top = results.slice(0, limitCount);
+      var myAliasId = options && options.myAliasId;
+      if (myAliasId) {
+        var alreadyShown = false;
+        for (var i = 0; i < top.length; i++) {
+          if (top[i].id === myAliasId) { alreadyShown = true; break; }
+        }
+        if (!alreadyShown) {
+          var mine = null;
+          for (var j = 0; j < results.length; j++) {
+            if (results[j].id === myAliasId) { mine = results[j]; break; }
+          }
+          if (mine) top = top.slice(0, limitCount - 1).concat([mine]);
+        }
+      }
+
+      console.log('[Leaderboard] Query succeeded:', path, '- got', top.length, 'result(s):', top);
+      return top;
     })
     .catch(function (err) {
       console.error('[Leaderboard] Query FAILED:', path, '\n  code:', err && err.code, '\n  message:', err && err.message, '\n  full error:', err);

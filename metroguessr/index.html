@@ -1817,6 +1817,8 @@
           // already-submitted day), and blanking the list before the
           // fetch resolves would cause a visible flicker.
 
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
           // extraFields: hintsUsed is rendered below (the 🪄 badge) but
           // deliberately isn't part of orderBySpecs (see submitScore()'s
           // own comment) - without naming it here too,
@@ -1827,8 +1829,11 @@
           // way they can tie, since a loss's attempts is always
           // TOTAL_ATTEMPTS) - attempts asc alone already sorts every
           // other loss last, since a loss's attempts count is always the
-          // max possible.
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed'] })
+          // max possible. myAliasId guarantees the player's own row is
+          // somewhere in the result even if it's ranked below the top
+          // LEADERBOARD_SIZE (see getTopLeaderboardScores()'s own
+          // comment).
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed'], myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer
@@ -1851,15 +1856,13 @@
 
               statusEl.hidden = true;
 
-              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
-
-              entries.forEach(function (entry, index) {
+              entries.forEach(function (entry) {
                 var li = document.createElement('li');
                 li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
 
                 var rank = document.createElement('span');
                 rank.className = 'leaderboard__rank';
-                rank.textContent = '#' + (index + 1);
+                rank.textContent = '#' + entry.rank;
 
                 var name = document.createElement('span');
                 name.className = 'leaderboard__alias-name';

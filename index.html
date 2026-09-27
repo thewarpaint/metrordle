@@ -656,8 +656,6 @@
 
       <p class="credit">
         Basado en el trazado real de las líneas del Metro de la Ciudad de México.
-        <br>
-        <a href="/laberinto/">¿Ya jugaste Laberinto hoy?</a> · <a href="/memoria/">¿Ya jugaste Memoria hoy?</a>
       </p>
 
       <div class="debug-stations" id="debug-stations" hidden>
@@ -1871,6 +1869,8 @@
           // before the fetch resolves would cause a visible flicker. The
           // list is only ever touched once a response actually arrives.
 
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
           // One combined leaderboard, not split by mode - fewer attempts
           // wins, and a hard-mode entry beats a normal-mode entry at the
           // same attempts count (Firestore/the fallback comparator both
@@ -1881,8 +1881,10 @@
           // every other loss last, since a loss's attempts count is
           // always the max possible. submittedAt asc is appended
           // automatically by getTopLeaderboardScores() as the final
-          // tiebreak.
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['streak'] })
+          // tiebreak. myAliasId guarantees the player's own row is
+          // somewhere in the result even if it's ranked below the top
+          // LEADERBOARD_SIZE (see that function's own comment).
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['streak'], myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1899,15 +1901,13 @@
                 return;
               }
 
-              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
-
-              entries.forEach(function (entry, index) {
+              entries.forEach(function (entry) {
                 var li = document.createElement('li');
                 li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
 
                 var rank = document.createElement('span');
                 rank.className = 'leaderboard__rank';
-                rank.textContent = '#' + (index + 1);
+                rank.textContent = '#' + entry.rank;
 
                 var name = document.createElement('span');
                 name.className = 'leaderboard__alias-name';

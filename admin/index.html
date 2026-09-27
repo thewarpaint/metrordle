@@ -558,13 +558,20 @@
                 return entries;
               }
 
-              entries.forEach(function (entry, index) {
+              // Same site-wide alias every game's own leaderboard already
+              // highlights its own row by (metrordle:alias, shared across
+              // all games) - admin has no "current game" of its own, but
+              // the same alias still identifies "you" across every one of
+              // these per-game boards.
+              var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+              entries.forEach(function (entry) {
                 var li = document.createElement('li');
-                li.className = 'leaderboard__row';
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
 
                 var rank = document.createElement('span');
                 rank.className = 'leaderboard__rank';
-                rank.textContent = '#' + (index + 1);
+                rank.textContent = '#' + entry.rank;
 
                 var name = document.createElement('span');
                 name.className = 'leaderboard__alias-name';

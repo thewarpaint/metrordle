@@ -241,6 +241,37 @@ async function main() {
     }
   });
 
+  test('an entry with no computed .rank (e.g. a hand-written fixture, or a stale cached shared.js) still renders a sane "#N", never the literal "#undefined"', async () => {
+    // SAMPLE_DATA above never sets .rank on any of its entries - it's a
+    // hand-authored fixture standing in for a real getTopLeaderboardScores()
+    // response the way every "real data" test in this repo builds one -
+    // exactly the shape that shipped "#undefined" once already (see
+    // shared.js's own formatRank() comment). This test locks in the fix:
+    // MetroShared.formatRank() falls back to the entry's own array
+    // position instead of rendering the literal string "undefined".
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    const warnings = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    page.on('console', (msg) => { if (msg.type() === 'warning') warnings.push(msg.text()); });
+    try {
+      await stubLeaderboardData(page, SAMPLE_DATA);
+      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      const metrordleRows = page.locator('#metrordle-list .leaderboard__row');
+      const ranks = await metrordleRows.locator('.leaderboard__rank').allTextContents();
+      assert.deepStrictEqual(ranks, ['#1', '#2', '#3'], 'a missing .rank should fall back to the entry\'s own array position, not render "#undefined"');
+
+      assert.ok(warnings.some((w) => w.indexOf('missing its own .rank') !== -1), 'a missing .rank should be logged, not silently papered over - got warnings: ' + JSON.stringify(warnings));
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

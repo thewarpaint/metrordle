@@ -245,6 +245,51 @@ async function main() {
     }
   });
 
+  test('MetroShared.rankAndSelect()/formatRank() are plain, directly-testable functions - no Firestore stub or network needed', async () => {
+    // rankAndSelect() is the same sort/rank/myAliasId-substitution logic
+    // getTopLeaderboardScores() runs internally (see the test above, via
+    // a full Firestore-stub round trip) - pulled out into its own
+    // function specifically so a test/fixture author can call it to
+    // build already-correctly-ranked data instead of hand-writing a
+    // .rank value (or forgetting to), which is exactly what shipped the
+    // "#undefined" rendering bug once already (see shared.js's own
+    // formatRank() comment, and tests/admin/admin.test.js's own
+    // regression test for the rendering side of this).
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      const selected = await page.evaluate(() => {
+        var entries = [
+          { id: 'ana', alias: 'Ana', attempts: 1 },
+          { id: 'beto', alias: 'Beto', attempts: 2 },
+          { id: 'caro', alias: 'Caro', attempts: 3 },
+          { id: 'diego', alias: 'Diego', attempts: 4 },
+        ];
+        return MetroShared.rankAndSelect(entries, [['attempts', 'asc']], 2, 'diego');
+      });
+      assert.deepStrictEqual(selected.map((e) => e.alias), ['Ana', 'Diego'], 'rankAndSelect() should apply the same top-N-plus-myAliasId substitution getTopLeaderboardScores() uses internally');
+      assert.deepStrictEqual(selected.map((e) => e.rank), [1, 4], 'every entry rankAndSelect() returns should carry its own real 1-based rank, computed by the function itself - never left for the caller to set by hand');
+
+      const formatted = await page.evaluate(() => {
+        return {
+          withRank: MetroShared.formatRank({ rank: 7 }, 0),
+          withoutRank: MetroShared.formatRank({}, 2),
+        };
+      });
+      assert.strictEqual(formatted.withRank, 7, 'a numeric .rank should be used as-is');
+      assert.strictEqual(formatted.withoutRank, 3, 'a missing .rank should fall back to the given array position (index + 1), not "undefined"');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

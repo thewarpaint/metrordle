@@ -147,7 +147,16 @@
       .board-wrap {
         padding: 1rem 1.1rem;
         position: relative;
+        transition: height 1s ease, padding-top 1s ease, padding-bottom 1s ease;
       }
+
+      /* Only set once the round is over and the board is being (or
+         already is) collapsed down to make room for the reveal below -
+         never during live play, where a rising .score-popup (see its own
+         scorePopupRise keyframes, up to translate(-50%, -160%) above a
+         top-row match) or the idle-hint bounce can legitimately extend
+         past the wrap's own edges and must not be clipped. */
+      .board-wrap--collapsed { overflow: hidden; }
 
       .board {
         display: grid;
@@ -880,6 +889,7 @@
             renderLegend();
             renderRevealStats();
             els.reveal.hidden = false;
+            collapseBoard(false);
             // submitScore() itself checks state.leaderboardSubmitted and
             // no-ops if it's already true, so this is only ever a real
             // retry when an earlier attempt is known to have failed (or
@@ -920,7 +930,62 @@
           $('game-title').textContent = 'Metrordle: Metro Crush #' + state.gameNumber;
           renderLegend();
           els.reveal.hidden = true;
+          expandBoard();
           render();
+        }
+
+        // Shrinks the now-disabled board out of the way once the round is
+        // over, so the stats/leaderboard below don't need a long scroll
+        // past a board nobody can interact with anymore. A CSS transition
+        // can't animate to/from height: auto, so animating requires first
+        // freezing the wrap's own current rendered height (and padding,
+        // which would otherwise stay visible even at height: 0) as
+        // explicit inline values, forcing a reflow, and only then setting
+        // the real target - that's what gives the browser two different
+        // explicit values to interpolate between instead of jumping
+        // straight to the end state.
+        //
+        // animate is false right after a page load restores an
+        // already-finished day (see startNewGame()'s saved-result
+        // branch) - nothing just happened live on THIS load, so it
+        // should already be shown collapsed, not visibly animate into
+        // that state on every reload. Also downgrades to instant under
+        // prefers-reduced-motion, same as every other animation in this
+        // file (see the delay() helper up top).
+        function collapseBoard(animate) {
+          var wrap = els.boardWrap;
+          wrap.classList.add('board-wrap--collapsed');
+          if (!animate || MetroShared.prefersReducedMotion()) {
+            wrap.style.transition = 'none';
+            wrap.style.height = '0px';
+            wrap.style.paddingTop = '0px';
+            wrap.style.paddingBottom = '0px';
+            void wrap.offsetHeight;
+            wrap.style.transition = '';
+            return;
+          }
+          var startHeight = wrap.getBoundingClientRect().height;
+          wrap.style.height = startHeight + 'px';
+          wrap.style.paddingTop = getComputedStyle(wrap).paddingTop;
+          wrap.style.paddingBottom = getComputedStyle(wrap).paddingBottom;
+          void wrap.offsetHeight;
+          wrap.style.height = '0px';
+          wrap.style.paddingTop = '0px';
+          wrap.style.paddingBottom = '0px';
+        }
+
+        // Restores the board to its natural height - needed when debug
+        // date-nav (the only way to revisit a day after today) moves from
+        // an already-finished day (left collapsed) to one not yet played.
+        function expandBoard() {
+          var wrap = els.boardWrap;
+          wrap.classList.remove('board-wrap--collapsed');
+          wrap.style.transition = 'none';
+          wrap.style.height = '';
+          wrap.style.paddingTop = '';
+          wrap.style.paddingBottom = '';
+          void wrap.offsetHeight;
+          wrap.style.transition = '';
         }
 
         function renderLegend() {
@@ -1426,6 +1491,7 @@
           els.reveal.hidden = false;
           submitScore();
           render();
+          collapseBoard(true);
         }
 
         // Submits the current result to today's leaderboard, if an alias

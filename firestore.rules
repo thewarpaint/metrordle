@@ -181,5 +181,51 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // records/{gameKey} - one document per game tracking its own
+    // highest score ever (MetroShared.updateHighScoreRecord() in
+    // shared.js), for Memoria and Metro Crush only: the two games whose
+    // leaderboards rank by a raw score rather than a fixed day's puzzle
+    // outcome, so "highest ever" is a meaningful cross-day record to
+    // chase. Unlike the per-day leaderboard collections above (a fresh
+    // document every day, one per player), this is a single long-lived
+    // document per game that only a genuinely higher score is ever
+    // allowed to overwrite - request.resource.data.score >
+    // resource.data.score on update is what makes that a server-
+    // enforced guarantee rather than something only well-behaved client
+    // code happens to respect: even a malicious direct write can only
+    // ever raise the record, never lower or "reset" it. The bound
+    // matches each game's own leaderboard bound above (tight for
+    // Memoria's fixed 163-station board, generous for Metro Crush's
+    // open-ended cascading score).
+    match /records/{gameKey} {
+      allow read: if true;
+
+      allow create: if
+        gameKey in ['memoria', 'metrocrush'] &&
+        request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= (gameKey == 'memoria' ? 200 : 20000) &&
+        request.resource.data.dateKey is string &&
+        request.resource.data.submittedAt == request.time;
+
+      allow update: if
+        gameKey in ['memoria', 'metrocrush'] &&
+        request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score > resource.data.score &&
+        request.resource.data.score <= (gameKey == 'memoria' ? 200 : 20000) &&
+        request.resource.data.dateKey is string &&
+        request.resource.data.submittedAt == request.time;
+
+      allow delete: if false;
+    }
   }
 }

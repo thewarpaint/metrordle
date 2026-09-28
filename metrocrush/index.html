@@ -1602,7 +1602,12 @@
         // Metroguessr's own hintsUsed field once already: the badge below
         // looked correctly wired (submitted, read via entry.hardMode) but
         // silently stayed empty for every real entry until extraFields
-        // actually asked for it.
+        // actually asked for it. streak is submitted for this collection
+        // too (see endRound()'s own updateStreakForResult() call) and was
+        // already shown on /admin/'s own cross-game view, but - until
+        // now - never on this page's own leaderboard, unlike Metrordle/
+        // Laberinto/Memoria; also needs extraFields, same reasoning as
+        // hardMode above.
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
@@ -1612,7 +1617,7 @@
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId, extraFields: ['hardMode'] })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId, extraFields: ['hardMode', 'streak'] })
             .then(function (entries) {
               if (!state || state.dateKey !== dateKey) return;
               if (requestId !== leaderboardRequestId) return;
@@ -1660,6 +1665,7 @@
                 li.appendChild(rank);
                 li.appendChild(name);
                 li.appendChild(score);
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 els.leaderboardList.appendChild(li);
               });
             });

@@ -282,6 +282,23 @@ existing hard-mode tiebreak:
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
 
+**`metrocrush/leaderboard.test.js`** covers `/metrocrush/`'s own
+leaderboard - ranked purely by score, descending (hardMode already
+doubles every point scored, so it's not part of `orderBySpecs` the way
+it is for Metrordle/Metroguessr). Plants a finished-round result
+directly in `localStorage` (the board itself isn't persisted, only the
+round's own stats are, so there's no in-progress state to fabricate the
+way the other games' own tests do):
+- The leaderboard section renders with the right title, and degrades
+  gracefully to an empty-state message rather than erroring when
+  Firebase isn't reachable.
+- Both the 🧠 hard-mode badge and the 🔥 × N streak badge (N > 1 only)
+  render correctly, fed by `options.extraFields` - this is the exact bug
+  class that shipped twice for this one page already (`hardMode`'s own
+  badge, then the streak badge simply never being added at all), since
+  neither field rides along for free via `orderBySpecs` the way it does
+  on Metrordle/Metroguessr.
+
 **`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads all three games' own collections):

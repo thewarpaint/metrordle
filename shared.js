@@ -1007,6 +1007,19 @@ function getHighScoreRecord(gameKey) {
     });
 }
 
+// One shared renderer for a getHighScoreRecord() result, used by
+// /admin/ and by Memoria's/Metro Crush's own reveal screens alike -
+// '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026' (es-MX, matching the rest
+// of the site's own copy/UI language). record.dateKey is parsed with an
+// explicit T00:00:00 (not `new Date(record.dateKey)` alone), same
+// convention as getGameNumberForDateKey() above, so the displayed day
+// can't shift by one under a UTC-behind local timezone.
+function formatHighScoreRecord(record) {
+  var d = new Date(record.dateKey + 'T00:00:00');
+  var dateLabel = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric', year: 'numeric' });
+  return '🏆 Récord: ' + record.score + ' por ' + record.alias + ' · #' + record.gameNumber + ' · ' + dateLabel;
+}
+
 window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
@@ -1045,4 +1058,5 @@ window.MetroShared = {
   formatRank: formatRank,
   updateHighScoreRecord: updateHighScoreRecord,
   getHighScoreRecord: getHighScoreRecord,
+  formatHighScoreRecord: formatHighScoreRecord,
 };

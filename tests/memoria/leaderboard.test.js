@@ -151,6 +151,69 @@ async function main() {
     }
   });
 
+  test('shows Memoria\'s own all-time high score next to its leaderboard, fed by MetroShared.getHighScoreRecord() - and stays hidden with no record yet', async () => {
+    const DATE = '2026-12-04';
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            window.MetroShared.getHighScoreRecord = function (gameKey) {
+              return Promise.resolve(gameKey === 'memoria' ? { score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 23 } : null);
+            };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/memoria/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 3, ['Insurgentes'], true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), true, 'Memoria has a real record - should show');
+      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('hides the high score record when none exists yet, not "🏆 Récord: undefined"', async () => {
+    const DATE = '2026-12-05';
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            window.MetroShared.getHighScoreRecord = function () { return Promise.resolve(null); };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/memoria/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 3, ['Insurgentes'], true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), false, 'no record yet - should stay hidden');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

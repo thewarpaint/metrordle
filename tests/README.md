@@ -128,6 +128,11 @@ covering the leaderboard section on the real `/memoria/` page (its own
 - Each row shows a "🔥 × N" streak badge (stubbed `getTopLeaderboardScores()`
   data, `N > 1` only - a streak of 1 or a missing field both render
   nothing) via the shared `MetroShared.buildStreakBadge()`.
+- Memoria's own all-time high score (stubbed `MetroShared.getHighScoreRecord()`)
+  shows next to the leaderboard title, formatted by the shared
+  `MetroShared.formatHighScoreRecord()`, and stays hidden - not "🏆
+  Récord: undefined" - when there's no record yet, same coverage shape
+  as `/admin/`'s own test for this.
 
 None of this exercises a real Firestore submission landing and rendering
 (sorted, tie-broken, highlighting the current player's row) end to end,
@@ -298,6 +303,11 @@ way the other games' own tests do):
   badge, then the streak badge simply never being added at all), since
   neither field rides along for free via `orderBySpecs` the way it does
   on Metrordle/Metroguessr.
+- Metro Crush's own all-time high score (stubbed `MetroShared.getHighScoreRecord()`)
+  shows next to the leaderboard title, formatted by the shared
+  `MetroShared.formatHighScoreRecord()`, and stays hidden - not "🏆
+  Récord: undefined" - when there's no record yet, same coverage shape
+  as `/admin/`'s own test for this.
 
 **`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
@@ -398,6 +408,12 @@ than stretching `tests/lib/firestore-stub.js` to cover both:
   resolves `null` (not an error) for a game with no record yet.
 - Both functions degrade gracefully (resolve, never reject) with no
   reachable Firebase, same as the rest of the leaderboard API.
+- `formatHighScoreRecord()` renders the one shared `'🏆 Récord: 39 por
+  🐱 · #23 · 20 sep 2026'` line (es-MX, matching the rest of the site's
+  own copy/UI language) used by `/admin/` and by Memoria's/Metro Crush's
+  own reveal screens (see below), including that `dateKey` is parsed as
+  a local calendar date (not a UTC instant) so a timezone behind UTC
+  can't show the day before.
 
 **`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
 tag every page carries (defense-in-depth alongside the app's actual XSS

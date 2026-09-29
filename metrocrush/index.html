@@ -533,6 +533,7 @@
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <p class="leaderboard__record" id="leaderboard-record" hidden></p>
             <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
             <ol class="leaderboard__list" id="leaderboard-list"></ol>
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
@@ -1613,6 +1614,22 @@
         // now - never on this page's own leaderboard, unlike Metrordle/
         // Laberinto/Memoria; also needs extraFields, same reasoning as
         // hardMode above.
+        // Metro Crush's own all-time high score (see MetroShared.
+        // getHighScoreRecord() in shared.js) - unlike renderLeaderboard()
+        // below, not scoped to state.dateKey at all (records/metrocrush
+        // has no date dimension), so this only ever needs to load once,
+        // from init(), not on every debug date-nav shiftDebugDate().
+        function renderHighScoreRecord() {
+          MetroShared.getHighScoreRecord('metrocrush').then(function (record) {
+            if (!record) {
+              els.leaderboardRecord.hidden = true;
+              return;
+            }
+            els.leaderboardRecord.textContent = MetroShared.formatHighScoreRecord(record);
+            els.leaderboardRecord.hidden = false;
+          });
+        }
+
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
@@ -1714,6 +1731,7 @@
             matchSummary: $('match-summary'),
             matchSummaryList: $('match-summary-list'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),
             leaderboardStatus: $('leaderboard-status'),
             shareBtn: $('share-btn'),
@@ -1735,6 +1753,7 @@
 
           startNewGame();
           renderDateDebugLabel();
+          renderHighScoreRecord();
         }
 
         document.addEventListener('DOMContentLoaded', init);

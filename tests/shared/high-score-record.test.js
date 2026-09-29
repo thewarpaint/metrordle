@@ -183,6 +183,35 @@ async function main() {
     }
   });
 
+  test('formatHighScoreRecord() renders the shared "🏆 Récord: N por alias · #N · date" line used by /admin/ and by Memoria\'s/Metro Crush\'s own reveal screens', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      const text = await page.evaluate(() => {
+        return MetroShared.formatHighScoreRecord({ score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 23 });
+      });
+      assert.strictEqual(text, '🏆 Récord: 39 por 🐱 · #23 · Sep 20, 2026');
+
+      // dateKey must be parsed as a local calendar date, not treated as
+      // a UTC instant - otherwise a timezone behind UTC would show the
+      // day before. Same T00:00:00 convention as getGameNumberForDateKey()
+      // in shared.js.
+      const newYearsEve = await page.evaluate(() => {
+        return MetroShared.formatHighScoreRecord({ score: 1, alias: 'X', dateKey: '2026-12-31', gameNumber: 1 });
+      });
+      assert.ok(newYearsEve.indexOf('Dec 31, 2026') !== -1, 'expected the real calendar date, not shifted by a day: ' + newYearsEve);
+
+      assert.strictEqual(errors.length, 0, JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

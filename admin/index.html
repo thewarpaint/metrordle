@@ -84,23 +84,6 @@
         margin: 0;
       }
 
-      /* Memoria's and Metro Crush's own all-time high score (see
-         MetroShared.getHighScoreRecord() in shared.js) - the two games
-         ranked by a raw score rather than a fixed day's puzzle outcome,
-         so unlike the other three's own .admin-board__dek, this is
-         something that keeps changing and is worth calling out on its
-         own line rather than folding into the ranking-rule blurb. */
-      .admin-board__record {
-        color: var(--ink);
-        font-size: 0.8rem;
-        font-weight: 700;
-        margin: 0.2rem 0 0;
-      }
-
-      .admin-board__record[hidden] {
-        display: none;
-      }
-
       .admin-board__link {
         display: inline-block;
         font-size: 0.78rem;
@@ -298,7 +281,7 @@
           <div class="admin-board__head">
             <h2 class="admin-board__title">Memoria <span class="admin-board__num" id="memoria-num"></span></h2>
             <p class="admin-board__dek">Más parejas gana</p>
-            <p class="admin-board__record" id="memoria-record" hidden></p>
+            <p class="leaderboard__record" id="memoria-record" hidden></p>
           </div>
           <ol class="leaderboard__list" id="memoria-list"></ol>
           <p class="leaderboard__status" id="memoria-status" hidden></p>
@@ -319,7 +302,7 @@
           <div class="admin-board__head">
             <h2 class="admin-board__title">Metro Crush <span class="admin-board__num" id="metrocrush-num"></span></h2>
             <p class="admin-board__dek">Más puntos gana</p>
-            <p class="admin-board__record" id="metrocrush-record" hidden></p>
+            <p class="leaderboard__record" id="metrocrush-record" hidden></p>
           </div>
           <ol class="leaderboard__list" id="metrocrush-list"></ol>
           <p class="leaderboard__status" id="metrocrush-status" hidden></p>
@@ -629,7 +612,7 @@
                 el.hidden = true;
                 return;
               }
-              el.textContent = '🏆 Récord: ' + record.score + ' (' + record.alias + ') · #' + record.gameNumber + ' · ' + record.dateKey;
+              el.textContent = MetroShared.formatHighScoreRecord(record);
               el.hidden = false;
             });
           });

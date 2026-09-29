@@ -127,6 +127,69 @@ async function main() {
     }
   });
 
+  test('shows Metro Crush\'s own all-time high score next to its leaderboard, fed by MetroShared.getHighScoreRecord() - and stays hidden with no record yet', async () => {
+    const DATE = '2027-02-03';
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            window.MetroShared.getHighScoreRecord = function (gameKey) {
+              return Promise.resolve(gameKey === 'metrocrush' ? { score: 3065, alias: 'Facso', dateKey: '2026-09-22', gameNumber: 11 } : null);
+            };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/metrocrush/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 300, 'normal', true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), true, 'Metro Crush has a real record - should show');
+      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 3065 por Facso · #11 · Sep 22, 2026');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('hides the high score record when none exists yet, not "🏆 Récord: undefined"', async () => {
+    const DATE = '2027-02-04';
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            window.MetroShared.getHighScoreRecord = function () { return Promise.resolve(null); };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/metrocrush/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 300, 'normal', true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), false, 'no record yet - should stay hidden');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

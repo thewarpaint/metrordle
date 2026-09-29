@@ -615,6 +615,23 @@ h1 {
   display: none;
 }
 
+/* Memoria's and Metro Crush's own all-time high score (see
+   MetroShared.getHighScoreRecord()/formatHighScoreRecord() in
+   shared.js) - the two games ranked by a raw score rather than a fixed
+   day's puzzle outcome, so it's worth calling out on its own line
+   rather than folding into the leaderboard title. Shared by /admin/'s
+   own boards and by these two games' own reveal-screen leaderboards. */
+.leaderboard__record {
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0.5rem;
+}
+
+.leaderboard__record[hidden] {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.001ms !important;

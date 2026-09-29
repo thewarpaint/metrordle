@@ -461,6 +461,7 @@
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <p class="leaderboard__record" id="leaderboard-record" hidden></p>
             <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
             <ol class="leaderboard__list" id="leaderboard-list"></ol>
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
@@ -1301,6 +1302,22 @@
         // every call; a response only renders if it's still the latest.
         var leaderboardRequestId = 0;
 
+        // Memoria's own all-time high score (see MetroShared.
+        // getHighScoreRecord() in shared.js) - unlike renderLeaderboard()
+        // below, not scoped to state.dateKey at all (records/memoria has
+        // no date dimension), so this only ever needs to load once, from
+        // init(), not on every debug date-nav shiftDebugDate().
+        function renderHighScoreRecord() {
+          MetroShared.getHighScoreRecord('memoria').then(function (record) {
+            if (!record) {
+              els.leaderboardRecord.hidden = true;
+              return;
+            }
+            els.leaderboardRecord.textContent = MetroShared.formatHighScoreRecord(record);
+            els.leaderboardRecord.hidden = false;
+          });
+        }
+
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
@@ -1411,6 +1428,7 @@
             reveal: $('reveal'),
             revealIcons: $('reveal-icons'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),
             leaderboardStatus: $('leaderboard-status'),
             shareBtn: $('share-btn'),
@@ -1431,6 +1449,7 @@
 
           startNewGame();
           renderDateDebugLabel();
+          renderHighScoreRecord();
         }
 
         document.addEventListener('DOMContentLoaded', init);

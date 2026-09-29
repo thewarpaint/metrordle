@@ -1,11 +1,10 @@
 rules_version = '2';
 
 // Security Rules for the Metrordle minigame family's Firestore-backed
-// daily leaderboards. metrordle.com has no build/deploy pipeline for
-// Firebase, so there's no automated way to ship these - paste this file's
-// contents into the Firebase console under Firestore Database > Rules
-// (or, if you set up the Firebase CLI later, `firebase deploy --only
-// firestore:rules`).
+// daily leaderboards. Deployed automatically to the live metrordle-23704
+// project by .github/workflows/deploy-firestore-rules.yml whenever this
+// file changes on main - see that workflow and AGENTS.md's own
+// firestore.rules bullet.
 //
 // There's no login system on the site, so these rules can only validate
 // the SHAPE and plausibility of a write (right types, a score that's

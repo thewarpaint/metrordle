@@ -181,16 +181,20 @@ are impossible without a debug override.
 - **`firebase-config.js`** - **contains the real, live Firebase
   project's credentials on `main`.** See "Firebase credential safety"
   below before ever running tests locally.
-- **`firestore.rules`** - hand-maintained, still no CI deploy pipeline -
-  either paste it into the Firebase console manually, or (`firebase.json`/
-  `.firebaserc` point at the real `metrordle-23704` project already)
-  run `firebase deploy --only firestore:rules` locally after `firebase
-  login` under your own account. Either way this is a manual, deliberate
-  step - nothing in CI runs it automatically, and it's on you to remember
-  to actually deploy after a PR that changes this file merges. One
-  `match` block per leaderboard collection, validating shape/type/bounds
-  only (no login system exists, so these can't verify a human played
-  fair - accepted tradeoff for a casual leaderboard).
+- **`firestore.rules`** - hand-maintained, deployed automatically by
+  `.github/workflows/deploy-firestore-rules.yml` on every push to `main`
+  that touches this file (a service account scoped to only
+  `roles/firebaserules.admin` - can publish rulesets, nothing else -
+  authenticates via the `FIREBASE_RULES_DEPLOY_SA` repo secret). No
+  merge-then-remember-to-deploy step anymore: once a PR touching this
+  file merges, the live `metrordle-23704` project has the new rules
+  within that same Action run. A broken rule fails the deploy loudly
+  (Firebase validates rules server-side before releasing) rather than
+  going live half-broken - check the Action's run if a PR that changed
+  this file doesn't seem to be taking effect. One `match` block per
+  leaderboard collection, validating shape/type/bounds only (no login
+  system exists, so these can't verify a human played fair - accepted
+  tradeoff for a casual leaderboard).
 - **`sw.js`** - service worker. Navigations: network race with a
   1.5s timeout, falling back to cache, updating the cache in the
   background regardless of who won the race. Static assets: cache-first.
@@ -370,13 +374,10 @@ a missing field beyond `streak > 1` already being false for `undefined`,
 so a call that forgets `extraFields` just silently renders an
 always-empty badge, the same failure mode `hintsUsed` hit before.
 Metro Crush's own leaderboard rule bounds `streak` the same generous
-`>= 0`/`<= 5000` as Memoria's (see `firestore.rules`) - **this bound is
-a manual deploy, not something CI applies** (see "Firebase credential
-safety"/`firestore.rules`'s own bullet above); a PR that changes this
-file still needs someone to actually paste it into the Firebase console
-(or run `firebase deploy --only firestore:rules`) after merging, or
-every real Metro Crush submission will fail closed against the *old*
-rule, which doesn't recognize `streak` as an allowed field at all.
+`>= 0`/`<= 5000` as Memoria's (see `firestore.rules`) - deployed
+automatically on merge now (see `firestore.rules`'s own bullet above),
+so a PR that changes this file takes effect on the live project as
+soon as it merges, with no separate manual deploy step to remember.
 
 ## Game suggestions
 

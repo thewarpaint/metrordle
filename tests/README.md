@@ -414,6 +414,17 @@ than stretching `tests/lib/firestore-stub.js` to cover both:
   own reveal screens (see below), including that `dateKey` is parsed as
   a local calendar date (not a UTC instant) so a timezone behind UTC
   can't show the day before.
+- `formatHighScoreRecord()` tolerates a malformed `dateKey` -
+  `records/{gameKey}` is the one collection that can also be hand-edited
+  directly in the Firebase console rather than only ever written by
+  `updateHighScoreRecord()`, which is exactly how the real
+  `records/metrocrush` document ended up with a trailing `"\n"` on its
+  `dateKey` from a console copy-paste and started rendering the literal
+  `"· Invalid Date"` in production. Stray whitespace is trimmed away
+  (fixing that exact case); anything still unparseable (a garbage
+  string, a missing field, a Firestore Timestamp where a string was
+  expected) drops the date segment entirely rather than ever showing
+  `"Invalid Date"`.
 
 **`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
 tag every page carries (defense-in-depth alongside the app's actual XSS

@@ -84,14 +84,16 @@ async function main() {
       await page.waitForTimeout(200);
 
       const result = await page.evaluate(() => {
-        return MetroShared.updateHighScoreRecord('memoria', 12, 'Ana', '2027-02-15');
+        return MetroShared.updateHighScoreRecord('memoria', 12, 'Ana', '2027-02-15', 31);
       });
       assert.strictEqual(result.isNewRecord, true);
       assert.strictEqual(result.record.score, 12);
       assert.strictEqual(result.record.alias, 'Ana');
+      assert.strictEqual(result.record.gameNumber, 31);
 
       const stored = await page.evaluate(() => window.__store['records/memoria']);
       assert.strictEqual(stored.score, 12, 'the record should actually be persisted in the store');
+      assert.strictEqual(stored.gameNumber, 31, 'gameNumber should be persisted too, not just returned');
 
       assert.strictEqual(errors.length, 0, JSON.stringify(errors));
     } finally {
@@ -105,24 +107,26 @@ async function main() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await installMinimalFirebaseMock(page, { gameKey: 'metrocrush', record: { score: 1000, alias: 'Beto', dateKey: '2027-02-01' } });
+      await installMinimalFirebaseMock(page, { gameKey: 'metrocrush', record: { score: 1000, alias: 'Beto', dateKey: '2027-02-01', gameNumber: 20 } });
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
-      const lower = await page.evaluate(() => MetroShared.updateHighScoreRecord('metrocrush', 500, 'Caro', '2027-02-16'));
+      const lower = await page.evaluate(() => MetroShared.updateHighScoreRecord('metrocrush', 500, 'Caro', '2027-02-16', 35));
       assert.strictEqual(lower.isNewRecord, false, 'a lower score should never overwrite the record');
       assert.strictEqual(lower.record.alias, 'Beto', 'should return the EXISTING record, not the rejected attempt');
 
-      const tie = await page.evaluate(() => MetroShared.updateHighScoreRecord('metrocrush', 1000, 'Diego', '2027-02-17'));
+      const tie = await page.evaluate(() => MetroShared.updateHighScoreRecord('metrocrush', 1000, 'Diego', '2027-02-17', 36));
       assert.strictEqual(tie.isNewRecord, false, 'a tied score should not overwrite - the earlier holder keeps it, matching firestore.rules\' own strict ">" requirement');
 
-      const higher = await page.evaluate(() => MetroShared.updateHighScoreRecord('metrocrush', 1500, 'Ana', '2027-02-18'));
+      const higher = await page.evaluate(() => MetroShared.updateHighScoreRecord('metrocrush', 1500, 'Ana', '2027-02-18', 37));
       assert.strictEqual(higher.isNewRecord, true);
       assert.strictEqual(higher.record.score, 1500);
+      assert.strictEqual(higher.record.gameNumber, 37);
 
       const finalStored = await page.evaluate(() => window.__store['records/metrocrush']);
       assert.strictEqual(finalStored.score, 1500, 'only the genuinely higher score should have persisted');
       assert.strictEqual(finalStored.alias, 'Ana');
+      assert.strictEqual(finalStored.gameNumber, 37);
 
       assert.strictEqual(errors.length, 0, JSON.stringify(errors));
     } finally {
@@ -136,12 +140,12 @@ async function main() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await installMinimalFirebaseMock(page, { gameKey: 'memoria', record: { score: 39, alias: '🐱', dateKey: '2026-09-20' } });
+      await installMinimalFirebaseMock(page, { gameKey: 'memoria', record: { score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 30 } });
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
       const record = await page.evaluate(() => MetroShared.getHighScoreRecord('memoria'));
-      assert.deepStrictEqual(record, { score: 39, alias: '🐱', dateKey: '2026-09-20' });
+      assert.deepStrictEqual(record, { score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 30 });
 
       const missing = await page.evaluate(() => MetroShared.getHighScoreRecord('metrocrush'));
       assert.strictEqual(missing, null, 'a game with no record yet should resolve null, not throw');
@@ -167,7 +171,7 @@ async function main() {
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
-      const updateResult = await page.evaluate(() => MetroShared.updateHighScoreRecord('memoria', 50, 'Ana', '2027-02-19'));
+      const updateResult = await page.evaluate(() => MetroShared.updateHighScoreRecord('memoria', 50, 'Ana', '2027-02-19', 40));
       assert.deepStrictEqual(updateResult, { isNewRecord: false, record: null });
 
       const readResult = await page.evaluate(() => MetroShared.getHighScoreRecord('memoria'));

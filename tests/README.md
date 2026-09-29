@@ -323,8 +323,9 @@ leaderboard browser (no game state of its own to plant in
 - Memoria's and Metro Crush's own all-time high score (stubbed via
   `MetroShared.getHighScoreRecord()`, independently of the rest of the
   page's own sample data since it isn't scoped to the shown date at
-  all) shows next to their sections when a record exists, and stays
-  hidden - not "🏆 Récord: undefined" - when it doesn't yet.
+  all) shows next to their sections when a record exists - including
+  the game number and date it was set on - and stays hidden - not "🏆
+  Récord: undefined" - when it doesn't yet.
 
 **`configurar/config.test.js`** covers `/configurar/`, the site-wide
 settings page (for now, just the light/dark/system appearance picker -
@@ -385,7 +386,11 @@ in this suite (a single top-level document, read/written inside a
 its own minimal in-page Firestore fake covering just that shape rather
 than stretching `tests/lib/firestore-stub.js` to cover both:
 - The very first submission for a game creates its `records/{gameKey}`
-  document.
+  document, including `gameNumber` (the game's own `#N` for that
+  `dateKey`, computed by the caller and stored alongside it rather than
+  re-derived later) - the one field this collection stores despite
+  being derivable, unlike everywhere else in the app that always
+  computes its own `#N` fresh from a live `dateKey`.
 - A later submission only overwrites it when strictly higher - never on
   a tie (the earlier holder keeps it, matching `firestore.rules`' own
   strict `>` requirement on update) or a lower score.

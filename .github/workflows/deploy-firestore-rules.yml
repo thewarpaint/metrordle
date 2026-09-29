@@ -1,0 +1,39 @@
+name: Deploy Firestore rules
+
+# Runs firestore.rules straight into the live metrordle-23704 project
+# whenever it changes on main - see AGENTS.md's own firestore.rules
+# bullet. Scoped to this one file via `paths` so an unrelated merge
+# doesn't re-deploy rules that haven't changed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install -g firebase-tools
+
+      - name: Deploy Firestore rules
+        env:
+          FIREBASE_RULES_DEPLOY_SA: ${{ secrets.FIREBASE_RULES_DEPLOY_SA }}
+        run: |
+          echo "$FIREBASE_RULES_DEPLOY_SA" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          firebase deploy --only firestore:rules --project metrordle-23704 --non-interactive
+
+      - name: Clean up credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json"

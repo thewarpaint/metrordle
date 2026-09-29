@@ -197,13 +197,22 @@ service cloud.firestore {
     // ever raise the record, never lower or "reset" it. The bound
     // matches each game's own leaderboard bound above (tight for
     // Memoria's fixed 163-station board, generous for Metro Crush's
-    // open-ended cascading score).
+    // open-ended cascading score). gameNumber (each game's own #N,
+    // MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY)) is
+    // stored alongside dateKey rather than only derived at display time
+    // - unlike every other #N shown in this app (always computed fresh
+    // from a live dateKey), this one describes a fact about a fixed
+    // moment in the past, so it's stored the same way dateKey itself
+    // is: a plain fact about the record, not a value that should ever
+    // change if this collection gets a new reader later that doesn't
+    // already carry each game's own START_DATE_KEY around like
+    // /admin/'s own GAMES array does today.
     match /records/{gameKey} {
       allow read: if true;
 
       allow create: if
         gameKey in ['memoria', 'metrocrush'] &&
-        request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'gameNumber', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -211,11 +220,13 @@ service cloud.firestore {
         request.resource.data.score >= 0 &&
         request.resource.data.score <= (gameKey == 'memoria' ? 200 : 20000) &&
         request.resource.data.dateKey is string &&
+        request.resource.data.gameNumber is int &&
+        request.resource.data.gameNumber >= 1 &&
         request.resource.data.submittedAt == request.time;
 
       allow update: if
         gameKey in ['memoria', 'metrocrush'] &&
-        request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'gameNumber', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -223,6 +234,8 @@ service cloud.firestore {
         request.resource.data.score > resource.data.score &&
         request.resource.data.score <= (gameKey == 'memoria' ? 200 : 20000) &&
         request.resource.data.dateKey is string &&
+        request.resource.data.gameNumber is int &&
+        request.resource.data.gameNumber >= 1 &&
         request.resource.data.submittedAt == request.time;
 
       allow delete: if false;

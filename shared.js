@@ -938,10 +938,10 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
 // { isNewRecord, record } either way, so a caller that wants to
 // celebrate a new record can check isNewRecord without needing its own
 // try/catch.
-function updateHighScoreRecord(gameKey, score, alias, dateKey) {
+function updateHighScoreRecord(gameKey, score, alias, dateKey, gameNumber) {
   var path = 'records/' + gameKey;
   console.log('[HighScore] updateHighScoreRecord()', Object.assign({
-    path: path, score: score, alias: alias, dateKey: dateKey,
+    path: path, score: score, alias: alias, dateKey: dateKey, gameNumber: gameNumber,
   }, firebaseStatusForLog()));
 
   if (!firebaseReady()) {
@@ -964,6 +964,7 @@ function updateHighScoreRecord(gameKey, score, alias, dateKey) {
         score: score,
         alias: normalizeAlias(alias),
         dateKey: dateKey,
+        gameNumber: gameNumber,
         submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
       };
       transaction.set(docRef, record);
@@ -998,7 +999,7 @@ function getHighScoreRecord(gameKey) {
     .then(function (snapshot) {
       if (!snapshot.exists) return null;
       var data = snapshot.data();
-      return { score: data.score, alias: data.alias, dateKey: data.dateKey };
+      return { score: data.score, alias: data.alias, dateKey: data.dateKey, gameNumber: data.gameNumber };
     })
     .catch(function (err) {
       console.error('[HighScore] Read FAILED:', path, '\n  code:', err && err.code, '\n  message:', err && err.message, '\n  full error:', err);

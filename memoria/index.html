@@ -820,7 +820,7 @@
               // never rejects, so this can't turn an otherwise-successful
               // submission into a visible error. See
               // updateHighScoreRecord()'s own comment in shared.js.
-              MetroShared.updateHighScoreRecord('memoria', state.score, alias, state.dateKey);
+              MetroShared.updateHighScoreRecord('memoria', state.score, alias, state.dateKey, state.gameNumber);
             })
             .catch(function (err) {
               // Best-effort - the player's own result is already saved

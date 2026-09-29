@@ -288,7 +288,7 @@ async function main() {
         const patched = body + `
           (function () {
             var RECORDS = {
-              memoria: { score: 39, alias: '🐱', dateKey: '2026-09-20' },
+              memoria: { score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 30 },
               metrocrush: null,
             };
             window.MetroShared.getHighScoreRecord = function (gameKey) {
@@ -302,7 +302,7 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#memoria-record').isVisible(), true, 'Memoria has a real record - should show');
-      assert.strictEqual(await page.locator('#memoria-record').textContent(), '🏆 Récord: 39 (🐱)');
+      assert.strictEqual(await page.locator('#memoria-record').textContent(), '🏆 Récord: 39 (🐱) · #30 · 2026-09-20');
 
       assert.strictEqual(await page.locator('#metrocrush-record').isVisible(), false, 'no Metro Crush record yet - should stay hidden, not show "undefined"');
 

@@ -22,6 +22,7 @@ const FILES = [
   'admin/admin.test.js',
   'configurar/config.test.js',
   'shared/leaderboard-query.test.js',
+  'shared/high-score-record.test.js',
   'security/csp.test.js',
   'meta/sw-cache-version.test.js',
 ];

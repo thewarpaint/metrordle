@@ -272,6 +272,46 @@ async function main() {
     }
   });
 
+  test('shows Memoria\'s and Metro Crush\'s own all-time high score next to their sections, fed by MetroShared.getHighScoreRecord() - and stays hidden when there is no record yet', async () => {
+    // Unlike every other section on this page, the record isn't scoped
+    // to the shown date at all (records/{gameKey} has no date dimension
+    // - see shared.js's own getHighScoreRecord()), so it's stubbed
+    // independently of stubLeaderboardData()/SAMPLE_DATA above.
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            var RECORDS = {
+              memoria: { score: 39, alias: '🐱', dateKey: '2026-09-20' },
+              metrocrush: null,
+            };
+            window.MetroShared.getHighScoreRecord = function (gameKey) {
+              return Promise.resolve(RECORDS[gameKey] || null);
+            };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#memoria-record').isVisible(), true, 'Memoria has a real record - should show');
+      assert.strictEqual(await page.locator('#memoria-record').textContent(), '🏆 Récord: 39 (🐱)');
+
+      assert.strictEqual(await page.locator('#metrocrush-record').isVisible(), false, 'no Metro Crush record yet - should stay hidden, not show "undefined"');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

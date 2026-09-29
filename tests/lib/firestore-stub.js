@@ -76,6 +76,16 @@ const FIRESTORE_STUB_JS = `
     return byDate[dateKey] || [];
   }
 
+  // Separate from the per-day query fixture above - backs the single-
+  // document read/write shape MetroShared.getHighScoreRecord()/
+  // updateHighScoreRecord() use (records/{gameKey}, no date dimension
+  // at all), keyed 'collectionName/docId'. Seeded via
+  // window.__firestoreStubDocs, same JSON-serialized-fixture convention
+  // as __firestoreStubData.
+  function docStore() {
+    return window.__firestoreStubDocs || (window.__firestoreStubDocs = {});
+  }
+
   window.firebase = window.firebase || {};
   window.firebase.apps = [{ name: '[DEFAULT]' }];
   window.firebase.initializeApp = function () {};
@@ -83,14 +93,43 @@ const FIRESTORE_STUB_JS = `
     return {
       collection: function (collectionName) {
         return {
-          doc: function (dateKey) {
+          doc: function (docId) {
+            var path = collectionName + '/' + docId;
             return {
+              // Read by runTransaction()'s own transaction.get()/.set()
+              // below, which key into the flat doc store by path rather
+              // than by a real DocumentReference identity.
+              path: path,
+              // getTopLeaderboardScores()'s own shape - a nested
+              // per-day 'entries' subcollection query.
               collection: function () {
-                return makeQuery(docsFor(collectionName, dateKey), [], undefined);
+                return makeQuery(docsFor(collectionName, docId), [], undefined);
+              },
+              // getHighScoreRecord()'s own shape - a plain single-
+              // document read, no subcollection involved.
+              get: function () {
+                var data = docStore()[path];
+                return Promise.resolve({ exists: !!data, data: function () { return wrapDocData(data); } });
               },
             };
           },
         };
+      },
+      // updateHighScoreRecord()'s own shape - a transactional read-
+      // then-conditionally-write against the same flat doc store above.
+      // No concurrency to simulate here (tests run one call at a time),
+      // just the same get()/set() surface the real function calls.
+      runTransaction: function (updateFn) {
+        var transaction = {
+          get: function (ref) {
+            var data = docStore()[ref.path];
+            return Promise.resolve({ exists: !!data, data: function () { return wrapDocData(data); } });
+          },
+          set: function (ref, data) {
+            docStore()[ref.path] = data;
+          },
+        };
+        return Promise.resolve(updateFn(transaction));
       },
     };
   };

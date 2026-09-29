@@ -917,6 +917,95 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
     });
 }
 
+// records/{gameKey} - a single long-lived document per game tracking its
+// own highest score ever, for Memoria and Metro Crush only (the two
+// games ranked by a raw score rather than a fixed puzzle's outcome, so
+// "highest ever" is meaningful to chase) - see firestore.rules' own
+// comment on this collection for the full design rationale.
+//
+// A Firestore transaction (not a plain read-then-write) is what makes
+// this safe against two players' near-simultaneous submissions both
+// reading the same "old" record and both believing they're the new high
+// score - only one of two transactions racing on the same document can
+// commit; Firestore itself detects the conflict and retries the loser
+// against the now-current data, so the comparison this function makes
+// is always against a genuinely fresh read.
+//
+// Called as a best-effort side effect of a successful leaderboard
+// submission (same pattern as the leaderboard write itself) - never
+// rejects, so a transaction failure can't interfere with the player's
+// own already-succeeded leaderboard submission. Resolves
+// { isNewRecord, record } either way, so a caller that wants to
+// celebrate a new record can check isNewRecord without needing its own
+// try/catch.
+function updateHighScoreRecord(gameKey, score, alias, dateKey) {
+  var path = 'records/' + gameKey;
+  console.log('[HighScore] updateHighScoreRecord()', Object.assign({
+    path: path, score: score, alias: alias, dateKey: dateKey,
+  }, firebaseStatusForLog()));
+
+  if (!firebaseReady()) {
+    console.warn('[HighScore] Firebase not ready - update skipped:', path);
+    return Promise.resolve({ isNewRecord: false, record: null });
+  }
+
+  var docRef = firebase.firestore().collection('records').doc(gameKey);
+  return firebase.firestore().runTransaction(function (transaction) {
+    return transaction.get(docRef).then(function (snapshot) {
+      var current = snapshot.exists ? snapshot.data() : null;
+      // A tie keeps the earlier holder's own record - matches
+      // firestore.rules' own strict `score > resource.data.score`
+      // requirement on update, so a tied write here would only ever be
+      // rejected server-side anyway.
+      if (current && current.score >= score) {
+        return { isNewRecord: false, record: current };
+      }
+      var record = {
+        score: score,
+        alias: normalizeAlias(alias),
+        dateKey: dateKey,
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      transaction.set(docRef, record);
+      return { isNewRecord: true, record: record };
+    });
+  })
+    .then(function (result) {
+      console.log('[HighScore] Transaction succeeded:', path, result);
+      return result;
+    })
+    .catch(function (err) {
+      console.error('[HighScore] Transaction FAILED:', path, '\n  code:', err && err.code, '\n  message:', err && err.message, '\n  full error:', err);
+      return { isNewRecord: false, record: null };
+    });
+}
+
+// Plain read for display (e.g. /admin/'s own stat tiles) - never part of
+// a transaction, so safe to call as often as needed. Resolves null both
+// when Firebase isn't reachable and when the record simply doesn't
+// exist yet (no score has ever been submitted for that game) - a caller
+// treats both the same way, nothing to show yet.
+function getHighScoreRecord(gameKey) {
+  var path = 'records/' + gameKey;
+  console.log('[HighScore] getHighScoreRecord()', Object.assign({ path: path }, firebaseStatusForLog()));
+
+  if (!firebaseReady()) {
+    console.warn('[HighScore] Firebase not ready - read returns null:', path);
+    return Promise.resolve(null);
+  }
+
+  return firebase.firestore().collection('records').doc(gameKey).get()
+    .then(function (snapshot) {
+      if (!snapshot.exists) return null;
+      var data = snapshot.data();
+      return { score: data.score, alias: data.alias, dateKey: data.dateKey };
+    })
+    .catch(function (err) {
+      console.error('[HighScore] Read FAILED:', path, '\n  code:', err && err.code, '\n  message:', err && err.message, '\n  full error:', err);
+      return null;
+    });
+}
+
 window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
@@ -953,4 +1042,6 @@ window.MetroShared = {
   getTopLeaderboardScores: getTopLeaderboardScores,
   rankAndSelect: rankAndSelect,
   formatRank: formatRank,
+  updateHighScoreRecord: updateHighScoreRecord,
+  getHighScoreRecord: getHighScoreRecord,
 };

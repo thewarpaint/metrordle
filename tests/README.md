@@ -320,6 +320,11 @@ leaderboard browser (no game state of its own to plant in
   correctly from the same sample data, including with no reachable
   Firebase (0/0) - and are NOT debug-gated, unlike the date-nav/deep
   links above.
+- Memoria's and Metro Crush's own all-time high score (stubbed via
+  `MetroShared.getHighScoreRecord()`, independently of the rest of the
+  page's own sample data since it isn't scoped to the shown date at
+  all) shows next to their sections when a record exists, and stays
+  hidden - not "🏆 Récord: undefined" - when it doesn't yet.
 
 **`configurar/config.test.js`** covers `/configurar/`, the site-wide
 settings page (for now, just the light/dark/system appearance picker -
@@ -370,6 +375,24 @@ client-side).
   `orderBySpecs[0]` staying `attempts` (rather than becoming `lost`
   itself) avoids the exact same silent-exclusion risk as the `hardMode`
   case above.
+
+**`shared/high-score-record.test.js`** covers `MetroShared.updateHighScoreRecord()`/
+`getHighScoreRecord()` - the all-time-highest-score tracker for Memoria
+and Metro Crush (`records/{gameKey}`, see `firestore.rules`' own
+matching block). Uses a different Firestore shape than every other test
+in this suite (a single top-level document, read/written inside a
+`runTransaction()`, not a per-day subcollection query), so it installs
+its own minimal in-page Firestore fake covering just that shape rather
+than stretching `tests/lib/firestore-stub.js` to cover both:
+- The very first submission for a game creates its `records/{gameKey}`
+  document.
+- A later submission only overwrites it when strictly higher - never on
+  a tie (the earlier holder keeps it, matching `firestore.rules`' own
+  strict `>` requirement on update) or a lower score.
+- `getHighScoreRecord()` reads back the stored record correctly, and
+  resolves `null` (not an error) for a game with no record yet.
+- Both functions degrade gracefully (resolve, never reject) with no
+  reachable Firebase, same as the rest of the leaderboard API.
 
 **`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
 tag every page carries (defense-in-depth alongside the app's actual XSS

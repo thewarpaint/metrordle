@@ -816,6 +816,11 @@
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.won, state.matchedStations, true);
               renderLeaderboard();
+              // Best-effort, same as the leaderboard submission above -
+              // never rejects, so this can't turn an otherwise-successful
+              // submission into a visible error. See
+              // updateHighScoreRecord()'s own comment in shared.js.
+              MetroShared.updateHighScoreRecord('memoria', state.score, alias, state.dateKey);
             })
             .catch(function (err) {
               // Best-effort - the player's own result is already saved

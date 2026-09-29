@@ -176,7 +176,7 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), true, 'Memoria has a real record - should show');
-      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 39 por 🐱 · #23 · Sep 20, 2026');
+      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

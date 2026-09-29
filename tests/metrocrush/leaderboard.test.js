@@ -152,7 +152,7 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), true, 'Metro Crush has a real record - should show');
-      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 3065 por Facso · #11 · Sep 22, 2026');
+      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 3065 por Facso · #11 · 22 sep 2026');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

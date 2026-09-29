@@ -195,7 +195,7 @@ async function main() {
       const text = await page.evaluate(() => {
         return MetroShared.formatHighScoreRecord({ score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 23 });
       });
-      assert.strictEqual(text, '🏆 Récord: 39 por 🐱 · #23 · Sep 20, 2026');
+      assert.strictEqual(text, '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026');
 
       // dateKey must be parsed as a local calendar date, not treated as
       // a UTC instant - otherwise a timezone behind UTC would show the
@@ -204,7 +204,7 @@ async function main() {
       const newYearsEve = await page.evaluate(() => {
         return MetroShared.formatHighScoreRecord({ score: 1, alias: 'X', dateKey: '2026-12-31', gameNumber: 1 });
       });
-      assert.ok(newYearsEve.indexOf('Dec 31, 2026') !== -1, 'expected the real calendar date, not shifted by a day: ' + newYearsEve);
+      assert.ok(newYearsEve.indexOf('31 dic 2026') !== -1, 'expected the real calendar date, not shifted by a day: ' + newYearsEve);
 
       assert.strictEqual(errors.length, 0, JSON.stringify(errors));
     } finally {

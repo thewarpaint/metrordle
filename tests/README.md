@@ -409,10 +409,11 @@ than stretching `tests/lib/firestore-stub.js` to cover both:
 - Both functions degrade gracefully (resolve, never reject) with no
   reachable Firebase, same as the rest of the leaderboard API.
 - `formatHighScoreRecord()` renders the one shared `'🏆 Récord: 39 por
-  🐱 · #23 · Sep 20, 2026'` line used by `/admin/` and by Memoria's/Metro
-  Crush's own reveal screens (see below), including that `dateKey` is
-  parsed as a local calendar date (not a UTC instant) so a timezone
-  behind UTC can't show the day before.
+  🐱 · #23 · 20 sep 2026'` line (es-MX, matching the rest of the site's
+  own copy/UI language) used by `/admin/` and by Memoria's/Metro Crush's
+  own reveal screens (see below), including that `dateKey` is parsed as
+  a local calendar date (not a UTC instant) so a timezone behind UTC
+  can't show the day before.
 
 **`security/csp.test.js`** guards the Content-Security-Policy `<meta>`
 tag every page carries (defense-in-depth alongside the app's actual XSS

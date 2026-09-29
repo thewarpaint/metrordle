@@ -1007,17 +1007,38 @@ function getHighScoreRecord(gameKey) {
     });
 }
 
+// record.dateKey comes straight from Firestore with no shape validation
+// beyond firestore.rules' own `is string` check (see records/{gameKey}'s
+// own comment) - it isn't necessarily a clean 'YYYY-MM-DD' the way every
+// OTHER dateKey in this app always is, since (unlike every other write
+// to Firestore here) records/{gameKey} can also be hand-edited directly
+// in the Firebase console rather than only ever written by
+// updateHighScoreRecord() - exactly how the real records/metrocrush
+// document ended up with a trailing "\n" on its dateKey from a console
+// copy-paste, which silently produced a literal "Invalid Date" string
+// here (new Date(...).toLocaleDateString() on an unparseable input
+// returns that as text, it doesn't throw). trim() alone fixes that
+// specific case; isNaN(d.getTime()) below is the actual fault-tolerance
+// backstop, for anything trim() doesn't - a missing/non-string dateKey,
+// or one that still isn't a real date after trimming.
+function formatRecordDateLabel(dateKey) {
+  if (typeof dateKey !== 'string') return null;
+  var d = new Date(dateKey.trim() + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  // es-MX, matching the rest of the site's own copy/UI language -
+  // '20 sep 2026'.
+  return d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // One shared renderer for a getHighScoreRecord() result, used by
 // /admin/ and by Memoria's/Metro Crush's own reveal screens alike -
-// '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026' (es-MX, matching the rest
-// of the site's own copy/UI language). record.dateKey is parsed with an
-// explicit T00:00:00 (not `new Date(record.dateKey)` alone), same
-// convention as getGameNumberForDateKey() above, so the displayed day
-// can't shift by one under a UTC-behind local timezone.
+// '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026', or the same line with the
+// trailing date dropped entirely (not "· Invalid Date") when
+// formatRecordDateLabel() can't make sense of record.dateKey.
 function formatHighScoreRecord(record) {
-  var d = new Date(record.dateKey + 'T00:00:00');
-  var dateLabel = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric', year: 'numeric' });
-  return '🏆 Récord: ' + record.score + ' por ' + record.alias + ' · #' + record.gameNumber + ' · ' + dateLabel;
+  var base = '🏆 Récord: ' + record.score + ' por ' + record.alias + ' · #' + record.gameNumber;
+  var dateLabel = formatRecordDateLabel(record.dateKey);
+  return dateLabel ? base + ' · ' + dateLabel : base;
 }
 
 window.MetroShared = {

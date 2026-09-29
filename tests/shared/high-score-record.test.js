@@ -212,6 +212,40 @@ async function main() {
     }
   });
 
+  test('formatHighScoreRecord() tolerates a malformed dateKey - trims stray whitespace, and drops the date entirely (never "Invalid Date") when it still can\'t parse', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      // The exact real-world case: records/metrocrush's own dateKey came
+      // back from a manual Firebase console edit with a trailing "\n" -
+      // this alone used to render "· Invalid Date" verbatim.
+      const trailingNewline = await page.evaluate(() => {
+        return MetroShared.formatHighScoreRecord({ score: 3065, alias: 'Facso', dateKey: '2026-09-22\n', gameNumber: 11 });
+      });
+      assert.strictEqual(trailingNewline, '🏆 Récord: 3065 por Facso · #11 · 22 sep 2026', 'stray whitespace should be trimmed, not break parsing');
+
+      const cases = [
+        { label: 'garbage string', dateKey: 'not-a-date' },
+        { label: 'missing field', dateKey: undefined },
+        { label: 'wrong type (e.g. a Firestore Timestamp instead of a string)', dateKey: { seconds: 123 } },
+      ];
+      for (const c of cases) {
+        const text = await page.evaluate((record) => MetroShared.formatHighScoreRecord(record), { score: 5, alias: 'X', dateKey: c.dateKey, gameNumber: 2 });
+        assert.strictEqual(text, '🏆 Récord: 5 por X · #2', c.label + ': expected the date segment dropped entirely, got: ' + text);
+        assert.ok(text.indexOf('Invalid Date') === -1, c.label + ': should never render the literal "Invalid Date"');
+      }
+
+      assert.strictEqual(errors.length, 0, JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

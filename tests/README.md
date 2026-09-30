@@ -253,6 +253,11 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   reloading after the round ends restores the same reveal/result
   instead of starting over, and a further guess attempt on an
   already-done day is a no-op.
+- The `.map-maximize-btn` toggle (`⛶`/`✕`, see `setMapMaximized()` in
+  `metroguessr/index.html`) stays hidden while playing, appears once
+  the round ends, and toggles the bottom sheet's (`.panel`) visibility
+  without touching the map itself - a fresh day (debug date-nav) resets
+  both the sheet and the button back to hidden/un-maximized.
 
 **`metroguessr/theme.test.js`** covers a bug found right after
 `/configurar/` shipped: the map tile style was queried straight from

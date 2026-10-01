@@ -337,22 +337,23 @@
         gap: 0.55rem;
       }
 
-      /* Once a round ends, .panel's own reveal content (banner,
-         leaderboard, share button) can eat up to .panel__inner's own
-         60vh cap, leaving too little of the now-unlocked map visible to
-         actually explore. This just toggles .panel's own visibility -
-         the map underneath is already full-bleed (.map-stage,
+      /* .panel's own content - the guess form while playing, then the
+         reveal's banner/leaderboard/share button, up to .panel__inner's
+         own 60vh cap - can crowd out most of the map, which is always
+         worth seeing clearly: the target's own live marker is pinned on
+         it from the very first guess, not just once the round ends (see
+         recenterMapOnTarget() in this page's own script). This just
+         toggles .panel's own visibility and recenters - the map
+         underneath is already full-bleed (.map-stage,
          position:fixed;inset:0) and never resizes, so there's no
-         container reflow to do, only a recenter (see
-         setMapMaximized() in this page's own script) since the target
-         was originally centered assuming the sheet's height ate into
-         the visible viewport. Sits in the map's own top-right corner,
+         container reflow to do. Sits in the map's own top-right corner,
          below the topbar (--topbar-h, same convention as .leaflet-top's
          own zoom-control offset above) so it never collides with either
          the topbar or (once un-hidden again) the sheet itself. Shown
-         only once a round ends - see showReveal()/finishStartingGame() -
-         since before that .panel just holds the guess form, which is
-         never tall enough to crowd the map the way the reveal is. */
+         throughout the whole round, not just once it ends - see
+         finishStartingGame() - starting out hidden here only as this
+         page's usual pre-JS-init default, same convention as
+         .date-row's own `hidden` attribute above. */
       .map-maximize-btn {
         position: fixed;
         top: calc(var(--topbar-h, 4.5rem) + 0.6rem);
@@ -1309,11 +1310,14 @@
 
         function finishStartingGame(mode) {
           // A maximized map from a previous round (or a previous day,
-          // via debug date-nav) shouldn't carry over into this one -
-          // showReveal() below is what turns it back on, only once
-          // there's actually a reveal to maximize.
+          // via debug date-nav) shouldn't carry over into this one.
+          // The button itself (unlike the maximized state) is always
+          // shown now, not just once a round ends - see
+          // recenterMapOnTarget()'s own comment for why that's safe
+          // even mid-round, now that the live marker is always visible
+          // from the very first guess.
           setMapMaximized(false);
-          $('map-maximize-btn').hidden = true;
+          $('map-maximize-btn').hidden = false;
 
           var dateKey = pendingGameSetup.dateKey;
           var gameNumber = pendingGameSetup.gameNumber;
@@ -1346,17 +1350,8 @@
           renderDateDebugLabel();
 
           var pos = stationByName[target];
-          map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
-          // The floating topbar covers the top of the viewport, so
-          // centering in the FULL viewport (what setView() just did)
-          // leaves the target sitting visibly above center in the
-          // space actually left uncovered below it. Panning north by
-          // half the topbar's height moves the target down on screen
-          // by that same amount - the mirror image of
-          // recenterMapAboveReveal()'s own south pan for the bottom
-          // sheet's height, just for the opposite edge.
-          map.panBy([0, -topbarEl.offsetHeight / 2], { animate: false });
           targetMarker.setLatLng([pos.lat, pos.lng]);
+          recenterMapOnTarget();
 
           $('history').innerHTML = '';
           state.guesses.forEach(appendHistoryChip);
@@ -1479,10 +1474,22 @@
           renderPips();
 
           if (correct || state.attempts >= MAX_ATTEMPTS) {
+            // endGame() -> showReveal() already recenters once the
+            // round's own layout (guess-form hidden, reveal shown)
+            // settles - recentering again here first, against the
+            // about-to-be-replaced mid-round layout, would just be
+            // immediately redone.
             endGame(correct);
           } else {
             var left = MAX_ATTEMPTS - state.attempts;
             $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
+            // Each guess adds a history chip (see appendHistoryChip()
+            // above) - on a narrow viewport those can wrap onto a new
+            // line, growing .panel tall enough to push the live target
+            // marker out from under it, same risk the reveal screen's
+            // own leaderboard already had (see recenterMapOnTarget()'s
+            // own comment).
+            recenterMapOnTarget();
           }
           renderHintButton();
 
@@ -1637,14 +1644,13 @@
           // below, pinned at each guess's real station) - hiding the
           // row here instead of just leaving it shrinks the bottom
           // sheet, freeing up vertical space for the now-unlocked map
-          // (see recenterMapAboveReveal() below, which relies on this
+          // (see recenterMapOnTarget() below, which relies on this
           // being hidden first to measure the sheet's new height).
           $('history-scroll').hidden = true;
           paintGuessMarkers();
 
           var reveal = $('reveal');
           reveal.hidden = false;
-          $('map-maximize-btn').hidden = false;
           var banner = $('reveal-banner');
           banner.textContent = (won ? '¡Correcto!' : 'Se acabaron los intentos') + ' 🔥 ' +
             MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
@@ -1653,7 +1659,7 @@
 
           renderAliasRow();
           renderLeaderboard();
-          recenterMapAboveReveal(pos);
+          recenterMapOnTarget();
           renderGamePromo('metroguessr');
         }
 
@@ -1703,16 +1709,45 @@
           });
         }
 
+        // The target's own live marker is visible on the map from the
+        // very first guess (that's the puzzle - matching the pinned
+        // location to its real station name, see AGENTS.md), not just
+        // once the round ends, so it's always worth keeping it clear of
+        // whatever's currently covering the screen: the floating topbar
+        // above, and the bottom sheet (.panel) below, whose own height
+        // varies over the round's lifetime (a guess-form early on, a
+        // growing history row as guesses mount up, then the reveal's
+        // banner/leaderboard once it's over - see submitGuess(),
+        // showReveal(), and recenterMapIfRevealed() below for the three
+        // places that change). Centering in the FULL viewport (plain
+        // map.setView()) would leave the target sitting off-center in
+        // whatever band is actually left uncovered between those two -
+        // panning by half the DIFFERENCE between the sheet's and the
+        // topbar's own heights lands it in the middle of that band
+        // instead, in whichever direction either one happens to be
+        // taller right now. Also runs correctly (zero offset) while
+        // .map-maximized hides .panel entirely (see setMapMaximized()
+        // below) - a hidden element's own getBoundingClientRect() is
+        // already all-zero, nothing extra to special-case here.
+        function recenterMapOnTarget() {
+          if (!state) return;
+          var pos = stationByName[state.target];
+          if (!pos) return;
+          var panelHeight = document.querySelector('.panel').getBoundingClientRect().height;
+          var topbarHeight = topbarEl.offsetHeight;
+          map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
+          map.panBy([0, (panelHeight - topbarHeight) / 2], { animate: false });
+        }
+
         // Purely a visibility toggle for .panel (see .map-maximize-btn's
-        // own comment in <style>) - deliberately does NOT touch the
-        // map's own view. The map is already fully interactive once a
-        // round ends, so by the time a player reaches for this button
-        // they may well have already panned/zoomed off the original
-        // recenterMapAboveReveal() spot - snapping back to center on
-        // every toggle would throw away that exploration instead of
-        // just giving it more room. Reads .map-maximized off <body>
-        // itself (via toggleMapMaximized()) rather than a separate JS
-        // flag, so there's exactly one source of truth for the state.
+        // own comment in <style>) - the map underneath never resizes,
+        // so there's no container reflow to do. Does recenter on every
+        // toggle (unlike a plain show/hide would need to) since hiding
+        // or restoring .panel is exactly the kind of visible-area change
+        // recenterMapOnTarget() above already knows how to correct for.
+        // Reads .map-maximized off <body> itself (via
+        // toggleMapMaximized()) rather than a separate JS flag, so
+        // there's exactly one source of truth for the state.
         function setMapMaximized(maximized) {
           document.body.classList.toggle('map-maximized', maximized);
           var btn = $('map-maximize-btn');
@@ -1720,29 +1755,11 @@
           var label = maximized ? 'Minimizar mapa' : 'Ampliar mapa';
           btn.setAttribute('aria-label', label);
           btn.setAttribute('title', label);
+          recenterMapOnTarget();
         }
 
         function toggleMapMaximized() {
           setMapMaximized(!document.body.classList.contains('map-maximized'));
-        }
-
-        // The bottom sheet (.panel, fixed/floating over the map) covers
-        // the lower part of the screen, so centering the target in the
-        // FULL viewport (what map.setView() did at round start) leaves
-        // it partly hidden behind the sheet once the reveal panel
-        // renders. Shifting the view south by half the sheet's height
-        // moves the target up on screen by that same amount, landing it
-        // in the middle of the space actually left uncovered above the
-        // sheet - see panBy()'s docs for why a positive y offset does
-        // that. Always runs with the map un-maximized - see
-        // finishStartingGame()'s own setMapMaximized(false) reset,
-        // which always runs first - but relies on nothing more than
-        // .panel actually being visible/measurable here, so it would
-        // still center correctly (offset 0) even if that ever changed.
-        function recenterMapAboveReveal(pos) {
-          var panelHeight = document.querySelector('.panel').getBoundingClientRect().height;
-          map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
-          map.panBy([0, panelHeight / 2], { animate: false });
         }
 
         // renderLeaderboard() loads its rows/status asynchronously, after
@@ -1750,10 +1767,14 @@
         // recenter - the sheet's height can shift once that content
         // lands (e.g. an empty "no scores yet" line vs. a full top-5
         // list), so this re-runs the same recenter with the now-final
-        // height. A no-op while still playing, since only a finished
-        // round has a target worth centering on.
+        // height. A no-op while still playing (recenterMapOnTarget()
+        // itself is called separately, straight from submitGuess(), for
+        // that case) - renderLeaderboard() is only ever invoked from
+        // showReveal() to begin with, so state.done is already implied
+        // here, but checking it explicitly keeps this safe to call on
+        // its own regardless.
         function recenterMapIfRevealed() {
-          if (state && state.done) recenterMapAboveReveal(stationByName[state.target]);
+          if (state && state.done) recenterMapOnTarget();
         }
 
         // Submits the current result to today's leaderboard (win or loss -

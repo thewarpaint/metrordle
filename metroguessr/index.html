@@ -337,6 +337,46 @@
         gap: 0.55rem;
       }
 
+      /* Once a round ends, .panel's own reveal content (banner,
+         leaderboard, share button) can eat up to .panel__inner's own
+         60vh cap, leaving too little of the now-unlocked map visible to
+         actually explore. This just toggles .panel's own visibility -
+         the map underneath is already full-bleed (.map-stage,
+         position:fixed;inset:0) and never resizes, so there's no
+         container reflow to do, only a recenter (see
+         setMapMaximized() in this page's own script) since the target
+         was originally centered assuming the sheet's height ate into
+         the visible viewport. Sits in the map's own top-right corner,
+         below the topbar (--topbar-h, same convention as .leaflet-top's
+         own zoom-control offset above) so it never collides with either
+         the topbar or (once un-hidden again) the sheet itself. Shown
+         only once a round ends - see showReveal()/finishStartingGame() -
+         since before that .panel just holds the guess form, which is
+         never tall enough to crowd the map the way the reveal is. */
+      .map-maximize-btn {
+        position: fixed;
+        top: calc(var(--topbar-h, 4.5rem) + 0.6rem);
+        right: 0.6rem;
+        z-index: 600;
+        width: 2.4rem;
+        height: 2.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        line-height: 1;
+        color: var(--ink);
+        background: var(--paper-well);
+        border: 1.5px solid var(--rule);
+        border-radius: 50%;
+        box-shadow: 0 2px 8px var(--shadow);
+        cursor: pointer;
+      }
+
+      .map-maximize-btn[hidden] { display: none; }
+
+      body.map-maximized .panel { display: none; }
+
       .guess-form {
         display: flex;
         flex-direction: column;
@@ -600,6 +640,8 @@
     <div class="map-stage">
       <div id="leaflet-map"></div>
     </div>
+
+    <button type="button" class="map-maximize-btn" id="map-maximize-btn" hidden aria-label="Ampliar mapa" title="Ampliar mapa">⛶</button>
 
     <div class="topbar">
       <a class="topbar__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
@@ -1266,6 +1308,13 @@
         }
 
         function finishStartingGame(mode) {
+          // A maximized map from a previous round (or a previous day,
+          // via debug date-nav) shouldn't carry over into this one -
+          // showReveal() below is what turns it back on, only once
+          // there's actually a reveal to maximize.
+          setMapMaximized(false);
+          $('map-maximize-btn').hidden = true;
+
           var dateKey = pendingGameSetup.dateKey;
           var gameNumber = pendingGameSetup.gameNumber;
           var target = pendingGameSetup.target;
@@ -1595,6 +1644,7 @@
 
           var reveal = $('reveal');
           reveal.hidden = false;
+          $('map-maximize-btn').hidden = false;
           var banner = $('reveal-banner');
           banner.textContent = (won ? '¡Correcto!' : 'Se acabaron los intentos') + ' 🔥 ' +
             MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
@@ -1653,6 +1703,29 @@
           });
         }
 
+        // Purely a visibility toggle for .panel (see .map-maximize-btn's
+        // own comment in <style>) - deliberately does NOT touch the
+        // map's own view. The map is already fully interactive once a
+        // round ends, so by the time a player reaches for this button
+        // they may well have already panned/zoomed off the original
+        // recenterMapAboveReveal() spot - snapping back to center on
+        // every toggle would throw away that exploration instead of
+        // just giving it more room. Reads .map-maximized off <body>
+        // itself (via toggleMapMaximized()) rather than a separate JS
+        // flag, so there's exactly one source of truth for the state.
+        function setMapMaximized(maximized) {
+          document.body.classList.toggle('map-maximized', maximized);
+          var btn = $('map-maximize-btn');
+          btn.textContent = maximized ? '✕' : '⛶';
+          var label = maximized ? 'Minimizar mapa' : 'Ampliar mapa';
+          btn.setAttribute('aria-label', label);
+          btn.setAttribute('title', label);
+        }
+
+        function toggleMapMaximized() {
+          setMapMaximized(!document.body.classList.contains('map-maximized'));
+        }
+
         // The bottom sheet (.panel, fixed/floating over the map) covers
         // the lower part of the screen, so centering the target in the
         // FULL viewport (what map.setView() did at round start) leaves
@@ -1660,7 +1733,12 @@
         // renders. Shifting the view south by half the sheet's height
         // moves the target up on screen by that same amount, landing it
         // in the middle of the space actually left uncovered above the
-        // sheet - see panBy()'s docs for why a positive y offset does that.
+        // sheet - see panBy()'s docs for why a positive y offset does
+        // that. Always runs with the map un-maximized - see
+        // finishStartingGame()'s own setMapMaximized(false) reset,
+        // which always runs first - but relies on nothing more than
+        // .panel actually being visible/measurable here, so it would
+        // still center correctly (offset 0) even if that ever changed.
         function recenterMapAboveReveal(pos) {
           var panelHeight = document.querySelector('.panel').getBoundingClientRect().height;
           map.setView([pos.lat, pos.lng], MAP_ZOOM, { animate: false });
@@ -2045,6 +2123,8 @@
         $('share-btn').addEventListener('click', shareResult);
 
         $('hint-btn').addEventListener('click', useHint);
+
+        $('map-maximize-btn').addEventListener('click', toggleMapMaximized);
 
         $('mode-normal-btn').addEventListener('click', function () { resolveModeChoice('normal'); });
         $('mode-hard-btn').addEventListener('click', function () { resolveModeChoice('hard'); });

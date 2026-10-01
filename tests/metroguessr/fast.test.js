@@ -539,6 +539,52 @@ async function main() {
     }
   });
 
+  test('a maximize button shows once the round ends, hides the bottom sheet without touching the map, and resets on a fresh day', async () => {
+    const DATE = '2027-03-05';
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    try {
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), false, 'should stay hidden while still playing');
+
+      await playToReveal(page);
+      await page.waitForTimeout(200);
+
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'should show once the round ends');
+      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶');
+      assert.strictEqual(await page.locator('#map-maximize-btn').getAttribute('aria-label'), 'Ampliar mapa');
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'the sheet should still be showing before maximizing');
+
+      await page.click('#map-maximize-btn');
+      assert.strictEqual(await page.locator('.panel').isVisible(), false, 'maximizing should hide the bottom sheet');
+      assert.strictEqual(await page.locator('#leaflet-map').isVisible(), true, 'the map itself should stay visible/untouched');
+      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '✕');
+      assert.strictEqual(await page.locator('#map-maximize-btn').getAttribute('aria-label'), 'Minimizar mapa');
+
+      await page.click('#map-maximize-btn');
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'minimizing should bring the sheet back');
+      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶');
+      assert.strictEqual(await page.locator('#map-maximize-btn').getAttribute('aria-label'), 'Ampliar mapa');
+
+      // Leaving the map maximized and then moving to a different day
+      // (a fresh, in-progress round) should reset both the sheet and
+      // the button back to their normal, hidden-until-reveal state -
+      // see finishStartingGame()'s own setMapMaximized(false) reset.
+      await page.click('#map-maximize-btn');
+      assert.strictEqual(await page.locator('.panel').isVisible(), false);
+
+      await page.click('#date-prev');
+      await page.waitForTimeout(200);
+
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'a fresh day should un-maximize the sheet');
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), false, 'a fresh, in-progress day should hide the button again');
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

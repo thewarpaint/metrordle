@@ -254,10 +254,23 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   instead of starting over, and a further guess attempt on an
   already-done day is a no-op.
 - The `.map-maximize-btn` toggle (`⛶`/`✕`, see `setMapMaximized()` in
-  `metroguessr/index.html`) stays hidden while playing, appears once
-  the round ends, and toggles the bottom sheet's (`.panel`) visibility
-  without touching the map itself - a fresh day (debug date-nav) resets
-  both the sheet and the button back to hidden/un-maximized.
+  `metroguessr/index.html`) is available throughout the whole round, not
+  just once it ends (the target's own live marker is pinned on the map
+  from the first guess, not just at reveal), and toggles the bottom
+  sheet's (`.panel`) visibility, guess form included while still
+  playing - a fresh day (debug date-nav) resets both the sheet and the
+  button back to visible/un-maximized.
+- `recenterMapOnTarget()` (see `metroguessr/index.html`) re-centers the
+  map on the target after every guess (not just at reveal - a growing
+  history row can push the live marker out from under `.panel` mid-round
+  too) and on every maximize/minimize toggle (hiding/restoring `.panel`
+  changes how much of the viewport is actually visible). Verified via
+  `tests/lib/leaflet-stub.js`'s own `window.__mgLastPanByOffset`, which
+  records the stubbed map's last `panBy()` call - resetting it to `null`
+  before each action and checking it was set again after proves a
+  recenter actually ran, without depending on the exact pixel offset
+  (which comes from real `.panel`/`.topbar` measurements in a headless
+  browser).
 
 **`metroguessr/theme.test.js`** covers a bug found right after
 `/configurar/` shipped: the map tile style was queried straight from

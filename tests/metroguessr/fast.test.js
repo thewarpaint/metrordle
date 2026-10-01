@@ -539,7 +539,7 @@ async function main() {
     }
   });
 
-  test('a maximize button shows once the round ends, hides the bottom sheet without touching the map, and resets on a fresh day', async () => {
+  test('the maximize button is available throughout the whole round (not just once it ends), hides the bottom sheet without touching the map, and resets on a fresh day', async () => {
     const DATE = '2027-03-05';
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
@@ -547,39 +547,80 @@ async function main() {
       await stubMap(page);
       await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
 
-      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), false, 'should stay hidden while still playing');
-
-      await playToReveal(page);
-      await page.waitForTimeout(200);
-
-      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'should show once the round ends');
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'should already be available while still playing - the target is pinned on the map from the first guess, not just at reveal');
       assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶');
       assert.strictEqual(await page.locator('#map-maximize-btn').getAttribute('aria-label'), 'Ampliar mapa');
-      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'the sheet should still be showing before maximizing');
 
       await page.click('#map-maximize-btn');
-      assert.strictEqual(await page.locator('.panel').isVisible(), false, 'maximizing should hide the bottom sheet');
+      assert.strictEqual(await page.locator('.panel').isVisible(), false, 'maximizing mid-round should hide the bottom sheet (guess form included)');
       assert.strictEqual(await page.locator('#leaflet-map').isVisible(), true, 'the map itself should stay visible/untouched');
       assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '✕');
       assert.strictEqual(await page.locator('#map-maximize-btn').getAttribute('aria-label'), 'Minimizar mapa');
 
       await page.click('#map-maximize-btn');
-      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'minimizing should bring the sheet back');
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'minimizing should bring the sheet back, guess form included');
       assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶');
       assert.strictEqual(await page.locator('#map-maximize-btn').getAttribute('aria-label'), 'Ampliar mapa');
 
-      // Leaving the map maximized and then moving to a different day
-      // (a fresh, in-progress round) should reset both the sheet and
-      // the button back to their normal, hidden-until-reveal state -
-      // see finishStartingGame()'s own setMapMaximized(false) reset.
-      await page.click('#map-maximize-btn');
-      assert.strictEqual(await page.locator('.panel').isVisible(), false);
+      await playToReveal(page);
+      await page.waitForTimeout(200);
 
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'should still be available once the round ends');
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'the sheet should still be showing before maximizing');
+
+      await page.click('#map-maximize-btn');
+      assert.strictEqual(await page.locator('.panel').isVisible(), false, 'maximizing post-reveal should still hide the bottom sheet');
+
+      // Leaving the map maximized and then moving to a different day
+      // (a fresh, in-progress round) should reset the sheet back to
+      // visible and the button back to its normal "ampliar" state -
+      // see finishStartingGame()'s own setMapMaximized(false) reset.
+      // The button itself staying available is covered by the very
+      // first assertion above, re-running against this new day.
       await page.click('#date-prev');
       await page.waitForTimeout(200);
 
       assert.strictEqual(await page.locator('.panel').isVisible(), true, 'a fresh day should un-maximize the sheet');
-      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), false, 'a fresh, in-progress day should hide the button again');
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'a fresh, in-progress day should keep the button available');
+      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶', 'and reset back to its un-maximized icon');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('the map recenters on the target after every guess, and on every maximize/minimize toggle', async () => {
+    const DATE = '2027-03-06';
+    const context = await browser.newContext({ viewport: { width: 390, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+
+      // window.__mgLastPanByOffset (see tests/lib/leaflet-stub.js) records
+      // the most recent map.panBy() call - resetting it to null before an
+      // action and checking it was set again afterward proves a recenter
+      // actually ran, without needing to know the exact pixel offset
+      // (which depends on real .panel/.topbar measurements in a headless
+      // browser and isn't the point being tested here).
+      async function recenteredSince(action) {
+        await page.evaluate(() => { window.__mgLastPanByOffset = null; });
+        await action();
+        return page.evaluate(() => window.__mgLastPanByOffset !== null);
+      }
+
+      // Recentering happens on EVERY guess, win or lose alike (an
+      // ongoing round via recenterMapOnTarget() directly in
+      // submitGuess(), an ending one via showReveal()'s own call) - a
+      // single wrong guess already exercises the ongoing-round path.
+      const recenteredAfterGuess = await recenteredSince(() => guess(page, FILLER_GUESSES[0]));
+      assert.strictEqual(recenteredAfterGuess, true, 'expected a recenter after a guess');
+
+      const recenteredOnMaximize = await recenteredSince(() => page.click('#map-maximize-btn'));
+      assert.strictEqual(recenteredOnMaximize, true, 'expected a recenter on maximize');
+
+      const recenteredOnMinimize = await recenteredSince(() => page.click('#map-maximize-btn'));
+      assert.strictEqual(recenteredOnMinimize, true, 'expected a recenter on minimize');
     } finally {
       await context.close();
     }

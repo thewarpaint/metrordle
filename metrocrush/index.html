@@ -1145,6 +1145,36 @@
           els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
+        // A plain selection change (selecting a tile, deselecting it,
+        // or swapping which one is selected without attempting a move -
+        // see onTileClick()'s own first three branches) only ever
+        // toggles which single tile has .tile--selected - it never
+        // touches the board data itself. Routing it through render()'s
+        // full teardown/rebuild of every ROWS*COLS tile instead used to
+        // destroy and recreate every tile's own station-icon SVG (see
+        // makeStationIcon()) just to flip one tile's own class, which
+        // was visibly slow enough to read as the whole board flickering
+        // on every single tap. Same fix as Memoria's own
+        // updateSelectionClasses() for the exact same bug class (see
+        // AGENTS.md's Memoria bullet) - loops every existing tile
+        // rather than tracking which one to untoggle, same simplicity
+        // trade-off Memoria's own version makes; still vastly cheaper
+        // than render()'s own rebuild, since nothing here touches the
+        // DOM tree shape, just an existing node's own class/attribute.
+        function updateSelectedTileClasses() {
+          Array.prototype.forEach.call(els.board.children, function (btn, index) {
+            var r = Math.floor(index / COLS);
+            var c = index % COLS;
+            var isSelected = !!(state.selected && state.selected[0] === r && state.selected[1] === c);
+            btn.classList.toggle('tile--selected', isSelected);
+            if (isSelected) {
+              btn.setAttribute('aria-pressed', 'true');
+            } else {
+              btn.removeAttribute('aria-pressed');
+            }
+          });
+        }
+
         function render() {
           renderStatus();
 
@@ -1227,19 +1257,19 @@
 
           if (!state.selected) {
             state.selected = [r, c];
-            render();
+            updateSelectedTileClasses();
             return;
           }
 
           if (state.selected[0] === r && state.selected[1] === c) {
             state.selected = null;
-            render();
+            updateSelectedTileClasses();
             return;
           }
 
           if (!isAdjacent(state.selected, [r, c])) {
             state.selected = [r, c];
-            render();
+            updateSelectedTileClasses();
             return;
           }
 

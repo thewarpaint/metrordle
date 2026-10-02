@@ -37,6 +37,10 @@ async function getPressedStates(page) {
   });
 }
 
+async function getDataReducedMotion(page) {
+  return page.evaluate(() => document.documentElement.getAttribute('data-reduced-motion'));
+}
+
 async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
@@ -135,6 +139,84 @@ async function main() {
       await page.click('#theme-option-dark');
 
       assert.deepStrictEqual(await getConfig(page), { someFutureSetting: 'keepme', mode: 'dark' });
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('with no saved config, the "Animaciones limitadas" toggle shows off and applies no override', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      assert.strictEqual(await page.locator('#reduced-motion-option').getAttribute('aria-pressed'), 'false');
+      assert.strictEqual(await getDataReducedMotion(page), null);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('turning on "Animaciones limitadas" persists it, applies data-reduced-motion immediately (no reload), and MetroShared.prefersReducedMotion() picks it up', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      await page.click('#reduced-motion-option');
+
+      assert.deepStrictEqual(await getConfig(page), { reducedMotion: true });
+      assert.strictEqual(await getDataReducedMotion(page), 'true');
+      assert.strictEqual(await page.locator('#reduced-motion-option').getAttribute('aria-pressed'), 'true');
+
+      // This is the one function every game's own animation timing
+      // (each page's own delay() helper, or a live check like Metro
+      // Crush's collapseBoard()) actually calls - the setting is only
+      // real once this reflects it, independently of the OS media
+      // query (this sandboxed browser has no OS-level override of its
+      // own, so a bare true here can only have come from the app
+      // setting).
+      assert.strictEqual(await page.evaluate(() => MetroShared.prefersReducedMotion()), true);
+
+      await page.click('#reduced-motion-option');
+      assert.deepStrictEqual(await getConfig(page), { reducedMotion: false });
+      assert.strictEqual(await getDataReducedMotion(page), null, 'turning it back off should remove the attribute entirely, not set it to "false"');
+      assert.strictEqual(await page.evaluate(() => MetroShared.prefersReducedMotion()), false);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a saved "Animaciones limitadas" choice survives a reload and applies on another page entirely', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.click('#reduced-motion-option');
+
+      await page.reload({ waitUntil: 'networkidle' });
+      assert.strictEqual(await getDataReducedMotion(page), 'true', 'should still be applied after a reload (via shared.js\'s own call at load, there\'s no pre-paint snippet needed for this one)');
+      assert.strictEqual(await page.locator('#reduced-motion-option').getAttribute('aria-pressed'), 'true');
+
+      await page.goto(server.baseUrl + '/metrocrush/?date=2027-05-10', { waitUntil: 'networkidle' });
+      assert.strictEqual(await getDataReducedMotion(page), 'true', 'should apply site-wide, not just on /configurar/ itself');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('turning on "Animaciones limitadas" merges into (rather than replacing) an existing config object, and vice versa with the theme mode', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      await page.click('#theme-option-dark');
+      await page.click('#reduced-motion-option');
+      assert.deepStrictEqual(await getConfig(page), { mode: 'dark', reducedMotion: true });
+
+      await page.click('#theme-option-light');
+      assert.deepStrictEqual(await getConfig(page), { mode: 'light', reducedMotion: true }, 'changing the theme afterward should not clear the reduced-motion choice');
     } finally {
       await context.close();
     }

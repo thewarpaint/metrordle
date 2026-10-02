@@ -327,6 +327,26 @@ way the other games' own tests do):
   Récord: undefined" - when there's no record yet, same coverage shape
   as `/admin/`'s own test for this.
 
+**`metrocrush/selection.test.js`** covers the "Metro Crush flickers
+every time a station is selected" bug report: `onTileClick()`'s own
+plain-selection branches (select, deselect, move the selection to a
+different non-adjacent tile) used to call the same `render()` a real
+move does - `els.board.innerHTML = ''` plus a full rebuild of every
+`ROWS*COLS` tile, station icons included, just to toggle one tile's own
+class. Fixed with a dedicated `updateSelectedTileClasses()`, the same
+shape as Memoria's own `updateSelectionClasses()` for the identical bug
+class (see AGENTS.md's Memoria bullet). Each test plants a `data-probe`
+tag on every tile right after a round starts, then asserts the exact
+same tags (DOM node identity, not anything visual) are still there
+after selecting/deselecting/re-selecting - a full rebuild can't
+preserve node identity, a class toggle always does:
+- Selecting a tile toggles `.tile--selected`/`aria-pressed` without
+  touching any other tile's own DOM node.
+- Clicking the same tile again deselects it (removes `aria-pressed`
+  entirely, not `"false"`) the same way.
+- Selecting a different, non-adjacent tile moves the selection (old
+  tile deselected, new one selected) without a rebuild either.
+
 **`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads all three games' own collections):
@@ -356,8 +376,9 @@ leaderboard browser (no game state of its own to plant in
   Récord: undefined" - when it doesn't yet.
 
 **`configurar/config.test.js`** covers `/configurar/`, the site-wide
-settings page (for now, just the light/dark/system appearance picker -
-see AGENTS.md's "Site config" section):
+settings page - the light/dark/system appearance picker, and the
+"Animaciones limitadas" reduced-motion toggle (see AGENTS.md's "Site
+config" section):
 - With no saved config, "Sistema" shows selected and no `data-theme`
   override is applied to `<html>`.
 - Picking "Oscuro"/"Claro" persists `{mode: 'dark'|'light'}` to the
@@ -375,6 +396,18 @@ see AGENTS.md's "Site config" section):
 - Saving a mode merges into, rather than replaces, whatever's already
   in the config object - the whole point of a single growable object
   instead of one localStorage key per setting.
+- "Animaciones limitadas" starts off, and turning it on persists
+  `{reducedMotion: true}`, applies `data-reduced-motion="true"` to
+  `<html>` immediately, and makes `MetroShared.prefersReducedMotion()`
+  itself return `true` - the one function every game's own animation
+  timing actually calls (see shared.js's own comment on it) - turning
+  it back off removes the attribute entirely, not just sets it `false`.
+- Survives a reload (via `shared.js`'s own call at load - unlike the
+  theme, there's no pre-paint flash to prevent here, so no `<head>`
+  snippet is needed for this one) and applies on another page entirely,
+  same site-wide-ness as the theme mode.
+- Toggling it merges into the existing config alongside the theme mode,
+  each direction - neither setting clobbers the other.
 
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
 real Firestore query-construction logic in `shared.js` - unlike every

@@ -638,3 +638,20 @@ h1 {
     animation-duration: 0.001ms !important;
   }
 }
+
+/* Twin of the media query above, for a player who turns on
+   /configurar/'s own "Animaciones limitadas" setting (see
+   MetroShared.setReducedMotion()/applyReducedMotion() in shared.js)
+   rather than (or in addition to) their OS/browser's own
+   prefers-reduced-motion - catches any CSS transition/@keyframes
+   animation that isn't already gated by a JS-level check (a game's own
+   cached delay() helper, or a live MetroShared.prefersReducedMotion()
+   call). Kept as an exact duplicate of the block above rather than a
+   combined selector, so each stays simple and independently readable -
+   the two are also conceptually separate (one media feature, one plain
+   attribute), and a shared compound selector would read less clearly for
+   the gain of a few lines. */
+:root[data-reduced-motion="true"] * {
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+}

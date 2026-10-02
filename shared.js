@@ -190,8 +190,17 @@ var STATION_ICON_SLUGS = {
   'Ciudad Azteca': 'ciudad-azteca',
 };
 
+// The OS-level media query OR this site's own "Animaciones limitadas"
+// setting (see getReducedMotion() below) - additive, never the other
+// way around: nobody wants MORE motion than their OS already asked to
+// reduce, so there's no "force animations on" override here, unlike
+// getThemeMode()'s own light/dark/system three-way. This one function
+// is the single call site every game already uses to gate its own
+// setTimeout-driven animation delays (see each page's own delay()) and
+// CSS animation classes, so turning the site setting on reduces motion
+// everywhere for free, with no separate per-game wiring needed.
 function prefersReducedMotion() {
-  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || getReducedMotion();
 }
 
 // Deterministic daily puzzles: every visitor on the same calendar day gets
@@ -611,6 +620,47 @@ function setThemeMode(mode) {
   return normalized;
 }
 
+// Defaults to false (no override) for anything missing/invalid, same
+// "unrecognized means off" convention as getThemeMode()'s own 'system'
+// fallback. This is the explicit in-app accommodation /configurar/'s
+// own toggle sets - prefersReducedMotion() above is what actually
+// combines it with the OS-level media query everywhere it's checked.
+function getReducedMotion() {
+  return loadConfig().reducedMotion === true;
+}
+
+// Applies to the DOM by itself - no storage read/write, same split as
+// applyThemeMode()/setThemeMode() below. Only [data-reduced-motion]
+// itself is new here; shared.css's existing prefers-reduced-motion
+// media-query block (the one neutralizing every CSS transition/
+// @keyframes animation site-wide for a player whose OS already
+// requests it) gets a twin selector keyed off this attribute instead,
+// so the two stay byte-for-byte in sync rather than this duplicating
+// that rule's own declarations here in JS. This is what actually
+// catches a raw CSS animation/transition that isn't gated by a JS
+// check (a game's own cached delay() helper, or a live
+// prefersReducedMotion() call like Metro Crush's collapseBoard()) -
+// those two keep working exactly as before, since
+// prefersReducedMotion() itself (see its own comment above) already
+// folds this same setting in.
+function applyReducedMotion(enabled) {
+  if (enabled) {
+    document.documentElement.setAttribute('data-reduced-motion', 'true');
+  } else {
+    document.documentElement.removeAttribute('data-reduced-motion');
+  }
+}
+
+// Persists + applies in one call, immediately, no reload needed - what
+// /configurar/'s own toggle calls on each click, same as
+// setThemeMode().
+function setReducedMotion(enabled) {
+  var normalized = !!enabled;
+  saveConfig({ reducedMotion: normalized });
+  applyReducedMotion(normalized);
+  return normalized;
+}
+
 // Every page's own inline <head> snippet already applies the stored
 // theme before first paint (right after shared.css's own <link>, see
 // any page's <head>) to avoid a flash of the wrong theme - shared.js
@@ -618,6 +668,15 @@ function setThemeMode(mode) {
 // that prevents it. This call is only a harmless, idempotent safety
 // net for a page whose snippet is missing or out of date.
 applyThemeMode(getThemeMode());
+
+// Unlike the theme above, there's no pre-paint flash to avoid here (a
+// frame of default motion behavior isn't jarring the way a wrong
+// light/dark theme is), so this one call, running once as shared.js
+// itself loads, is this setting's only real application point - not a
+// backup for a per-page snippet, since none exists for this setting.
+// Comfortably before any game's own animations can start, since
+// nothing on these pages animates before the player interacts with it.
+applyReducedMotion(getReducedMotion());
 
 function firebaseReady() {
   return typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0;
@@ -1073,6 +1132,9 @@ window.MetroShared = {
   getThemeMode: getThemeMode,
   applyThemeMode: applyThemeMode,
   setThemeMode: setThemeMode,
+  getReducedMotion: getReducedMotion,
+  applyReducedMotion: applyReducedMotion,
+  setReducedMotion: setReducedMotion,
   submitLeaderboardScore: submitLeaderboardScore,
   getTopLeaderboardScores: getTopLeaderboardScores,
   rankAndSelect: rankAndSelect,

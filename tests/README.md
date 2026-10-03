@@ -310,18 +310,31 @@ that a hint used mid-round shows up in the shared text as its own 🪄
 line (`'🪄 Pista: revelar línea'` / `'🪄 Pista: revelar calles'`,
 matching the hint button's own live label and the leaderboard's own
 🪄-per-hint badge), not just `state.guesses` - previously a hint-assisted
-win shared a result that looked unassisted. Same native-`navigator.share`-
-stub trick as `memoria/share.test.js` (Playwright's Chromium has none by
-default) layered on this page's own fabricated-guesses-in-`localStorage`
-trick (see `metroguessr/leaderboard.test.js` just above) to reach the
-reveal screen instantly:
-- One hint used adds exactly the "revelar línea" line, after the guess
-  lines (not interleaved - a hint has no real "when" to place it at
-  relative to the guesses, see `shareHintLines()`'s own comment), and no
-  "revelar calles" line.
-- Both hints used adds both lines, in the fixed order hints always
-  unlock in.
-- No hints used adds no 🪄 line at all.
+win shared a result that looked unassisted, and once that shipped, every
+hint line still always came after every guess line regardless of when
+during the round it was actually used, since nothing recorded their real
+relative order - fixed by a new `state.timeline` array (guess/hint
+entries in the real order they happened, written to alongside
+`state.guesses`/`state.hintsUsed` in `submitGuess()`/`useHint()`, see
+`synthesizeTimeline()`'s own comment for the pre-`state.timeline` save
+format `loadSavedState()` still has to handle) that `buildShareLines()`
+walks instead of always listing guesses before hints. Same
+native-`navigator.share`-stub trick as `memoria/share.test.js`
+(Playwright's Chromium has none by default):
+- A **legacy save with no `state.timeline` at all** (this file's own
+  `plantState()` helper plants exactly that shape, doubling as coverage
+  for `synthesizeTimeline()`'s own fallback) with one hint used falls
+  back to exactly the "revelar línea" line after the guess lines, and no
+  "revelar calles" line; with both hints used, both lines after the
+  guesses, in order; with no hints used, no 🪄 line at all.
+- **Real interleaved play** (guess, hint, guess, hint, guess, via actual
+  gameplay - the same fabricated-guesses-in-`localStorage` trick as
+  `metroguessr/leaderboard.test.js` only reaches the "legacy save" shape
+  above, not a real `state.timeline`) shows the hint lines exactly where
+  they really happened, not bunched at the end - the one order the old,
+  `state.guesses`-only behavior could never produce correctly.
+- The interleaved order in `state.timeline` itself (not just the shared
+  text built from it) survives a reload mid-round.
 
 **`metrocrush/leaderboard.test.js`** covers `/metrocrush/`'s own
 leaderboard - ranked purely by score, descending (hardMode already

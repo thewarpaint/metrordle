@@ -475,10 +475,12 @@ utility page later means copying this same snippet into its `<head>`,
 same as every other per-page duplication already documented in this
 file.
 
-`reducedMotion` is `/configurar/`'s own "Animaciones limitadas" toggle
-(a single on/off button, not a three-way group like the theme picker -
-there's no "force MORE motion than the OS wants" use case, so this one
-is purely additive) for a player with motion sickness whose OS/browser
+`reducedMotion` is `/configurar/`'s own "Normal"/"Animaciones
+limitadas" picker (a two-button group, same shape as the theme picker
+minus its third "system" option - there's no "force MORE motion than
+the OS wants" use case, so this one is purely additive; a single on/off
+toggle button was tried first but read oddly on mobile, not obviously a
+two-state control) for a player with motion sickness whose OS/browser
 has no `prefers-reduced-motion` setting of its own, or who can't easily
 reach it on their device. `MetroShared.getReducedMotion()`/
 `setReducedMotion(enabled)`/`applyReducedMotion(enabled)` mirror the

@@ -104,20 +104,26 @@
 
         <div class="config-section">
           <h2 class="config-section__title">Accesibilidad</h2>
-          <div class="theme-options">
-            <!-- A single on/off toggle, not a 3-way group like the
-                 theme picker above - reuses .mode-option's own boxed
-                 look (and this page's own [aria-pressed="true"]
-                 highlight) for a consistent "selected" state, rather
-                 than introducing a different control style for just
-                 one setting. See MetroShared.prefersReducedMotion()'s
-                 own comment in shared.js: this is additive to (never a
-                 way to override off) the OS-level prefers-reduced-motion
-                 media query every game already checks, so turning it on
-                 here reduces motion even for a player whose OS/browser
-                 has no such setting of its own, or who can't easily
-                 reach it on their device. -->
-            <button type="button" class="mode-option" id="reduced-motion-option" aria-pressed="false">
+          <!-- A two-way group, same shape as the theme picker above
+               (role="group", one .mode-option per choice, this page's
+               own [aria-pressed="true"] highlight) - a single on/off
+               toggle button read oddly on mobile (not obviously a
+               two-state control, and easy to mis-tap without a visible
+               "off" option right next to it), the same problem a bare
+               checkbox would have had here too. See
+               MetroShared.prefersReducedMotion()'s own comment in
+               shared.js: "Animaciones limitadas" is additive to (never
+               a way to override off) the OS-level prefers-reduced-motion
+               media query every game already checks, so picking it
+               here reduces motion even for a player whose OS/browser
+               has no such setting of its own, or who can't easily
+               reach it on their device. -->
+          <div class="theme-options" id="motion-options" role="group" aria-label="Movimiento">
+            <button type="button" class="mode-option" id="motion-option-normal" data-reduced-motion="false" aria-pressed="false">
+              <span class="mode-option__title">Normal</span>
+              <span class="mode-option__desc">Usa las animaciones normales de cada juego</span>
+            </button>
+            <button type="button" class="mode-option" id="motion-option-reduced" data-reduced-motion="true" aria-pressed="false">
               <span class="mode-option__title">Animaciones limitadas</span>
               <span class="mode-option__desc">Reduce el movimiento en los juegos para evitar mareo</span>
             </button>
@@ -154,19 +160,24 @@
 
         render(MetroShared.getThemeMode());
 
-        var reducedMotionBtn = document.getElementById('reduced-motion-option');
-
-        function renderReducedMotion(enabled) {
-          reducedMotionBtn.setAttribute('aria-pressed', String(enabled));
-        }
-
-        reducedMotionBtn.addEventListener('click', function () {
-          var next = reducedMotionBtn.getAttribute('aria-pressed') !== 'true';
-          MetroShared.setReducedMotion(next);
-          renderReducedMotion(next);
+        var MOTION_OPTIONS = [false, true].map(function (reduced) {
+          return { reduced: reduced, el: document.getElementById('motion-option-' + (reduced ? 'reduced' : 'normal')) };
         });
 
-        renderReducedMotion(MetroShared.getReducedMotion());
+        function renderMotion(reduced) {
+          MOTION_OPTIONS.forEach(function (opt) {
+            opt.el.setAttribute('aria-pressed', String(opt.reduced === reduced));
+          });
+        }
+
+        MOTION_OPTIONS.forEach(function (opt) {
+          opt.el.addEventListener('click', function () {
+            MetroShared.setReducedMotion(opt.reduced);
+            renderMotion(opt.reduced);
+          });
+        });
+
+        renderMotion(MetroShared.getReducedMotion());
       })();
     </script>
   </body>

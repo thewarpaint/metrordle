@@ -144,30 +144,32 @@ async function main() {
     }
   });
 
-  test('with no saved config, the "Animaciones limitadas" toggle shows off and applies no override', async () => {
+  test('with no saved config, "Normal" shows selected and no data-reduced-motion override is applied', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
     const page = await context.newPage();
     try {
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
 
-      assert.strictEqual(await page.locator('#reduced-motion-option').getAttribute('aria-pressed'), 'false');
+      assert.strictEqual(await page.locator('#motion-option-normal').getAttribute('aria-pressed'), 'true', '"Normal" should be the default');
+      assert.strictEqual(await page.locator('#motion-option-reduced').getAttribute('aria-pressed'), 'false');
       assert.strictEqual(await getDataReducedMotion(page), null);
     } finally {
       await context.close();
     }
   });
 
-  test('turning on "Animaciones limitadas" persists it, applies data-reduced-motion immediately (no reload), and MetroShared.prefersReducedMotion() picks it up', async () => {
+  test('picking "Animaciones limitadas" persists it, applies data-reduced-motion immediately (no reload), and MetroShared.prefersReducedMotion() picks it up', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
     const page = await context.newPage();
     try {
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
 
-      await page.click('#reduced-motion-option');
+      await page.click('#motion-option-reduced');
 
       assert.deepStrictEqual(await getConfig(page), { reducedMotion: true });
       assert.strictEqual(await getDataReducedMotion(page), 'true');
-      assert.strictEqual(await page.locator('#reduced-motion-option').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.locator('#motion-option-reduced').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.locator('#motion-option-normal').getAttribute('aria-pressed'), 'false');
 
       // This is the one function every game's own animation timing
       // (each page's own delay() helper, or a live check like Metro
@@ -178,9 +180,11 @@ async function main() {
       // setting).
       assert.strictEqual(await page.evaluate(() => MetroShared.prefersReducedMotion()), true);
 
-      await page.click('#reduced-motion-option');
+      await page.click('#motion-option-normal');
       assert.deepStrictEqual(await getConfig(page), { reducedMotion: false });
-      assert.strictEqual(await getDataReducedMotion(page), null, 'turning it back off should remove the attribute entirely, not set it to "false"');
+      assert.strictEqual(await getDataReducedMotion(page), null, 'picking "Normal" should remove the attribute entirely, not set it to "false"');
+      assert.strictEqual(await page.locator('#motion-option-normal').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.locator('#motion-option-reduced').getAttribute('aria-pressed'), 'false');
       assert.strictEqual(await page.evaluate(() => MetroShared.prefersReducedMotion()), false);
     } finally {
       await context.close();
@@ -192,11 +196,12 @@ async function main() {
     const page = await context.newPage();
     try {
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
-      await page.click('#reduced-motion-option');
+      await page.click('#motion-option-reduced');
 
       await page.reload({ waitUntil: 'networkidle' });
       assert.strictEqual(await getDataReducedMotion(page), 'true', 'should still be applied after a reload (via shared.js\'s own call at load, there\'s no pre-paint snippet needed for this one)');
-      assert.strictEqual(await page.locator('#reduced-motion-option').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.locator('#motion-option-reduced').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.locator('#motion-option-normal').getAttribute('aria-pressed'), 'false');
 
       await page.goto(server.baseUrl + '/metrocrush/?date=2027-05-10', { waitUntil: 'networkidle' });
       assert.strictEqual(await getDataReducedMotion(page), 'true', 'should apply site-wide, not just on /configurar/ itself');
@@ -205,14 +210,14 @@ async function main() {
     }
   });
 
-  test('turning on "Animaciones limitadas" merges into (rather than replacing) an existing config object, and vice versa with the theme mode', async () => {
+  test('picking "Animaciones limitadas" merges into (rather than replacing) an existing config object, and vice versa with the theme mode', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
     const page = await context.newPage();
     try {
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
 
       await page.click('#theme-option-dark');
-      await page.click('#reduced-motion-option');
+      await page.click('#motion-option-reduced');
       assert.deepStrictEqual(await getConfig(page), { mode: 'dark', reducedMotion: true });
 
       await page.click('#theme-option-light');

@@ -426,12 +426,13 @@ deliberately self-contained with no `shared.css`/`shared.js` at all
 
 All settings live in one `'metrordle:config'` localStorage key holding
 a plain object - `MetroShared.loadConfig()`/`saveConfig(partialConfig)`
-in `shared.js`, same site-wide-single-key pattern as the alias. This
-starts with just one field, `mode` (`'light'`/`'dark'`/`'system'`,
-default `'system'`), but the object is meant to grow more settings
-later without a new page, a new key, or a migration -
-`saveConfig()` always merges its argument into whatever's already
-stored, so setting one key never clobbers another one added since.
+in `shared.js`, same site-wide-single-key pattern as the alias. Started
+with just one field, `mode` (`'light'`/`'dark'`/`'system'`, default
+`'system'`); `reducedMotion` (boolean, default `false`, see below) is
+the first to actually exercise the "meant to grow more settings later"
+design - `saveConfig()` always merges its argument into whatever's
+already stored, so setting one key never clobbers another one added
+since.
 
 The appearance picker's three-way toggle is `MetroShared.getThemeMode()`
 (reads the stored `mode`, defaulting to `'system'` for anything
@@ -473,6 +474,32 @@ a page whose snippet is missing or goes stale. Adding a new game or
 utility page later means copying this same snippet into its `<head>`,
 same as every other per-page duplication already documented in this
 file.
+
+`reducedMotion` is `/configurar/`'s own "Animaciones limitadas" toggle
+(a single on/off button, not a three-way group like the theme picker -
+there's no "force MORE motion than the OS wants" use case, so this one
+is purely additive) for a player with motion sickness whose OS/browser
+has no `prefers-reduced-motion` setting of its own, or who can't easily
+reach it on their device. `MetroShared.getReducedMotion()`/
+`setReducedMotion(enabled)`/`applyReducedMotion(enabled)` mirror the
+theme mode's own three-function split, but unlike the theme there's no
+pre-paint flash to prevent (a frame of default motion behavior isn't
+jarring the way a wrong light/dark theme is), so no per-page `<head>`
+snippet is needed - `shared.js`'s own `applyReducedMotion(getReducedMotion())`
+call at load time is this setting's only real application point, not a
+backup for one. **`MetroShared.prefersReducedMotion()` is the one
+function every game's own animation timing already calls** (each
+page's own `delay()` helper, computed once at load from this; or a live
+check, like Metro Crush's `collapseBoard()`) - it now ORs the OS media
+query with this setting, so turning the setting on reduces motion
+everywhere those call sites already check, with no further per-game
+wiring needed. `applyReducedMotion()` itself just toggles
+`data-reduced-motion="true"` on `<html>` (or removes it) for the one
+thing a JS-level check can't catch: a raw CSS `transition`/`@keyframes`
+animation with no JS gate of its own - `shared.css` has a
+`:root[data-reduced-motion="true"] *` rule that's an exact twin of its
+own `@media (prefers-reduced-motion: reduce)` block, rather than a
+combined selector, so the two stay simple and independently readable.
 
 ## Rendering safety
 

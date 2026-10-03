@@ -101,6 +101,28 @@
             </button>
           </div>
         </div>
+
+        <div class="config-section">
+          <h2 class="config-section__title">Accesibilidad</h2>
+          <div class="theme-options">
+            <!-- A single on/off toggle, not a 3-way group like the
+                 theme picker above - reuses .mode-option's own boxed
+                 look (and this page's own [aria-pressed="true"]
+                 highlight) for a consistent "selected" state, rather
+                 than introducing a different control style for just
+                 one setting. See MetroShared.prefersReducedMotion()'s
+                 own comment in shared.js: this is additive to (never a
+                 way to override off) the OS-level prefers-reduced-motion
+                 media query every game already checks, so turning it on
+                 here reduces motion even for a player whose OS/browser
+                 has no such setting of its own, or who can't easily
+                 reach it on their device. -->
+            <button type="button" class="mode-option" id="reduced-motion-option" aria-pressed="false">
+              <span class="mode-option__title">Animaciones limitadas</span>
+              <span class="mode-option__desc">Reduce el movimiento en los juegos para evitar mareo</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <p class="credit">
@@ -131,6 +153,20 @@
         });
 
         render(MetroShared.getThemeMode());
+
+        var reducedMotionBtn = document.getElementById('reduced-motion-option');
+
+        function renderReducedMotion(enabled) {
+          reducedMotionBtn.setAttribute('aria-pressed', String(enabled));
+        }
+
+        reducedMotionBtn.addEventListener('click', function () {
+          var next = reducedMotionBtn.getAttribute('aria-pressed') !== 'true';
+          MetroShared.setReducedMotion(next);
+          renderReducedMotion(next);
+        });
+
+        renderReducedMotion(MetroShared.getReducedMotion());
       })();
     </script>
   </body>

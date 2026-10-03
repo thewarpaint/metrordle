@@ -377,8 +377,10 @@ leaderboard browser (no game state of its own to plant in
 
 **`configurar/config.test.js`** covers `/configurar/`, the site-wide
 settings page - the light/dark/system appearance picker, and the
-"Animaciones limitadas" reduced-motion toggle (see AGENTS.md's "Site
-config" section):
+"Normal"/"Animaciones limitadas" reduced-motion picker (a two-button
+group, same shape as the appearance picker - a single on/off toggle
+button read oddly on mobile, not obviously a two-state control - see
+AGENTS.md's "Site config" section):
 - With no saved config, "Sistema" shows selected and no `data-theme`
   override is applied to `<html>`.
 - Picking "Oscuro"/"Claro" persists `{mode: 'dark'|'light'}` to the
@@ -396,12 +398,13 @@ config" section):
 - Saving a mode merges into, rather than replaces, whatever's already
   in the config object - the whole point of a single growable object
   instead of one localStorage key per setting.
-- "Animaciones limitadas" starts off, and turning it on persists
-  `{reducedMotion: true}`, applies `data-reduced-motion="true"` to
-  `<html>` immediately, and makes `MetroShared.prefersReducedMotion()`
+- "Normal" is selected by default, and picking "Animaciones limitadas"
+  persists `{reducedMotion: true}`, applies `data-reduced-motion="true"`
+  to `<html>` immediately, and makes `MetroShared.prefersReducedMotion()`
   itself return `true` - the one function every game's own animation
-  timing actually calls (see shared.js's own comment on it) - turning
-  it back off removes the attribute entirely, not just sets it `false`.
+  timing actually calls (see shared.js's own comment on it) - picking
+  "Normal" again removes the attribute entirely, not just sets it
+  `false`.
 - Survives a reload (via `shared.js`'s own call at load - unlike the
   theme, there's no pre-paint flash to prevent here, so no `<head>`
   snippet is needed for this one) and applies on another page entirely,

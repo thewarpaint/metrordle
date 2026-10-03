@@ -963,6 +963,25 @@
         // via the same seeded pick every load, same as every other game
         // here. Only the player's own guesses (and whether the round is
         // over) are session state worth persisting.
+        // A save from before state.timeline existed has no record of
+        // WHEN each hint was used relative to the guesses around it -
+        // only that it was used at all (hintsUsed) and how many guesses
+        // happened in total (guesses.length). The only honest guess at
+        // a timeline for one of those is every guess first, then every
+        // hint after - not necessarily what really happened, but the
+        // same order the share text always showed before state.timeline
+        // existed, so an in-progress or already-done round saved by an
+        // older version doesn't change how it displays just from
+        // loading it under this version. Once a new guess or hint
+        // actually happens on an in-progress round, it's appended for
+        // real after this synthesized prefix, same as any other entry.
+        function synthesizeTimeline(guessCount, hintsUsed) {
+          var timeline = [];
+          for (var g = 0; g < guessCount; g++) timeline.push({ kind: 'guess' });
+          for (var h = 0; h < hintsUsed; h++) timeline.push({ kind: 'hint' });
+          return timeline;
+        }
+
         function loadSavedState(dateKey) {
           try {
             var raw = localStorage.getItem(storageKeyFor(dateKey));
@@ -977,6 +996,7 @@
             // save from before the normal/hard split didn't have a
             // choice to make, so it defaults to 'hard', the locked-map
             // behavior that existed back then.
+            var hintsUsed = typeof parsed.hintsUsed === 'number' ? parsed.hintsUsed : 0;
             return {
               guesses: parsed.guesses,
               done: !!parsed.done,
@@ -984,7 +1004,10 @@
               mode: parsed.mode === 'normal' ? 'normal' : 'hard',
               // hintsUsed is newer too - a save from before hints existed
               // just means no hint was ever used, i.e. 0.
-              hintsUsed: typeof parsed.hintsUsed === 'number' ? parsed.hintsUsed : 0,
+              hintsUsed: hintsUsed,
+              // timeline is newer still - see synthesizeTimeline()'s own
+              // comment for a save that predates it.
+              timeline: Array.isArray(parsed.timeline) ? parsed.timeline : synthesizeTimeline(parsed.guesses.length, hintsUsed),
             };
           } catch (e) {
             return null;
@@ -999,6 +1022,7 @@
               leaderboardSubmitted: state.leaderboardSubmitted,
               mode: state.mode,
               hintsUsed: state.hintsUsed,
+              timeline: state.timeline,
             }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the
@@ -1338,6 +1362,7 @@
             attempts: (saved ? saved.guesses.length : 0) + (saved ? saved.hintsUsed : 0),
             guesses: saved ? saved.guesses : [],
             hintsUsed: saved ? saved.hintsUsed : 0,
+            timeline: saved ? saved.timeline : [],
             done: saved ? !!saved.done : false,
             won: false,
             streak: savedStreak ? savedStreak.count : 0,
@@ -1469,6 +1494,7 @@
           state.attempts++;
           var guess = { name: name, dist: dist, correct: correct };
           state.guesses.push(guess);
+          state.timeline.push({ kind: 'guess' });
           appendHistoryChip(guess);
 
           renderPips();
@@ -1525,6 +1551,7 @@
           if (!state || state.done || state.guesses.length === 0 || state.hintsUsed >= 2) return;
           state.hintsUsed++;
           state.attempts++;
+          state.timeline.push({ kind: 'hint' });
           applyHintEffects();
           renderPips();
 
@@ -2030,32 +2057,42 @@
         // One line per guess, closest to farthest: the square plus how far
         // off it was, or just the bullseye with no distance for the match.
         // How many attempts it took is already implied by the line count
-        // (guess lines plus shareHintLines() below, together always equal
-        // to state.attempts), so there's no separate "solved in N/5"
-        // summary line.
+        // (guess lines plus hint lines, together always equal to
+        // state.attempts - see buildShareLines() below), so there's no
+        // separate "solved in N/5" summary line.
         function shareLineFor(guess) {
           if (guess.correct) return '🎯';
           return guessEmoji(guess) + ': ' + shareDistanceText(guess.dist);
         }
 
-        // A hint has no station name/distance of its own (see
-        // state.hintsUsed's own comment above useHint()) and isn't
-        // interleaved into state.guesses, so there's no real "when
-        // during the round" to place these at relative to the guess
-        // lines above - listed after them instead, in the fixed order
-        // hints always unlock in (line, then streets). Same 🪄 glyph as
-        // the hint button's own live label (renderHintButton()) and the
-        // leaderboard's own 🪄-per-hint badge, so the one emoji means
-        // the same thing everywhere this game uses it.
-        function shareHintLines() {
-          var lines = [];
-          if (state.hintsUsed >= 1) lines.push('🪄 Pista: revelar línea');
-          if (state.hintsUsed >= 2) lines.push('🪄 Pista: revelar calles');
-          return lines;
+        // Fixed order hints always unlock in (line, then streets) - a
+        // hint has no station name/distance of its own (see
+        // state.hintsUsed's own comment above useHint()), so this is
+        // all a hint's own timeline entry (see state.timeline's own
+        // comment near persistState()) needs to pick its line. Same 🪄
+        // glyph as the hint button's own live label
+        // (renderHintButton()) and the leaderboard's own 🪄-per-hint
+        // badge, so the one emoji means the same thing everywhere this
+        // game uses it.
+        var HINT_SHARE_LINES = ['🪄 Pista: revelar línea', '🪄 Pista: revelar calles'];
+
+        // Walks state.timeline (the actual chronological order guesses
+        // and hints happened in, not just state.guesses followed by
+        // however many hints were used) to build the share text's lines
+        // in the order they really occurred, rather than always listing
+        // every guess before every hint regardless of when a hint was
+        // actually used.
+        function buildShareLines() {
+          var guessIndex = 0;
+          var hintIndex = 0;
+          return state.timeline.map(function (entry) {
+            if (entry.kind === 'hint') return HINT_SHARE_LINES[hintIndex++];
+            return shareLineFor(state.guesses[guessIndex++]);
+          });
         }
 
         function buildShareText() {
-          var lines = state.guesses.map(shareLineFor).concat(shareHintLines()).join('\n');
+          var lines = buildShareLines().join('\n');
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
           return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' + hardModeLine +

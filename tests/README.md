@@ -305,6 +305,24 @@ existing hard-mode tiebreak:
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
 
+**`metroguessr/share.test.js`** covers `buildShareText()` - specifically
+that a hint used mid-round shows up in the shared text as its own 🪄
+line (`'🪄 Pista: revelar línea'` / `'🪄 Pista: revelar calles'`,
+matching the hint button's own live label and the leaderboard's own
+🪄-per-hint badge), not just `state.guesses` - previously a hint-assisted
+win shared a result that looked unassisted. Same native-`navigator.share`-
+stub trick as `memoria/share.test.js` (Playwright's Chromium has none by
+default) layered on this page's own fabricated-guesses-in-`localStorage`
+trick (see `metroguessr/leaderboard.test.js` just above) to reach the
+reveal screen instantly:
+- One hint used adds exactly the "revelar línea" line, after the guess
+  lines (not interleaved - a hint has no real "when" to place it at
+  relative to the guesses, see `shareHintLines()`'s own comment), and no
+  "revelar calles" line.
+- Both hints used adds both lines, in the fixed order hints always
+  unlock in.
+- No hints used adds no 🪄 line at all.
+
 **`metrocrush/leaderboard.test.js`** covers `/metrocrush/`'s own
 leaderboard - ranked purely by score, descending (hardMode already
 doubles every point scored, so it's not part of `orderBySpecs` the way

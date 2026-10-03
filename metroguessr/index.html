@@ -2029,15 +2029,33 @@
 
         // One line per guess, closest to farthest: the square plus how far
         // off it was, or just the bullseye with no distance for the match.
-        // How many attempts it took is already implied by the line count,
-        // so there's no separate "solved in N/5" summary line.
+        // How many attempts it took is already implied by the line count
+        // (guess lines plus shareHintLines() below, together always equal
+        // to state.attempts), so there's no separate "solved in N/5"
+        // summary line.
         function shareLineFor(guess) {
           if (guess.correct) return '🎯';
           return guessEmoji(guess) + ': ' + shareDistanceText(guess.dist);
         }
 
+        // A hint has no station name/distance of its own (see
+        // state.hintsUsed's own comment above useHint()) and isn't
+        // interleaved into state.guesses, so there's no real "when
+        // during the round" to place these at relative to the guess
+        // lines above - listed after them instead, in the fixed order
+        // hints always unlock in (line, then streets). Same 🪄 glyph as
+        // the hint button's own live label (renderHintButton()) and the
+        // leaderboard's own 🪄-per-hint badge, so the one emoji means
+        // the same thing everywhere this game uses it.
+        function shareHintLines() {
+          var lines = [];
+          if (state.hintsUsed >= 1) lines.push('🪄 Pista: revelar línea');
+          if (state.hintsUsed >= 2) lines.push('🪄 Pista: revelar calles');
+          return lines;
+        }
+
         function buildShareText() {
-          var lines = state.guesses.map(shareLineFor).join('\n');
+          var lines = state.guesses.map(shareLineFor).concat(shareHintLines()).join('\n');
           var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
           return 'Metrordle: Metroguessr #' + state.gameNumber + '\n' + hardModeLine +

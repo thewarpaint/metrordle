@@ -18,6 +18,7 @@ const FILES = [
   'metroguessr/fast.test.js',
   'metroguessr/theme.test.js',
   'metroguessr/leaderboard.test.js',
+  'metroguessr/share.test.js',
   'metrocrush/leaderboard.test.js',
   'metrocrush/selection.test.js',
   'admin/admin.test.js',

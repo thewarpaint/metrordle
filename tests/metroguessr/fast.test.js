@@ -3,7 +3,7 @@
 // Covers Metroguessr's core mechanics: the daily target pick (and its
 // no-repeat-per-cycle guarantee from NO_REPEAT_CUTOVER_DATE_KEY on -
 // see metroguessr/index.html's pickTarget()), the guess/history flow,
-// win/loss reveal, the reveal-map distance/direction guess pins, the
+// win/loss reveal, the live distance/direction guess pins, the
 // normal/hard mode choice, and persistence across reload. The real map
 // (Leaflet/MapLibre/OpenFreeMap) is stubbed - see tests/lib/leaflet-stub.js's
 // own comment for why - so none of this depends on those hosts being
@@ -220,8 +220,15 @@ async function main() {
       // Computed inside evaluate() and reduced to plain data before
       // returning - m.el is a DOM element live in the page and doesn't
       // survive the page-to-Node boundary Playwright serializes across.
+      // window.__mgMarkers is an append-only creation log (see
+      // leaflet-stub.js's own comment) - it never drops an entry just
+      // because the real map later removed that layer, so this has to
+      // filter by window.__mgMap.hasLayer() too, not just className,
+      // now that paintGuessMarkers() clears and repaints on every guess
+      // (not just once at reveal) and so creates several guess-marker
+      // generations over a single round.
       const markers = await page.evaluate(() => (window.__mgMarkers || [])
-        .filter((m) => m.className === 'guess-marker')
+        .filter((m) => m.className === 'guess-marker' && window.__mgMap.hasLayer(m.marker))
         .map((m) => ({ pillCount: m.el.querySelectorAll('.guess-marker__pill').length })));
       const uniqueWrongGuesses = new Set(FILLER_GUESSES.slice(0, 4)).size; // FILLER_GUESSES[0] repeated once
       assert.ok(markers.length <= uniqueWrongGuesses, 'expected no more pins than unique wrong guesses, got ' + markers.length);
@@ -229,6 +236,73 @@ async function main() {
       for (const m of markers) {
         assert.strictEqual(m.pillCount, 1, 'each pin should have exactly one .guess-marker__pill child');
       }
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a wrong guess gets its own map pin right away, not just once the round ends', async () => {
+    const DATE = '2027-07-10';
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    try {
+      const throwawayContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+      const throwaway = await throwawayContext.newPage();
+      await stubMap(throwaway);
+      await throwaway.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await playToReveal(throwaway);
+      const target = await revealedTarget(throwaway);
+      await throwawayContext.close();
+      const wrongGuesses = FILLER_GUESSES.filter((name) => name !== target);
+
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+
+      async function currentGuessPinCount() {
+        return page.evaluate(() => (window.__mgMarkers || [])
+          .filter((m) => m.className === 'guess-marker' && window.__mgMap.hasLayer(m.marker)).length);
+      }
+
+      assert.strictEqual(await currentGuessPinCount(), 0, 'no pin before any guess');
+
+      await guess(page, wrongGuesses[0]);
+      assert.strictEqual(await page.locator('#reveal').isVisible(), false, 'the round should still be going');
+      assert.strictEqual(await currentGuessPinCount(), 1, 'the first wrong guess should pin immediately, mid-round');
+
+      await guess(page, wrongGuesses[1]);
+      assert.strictEqual(await page.locator('#reveal').isVisible(), false, 'the round should still be going');
+      assert.strictEqual(await currentGuessPinCount(), 2, 'the second wrong guess should add its own pin too, still mid-round');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a mid-round reload restores the live guess pins for whatever guesses already happened', async () => {
+    const DATE = '2027-07-11';
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    try {
+      const throwawayContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+      const throwaway = await throwawayContext.newPage();
+      await stubMap(throwaway);
+      await throwaway.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await playToReveal(throwaway);
+      const target = await revealedTarget(throwaway);
+      await throwawayContext.close();
+      const wrongGuesses = FILLER_GUESSES.filter((name) => name !== target);
+
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await guess(page, wrongGuesses[0]);
+      await guess(page, wrongGuesses[1]);
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      assert.strictEqual(await page.locator('#reveal').isVisible(), false, 'the round should still be in progress after reload');
+      const pinCount = await page.evaluate(() => (window.__mgMarkers || [])
+        .filter((m) => m.className === 'guess-marker' && window.__mgMap.hasLayer(m.marker)).length);
+      assert.strictEqual(pinCount, 2, 'both earlier guesses\' pins should reappear after the reload');
     } finally {
       await context.close();
     }

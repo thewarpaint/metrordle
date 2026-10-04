@@ -1259,9 +1259,10 @@
         var hintLineMarker = null;
 
         // One pin per wrong guess, placed at that guess's own station
-        // once the round ends - see paintGuessMarkers(). Rebuilt fresh
-        // each reveal same as targetIconMarker, and cleared in
-        // startGame() below when a new round begins.
+        // right after the guess that made it - see paintGuessMarkers().
+        // Rebuilt fresh on every call (another guess, the final reveal,
+        // or a mid-round restore), and cleared in startGame() below when
+        // a new round begins.
         var guessMarkers = [];
 
         function clearGuessMarkers() {
@@ -1406,7 +1407,10 @@
             map.removeLayer(targetIconMarker);
             targetIconMarker = null;
           }
-          clearGuessMarkers();
+          // Repaints from scratch for whichever guesses already happened
+          // before a reload (a no-op clear+repaint-nothing for a brand
+          // new round) - see paintGuessMarkers()'s own comment.
+          paintGuessMarkers();
           if (!map.hasLayer(targetMarker)) targetMarker.addTo(map);
           var markerEl = targetMarker.getElement();
           if (markerEl) markerEl.classList.add('target-marker--live');
@@ -1456,10 +1460,10 @@
           }
         }
 
-        // Shared by the history chips (shown while playing) and the map
-        // pins (shown once the round ends, see paintGuessMarkers()) -
-        // same distance/direction hint, just two different places to
-        // display it.
+        // Shared by the history chips and the map pins (see
+        // paintGuessMarkers()) - both shown live as each guess happens
+        // now, just two different places to display the same
+        // distance/direction hint.
         function formatGuessHint(guess) {
           return {
             distText: guess.correct ? '0 km' : guess.dist.toFixed(guess.dist < 10 ? 1 : 0) + ' km',
@@ -1509,6 +1513,12 @@
           } else {
             var left = MAX_ATTEMPTS - state.attempts;
             $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
+            // A wrong guess gets its own map pin right away now, not
+            // just once the round ends - endGame() -> showReveal()
+            // paints the final set itself (this guess included) on the
+            // ending path, so this only needs to run here when the
+            // round is actually still going.
+            paintGuessMarkers();
             // Each guess adds a history chip (see appendHistoryChip()
             // above) - on a narrow viewport those can wrap onto a new
             // line, growing .panel tall enough to push the live target
@@ -1666,9 +1676,9 @@
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;
           $('status-line').textContent = '';
-          // The guess history's distance/direction hints move onto the
-          // map itself once the round ends (see paintGuessMarkers()
-          // below, pinned at each guess's real station) - hiding the
+          // The same distance/direction hints are already pinned on the
+          // map itself too by now (see paintGuessMarkers() below, each
+          // one live since the guess that made it) - hiding the history
           // row here instead of just leaving it shrinks the bottom
           // sheet, freeing up vertical space for the now-unlocked map
           // (see recenterMapOnTarget() below, which relies on this
@@ -1706,13 +1716,19 @@
         }
 
         // One pin per unique WRONG guess, placed at that guess's own
-        // station now that the round's map is unlocked to explore -
-        // the correct guess (if any) is already marked by
-        // targetIconMarker at that same spot, so it's skipped here.
-        // Guessing the same wrong station more than once (allowed,
+        // station, right after the guess that made it (not just once
+        // the round ends) - the correct guess (if any) is already
+        // marked by targetIconMarker at that same spot, so it's skipped
+        // here. Guessing the same wrong station more than once (allowed,
         // if unlikely) collapses to a single pin rather than stacking
-        // duplicates on top of each other.
+        // duplicates on top of each other. Clears and repaints from
+        // state.guesses in full on every call rather than adding just
+        // the newest one, so it's safe to call repeatedly (after every
+        // guess, and again on a mid-round restore for whichever guesses
+        // already happened before the reload) without worrying about
+        // what was already on the map from an earlier call.
         function paintGuessMarkers() {
+          clearGuessMarkers();
           var seen = {};
           state.guesses.forEach(function (guess) {
             if (guess.correct || seen[guess.name]) return;

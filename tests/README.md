@@ -246,9 +246,11 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   hidden once the round is over.
 - The reveal shows the target's own station-icon badge, colored by its
   line, matching the pictogram Metrordle/Metro Crush already use.
-- The debug-only distance/direction map pins (see
-  `paintGuessMarkers()`) don't render outside `?debug=true`, and under
-  it collapse a repeated wrong guess to a single pin.
+- A wrong guess gets its own distance/direction map pin (see
+  `paintGuessMarkers()`) right away, not just once the round ends - a
+  repeated wrong guess collapses to a single pin instead of stacking
+  duplicates. A mid-round reload restores the pins for whatever guesses
+  already happened before it, same as the guesses themselves.
 - Reloading mid-round restores the guesses so far (not the reveal);
   reloading after the round ends restores the same reveal/result
   instead of starting over, and a further guess attempt on an

@@ -107,6 +107,29 @@
         width: 100%;
       }
 
+      /* Shown instead of .status-bar/.timer-track while continuing a
+         finished round in practice mode (see continuePractice()) -
+         same slot, same chrome, since there's no countdown to show. */
+      .practice-banner {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .practice-banner[hidden] {
+        display: none;
+      }
+
+      .practice-banner__text {
+        font-size: 0.82rem;
+      }
+
       .board-wrap {
         position: relative;
       }
@@ -439,6 +462,11 @@
           <div class="timer-bar" id="timer-bar"></div>
         </div>
 
+        <div class="practice-banner" id="practice-banner" hidden>
+          <span class="practice-banner__text">Modo práctica: estas parejas no se guardan.</span>
+          <button type="button" class="btn-secondary" id="end-practice-btn">Volver al resultado</button>
+        </div>
+
         <div class="board-wrap" id="board-wrap">
           <div class="memo-board" id="memo-board"></div>
 
@@ -470,6 +498,7 @@
           <div class="reveal__icons" id="reveal-icons"></div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+          <button type="button" class="btn-secondary" id="practice-btn">Seguir jugando sin guardar</button>
 
           <div id="game-promo-slot"></div>
         </div>
@@ -832,8 +861,60 @@
             });
         }
 
+        // Lets a player keep matching pairs past the reveal screen, purely
+        // for fun - the round's real result (score/won/matchedStations) was
+        // already persisted and submitted by endRound() the moment the
+        // timer hit 0, and nothing from here on ever touches that: there's
+        // no timer running in 'practice' (so tick()/endRound() can't fire
+        // again) and submitScore()/persistResult() are only ever called
+        // from endRound() or from submitScore()'s own success callback,
+        // neither of which practice play reaches. The in-progress state is
+        // snapshotted first so "Volver al resultado" can restore the exact
+        // numbers that were actually submitted, rather than whatever the
+        // score happens to be when the player stops practicing.
+        function continuePractice() {
+          if (!state || state.status !== 'done') return;
+          state.practiceSnapshot = {
+            score: state.score,
+            won: state.won,
+            matchedStations: state.matchedStations.slice(),
+          };
+
+          // A round finished earlier THIS session still has its board in
+          // memory (state.cells/pool) - keep playing on it. But a 'done'
+          // state loaded from a saved result (reload on an already-
+          // finished day) never had a board at all (startNewGame()'s own
+          // saved-result branch sets cells: []), so there's nothing to
+          // resume - deal a brand new one instead, seeded off the current
+          // moment so a reload during practice doesn't deal the same one.
+          if (!state.cells || state.cells.length === 0) {
+            var rand = MetroShared.createSeededRandom('metrordle-memoria-practice-' + state.dateKey + '-' + Date.now());
+            state.pool = buildDailyPool(rand);
+            state.cells = buildInitialCells(state.pool, rand);
+            state.poolIndex = 8;
+            state.rand = rand;
+          }
+
+          state.selectedIndex = null;
+          state.status = 'practice';
+          render();
+        }
+
+        function endPractice() {
+          if (!state || state.status !== 'practice') return;
+          var snapshot = state.practiceSnapshot;
+          if (snapshot) {
+            state.score = snapshot.score;
+            state.won = snapshot.won;
+            state.matchedStations = snapshot.matchedStations;
+            state.practiceSnapshot = null;
+          }
+          state.status = 'done';
+          render();
+        }
+
         function onCardClick(index) {
-          if (!state || state.status !== 'playing') return;
+          if (!state || (state.status !== 'playing' && state.status !== 'practice')) return;
 
           var cell = state.cells[index];
           if (!cell || cell.type === null) return;
@@ -1005,12 +1086,14 @@
           $('game-title').textContent = 'Metrordle: Memoria #' + state.gameNumber;
 
           var playing = state.status === 'playing';
+          var practicing = state.status === 'practice';
           var ready = state.status === 'ready';
           var done = state.status === 'done';
 
           els.startOverlay.hidden = !ready;
           els.board.hidden = done;
           els.timerTrack.hidden = !playing;
+          els.practiceBanner.hidden = !practicing;
           els.reveal.hidden = !done;
 
           if (done) {
@@ -1022,8 +1105,15 @@
         }
 
         function renderStatus() {
-          els.status.textContent = state.timeLeft + 's · ' + state.score +
-            (state.score === 1 ? ' pareja' : ' parejas');
+          var parejasLabel = state.score + (state.score === 1 ? ' pareja' : ' parejas');
+          if (state.status === 'practice') {
+            // No countdown to show here - the practice banner (a sibling
+            // of #status, see render()) already says this round isn't
+            // being saved, so the pair count alone is enough.
+            els.status.textContent = parejasLabel;
+            return;
+          }
+          els.status.textContent = state.timeLeft + 's · ' + parejasLabel;
           els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
@@ -1065,7 +1155,7 @@
             var classes = ['memo-card', 'memo-card--' + cell.type];
             if (index === state.selectedIndex) classes.push('memo-card--selected');
             btn.className = classes.join(' ');
-            btn.disabled = state.status !== 'playing';
+            btn.disabled = state.status !== 'playing' && state.status !== 'practice';
             btn.dataset.key = cell.type + ':' + cell.station;
 
             if (cell.type === 'icon') {
@@ -1425,6 +1515,8 @@
             board: $('memo-board'),
             startOverlay: $('start-overlay'),
             startBtn: $('start-btn'),
+            practiceBanner: $('practice-banner'),
+            endPracticeBtn: $('end-practice-btn'),
             reveal: $('reveal'),
             revealIcons: $('reveal-icons'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
@@ -1432,6 +1524,7 @@
             leaderboardList: $('leaderboard-list'),
             leaderboardStatus: $('leaderboard-status'),
             shareBtn: $('share-btn'),
+            practiceBtn: $('practice-btn'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),
             dateNextBtn: $('date-next'),
@@ -1440,6 +1533,8 @@
 
           els.shareBtn.addEventListener('click', shareResult);
           els.startBtn.addEventListener('click', beginRound);
+          els.practiceBtn.addEventListener('click', continuePractice);
+          els.endPracticeBtn.addEventListener('click', endPractice);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;

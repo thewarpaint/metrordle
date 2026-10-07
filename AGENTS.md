@@ -69,7 +69,25 @@ Site copy/UI is in Spanish (`es-MX`).
   exactly this reason - a ghost clone also carries the plain `.memo-card`
   class (for its coloring) but lives outside `#memo-board` entirely, and
   an unscoped `.memo-card` query would double-count the station it's
-  still fading out on top of.
+  still fading out on top of. Once a round ends, the reveal screen's own
+  "Seguir jugando sin guardar" button (`continuePractice()`) lets a
+  player keep matching pairs on the same board with no stakes - a
+  `state.status === 'practice'` mode that `onCardClick()`/`renderBoard()`
+  treat exactly like `'playing'` for interactivity, but with no timer
+  running (so `tick()`/`endRound()` can never fire again) and the
+  `.status-bar`/`.timer-track` row swapped for a `.practice-banner`
+  saying so, with a "Volver al resultado" button
+  (`endPractice()`) back to the reveal screen. The round's real result
+  was already persisted and submitted by `endRound()` the instant the
+  60s ran out; `submitScore()`/`persistResult()` are only ever called
+  from there (or from `submitScore()`'s own success callback), neither
+  of which practice play reaches, so nothing from a practice match ever
+  reaches `localStorage` or the leaderboard. `continuePractice()`
+  snapshots the just-submitted `score`/`won`/`matchedStations` before
+  switching modes, and `endPractice()` restores exactly that snapshot -
+  not whatever those happen to be after some practice matches - so the
+  reveal screen a player returns to always shows the real submitted
+  result.
 - **`/metroguessr/`** - Metrordle: Metroguessr: guess the Metro station
   marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
   distance + compass direction after each guess. Has a "normal"/"hard"

@@ -153,6 +153,22 @@ it's called with the correctly-built share text; a cancelled share sheet
 sheet that fails for another reason *does* fall back, with the button
 showing the clipboard-copy confirmation label.
 
+**`memoria/practice-mode.test.js`** (same saved-result-planting trick,
+no real-time waiting) covers the reveal screen's "Seguir jugando sin
+guardar" button (`continuePractice()`/`endPractice()`): clicking it
+hides the reveal screen, deals a fresh 16-card board (the planted
+finished result never had one saved - `state.cells` starts empty on a
+reload), hides the countdown in favor of a `.practice-banner`, and lets
+matches keep incrementing the on-screen pair count with no timer
+running. The key assertion both tests share: whatever happens during
+practice (a match raising the live count) never touches the
+already-submitted `localStorage` entry - re-reading it after a practice
+match still shows the exact score/matchedStations/leaderboardSubmitted
+that was there before clicking the button. The second test also covers
+"Volver al resultado": it restores the original submitted score/matched
+icons on the reveal screen, discarding the practice match entirely
+rather than keeping its inflated count.
+
 **`laberinto/fast.test.js`** (no real-time waiting - origin/destination
 show in the header as soon as a page loads, without needing to solve
 anything) covers the daily puzzle's difficulty floor

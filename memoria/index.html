@@ -84,6 +84,10 @@
         padding: 0.5rem 1.1rem;
       }
 
+      .status-bar[hidden] {
+        display: none;
+      }
+
       .status-bar__text {
         font-size: 0.82rem;
         font-variant-numeric: tabular-nums;
@@ -454,7 +458,7 @@
           </p>
         </div>
 
-        <div class="status-bar">
+        <div class="status-bar" id="status-bar">
           <span class="status-bar__text" id="status"></span>
         </div>
 
@@ -1091,6 +1095,7 @@
           var done = state.status === 'done';
 
           els.startOverlay.hidden = !ready;
+          els.statusBar.hidden = done;
           els.board.hidden = done;
           els.timerTrack.hidden = !playing;
           els.practiceBanner.hidden = !practicing;
@@ -1508,6 +1513,7 @@
 
         function init() {
           els = {
+            statusBar: $('status-bar'),
             status: $('status'),
             timerTrack: $('timer-track'),
             timerBar: $('timer-bar'),

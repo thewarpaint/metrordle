@@ -100,6 +100,12 @@ async function main() {
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'should land back on the reveal screen');
       assert.strictEqual(await page.locator('#memo-board').isVisible(), false, 'the board should hide again');
+      // #status-bar sits above the reveal banner and is never re-rendered
+      // while 'done' (renderStatus() only runs for 'ready'/'playing'/
+      // 'practice') - it must hide here, or it'd still show the stale
+      // practice count ("6 parejas") right above the reveal's own,
+      // correct "Parejas: 5", reading as two contradicting scores.
+      assert.strictEqual(await page.locator('#status-bar').isVisible(), false, 'the status bar should hide behind the reveal screen, not show a stale practice count');
       const stat = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(stat, 'Parejas: 5', 'the reveal should show the ORIGINAL submitted score, not the practice-inflated one');
 

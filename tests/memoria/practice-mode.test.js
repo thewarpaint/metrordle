@@ -54,15 +54,26 @@ async function main() {
       const cardCount = await page.locator('#memo-board .memo-card:not(.memo-card--empty)').count();
       assert.strictEqual(cardCount, 16, 'a fresh practice board should deal a full 16-card grid, since the finished day never had one saved');
 
+      // Practice has its own stats, not the real round's - an elapsed-time
+      // clock counting up from 0:00 (not the exact seconds, which are
+      // timing-dependent) and a pairs-matched count starting at 0,
+      // regardless of the planted result's own score of 3.
       const statusBeforeMatch = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(statusBeforeMatch, '3 parejas', 'practice status should show the pair count with no countdown prefix');
+      assert.match(statusBeforeMatch, /^0:0\d · 0 parejas$/, 'practice status should start its own elapsed clock and pair count at zero, got: ' + statusBeforeMatch);
 
       const matched = await matchOnePair(page);
       assert.ok(matched, 'expected a matchable pair on the fresh practice board');
       await page.waitForTimeout(250);
 
       const statusAfterMatch = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(statusAfterMatch, '4 parejas', 'a practice match should still increment the on-screen pair count');
+      assert.match(statusAfterMatch, /^0:0\d · 1 pareja$/, 'a practice match should bump the practice-only pair count to 1 (singular), not the real result\'s own score, got: ' + statusAfterMatch);
+
+      // The elapsed clock keeps ticking on its own, once a second, with no
+      // further action from the player (continuePractice()'s own
+      // setInterval(renderStatus, 1000), not a one-off read at entry time).
+      await page.waitForTimeout(1200);
+      const statusAfterTick = await page.$eval('#status', (el) => el.textContent);
+      assert.match(statusAfterTick, /^0:0[1-9] · 1 pareja$/, 'the elapsed-time stat should keep advancing on its own while practicing, got: ' + statusAfterTick);
 
       // The whole point: nothing from practice play should ever reach
       // localStorage - the real submitted result stays exactly as planted.
@@ -93,7 +104,7 @@ async function main() {
       await page.waitForTimeout(250);
 
       const statusDuringPractice = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(statusDuringPractice, '6 parejas', 'the practice match should have bumped the live count up from 5');
+      assert.match(statusDuringPractice, /^0:0\d · 1 pareja$/, 'the practice-only pair count should read 1, not the real result\'s own score of 5, got: ' + statusDuringPractice);
 
       await page.click('#end-practice-btn');
       await page.waitForTimeout(200);
@@ -103,9 +114,9 @@ async function main() {
       // #status-bar sits above the reveal banner and is never re-rendered
       // while 'done' (renderStatus() only runs for 'ready'/'playing'/
       // 'practice') - it must hide here, or it'd still show the stale
-      // practice count ("6 parejas") right above the reveal's own,
+      // practice stats ("0:0x · 1 pareja") right above the reveal's own,
       // correct "Parejas: 5", reading as two contradicting scores.
-      assert.strictEqual(await page.locator('#status-bar').isVisible(), false, 'the status bar should hide behind the reveal screen, not show a stale practice count');
+      assert.strictEqual(await page.locator('#status-bar').isVisible(), false, 'the status bar should hide behind the reveal screen, not show stale practice stats');
       const stat = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(stat, 'Parejas: 5', 'the reveal should show the ORIGINAL submitted score, not the practice-inflated one');
 
@@ -115,6 +126,12 @@ async function main() {
       const stored = await page.evaluate((k) => localStorage.getItem('memoria:' + k), DATE);
       assert.deepStrictEqual(JSON.parse(stored), { score: 5, won: false, matchedStations: ['Insurgentes', 'Zapata', 'Hidalgo', 'Balderas', 'Sevilla'], leaderboardSubmitted: true });
 
+      // endPractice() must clearInterval() the practice elapsed-time
+      // ticker - a leaked one would keep calling renderStatus(), which
+      // reads state.practiceSnapshot.score and throws once that's been
+      // nulled out by endPractice() itself. Waiting out a full tick here
+      // catches that regression as a page error.
+      await page.waitForTimeout(1200);
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {
       await context.close();

@@ -721,6 +721,9 @@
           if (state && state.timerId) {
             clearInterval(state.timerId);
           }
+          if (state && state.practiceTimerId) {
+            clearInterval(state.practiceTimerId);
+          }
 
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
@@ -868,14 +871,16 @@
         // Lets a player keep matching pairs past the reveal screen, purely
         // for fun - the round's real result (score/won/matchedStations) was
         // already persisted and submitted by endRound() the moment the
-        // timer hit 0, and nothing from here on ever touches that: there's
-        // no timer running in 'practice' (so tick()/endRound() can't fire
-        // again) and submitScore()/persistResult() are only ever called
-        // from endRound() or from submitScore()'s own success callback,
-        // neither of which practice play reaches. The in-progress state is
+        // timer hit 0, and nothing from here on ever touches that:
+        // submitScore()/persistResult() are only ever called from
+        // endRound() or from submitScore()'s own success callback, neither
+        // of which practice play reaches. The in-progress state is
         // snapshotted first so "Volver al resultado" can restore the exact
         // numbers that were actually submitted, rather than whatever the
-        // score happens to be when the player stops practicing.
+        // score happens to be when the player stops practicing - the
+        // practice session's own stats (elapsed time, pairs matched) are
+        // read straight off state.practiceStartedAt/state.practiceSnapshot
+        // in renderStatus(), not tracked as separate running counters.
         function continuePractice() {
           if (!state || state.status !== 'done') return;
           state.practiceSnapshot = {
@@ -883,6 +888,7 @@
             won: state.won,
             matchedStations: state.matchedStations.slice(),
           };
+          state.practiceStartedAt = Date.now();
 
           // A round finished earlier THIS session still has its board in
           // memory (state.cells/pool) - keep playing on it. But a 'done'
@@ -902,10 +908,21 @@
           state.selectedIndex = null;
           state.status = 'practice';
           render();
+
+          // Nothing else drives a re-render once a second on its own (a
+          // practice match re-renders itself immediately via onCardClick's
+          // own renderStatus() call) - this is purely to keep the elapsed-
+          // time readout counting up while the player sits on a card
+          // thinking. Never advances state.timeLeft/ROUND_SECONDS and
+          // never calls endRound(), unlike the real round's startTimer()/
+          // tick() - there's no score to lose by running this forever.
+          state.practiceTimerId = setInterval(renderStatus, 1000);
         }
 
         function endPractice() {
           if (!state || state.status !== 'practice') return;
+          clearInterval(state.practiceTimerId);
+          state.practiceTimerId = null;
           var snapshot = state.practiceSnapshot;
           if (snapshot) {
             state.score = snapshot.score;
@@ -913,6 +930,7 @@
             state.matchedStations = snapshot.matchedStations;
             state.practiceSnapshot = null;
           }
+          state.practiceStartedAt = null;
           state.status = 'done';
           render();
         }
@@ -1109,13 +1127,31 @@
           }
         }
 
+        // M:SS, counting up - used only by practice mode's own elapsed-
+        // time stat (the real round always counts DOWN from ROUND_SECONDS,
+        // rendered inline below instead).
+        function formatElapsed(ms) {
+          var totalSeconds = Math.max(0, Math.floor(ms / 1000));
+          var minutes = Math.floor(totalSeconds / 60);
+          var seconds = totalSeconds % 60;
+          return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+        }
+
         function renderStatus() {
           var parejasLabel = state.score + (state.score === 1 ? ' pareja' : ' parejas');
           if (state.status === 'practice') {
-            // No countdown to show here - the practice banner (a sibling
-            // of #status, see render()) already says this round isn't
-            // being saved, so the pair count alone is enough.
-            els.status.textContent = parejasLabel;
+            // Its own pair of stats, not the real round's - how many of
+            // state.score's pairs were matched AFTER entering practice
+            // (state.score minus the snapshotted pre-practice score, not
+            // state.score itself, which still carries the real result's
+            // own count forward) and how long this practice session has
+            // run, counting up from continuePractice()'s own timestamp.
+            // The practice banner (a sibling of #status, see render())
+            // already says none of this is being saved.
+            var practiceMatches = state.score - state.practiceSnapshot.score;
+            var practiceMatchesLabel = practiceMatches + (practiceMatches === 1 ? ' pareja' : ' parejas');
+            var elapsedLabel = formatElapsed(Date.now() - state.practiceStartedAt);
+            els.status.textContent = elapsedLabel + ' · ' + practiceMatchesLabel;
             return;
           }
           els.status.textContent = state.timeLeft + 's · ' + parejasLabel;

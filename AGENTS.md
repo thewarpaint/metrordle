@@ -73,21 +73,29 @@ Site copy/UI is in Spanish (`es-MX`).
   "Seguir jugando sin guardar" button (`continuePractice()`) lets a
   player keep matching pairs on the same board with no stakes - a
   `state.status === 'practice'` mode that `onCardClick()`/`renderBoard()`
-  treat exactly like `'playing'` for interactivity, but with no timer
-  running (so `tick()`/`endRound()` can never fire again) and the
-  `.status-bar`/`.timer-track` row swapped for a `.practice-banner`
-  saying so, with a "Volver al resultado" button
-  (`endPractice()`) back to the reveal screen. The round's real result
-  was already persisted and submitted by `endRound()` the instant the
-  60s ran out; `submitScore()`/`persistResult()` are only ever called
-  from there (or from `submitScore()`'s own success callback), neither
-  of which practice play reaches, so nothing from a practice match ever
-  reaches `localStorage` or the leaderboard. `continuePractice()`
-  snapshots the just-submitted `score`/`won`/`matchedStations` before
-  switching modes, and `endPractice()` restores exactly that snapshot -
-  not whatever those happen to be after some practice matches - so the
-  reveal screen a player returns to always shows the real submitted
-  result.
+  treat exactly like `'playing'` for interactivity, but with the real
+  round's countdown-driven `.timer-track`/`startTimer()`/`tick()` never
+  running again (so `endRound()` can't re-fire and resubmit), replaced by
+  a `.practice-banner` (shown alongside `.status-bar`, not instead of it)
+  explaining nothing here is saved, and a "Volver al resultado" button
+  (`endPractice()`) back to the reveal screen. `.status-bar` itself stays
+  up, but showing practice's own pair of stats instead of the real
+  round's - an elapsed-time clock counting up from `0:00` on its own
+  (`continuePractice()`'s own `setInterval(renderStatus, 1000)`, cleared
+  again by `endPractice()`) and a pairs-matched count scoped to the
+  practice session alone (`state.score` minus the score snapshotted the
+  moment practice started), not the real result's own score carried
+  forward. The round's real result was already persisted and submitted
+  by `endRound()` the instant the 60s ran out; `submitScore()`/
+  `persistResult()` are only ever called from there (or from
+  `submitScore()`'s own success callback), neither of which practice
+  play reaches, so nothing from a practice match ever reaches
+  `localStorage` or the leaderboard. `continuePractice()` snapshots the
+  just-submitted `score`/`won`/`matchedStations` before switching modes
+  (also used as practice's own pairs-matched baseline, above), and
+  `endPractice()` restores exactly that snapshot - not whatever those
+  happen to be after some practice matches - so the reveal screen a
+  player returns to always shows the real submitted result.
 - **`/metroguessr/`** - Metrordle: Metroguessr: guess the Metro station
   marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
   distance + compass direction after each guess. Has a "normal"/"hard"

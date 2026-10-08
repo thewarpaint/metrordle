@@ -154,20 +154,31 @@ sheet that fails for another reason *does* fall back, with the button
 showing the clipboard-copy confirmation label.
 
 **`memoria/practice-mode.test.js`** (same saved-result-planting trick,
-no real-time waiting) covers the reveal screen's "Seguir jugando sin
-guardar" button (`continuePractice()`/`endPractice()`): clicking it
-hides the reveal screen, deals a fresh 16-card board (the planted
-finished result never had one saved - `state.cells` starts empty on a
-reload), hides the countdown in favor of a `.practice-banner`, and lets
-matches keep incrementing the on-screen pair count with no timer
-running. The key assertion both tests share: whatever happens during
-practice (a match raising the live count) never touches the
-already-submitted `localStorage` entry - re-reading it after a practice
-match still shows the exact score/matchedStations/leaderboardSubmitted
-that was there before clicking the button. The second test also covers
-"Volver al resultado": it restores the original submitted score/matched
-icons on the reveal screen, discarding the practice match entirely
-rather than keeping its inflated count.
+only a couple of short `waitForTimeout`s to catch the elapsed-time
+ticker advancing - no 60s real round to wait out) covers the reveal
+screen's "Seguir jugando sin guardar" button
+(`continuePractice()`/`endPractice()`): clicking it hides the reveal
+screen, deals a fresh 16-card board (the planted finished result never
+had one saved - `state.cells` starts empty on a reload), hides the
+countdown in favor of a `.practice-banner`, and lets matches keep
+incrementing `#status`'s own practice-only stats with no round timer
+running: an elapsed-time clock counting up from `0:00` on its own
+(`continuePractice()`'s `setInterval(renderStatus, 1000)`, distinct
+from the real round's countdown-driven `startTimer()`/`tick()`) and a
+pairs-matched count scoped to the practice session alone (`state.score`
+minus the snapshotted pre-practice score), starting at 0 regardless of
+the real result's own score. The key assertion both tests share:
+whatever happens during practice (a match raising the live count) never
+touches the already-submitted `localStorage` entry - re-reading it
+after a practice match still shows the exact
+score/matchedStations/leaderboardSubmitted that was there before
+clicking the button. The second test also covers "Volver al resultado":
+it restores the original submitted score/matched icons on the reveal
+screen, discarding the practice match entirely rather than keeping its
+inflated count, and that `endPractice()` actually `clearInterval()`s
+the elapsed-time ticker - a leaked one would call `renderStatus()`
+again after `state.practiceSnapshot` is nulled out and throw, which a
+short wait after ending practice would catch as a page error.
 
 **`laberinto/fast.test.js`** (no real-time waiting - origin/destination
 show in the header as soon as a page loads, without needing to solve

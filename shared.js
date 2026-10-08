@@ -285,10 +285,10 @@ function getGameNumberForDateKey(dateKey, startDateKey) {
 // shared isGamePlayedToday() possible below instead of one per game.
 var SUGGESTABLE_GAMES = [
   { key: 'metrordle', href: '/', name: 'Metrordle', glyph: '🚇', sub: 'Ordena la línea →' },
-  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '⏳', sub: 'Parejas en 60 segundos →' },
+  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '🃏', sub: 'Parejas en 60 segundos →' },
   { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación →' },
   { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Encuentra la ruta →' },
-  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🧩', sub: 'Forma filas de 3 →' },
+  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Forma filas de 3 →' },
 ];
 
 // Whether `gameKey` already has a completed result for `dateKey`, read

@@ -337,11 +337,18 @@ h1 {
    was promoted; a page whose own layout isn't a stretching grid (e.g.
    Metrordle's own flex roundel-row) sets an explicit width in its own
    <style> block instead, same as any other shared.css primitive a page
-   needs to size for its own context. */
+   needs to size for its own context.
+
+   border: none is explicit, not just omitted - Clasificador's own
+   instances are real <button> elements, which get a visible default
+   border from the browser's own UA stylesheet unless something
+   overrides it; Metrordle's own <div> instance never had one to begin
+   with, so this line is a no-op there. */
 .line-badge {
   align-items: center;
   aspect-ratio: 1;
   background: var(--badge-bg, var(--line));
+  border: none;
   border-radius: 0 33% 0 0;
   color: var(--badge-ink, var(--line-ink));
   display: flex;
@@ -714,28 +721,14 @@ h1 {
   width: 3rem;
 }
 
-/* Clasificador's own .bucket is both bordered and this full size;
-   Metro Crush's .tile/.legend__chip and Metroguessr's
-   .target-icon-marker are this same size (or close to it) but
-   unbordered - see .design-badge--sm below for the one place
-   (Clasificador's own .line-bar__badge) that's both bordered AND
-   smaller, with a slightly different corner radius (30% vs 33%). */
-.design-badge--bordered {
-  border: 3px solid var(--rule-strong);
-}
-
+/* This full size is Metro Crush's own .tile/.legend__chip and
+   Metroguessr's own .target-icon-marker; .design-badge--sm below is
+   Clasificador's own (still bordered-less, like .line-badge now)
+   .line-bar__badge, smaller with a slightly different corner radius
+   (30% vs 33%). */
 .design-badge--sm {
   border-radius: 0 30% 0 0;
-  border-width: 2px;
   width: 1.9rem;
-}
-
-.design-badge__caption {
-  font-size: 0.36rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0.85;
-  text-transform: uppercase;
 }
 
 .design-badge__id {

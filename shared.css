@@ -632,6 +632,203 @@ h1 {
   display: none;
 }
 
+/* Design-reference patterns, extracted as-is (same shapes/sizes, just
+   renamed under a design- prefix and recolored via CSS custom
+   properties instead of a game's own inline style.background/color)
+   from each game's own <style> block, to back /design/'s side-by-side
+   catalog of how a line or a station gets shown today. Nothing here is
+   consolidated yet and nothing else references these classes yet -
+   every game keeps rendering with its own private copy of its own
+   pattern for now. This section exists purely so /design/ has
+   something real (not hand-redrawn approximations) to show; once we
+   settle on a winning pattern per concept, THAT pattern moves here for
+   real (i.e. games start referencing it) and the rest of this section
+   should shrink accordingly, not grow further.
+
+   --badge-bg/--badge-ink is the same per-instance coloring convention
+   already used by Metro Crush's own --tile-bg/--chip-bg and
+   Metroguessr's own --badge-bg/--reveal-line-color - set inline per
+   example by /design/'s own script, from MetroShared.LINES. */
+.design-badge {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--badge-bg, var(--paper-well));
+  border-radius: 0 33% 0 0;
+  color: var(--badge-ink, var(--ink));
+  display: flex;
+  flex-direction: column;
+  font-family: 'Overpass', sans-serif;
+  justify-content: center;
+  width: 3rem;
+}
+
+/* Clasificador's own .bucket is both bordered and this full size;
+   Metro Crush's .tile/.legend__chip and Metroguessr's
+   .target-icon-marker are this same size (or close to it) but
+   unbordered - see .design-badge--sm below for the one place
+   (Clasificador's own .line-bar__badge) that's both bordered AND
+   smaller, with a slightly different corner radius (30% vs 33%). */
+.design-badge--bordered {
+  border: 3px solid var(--rule-strong);
+}
+
+.design-badge--sm {
+  border-radius: 0 30% 0 0;
+  border-width: 2px;
+  width: 1.9rem;
+}
+
+.design-badge__caption {
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+.design-badge__id {
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.design-badge--sm .design-badge__id {
+  font-size: 0.78rem;
+}
+
+.design-badge__icon {
+  height: 60%;
+  pointer-events: none;
+  width: 60%;
+}
+
+.design-badge__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Metroguessr's own .hint-line-badge shape - a circle instead of
+   .design-badge's rounded-corner square, holding the same kind of id
+   text. */
+.design-line-circle {
+  align-items: center;
+  background: var(--badge-bg, var(--ink));
+  border-radius: 50%;
+  color: var(--badge-ink, var(--paper));
+  display: flex;
+  font-family: 'Overpass', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+/* Laberinto's own .route-dot - color only, no text or icon at all;
+   the leanest of every line indicator this file catalogs. */
+.design-line-dot {
+  background: var(--badge-bg, var(--ink));
+  border-radius: 50%;
+  display: inline-block;
+  height: 0.55rem;
+  width: 0.55rem;
+}
+
+/* Laberinto's own .map-node/.map-hub - a plain neutral circle holding
+   only a station icon, no line color and no name shown directly (the
+   name appears separately, in Laberinto's own breadcrumb trail). */
+.design-station-node {
+  align-items: center;
+  background: var(--paper-raised);
+  border: 3px solid var(--rule-strong);
+  border-radius: 50%;
+  display: flex;
+  height: 3.4rem;
+  justify-content: center;
+  width: 3.4rem;
+}
+
+.design-station-node__icon {
+  color: var(--ink);
+  height: 1.7rem;
+  width: 1.7rem;
+}
+
+.design-station-node__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Memoria's own .memo-card - a bordered, neutral-colored card with the
+   station's icon above its name, both stacked and centered. Memoria's
+   own version also carries selection/match-flash states that don't
+   apply to a static reference card. */
+.design-station-card {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper-well);
+  border: 2px solid var(--rule);
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Overpass', sans-serif;
+  gap: 0.25rem;
+  justify-content: center;
+  padding: 0.4rem;
+  width: 4.6rem;
+}
+
+.design-station-card__icon {
+  color: var(--ink);
+  height: 1.9rem;
+  width: 1.9rem;
+}
+
+.design-station-card__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.design-station-card__name {
+  color: var(--ink);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.design-example {
+  margin-bottom: 1.3rem;
+}
+
+.design-example:last-child {
+  margin-bottom: 0;
+}
+
+.design-example__row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.design-example__caption {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.design-example__caption code {
+  background: var(--paper-well);
+  border-radius: 0.25rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.3rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.001ms !important;

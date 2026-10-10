@@ -522,6 +522,17 @@ AGENTS.md's "Site config" section):
 - Toggling it merges into the existing config alongside the theme mode,
   each direction - neither setting clobbers the other.
 
+**`design/design.test.js`** covers `/design/`, the visual-language
+reference page (see AGENTS.md's own bullet for it) - deliberately
+light, since this page's exact shape is expected to keep changing as
+the actual pattern-consolidation work happens:
+- The "Líneas" and "Estaciones" galleries each render their own script's
+  expected example count (4 apiece) with no page errors.
+- Spot-checks that the first "Líneas" example (the bucket-style badge)
+  renders one badge per sampled line, and that the station-card example
+  renders one card per sampled station - confirming the galleries
+  actually populated real entries, not empty rows.
+
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
 real Firestore query-construction logic in `shared.js` - unlike every
 leaderboard test above (which only ever exercises its "Firebase

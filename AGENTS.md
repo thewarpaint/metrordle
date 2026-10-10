@@ -240,6 +240,29 @@ Site copy/UI is in Spanish (`es-MX`).
   per-game boards: unique aliases across every game that day, and
   total leaderboard entries across every game that day (every
   submitted result, not deduped by alias).
+- **`/design/`** - a visual-language reference (not linked from any
+  game's nav, `noindex`, same as `/admin/`): side-by-side examples of
+  how a Metro line or a station is shown today, pulled as-is from each
+  game's own `<style>` block rather than redrawn - a "Líneas" board
+  (Clasificador's own `.bucket` and `.line-bar__badge`, Metroguessr's
+  `.hint-line-badge`, Laberinto's `.route-dot`) and an "Estaciones"
+  board (Laberinto's `.map-node`, Memoria's `.memo-card`, Metro
+  Crush's `.tile`/Metroguessr's `.target-icon-marker`, plain text).
+  Backed by a new design-reference section in `shared.css` (search for
+  the `.design-` prefix) that exists purely to give this page something
+  real to show - nothing else references those classes yet, and every
+  game keeps rendering with its own private copy of its own pattern for
+  now. This is a deliberate first step, not a finished design system:
+  the actual consolidation (picking one winning pattern per concept,
+  and migrating each game to reference it instead of its own private
+  copy) is still to come. Colors come from `MetroShared.LINES`/
+  `STATION_ICON_SLUGS` at render time (via CSS custom properties -
+  `--badge-bg`/`--badge-ink`, same convention as Metro Crush's own
+  `--tile-bg`/Metroguessr's own `--badge-bg`) rather than being
+  hand-copied, so the examples can't silently drift from the real
+  palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`, same
+  reasoning as `/admin/`'s own exclusion (not a player-facing game
+  route).
 - **`/configurar/`** - site-wide settings page, linked from every game's
   header (a small ⚙️ in `.brand`, or `.topbar` for Metroguessr's own
   layout) via `.brand__settings`/`.topbar__settings`. For now just a

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Tighter than the game pages' CSP (see /index.html) since this page
+      loads no Firebase SDK and renders no user-controlled data at all -
+      defense-in-depth only, same reasoning as /configurar/'s own CSP.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+
+    <title>Design · Metrordle 🎨</title>
+
+    <link rel="icon" href="/favicon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!--
+      Applies a saved theme override (see /configurar/) before first
+      paint, so a light/dark choice doesn't flash the OS default for a
+      frame - shared.js (loaded at the end of <body>) runs too late for
+      that. Self-contained on purpose: mirrors shared.js's own
+      loadConfig()/applyThemeMode(), but shared.js hasn't loaded yet at
+      this point in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .design-boards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .design-board {
+        padding: 1.1rem 1.3rem 1.3rem;
+      }
+
+      .design-board__title {
+        font-family: 'Overpass', sans-serif;
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0 0 0.15rem;
+      }
+
+      .design-board__dek {
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        margin: 0 0 1rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle · Design</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1>Lenguaje visual</h1>
+          <p class="dek">
+            Cada juego muestra una línea o una estación a su propia
+            manera - estos son los patrones reales que ya existen hoy,
+            uno junto a otro, tal como se ven en cada juego (solo
+            recoloreados aquí vía variables CSS en vez del
+            <code>style.background</code>/<code>color</code> en línea
+            que usa cada juego). Todavía no hay nada consolidado: el
+            siguiente paso es decidir, para cada concepto, cuál de
+            estos patrones se queda.
+          </p>
+        </div>
+      </div>
+
+      <div class="design-boards" id="design-boards">
+        <div class="sign design-board">
+          <h2 class="design-board__title">Líneas</h2>
+          <p class="design-board__dek">Cómo se indica "esto pertenece a esta línea", sin una estación de por medio.</p>
+          <div id="lines-gallery"></div>
+        </div>
+
+        <div class="sign design-board">
+          <h2 class="design-board__title">Estaciones</h2>
+          <p class="design-board__dek">Cómo se muestra una estación concreta - con o sin su línea, con o sin ícono.</p>
+          <div id="stations-gallery"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        // A representative spread of line colors (including Línea 5's
+        // dark-on-yellow text, the one case where --badge-ink actually
+        // differs from white) - not every line, just enough to show how
+        // each pattern holds up across the palette.
+        var LINE_SAMPLE_IDS = ['1', '2', '5', 'A', '12'];
+
+        // One station per line id above isn't the point here - these are
+        // picked for icon variety and a real transfer station
+        // (Pantitlán), each paired with one specific line of its own so
+        // the line-colored patterns below have a real --badge-bg to use.
+        var STATION_SAMPLE = [
+          { name: 'Pantitlán', lineId: '9' },
+          { name: 'Tacubaya', lineId: '7' },
+          { name: 'Zócalo', lineId: '2' },
+          { name: 'Insurgentes', lineId: '1' },
+        ];
+
+        function lineById(id) {
+          for (var i = 0; i < MetroShared.LINES.length; i++) {
+            if (MetroShared.LINES[i].id === id) return MetroShared.LINES[i];
+          }
+          return null;
+        }
+
+        function lineSample() {
+          return LINE_SAMPLE_IDS.map(function (id) { return lineById(id); });
+        }
+
+        function makeIcon(className, slug) {
+          var wrap = document.createElement('span');
+          wrap.className = className;
+          if (!slug) return wrap;
+          var svgNS = 'http://www.w3.org/2000/svg';
+          var svg = document.createElementNS(svgNS, 'svg');
+          svg.setAttribute('aria-hidden', 'true');
+          var use = document.createElementNS(svgNS, 'use');
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+          use.setAttribute('href', '/station-icons.svg#' + slug);
+          svg.appendChild(use);
+          wrap.appendChild(svg);
+          return wrap;
+        }
+
+        function buildRow() {
+          var row = document.createElement('div');
+          row.className = 'design-example__row';
+          return row;
+        }
+
+        // caption is a trusted, hardcoded string (never user data) -
+        // same convention as e.g. Clasificador's own
+        // els.revealTotal.innerHTML for static trusted markup; the
+        // .textContent-only rule in AGENTS.md is specifically about
+        // rendering a leaderboard alias (arbitrary player text).
+        function buildExample(row, captionHtml) {
+          var example = document.createElement('div');
+          example.className = 'design-example';
+          example.appendChild(row);
+          var caption = document.createElement('p');
+          caption.className = 'design-example__caption';
+          caption.innerHTML = captionHtml;
+          example.appendChild(caption);
+          return example;
+        }
+
+        function renderLinesGallery() {
+          var gallery = document.getElementById('lines-gallery');
+          var lines = lineSample();
+
+          var bucketRow = buildRow();
+          lines.forEach(function (line) {
+            var badge = document.createElement('div');
+            badge.className = 'design-badge design-badge--bordered';
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+            var caption = document.createElement('span');
+            caption.className = 'design-badge__caption';
+            caption.textContent = 'Línea';
+            var id = document.createElement('span');
+            id.className = 'design-badge__id';
+            id.textContent = line.id;
+            badge.appendChild(caption);
+            badge.appendChild(id);
+            bucketRow.appendChild(badge);
+          });
+          gallery.appendChild(buildExample(bucketRow, '<code>.bucket</code> · botón de clasificación, Clasificador.'));
+
+          var compactRow = buildRow();
+          lines.forEach(function (line) {
+            var badge = document.createElement('div');
+            badge.className = 'design-badge design-badge--bordered design-badge--sm';
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+            var id = document.createElement('span');
+            id.className = 'design-badge__id';
+            id.textContent = line.id;
+            badge.appendChild(id);
+            compactRow.appendChild(badge);
+          });
+          gallery.appendChild(buildExample(compactRow, '<code>.line-bar__badge</code> · resumen de resultado, Clasificador.'));
+
+          var circleRow = buildRow();
+          lines.forEach(function (line) {
+            var badge = document.createElement('div');
+            badge.className = 'design-line-circle';
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+            badge.textContent = line.id;
+            circleRow.appendChild(badge);
+          });
+          gallery.appendChild(buildExample(circleRow, '<code>.hint-line-badge</code> · pista "revelar línea", Metroguessr.'));
+
+          var dotRow = buildRow();
+          lines.forEach(function (line) {
+            var dot = document.createElement('span');
+            dot.className = 'design-line-dot';
+            dot.style.setProperty('--badge-bg', line.color);
+            dotRow.appendChild(dot);
+          });
+          gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · resumen de ruta, Laberinto.'));
+        }
+
+        function renderStationsGallery() {
+          var gallery = document.getElementById('stations-gallery');
+
+          var nodeRow = buildRow();
+          STATION_SAMPLE.forEach(function (station) {
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var node = document.createElement('div');
+            node.className = 'design-station-node';
+            node.appendChild(makeIcon('design-station-node__icon', slug));
+            nodeRow.appendChild(node);
+          });
+          gallery.appendChild(buildExample(nodeRow, '<code>.map-node</code> · mapa de trasbordos, Laberinto - sin color de línea ni nombre (el nombre aparece aparte, en las migas de pan).'));
+
+          var cardRow = buildRow();
+          STATION_SAMPLE.forEach(function (station) {
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var card = document.createElement('div');
+            card.className = 'design-station-card';
+            card.appendChild(makeIcon('design-station-card__icon', slug));
+            var name = document.createElement('span');
+            name.className = 'design-station-card__name';
+            name.textContent = station.name;
+            card.appendChild(name);
+            cardRow.appendChild(card);
+          });
+          gallery.appendChild(buildExample(cardRow, '<code>.memo-card</code> · tablero de memoria, Memoria.'));
+
+          var badgeRow = buildRow();
+          STATION_SAMPLE.forEach(function (station) {
+            var line = lineById(station.lineId);
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var badge = document.createElement('div');
+            badge.className = 'design-badge';
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+            badge.appendChild(makeIcon('design-badge__icon', slug));
+            badgeRow.appendChild(badge);
+          });
+          gallery.appendChild(buildExample(badgeRow, '<code>.tile</code>/<code>.target-icon-marker</code> · ficha de Metro Crush y marcador de revelación de Metroguessr - la estación Y su línea a la vez, coloreada por línea.'));
+
+          var textRow = document.createElement('p');
+          textRow.className = 'design-example__row';
+          textRow.style.fontSize = '0.85rem';
+          textRow.textContent = STATION_SAMPLE.map(function (station) { return station.name; }).join(' · ');
+          gallery.appendChild(buildExample(textRow, 'Texto simple · migas de pan de Laberinto, estación revelada de Metroguessr - sin ícono ni color.'));
+        }
+
+        renderLinesGallery();
+        renderStationsGallery();
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>

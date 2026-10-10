@@ -80,32 +80,18 @@
         margin: 0.85rem 0 0.6rem;
       }
 
-      .roundel {
-        align-items: center;
-        background: var(--line);
-        border: 3px solid var(--rule-strong);
-        border-radius: 999px;
-        color: var(--line-ink);
-        display: flex;
+      /* .line-badge itself (shape/color/label) lives in shared.css now -
+         promoted from this exact badge (it used to be a bordered circle
+         with a literal "STC" caption, .roundel/.roundel__stc). This page
+         is the one place that still needs its own size: shared.css
+         deliberately leaves .line-badge unsized so Clasificador's own
+         grid can stretch it, but .roundel-row is a flex row, not a
+         stretching grid, so this badge needs an explicit size of its
+         own - same size .roundel used to be. */
+      #line-badge {
         flex: 0 0 auto;
-        flex-direction: column;
-        height: 2.9rem;
-        justify-content: center;
-        width: 2.9rem;
         transition: background-color 0.25s ease;
-      }
-
-      .roundel__digit {
-        font-weight: 800;
-        font-size: 1.15rem;
-        line-height: 1;
-      }
-
-      .roundel__stc {
-        font-size: 0.42rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        opacity: 0.85;
+        width: 2.9rem;
       }
 
       .roundel-row__name {
@@ -601,9 +587,9 @@
           <p class="dek">Ordena las 5 estaciones correctamente en 5 intentos. Te diremos cuántas están en el lugar correcto.</p>
 
           <div class="roundel-row">
-            <div class="roundel" id="roundel">
-              <span class="roundel__digit" id="roundel-digit"></span>
-              <span class="roundel__stc">STC</span>
+            <div class="line-badge" id="line-badge">
+              <span class="line-badge__label">Línea</span>
+              <span class="line-badge__id" id="line-badge-id"></span>
             </div>
             <div>
               <div class="roundel-row__name" id="line-name"></div>
@@ -1482,7 +1468,7 @@
         }
 
         function renderRoundel() {
-          $('roundel-digit').textContent = state.line.id;
+          $('line-badge-id').textContent = state.line.id;
           $('line-name').textContent = state.line.name;
           $('line-count').textContent = state.line.stations.length + ' estaciones en total';
         }

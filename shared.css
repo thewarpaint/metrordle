@@ -313,6 +313,65 @@ h1 {
   max-width: 36ch;
 }
 
+/* A line indicator: a square with just its top-right corner rounded,
+   filled with the line's own color, holding a small "Línea" caption
+   above the line's id/number. The first pattern promoted out of
+   /design/'s own catalog (see AGENTS.md) - standardized from two
+   previously-competing patterns: Clasificador's own .bucket (borderless
+   here; it was bordered) and Metrordle's own .roundel (was a bordered
+   CIRCLE with a literal "STC" caption instead of "Línea" - both now
+   gone, replaced by this).
+
+   Colored via --badge-bg/--badge-ink, falling back to the site-wide
+   --line/--line-ink tokens (:root, above) - Metrordle only ever shows
+   ONE line's color document-wide (already set on those site-wide
+   tokens by its own script), so its own markup needs no per-instance
+   custom property at all; Clasificador shows several simultaneously
+   (one per featured line), so it sets --badge-bg/--badge-ink per
+   instance, overriding the fallback, the same way it previously set
+   plain background/color per instance.
+
+   Deliberately unsized (no width/height of its own) - Clasificador's
+   own .buckets grid (grid-template-columns: repeat(6, 1fr)) stretches
+   each badge to fill its own column by default, same as before this
+   was promoted; a page whose own layout isn't a stretching grid (e.g.
+   Metrordle's own flex roundel-row) sets an explicit width in its own
+   <style> block instead, same as any other shared.css primitive a page
+   needs to size for its own context.
+
+   border: none is explicit, not just omitted - Clasificador's own
+   instances are real <button> elements, which get a visible default
+   border from the browser's own UA stylesheet unless something
+   overrides it; Metrordle's own <div> instance never had one to begin
+   with, so this line is a no-op there. */
+.line-badge {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--badge-bg, var(--line));
+  border: none;
+  border-radius: 0 33% 0 0;
+  color: var(--badge-ink, var(--line-ink));
+  display: flex;
+  flex-direction: column;
+  font-family: 'Overpass', sans-serif;
+  justify-content: center;
+}
+
+.line-badge__label {
+  font-size: 0.36rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+.line-badge__id {
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-top: 0.05rem;
+}
+
 .chev {
   background: var(--paper-well);
   border: 1px solid var(--rule);
@@ -636,19 +695,19 @@ h1 {
    renamed under a design- prefix and recolored via CSS custom
    properties instead of a game's own inline style.background/color)
    from each game's own <style> block, to back /design/'s side-by-side
-   catalog of how a line or a station gets shown today. Nothing here is
-   consolidated yet and nothing else references these classes yet -
-   every game keeps rendering with its own private copy of its own
-   pattern for now. This section exists purely so /design/ has
-   something real (not hand-redrawn approximations) to show; once we
-   settle on a winning pattern per concept, THAT pattern moves here for
-   real (i.e. games start referencing it) and the rest of this section
-   should shrink accordingly, not grow further.
+   catalog of how a line or a station gets shown today - still-competing
+   options nothing has settled on yet, so no game references these
+   classes. Once we settle on a winning pattern per concept, THAT pattern
+   moves OUT of this prefix and becomes a real, unprefixed shared.css
+   class every relevant game actually references (see .line-badge, above
+   this comment, for the first one that happened to) - so this section
+   should shrink as more concepts get decided, not grow.
 
    --badge-bg/--badge-ink is the same per-instance coloring convention
-   already used by Metro Crush's own --tile-bg/--chip-bg and
-   Metroguessr's own --badge-bg/--reveal-line-color - set inline per
-   example by /design/'s own script, from MetroShared.LINES. */
+   .line-badge itself uses, already established by Metro Crush's own
+   --tile-bg/--chip-bg and Metroguessr's own --badge-bg/--reveal-line-color
+   before either of them existed - set inline per example by /design/'s
+   own script, from MetroShared.LINES. */
 .design-badge {
   align-items: center;
   aspect-ratio: 1;
@@ -662,28 +721,14 @@ h1 {
   width: 3rem;
 }
 
-/* Clasificador's own .bucket is both bordered and this full size;
-   Metro Crush's .tile/.legend__chip and Metroguessr's
-   .target-icon-marker are this same size (or close to it) but
-   unbordered - see .design-badge--sm below for the one place
-   (Clasificador's own .line-bar__badge) that's both bordered AND
-   smaller, with a slightly different corner radius (30% vs 33%). */
-.design-badge--bordered {
-  border: 3px solid var(--rule-strong);
-}
-
+/* This full size is Metro Crush's own .tile/.legend__chip and
+   Metroguessr's own .target-icon-marker; .design-badge--sm below is
+   Clasificador's own (still bordered-less, like .line-badge now)
+   .line-bar__badge, smaller with a slightly different corner radius
+   (30% vs 33%). */
 .design-badge--sm {
   border-radius: 0 30% 0 0;
-  border-width: 2px;
   width: 1.9rem;
-}
-
-.design-badge__caption {
-  font-size: 0.36rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0.85;
-  text-transform: uppercase;
 }
 
 .design-badge__id {
@@ -800,58 +845,10 @@ h1 {
   text-align: center;
 }
 
-/* Metrordle's own .roundel/.roundel-row - the one line indicator this
-   file missed on the first pass. A circle (unlike .design-badge's
-   rounded-corner square), bordered, holding a two-line stacked label
-   (the line's own id + a literal "STC" caption - Sistema de Transporte
-   Colectivo, the Metro's real name - not a per-line value), paired
-   alongside the line's full name and its total station count. Decorative-
-   only on the real page (a row of small .track__tick marks, also colored
-   by the line) isn't cataloged here - it's ambient flourish around the
-   roundel, not an independent "show a line" pattern of its own. */
-.design-roundel-row {
-  align-items: center;
-  display: flex;
-  gap: 0.7rem;
-}
-
-.design-roundel {
-  align-items: center;
-  background: var(--badge-bg, var(--paper-well));
-  border: 3px solid var(--rule-strong);
-  border-radius: 999px;
-  color: var(--badge-ink, var(--ink));
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  height: 2.9rem;
-  justify-content: center;
-  width: 2.9rem;
-}
-
-.design-roundel__id {
-  font-weight: 800;
-  font-size: 1.15rem;
-  line-height: 1;
-}
-
-.design-roundel__stc {
-  font-size: 0.42rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  opacity: 0.85;
-}
-
-.design-roundel-row__name {
-  font-weight: 800;
-  font-size: 1.15rem;
-}
-
-.design-roundel-row__count {
-  color: var(--ink-soft);
-  font-size: 0.82rem;
-  margin-top: 0.1rem;
-}
+/* Metrordle's own .roundel/.roundel-row (a bordered circle with a
+   literal "STC" caption) is gone - consolidated into .line-badge above,
+   the first pattern this file has actually settled on. See
+   .line-badge's own comment. */
 
 /* Metrordle's own .platform/.platform__row - a numbered, reorderable
    list (drag/up-down mechanics not relevant to a static reference):

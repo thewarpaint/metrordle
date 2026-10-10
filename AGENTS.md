@@ -242,14 +242,14 @@ Site copy/UI is in Spanish (`es-MX`).
   submitted result, not deduped by alias).
 - **`/design/`** - a visual-language reference (not linked from any
   game's nav, `noindex`, same as `/admin/`): side-by-side examples of
-  how a Metro line or a station is shown today, pulled as-is from each
-  game's own `<style>` block rather than redrawn - a "Líneas" board
-  (Clasificador's own `.bucket` and `.line-bar__badge`, Metroguessr's
-  `.hint-line-badge`, Laberinto's `.route-dot`, Metrordle's own
-  `.roundel`/`.roundel-row` - a bordered circle with a two-line
-  stacked label, "STC" always literal, paired with the line's full
-  name and station count, the one line pattern missed on the first
-  pass), an "Estaciones" board (Laberinto's `.map-node`, Memoria's
+  how a Metro line or a station is shown today - most of them still
+  competing, un-redrawn copies of each game's own `<style>` block
+  (pulled as-is, not hand-approximated), pending a decision; one
+  concept has actually been decided and consolidated already (see
+  below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
+  Metroguessr's `.hint-line-badge`, Laberinto's `.route-dot`, plus the
+  one already-decided `.line-badge` - see "Shared infrastructure"
+  below), an "Estaciones" board (Laberinto's `.map-node`, Memoria's
   `.memo-card`, Metro Crush's `.tile`/Metroguessr's
   `.target-icon-marker`, plain text), and a "Listas de estaciones"
   board for the two different ways a GROUP of stations gets shown
@@ -261,20 +261,18 @@ Site copy/UI is in Spanish (`es-MX`).
   deliberately neutral/un-colored-by-line so the icon can't give away
   the answer, with the one active card visually emphasized over the
   rest).
-  Backed by a new design-reference section in `shared.css` (search for
-  the `.design-` prefix) that exists purely to give this page something
-  real to show - nothing else references those classes yet, and every
-  game keeps rendering with its own private copy of its own pattern for
-  now. This is a deliberate first step, not a finished design system:
-  the actual consolidation (picking one winning pattern per concept,
-  and migrating each game to reference it instead of its own private
-  copy) is still to come. Colors come from `MetroShared.LINES`/
-  `STATION_ICON_SLUGS` at render time (via CSS custom properties -
-  `--badge-bg`/`--badge-ink`, same convention as Metro Crush's own
-  `--tile-bg`/Metroguessr's own `--badge-bg`) rather than being
-  hand-copied, so the examples can't silently drift from the real
-  palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`, same
-  reasoning as `/admin/`'s own exclusion (not a player-facing game
+  Still-undecided patterns are backed by a design-reference section in
+  `shared.css` (search for the `.design-` prefix) that exists purely to
+  give this page something real to show for those - no game references
+  those particular classes. This section is meant to shrink as more
+  concepts get decided (see `.line-badge`'s own comment, right above
+  it, for the one concept that already did) - not grow. Colors come
+  from `MetroShared.LINES`/`STATION_ICON_SLUGS` at render time (via CSS
+  custom properties - `--badge-bg`/`--badge-ink`, same convention as
+  Metro Crush's own `--tile-bg`/Metroguessr's own `--badge-bg`) rather
+  than being hand-copied, so the examples can't silently drift from the
+  real palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`,
+  same reasoning as `/admin/`'s own exclusion (not a player-facing game
   route).
 - **`/configurar/`** - site-wide settings page, linked from every game's
   header (a small ⚙️ in `.brand`, or `.topbar` for Metroguessr's own
@@ -313,7 +311,13 @@ are impossible without a debug override.
   `.sign`, `.date-debug`/`.chev` date-nav, `.debug-mode-toggle`,
   `.mode-modal`/`.mode-option*` pre-game normal/hard choice,
   `.btn-primary`/`.btn-secondary`, `.leaderboard*` including the
-  `.leaderboard__score-badge` hard-mode 🧠 flag). Game-specific CSS
+  `.leaderboard__score-badge` hard-mode 🧠 flag, `.line-badge` - a line
+  indicator, colored by line via `--badge-bg`/`--badge-ink` falling
+  back to the site-wide `--line`/`--line-ink` tokens, used by
+  Clasificador's own classification buttons and by Metrordle's own
+  line-of-the-day indicator - the first pattern `/design/`'s own
+  catalog actually settled on, see its own comment in `shared.css` and
+  `/design/`'s own bullet above). Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

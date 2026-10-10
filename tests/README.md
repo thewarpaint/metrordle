@@ -224,6 +224,14 @@ Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason (no live Firebase project's credentials belong
 in this repo, and the real page has no localStorage fallback).
 
+**`metrordle/fast.test.js`** covers Metrordle's own core page chrome
+that isn't already exercised by `metrordle/leaderboard.test.js` (which
+stays scoped to the leaderboard section itself) - for now just the
+line-of-the-day badge: after dismissing the mode modal, it reads
+"Línea `<id>`" (`shared.css`'s own `.line-badge`, promoted from
+Metrordle's old `.roundel`), and the old `.roundel`'s literal "STC"
+caption is gone from the page entirely.
+
 **`metrordle/leaderboard.test.js`** (no real-time waiting - plants a
 fabricated `history` array directly in `localStorage`, since
 `loadSavedState()` only checks that `history` is an array, not that the
@@ -526,15 +534,16 @@ AGENTS.md's "Site config" section):
 reference page (see AGENTS.md's own bullet for it) - deliberately
 light, since this page's exact shape is expected to keep changing as
 the actual pattern-consolidation work happens:
-- The "Líneas" (5), "Estaciones" (4), and "Listas de estaciones" (2)
+- The "Líneas" (4), "Estaciones" (4), and "Listas de estaciones" (2)
   galleries each render their own script's expected example count, with
   no page errors.
-- Spot-checks that the first "Líneas" example (the bucket-style badge)
-  renders one badge per sampled line, the roundel example renders one
-  roundel row per sampled line, the station-card example renders one
-  card per sampled station, the platform-list example renders one row
-  per the puzzle's own 5 stations, and the queue-list example renders
-  one card per sampled station with exactly one marked active -
+- Spot-checks that the first "Líneas" example - the one pattern this
+  page has actually settled on, rendered with the real shared.css
+  `.line-badge` class rather than a `.design-` prefixed stand-in -
+  renders one badge per sampled line, the station-card example renders
+  one card per sampled station, the platform-list example renders one
+  row per the puzzle's own 5 stations, and the queue-list example
+  renders one card per sampled station with exactly one marked active -
   confirming the galleries actually populated real entries, not empty
   rows.
 

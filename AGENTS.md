@@ -195,9 +195,12 @@ Site copy/UI is in Spanish (`es-MX`).
   Like every other game, a finished round persists its result
   (`total`/`correctByLine`) to `'clasificador:' + dateKey` and a reload
   on the same day shows that same reveal screen instead of a fresh
-  queue - `isGamePlayedToday()`'s own `default: return true` branch
-  (shared with Memoria/Metro Crush) already covers this with no changes
-  needed there. Unlike every other game, this page's CSP omits
+  queue (`loadSavedResult()`/`startNewGame()`'s own saved-result
+  branch). Deliberately left out of `SUGGESTABLE_GAMES` for now, so no
+  other game's "sigue jugando hoy" promo suggests it yet - its own
+  reveal screen still mounts the promo component same as every other
+  game, suggesting from the other five. Unlike every other game, this
+  page's CSP omits
   `gstatic.com`/`googleapis.com` entirely (`script-src`/`connect-src`
   both just `'self'`) - with no leaderboard, nothing on this page ever
   loads the Firebase SDK or talks to Firestore, so there's nothing to
@@ -469,9 +472,8 @@ work) just finds its own `#game-promo-slot` placeholder and inserts
 (or clears) whatever `buildGamePromo()` returns.
 
 Suggestions follow a fixed priority order - Metrordle, Memoria,
-Metroguessr, Laberinto, Metro Crush, Clasificador (see
-`SUGGESTABLE_GAMES` in `shared.js`) - minus the current game and minus
-anything already
+Metroguessr, Laberinto, Metro Crush (see `SUGGESTABLE_GAMES` in
+`shared.js`) - minus the current game and minus anything already
 completed **today**, capped to the top `MAX_SUGGESTED_GAMES` (2) so the
 section stays a quick glance rather than a full game menu (this list-building
 part is also exposed standalone as `MetroShared.getSuggestedGames(currentGameKey,
@@ -481,9 +483,8 @@ checked via that game's own `'<key>:' + dateKey` localStorage entry
 makes one shared check possible instead of one per game):
 `gameOver`/`status !== 'playing'`/`done` for
 Metrordle/Laberinto/Metroguessr, whose saved state can also represent
-an in-progress round; any saved entry at all for Memoria/Metro
-Crush/Clasificador, which only ever persist a result once a round is
-actually over. Always
+an in-progress round; any saved entry at all for Memoria/Metro Crush,
+which only ever persist a result once a round is actually over. Always
 uses the real calendar day (`new Date()`), never the page's own
 possibly-`?debug=true`-simulated `dateKey` - suggestions reflect actual
 play activity, not whatever day is being previewed. `buildGamePromo()`

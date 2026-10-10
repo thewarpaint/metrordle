@@ -435,13 +435,34 @@ case rather than a contrived one:
 - `?debug=true`'s date-nav changes which 6 lines are featured and
   navigating back restores the fixture date's own deterministic picks.
 
+**`clasificador/leaderboard.test.js`** covers the leaderboard feature on
+`/clasificador/` (its own `clasificador-leaderboard` Firestore
+collection) - ranked purely by score (total stations correctly
+classified), descending, same shape as Memoria's and Metro Crush's own
+leaderboards, no `hardMode` field at all since this game has no normal/
+hard mode toggle:
+- The leaderboard section still renders (an empty-state message, not an
+  error) with no reachable Firestore, same degrade-gracefully case
+  every other game's own leaderboard test covers.
+- A real (route-stubbed) response renders a plain score cell per row
+  (`.leaderboard__score--plain`, same class Memoria's own uses) plus
+  the shared `🔥 × N` streak badge (`N > 1` only).
+- Saving an alias from the reveal screen (via the same alias-input/
+  alias-display flow every leaderboard-enabled game uses) submits the
+  already-finished round's own total as `score`, even though the round
+  finished before an alias existed - `submitScore()`'s own retry-on-
+  reload path, stubbed here by capturing the actual
+  `submitLeaderboardScore()` call's arguments rather than just checking
+  the alias row's own display text, and confirming `leaderboardSubmitted`
+  is persisted `true` afterward.
+
 **`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
-`localStorage` - it just reads all three games' own collections):
+`localStorage` - it just reads every game's own collection):
 - The date picker (the same prev/next chevrons as each game's own
   `?debug=true` date-nav) and each game's "Ver este día en ___" deep
   link are both hidden without `?debug=true`, shown only with it - and
-  all three games' sections degrade gracefully to an empty-state
+  the sections this file covers degrade gracefully to an empty-state
   message when Firebase isn't reachable either way.
 - Under `?debug=true`, the date picker defaults to today; clicking the
   chevrons moves the shown date a real calendar day at a time, and each
@@ -449,8 +470,9 @@ leaderboard browser (no game state of its own to plant in
 - Real leaderboard data (stubbed via a route-intercepted, patched
   `shared.js`, since this sandboxed environment can't reach Firestore)
   renders with each game's own ranking and score formatting: Metrordle's
-  badge+number cell (a lost entry shows "-"), Laberinto's
-  `stations-transfers`, Memoria's plain score.
+  and Metroguessr's shared badge+number cell (a lost entry shows "-"),
+  Laberinto's `stations-transfers`, Memoria's and Clasificador's shared
+  plain score.
 - The two `.stat-grid`/`.stat-box` tiles above the boards (unique
   aliases and total entries across every game that day) render
   correctly from the same sample data, including with no reachable

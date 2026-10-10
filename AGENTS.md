@@ -162,10 +162,9 @@ Site copy/UI is in Spanish (`es-MX`).
   that bucket (`spawnGhost()`, same split-animation convention as
   Memoria's own `spawnMatchGhost()` - the ghost animates independently
   while the live queue re-renders underneath it) and the queue slides
-  down with a new station entering at the top. No leaderboard, streak,
-  or share text yet - deliberately shipped without them first, same as
-  Metro Crush originally did above, with that infrastructure left as a
-  follow-up once the mechanic itself is validated.
+  down with a new station entering at the top. Has its own leaderboard
+  and streak now (see below) - no share text yet, still a deliberate
+  follow-up.
 
   Both **which 6 of the real 12 Metro lines are featured** and **the
   order stations get dealt in** are fully deterministic per calendar
@@ -193,18 +192,25 @@ Site copy/UI is in Spanish (`es-MX`).
   the mechanic, not something to design around.
 
   Like every other game, a finished round persists its result
-  (`total`/`correctByLine`) to `'clasificador:' + dateKey` and a reload
-  on the same day shows that same reveal screen instead of a fresh
-  queue (`loadSavedResult()`/`startNewGame()`'s own saved-result
-  branch). Deliberately left out of `SUGGESTABLE_GAMES` for now, so no
-  other game's "sigue jugando hoy" promo suggests it yet - its own
-  reveal screen still mounts the promo component same as every other
-  game, suggesting from the other five. Unlike every other game, this
-  page's CSP omits
-  `gstatic.com`/`googleapis.com` entirely (`script-src`/`connect-src`
-  both just `'self'`) - with no leaderboard, nothing on this page ever
-  loads the Firebase SDK or talks to Firestore, so there's nothing to
-  allow.
+  (`total`/`correctByLine`/`leaderboardSubmitted`) to
+  `'clasificador:' + dateKey` and a reload on the same day shows that
+  same reveal screen instead of a fresh queue (`loadSavedResult()`/
+  `startNewGame()`'s own saved-result branch). Deliberately left out of
+  `SUGGESTABLE_GAMES` for now, so no other game's "sigue jugando hoy"
+  promo suggests it yet - its own reveal screen still mounts the promo
+  component same as every other game, suggesting from the other five.
+
+  Has its own daily `clasificador-leaderboard` collection now (see
+  "Leaderboards" below) - ranked by a single descending `score` (the
+  round's own `total`), same shape as Memoria's and Metro Crush's own,
+  with no `hardMode` field at all since this game has no normal/hard
+  mode toggle to begin with. Also tracks a streak (`clasificador:streak`)
+  the same way Metro Crush's own does - extended by any round with a
+  non-zero score rather than a "won" outcome, since there's no daily
+  win/loss puzzle to hook into (see "Streaks" below). Deliberately left
+  out of `/admin/`'s own `RECORD_GAMES` (no all-time high-score record
+  tracking yet, unlike Memoria's/Metro Crush's `records/{gameKey}`) -
+  another deliberate follow-up, not an oversight.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each
@@ -295,7 +301,8 @@ are impossible without a debug override.
 Each game has its own daily Firestore leaderboard:
 `{collection}/{dateKey}/entries/{aliasDocId}`, collections
 `metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard` /
-`metroguessr-leaderboard` / `metrocrush-leaderboard`.
+`metroguessr-leaderboard` / `metrocrush-leaderboard` /
+`clasificador-leaderboard`.
 Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
 key, shared across all games) with **no rename** - the alias *is* the
 document ID (lowercased), so changing it would orphan the old entry;
@@ -362,6 +369,11 @@ added to lock the fix in.
   a cumulative round total rather than a fixed-size puzzle's score, so
   its Firestore rule bounds `score` generously (20000) instead of
   tightly (see `firestore.rules`).
+- Clasificador: highest score, descending - same shape as Memoria's and
+  Metro Crush's (no `hardMode` field, since there's no mode toggle).
+  `score` is the round's own `total` (stations correctly classified) -
+  open-ended like Metro Crush's own, so its Firestore rule bounds it
+  generously (500) rather than tightly.
 
 ### Losses
 
@@ -393,7 +405,7 @@ resets that game's streak to 0 (see "Streaks" below) and now submits
 both collections' `firestore.rules` bound relaxed from `streak >= 1`
 to `>= 0`, matching Memoria's own bound.
 
-Submission pattern (identical across all 5 games): a
+Submission pattern (identical across all 6 games): a
 `leaderboardSubmitted` flag persisted alongside the game result, so a
 reload never resubmits; `submitScore()` no-ops without an alias or
 under `?debug=true`. Laberinto is the only one of the three
@@ -403,30 +415,34 @@ hides the whole `#leaderboard-alias-row` on one, rather than a
 no-alias player seeing an entry form that would silently do nothing if
 filled in. Metrordle/Metroguessr's own `renderAliasRow()` always shows
 now, win or loss, since both have a meaningful leaderboard entry to
-submit - same as Memoria/Metro Crush's own alias row, which always
-showed regardless of outcome already. `renderLeaderboard()` never
+submit - same as Memoria/Metro Crush/Clasificador's own alias row,
+which always showed regardless of outcome already. `renderLeaderboard()` never
 clears the DOM before its fetch resolves (avoids a flicker on reload),
 guarded by a monotonically increasing request-id so a stale response
 can't paint over a newer one.
 
 ### Streaks
 
-Metrordle, Laberinto, Memoria, Metroguessr, and Metro Crush all track a
-consecutive-days streak (`MetroShared.loadStreak`/`saveStreak`/
-`updateStreakForResult`/`formatStreak`/`formatMaxStreak` in
-`shared.js`, one `'<key>:streak'` localStorage entry per game,
-separate from that day's own `'<key>:' + dateKey` round-result entry),
-shown on that game's own reveal banner/share text (`🔥 Racha: N días`,
-plus a "máxima: M días" mention only when the best-ever streak is still
-ahead of today's). The first four extend it on a win and reset it to 0
-on a loss/give-up; Metro Crush has no daily win/loss puzzle outcome to
-hook that into (its games are scored per-round, not "won" day to day),
-so it extends the streak on any round that ends with a non-zero score
-instead, and resets it only on a genuine 0-point round (still a real
-result - it submits and resets the streak, rather than being skipped)
-- see `metrocrush/index.html`'s own `STREAK_STORAGE_KEY` comment.
+Metrordle, Laberinto, Memoria, Metroguessr, Metro Crush, and
+Clasificador all track a consecutive-days streak
+(`MetroShared.loadStreak`/`saveStreak`/`updateStreakForResult`/
+`formatStreak`/`formatMaxStreak` in `shared.js`, one `'<key>:streak'`
+localStorage entry per game, separate from that day's own
+`'<key>:' + dateKey` round-result entry), shown on that game's own
+reveal banner/share text (`🔥 Racha: N días`, plus a "máxima: M días"
+mention only when the best-ever streak is still ahead of today's - not
+yet true of Clasificador's own reveal screen, which doesn't show the
+streak anywhere in its own banner/text yet, only via its leaderboard
+rows' badge). The first four extend it on a win and reset it to 0 on a
+loss/give-up; Metro Crush and Clasificador both have no daily win/loss
+puzzle outcome to hook that into (their games are scored per-round, not
+"won" day to day), so each extends its own streak on any round that
+ends with a non-zero score instead, and resets it only on a genuine
+0-point round (still a real result - it submits and resets the streak,
+rather than being skipped) - see `metrocrush/index.html`'s own
+`STREAK_STORAGE_KEY` comment (Clasificador's own mirrors it).
 
-Each of those five games' own `submitScore()` also submits `streak` as
+Each of those six games' own `submitScore()` also submits `streak` as
 a leaderboard field now, purely for display - like `hintsUsed` above,
 it's deliberately never part of `orderBySpecs`, so a query's
 ranking/results are identical whether or not a given entry (old or
@@ -437,25 +453,26 @@ this is no longer a single page's own thing) reading **`🔥 × N` when
 `N > 1`, nothing otherwise** (a streak of 0 or 1 isn't yet "a streak"
 worth calling out), always returned (even empty) so a row's score
 column still lands in the same spot whether or not it has one.
-`/admin/`'s own `renderGame()` appends one to every row for all five
-collections now; Metrordle's, Laberinto's, and Memoria's own
-`renderLeaderboard()` do the same on their own in-page leaderboards
-(Metroguessr's and Metro Crush's own leaderboards don't, yet - nothing
-architectural stops either, this just hasn't been asked for). Every one
-of those `getTopLeaderboardScores()` calls needs `extraFields:
-['streak']` for the value to actually reach `entry.streak` at all (see
-`extraFields` above) - `buildStreakBadge()` itself doesn't guard against
-a missing field beyond `streak > 1` already being false for `undefined`,
-so a call that forgets `extraFields` just silently renders an
-always-empty badge, the same failure mode `hintsUsed` hit before.
-Metro Crush's own leaderboard rule bounds `streak` the same generous
-`>= 0`/`<= 5000` as Memoria's (see `firestore.rules`) - **this bound is
-a manual deploy, not something CI applies** (see "Firebase credential
+`/admin/`'s own `renderGame()` appends one to every row for all six
+collections now; Metrordle's, Laberinto's, Memoria's, and
+Clasificador's own `renderLeaderboard()` do the same on their own
+in-page leaderboards (Metroguessr's and Metro Crush's own leaderboards
+don't, yet - nothing architectural stops either, this just hasn't been
+asked for). Every one of those `getTopLeaderboardScores()` calls needs
+`extraFields: ['streak']` for the value to actually reach
+`entry.streak` at all (see `extraFields` above) - `buildStreakBadge()`
+itself doesn't guard against a missing field beyond `streak > 1`
+already being false for `undefined`, so a call that forgets
+`extraFields` just silently renders an always-empty badge, the same
+failure mode `hintsUsed` hit before. Metro Crush's and Clasificador's
+own leaderboard rules both bound `streak` the same generous `>= 0`/
+`<= 5000` as Memoria's (see `firestore.rules`) - **this bound is a
+manual deploy, not something CI applies** (see "Firebase credential
 safety"/`firestore.rules`'s own bullet above); a PR that changes this
 file still needs someone to actually paste it into the Firebase console
 (or run `firebase deploy --only firestore:rules`) after merging, or
-every real Metro Crush submission will fail closed against the *old*
-rule, which doesn't recognize `streak` as an allowed field at all.
+every real submission to a collection whose rule just changed will
+fail closed against the *old* rule until that happens.
 
 ## Game suggestions
 

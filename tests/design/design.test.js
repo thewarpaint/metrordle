@@ -16,7 +16,7 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('renders the Líneas and Estaciones galleries with one example row per pattern, no page errors', async () => {
+  test('renders the Líneas, Estaciones, and Listas de estaciones galleries with one example row per pattern, no page errors', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 1200 } });
     const page = await context.newPage();
     const errors = [];
@@ -26,18 +26,34 @@ async function main() {
       await page.waitForTimeout(300);
 
       const lineExamples = await page.locator('#lines-gallery .design-example').count();
-      assert.strictEqual(lineExamples, 4, 'expected 4 line-indicator examples (bucket, compact, circle, dot)');
+      assert.strictEqual(lineExamples, 5, 'expected 5 line-indicator examples (bucket, compact, circle, dot, roundel)');
 
       const stationExamples = await page.locator('#stations-gallery .design-example').count();
       assert.strictEqual(stationExamples, 4, 'expected 4 station-display examples (node, card, badge, plain text)');
 
-      // One badge/circle/dot/card per sampled line or station - confirms
-      // the gallery actually rendered real entries, not empty rows.
+      const stationListExamples = await page.locator('#station-lists-gallery .design-example').count();
+      assert.strictEqual(stationListExamples, 2, 'expected 2 station-list examples (platform, queue)');
+
+      // One badge/circle/dot/card/row per sampled line or station -
+      // confirms the galleries actually rendered real entries, not
+      // empty rows.
       const bucketBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.design-badge').count();
       assert.strictEqual(bucketBadges, 5, 'expected one bucket-style badge per sampled line');
 
+      const roundelRows = await page.locator('#lines-gallery .design-example').nth(4).locator('.design-roundel-row').count();
+      assert.strictEqual(roundelRows, 2, 'expected one roundel row per sampled line in that example');
+
       const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.design-station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');
+
+      const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();
+      assert.strictEqual(platformRows, 5, 'expected 5 platform rows (the puzzle\'s own station count)');
+
+      const queueCards = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-queue-card').count();
+      assert.strictEqual(queueCards, 4, 'expected one queue card per sampled station');
+
+      const activeQueueCards = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-queue-card--active').count();
+      assert.strictEqual(activeQueueCards, 1, 'expected exactly one queue card marked active');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

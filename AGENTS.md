@@ -245,9 +245,22 @@ Site copy/UI is in Spanish (`es-MX`).
   how a Metro line or a station is shown today, pulled as-is from each
   game's own `<style>` block rather than redrawn - a "Líneas" board
   (Clasificador's own `.bucket` and `.line-bar__badge`, Metroguessr's
-  `.hint-line-badge`, Laberinto's `.route-dot`) and an "Estaciones"
-  board (Laberinto's `.map-node`, Memoria's `.memo-card`, Metro
-  Crush's `.tile`/Metroguessr's `.target-icon-marker`, plain text).
+  `.hint-line-badge`, Laberinto's `.route-dot`, Metrordle's own
+  `.roundel`/`.roundel-row` - a bordered circle with a two-line
+  stacked label, "STC" always literal, paired with the line's full
+  name and station count, the one line pattern missed on the first
+  pass), an "Estaciones" board (Laberinto's `.map-node`, Memoria's
+  `.memo-card`, Metro Crush's `.tile`/Metroguessr's
+  `.target-icon-marker`, plain text), and a "Listas de estaciones"
+  board for the two different ways a GROUP of stations gets shown
+  (not a single line or station board, since neither fits): Metrordle's
+  own `.platform`/`.platform__row` (the puzzle's numbered, reorderable
+  guess order - rank circle, line-colored icon, name, and a 🟩/🟥
+  correctness mark once the round ends) and Clasificador's own
+  `.queue`/`.queue-card` (the upcoming stations to classify - unordered,
+  deliberately neutral/un-colored-by-line so the icon can't give away
+  the answer, with the one active card visually emphasized over the
+  rest).
   Backed by a new design-reference section in `shared.css` (search for
   the `.design-` prefix) that exists purely to give this page something
   real to show - nothing else references those classes yet, and every

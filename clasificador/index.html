@@ -317,6 +317,10 @@
 
       /* --- Reveal --- */
 
+      .reveal {
+        padding: 1.1rem;
+      }
+
       .reveal__banner {
         background: var(--line);
         border-radius: 0.5rem;
@@ -336,9 +340,14 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* A compact chip + "× N" per line, same shape as Metro Crush's own
+         .match-summary/.legend__chip (border-radius: 0 33% 0 0) -
+         Clasificador's own bucket badges already use this corner-
+         rounded-square shape during play, so the reveal screen's chips
+         just reuse it rather than switching to a different one. */
       .line-bars {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
         gap: 0.6rem;
         margin-bottom: 1.2rem;
       }
@@ -346,7 +355,7 @@
       .line-bar {
         align-items: center;
         display: flex;
-        gap: 0.6rem;
+        gap: 0.4rem;
       }
 
       .line-bar__badge {
@@ -362,30 +371,10 @@
         width: 1.9rem;
       }
 
-      .line-bar__track {
-        background: var(--paper-well);
-        border: 1px solid var(--rule);
-        border-radius: 999px;
-        flex: 1 1 auto;
-        height: 0.95rem;
-        min-width: 0;
-        overflow: hidden;
-      }
-
-      .line-bar__fill {
-        border-radius: 999px 0 0 999px;
-        display: block;
-        height: 100%;
-        transition: width 0.5s ease;
-      }
-
       .line-bar__count {
-        flex: 0 0 auto;
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
         font-size: 0.92rem;
-        font-variant-numeric: tabular-nums;
-        font-weight: 800;
-        text-align: right;
-        width: 1.6rem;
+        font-weight: 700;
       }
     </style>
   </head>
@@ -851,8 +840,6 @@
           els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
             (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
 
-          var maxCount = Math.max(1, Math.max.apply(null, state.lines.map(function (l) { return state.correctByLine[l.id] || 0; })));
-
           els.lineBars.innerHTML = '';
           state.lines.forEach(function (line) {
             var count = state.correctByLine[line.id] || 0;
@@ -867,18 +854,9 @@
             badge.textContent = line.id;
             row.appendChild(badge);
 
-            var track = document.createElement('span');
-            track.className = 'line-bar__track';
-            var fill = document.createElement('span');
-            fill.className = 'line-bar__fill';
-            fill.style.width = (count / maxCount * 100) + '%';
-            fill.style.background = line.color;
-            track.appendChild(fill);
-            row.appendChild(track);
-
             var countEl = document.createElement('span');
             countEl.className = 'line-bar__count';
-            countEl.textContent = String(count);
+            countEl.textContent = '× ' + count;
             row.appendChild(countEl);
 
             els.lineBars.appendChild(row);

@@ -133,7 +133,7 @@ async function main() {
       assert.ok(total.includes('7'), 'expected the planted total in the reveal text, got: ' + total);
 
       const counts = await page.$$eval('#line-bars .line-bar__count', (els) => els.map((e) => e.textContent));
-      assert.deepStrictEqual(counts, ['3', '1', '2', '1', '0'], 'expected each line\'s planted count in the known fixture\'s line order (1, 6, 7, 12, B)');
+      assert.deepStrictEqual(counts, ['× 3', '× 1', '× 2', '× 1', '× 0'], 'expected each line\'s planted "× N" count in the known fixture\'s line order (1, 6, 7, 12, B)');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

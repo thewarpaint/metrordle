@@ -430,8 +430,8 @@ contrived one:
   `buildStationIconEl()`.
 - A planted finished result (`total`/`correctByLine` in
   `'clasificador:' + dateKey`) shows the reveal screen on load instead
-  of a fresh queue, with each line's own bar/count matching what was
-  planted, in the day's own line order.
+  of a fresh queue, with each line's own "× N" chip count matching what
+  was planted, in the day's own line order.
 - `?debug=true`'s date-nav changes which 5 lines are featured and
   navigating back restores the fixture date's own deterministic picks.
 

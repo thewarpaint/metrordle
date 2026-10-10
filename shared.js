@@ -289,14 +289,15 @@ var SUGGESTABLE_GAMES = [
   { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación →' },
   { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Encuentra la ruta →' },
   { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Forma filas de 3 →' },
+  { key: 'clasificador', href: '/clasificador/', name: 'Clasificador', glyph: '🪣', sub: 'Clasifica las estaciones →' },
 ];
 
 // Whether `gameKey` already has a completed result for `dateKey`, read
 // straight from that game's own saved state - "completed" rather than
 // merely "has an entry" matters for Metrordle/Laberinto/Metroguessr,
-// whose saved state can also represent an in-progress round; Memoria
-// and Metro Crush only ever persist a result once a round is actually
-// over, so any saved entry there already means done. Deliberately
+// whose saved state can also represent an in-progress round; Memoria,
+// Metro Crush, and Clasificador only ever persist a result once a round
+// is actually over, so any saved entry there already means done. Deliberately
 // ignores the debug date-nav's simulated "today" (a caller passes the
 // real dateKey it wants checked) - suggestions reflect the player's
 // actual daily activity, not whatever day they happen to be previewing.
@@ -310,7 +311,7 @@ function isGamePlayedToday(gameKey, dateKey) {
       case 'metrordle': return parsed.gameOver === true;
       case 'laberinto': return !!parsed.status && parsed.status !== 'playing';
       case 'metroguessr': return parsed.done === true;
-      default: return true; // memoria, metrocrush
+      default: return true; // memoria, metrocrush, clasificador
     }
   } catch (e) {
     return false;

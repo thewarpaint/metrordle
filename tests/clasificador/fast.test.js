@@ -122,6 +122,10 @@ async function main() {
           total: 9,
           correctByLine: { '1': 3, '6': 1, '7': 2, '8': 1, '12': 1, 'B': 0 },
         }));
+        // max (6) ahead of count (4) so the reveal banner's own
+        // maxStreakLine() has something to append, same convention as
+        // Metro Crush's.
+        localStorage.setItem('clasificador:streak', JSON.stringify({ count: 4, max: 6, lastResultDate: args.dateKey }));
       }, { dateKey: DATE });
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(300);
@@ -135,6 +139,9 @@ async function main() {
 
       const counts = await page.$$eval('#line-bars .line-bar__count', (els) => els.map((e) => e.textContent));
       assert.deepStrictEqual(counts, ['× 3', '× 1', '× 2', '× 1', '× 1', '× 0'], 'expected each line\'s planted "× N" count in the known fixture\'s line order (1, 6, 7, 8, 12, B)');
+
+      const banner = await page.$eval('#reveal-banner', (el) => el.textContent);
+      assert.strictEqual(banner, '¡Tiempo! 🔥 Racha: 4 días, máxima: 6 días', 'expected the reveal banner to show the planted streak, got: ' + banner);
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

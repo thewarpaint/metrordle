@@ -210,7 +210,14 @@ Site copy/UI is in Spanish (`es-MX`).
   win/loss puzzle to hook into (see "Streaks" below). Deliberately left
   out of `/admin/`'s own `RECORD_GAMES` (no all-time high-score record
   tracking yet, unlike Memoria's/Metro Crush's `records/{gameKey}`) -
-  another deliberate follow-up, not an oversight.
+  another deliberate follow-up, not an oversight. The reveal banner
+  itself now shows it too (`¡Tiempo! 🔥 Racha: N días` via
+  `MetroShared.formatStreak()`, plus a `, máxima: M días` only once
+  `state.maxStreak` is actually ahead of today's own `state.streak` -
+  `maxStreakLine()`, the same helper/convention as Metro Crush's own)
+  - this shipped after the leaderboard/streak-tracking itself did, so
+  for a while the streak was tracked and shown in the leaderboard rows
+  but never surfaced to the player on their own end screen.
 
   Also has a game number now, same `#N` convention as Metrordle/
   Laberinto/Metroguessr/Metro Crush (`MetroShared.getGameNumberForDateKey(

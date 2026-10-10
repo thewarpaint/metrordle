@@ -211,6 +211,19 @@ Site copy/UI is in Spanish (`es-MX`).
   out of `/admin/`'s own `RECORD_GAMES` (no all-time high-score record
   tracking yet, unlike Memoria's/Metro Crush's `records/{gameKey}`) -
   another deliberate follow-up, not an oversight.
+
+  Also has a game number now, same `#N` convention as Metrordle/
+  Laberinto/Metroguessr/Metro Crush (`MetroShared.getGameNumberForDateKey(
+  dateKey, START_DATE_KEY)`, set on `#game-title` in `startNewGame()`'s
+  own two branches) - `START_DATE_KEY` is `'2026-10-10'`, the day this
+  shipped, so that day is game #1. `/admin/`'s own `startDateKey` for
+  this collection was already `'2026-10-10'` from when the leaderboard
+  itself shipped (see "Leaderboards" below) - it needed no change here,
+  since admin's `#N` badge is computed purely from `startDateKey` and
+  today's date, not from anything this game's own page submits. Unlike
+  Metro Crush's own game number, this one isn't in any share text yet,
+  since Clasificador doesn't have share text at all yet either (see
+  above).
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each

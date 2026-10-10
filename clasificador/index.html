@@ -409,7 +409,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Metrordle: Clasificador</h1>
+          <h1 id="game-title">Metrordle: Clasificador</h1>
           <p class="dek">
             Clasifica cada estación en su línea antes de que se acabe el tiempo. Tienes 60 segundos.
           </p>
@@ -469,6 +469,7 @@
       (function () {
         'use strict';
 
+        var START_DATE_KEY = '2026-10-10';
         var ROUND_SECONDS = 60;
         var QUEUE_SIZE = 5;
         var FEATURED_LINE_COUNT = 6;
@@ -602,6 +603,7 @@
           }
 
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
           var game = buildGame(dateKey);
 
           document.documentElement.style.setProperty('--line', game.lines[0].color);
@@ -613,6 +615,7 @@
             var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state = {
               dateKey: dateKey,
+              gameNumber: gameNumber,
               status: 'done',
               lines: game.lines,
               total: saved.total,
@@ -623,6 +626,7 @@
               queue: [],
               timerId: null,
             };
+            $('game-title').textContent = 'Metrordle: Clasificador #' + state.gameNumber;
             // submitScore() itself checks state.leaderboardSubmitted and
             // no-ops if it's already true, so this is only ever a real
             // retry when an earlier attempt is known to have failed (or
@@ -641,6 +645,7 @@
 
           state = {
             dateKey: dateKey,
+            gameNumber: gameNumber,
             status: 'ready',
             lines: game.lines,
             nextStation: game.nextStation,
@@ -653,6 +658,7 @@
             maxStreak: 0,
           };
 
+          $('game-title').textContent = 'Metrordle: Clasificador #' + state.gameNumber;
           renderButtons();
           render();
         }

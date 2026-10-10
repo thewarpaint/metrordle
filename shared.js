@@ -311,7 +311,10 @@ function isGamePlayedToday(gameKey, dateKey) {
       case 'metrordle': return parsed.gameOver === true;
       case 'laberinto': return !!parsed.status && parsed.status !== 'playing';
       case 'metroguessr': return parsed.done === true;
-      default: return true; // memoria, metrocrush, clasificador
+      case 'memoria': return true;
+      case 'metrocrush': return true;
+      case 'clasificador': return true;
+      default: return false;
     }
   } catch (e) {
     return false;

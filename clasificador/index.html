@@ -927,8 +927,19 @@
             });
         }
 
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information. Same
+        // helper/convention as Metro Crush's own maxStreakLine().
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
         function renderReveal() {
-          els.revealBanner.textContent = '¡Tiempo!';
+          els.revealBanner.textContent = '¡Tiempo! 🔥 ' +
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
           els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
             (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
 

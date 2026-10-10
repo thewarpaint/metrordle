@@ -224,6 +224,14 @@ Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason (no live Firebase project's credentials belong
 in this repo, and the real page has no localStorage fallback).
 
+**`metrordle/fast.test.js`** covers Metrordle's own core page chrome
+that isn't already exercised by `metrordle/leaderboard.test.js` (which
+stays scoped to the leaderboard section itself) - for now just the
+line-of-the-day badge: after dismissing the mode modal, it reads
+"Línea `<id>`" (`shared.css`'s own `.line-badge`, promoted from
+Metrordle's old `.roundel`), and the old `.roundel`'s literal "STC"
+caption is gone from the page entirely.
+
 **`metrordle/leaderboard.test.js`** (no real-time waiting - plants a
 fabricated `history` array directly in `localStorage`, since
 `loadSavedState()` only checks that `history` is an array, not that the
@@ -236,11 +244,7 @@ entries render as the attempts count (or "-" for a loss) with a "🧠"
 suffix on hard-mode ones:
 - The leaderboard section renders above the guess-board details, with
   the right title, and degrades gracefully to an empty-state message
-  rather than erroring when Firebase isn't reachable. The same test also
-  checks the (unrelated to the leaderboard, but this is the only test
-  file here that already reaches a loaded page) line-of-the-day badge -
-  shared.css's own `.line-badge` - reads "Línea `<id>`", not the old
-  `.roundel`'s literal "STC" caption.
+  rather than erroring when Firebase isn't reachable.
 - Saving an alias persists it under the site-wide `metrordle:alias` key,
   without a page error, even under `?debug=true`.
 - A play under `?debug=true` never marks `leaderboardSubmitted` true.

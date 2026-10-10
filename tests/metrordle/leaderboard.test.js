@@ -85,19 +85,6 @@ async function main() {
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'reveal should show for the planted won state');
 
-      // Off-topic for this file's own "leaderboard" scope, but there's no
-      // dedicated Metrordle core-mechanics test file to put it in instead,
-      // and this is the one test here that already reaches a loaded page -
-      // the line-of-the-day badge (shared.css's own .line-badge, promoted
-      // from this exact element - see its own comment there) reads
-      // "Línea <id>", not the old .roundel's literal "STC" caption.
-      const lineBadgeLabel = await page.$eval('#line-badge .line-badge__label', (el) => el.textContent);
-      assert.strictEqual(lineBadgeLabel, 'Línea');
-      const lineBadgeId = await page.$eval('#line-badge-id', (el) => el.textContent);
-      assert.ok(lineBadgeId.length > 0, 'expected a non-empty line id in the badge');
-      const bodyText = await page.$eval('body', (el) => el.textContent);
-      assert.ok(!bodyText.includes('STC'), 'the old literal "STC" caption should be gone');
-
       const titleText = await page.$eval('.leaderboard__title', (el) => el.textContent);
       assert.strictEqual(titleText, 'Mejores 5 puntajes hoy');
 

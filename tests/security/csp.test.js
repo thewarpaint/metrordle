@@ -37,7 +37,7 @@ const assert = require('assert');
 const { chromium } = require('playwright');
 const { startServer, test, runAll } = require('../lib/harness');
 
-const PAGES = ['/', '/memoria/', '/laberinto/', '/metroguessr/', '/metrocrush/', '/admin/', '/configurar/', '/purge/'];
+const PAGES = ['/', '/memoria/', '/laberinto/', '/metroguessr/', '/metrocrush/', '/clasificador/', '/admin/', '/configurar/', '/purge/'];
 
 async function collectCspViolations(page) {
   await page.addInitScript(() => {

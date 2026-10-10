@@ -22,6 +22,7 @@ const FILES = [
   'metroguessr/share.test.js',
   'metrocrush/leaderboard.test.js',
   'metrocrush/selection.test.js',
+  'clasificador/fast.test.js',
   'admin/admin.test.js',
   'configurar/config.test.js',
   'shared/leaderboard-query.test.js',

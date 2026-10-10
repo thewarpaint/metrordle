@@ -38,8 +38,8 @@ async function main() {
       await page1.waitForTimeout(200);
       await page2.waitForTimeout(200);
 
-      const lines1 = await page1.$$eval('#buckets .bucket', (els) => els.map((e) => e.dataset.lineId));
-      const lines2 = await page2.$$eval('#buckets .bucket', (els) => els.map((e) => e.dataset.lineId));
+      const lines1 = await page1.$$eval('#buckets .line-badge', (els) => els.map((e) => e.dataset.lineId));
+      const lines2 = await page2.$$eval('#buckets .line-badge', (els) => els.map((e) => e.dataset.lineId));
       assert.deepStrictEqual(lines1, ['1', '4', '5', '6', '7', '12'], 'expected the known fixture lines in MetroShared.LINES\' own ascending order, got: ' + lines1);
       assert.deepStrictEqual(lines1, lines2, 'the same date should pick the exact same 6 lines in two independent sessions');
 
@@ -70,7 +70,7 @@ async function main() {
 
       // Línea 4 is featured today but Pantitlán isn't on it - wrong tap
       // should shake the card and leave the score at 0.
-      await page.click('#buckets .bucket[data-line-id="4"]');
+      await page.click('#buckets .line-badge[data-line-id="4"]');
       await page.waitForTimeout(450);
 
       const statusAfterWrong = await page.$eval('#status', (el) => el.textContent);
@@ -81,7 +81,7 @@ async function main() {
       // Línea 5 is Pantitlán's OTHER real line among today's 6 (not
       // Línea 1) - this is the actual point of the test: a station's
       // non-"primary" valid line must also be accepted.
-      await page.click('#buckets .bucket[data-line-id="5"]');
+      await page.click('#buckets .line-badge[data-line-id="5"]');
       await page.waitForTimeout(450);
 
       const statusAfterCorrect = await page.$eval('#status', (el) => el.textContent);
@@ -157,7 +157,7 @@ async function main() {
       await page.waitForTimeout(200);
 
       assert.strictEqual(await page.locator('#date-debug').isVisible(), true);
-      const linesBefore = await page.$$eval('#buckets .bucket', (els) => els.map((e) => e.dataset.lineId));
+      const linesBefore = await page.$$eval('#buckets .line-badge', (els) => els.map((e) => e.dataset.lineId));
 
       await page.click('#date-next');
       await page.waitForTimeout(200);
@@ -166,7 +166,7 @@ async function main() {
 
       await page.click('#date-prev');
       await page.waitForTimeout(200);
-      const linesAfter = await page.$$eval('#buckets .bucket', (els) => els.map((e) => e.dataset.lineId));
+      const linesAfter = await page.$$eval('#buckets .line-badge', (els) => els.map((e) => e.dataset.lineId));
       assert.deepStrictEqual(linesAfter, linesBefore, 'navigating back to the fixture date should restore its own deterministic lines');
     } finally {
       await context.close();

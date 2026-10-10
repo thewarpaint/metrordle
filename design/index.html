@@ -189,23 +189,31 @@
           var gallery = document.getElementById('lines-gallery');
           var lines = lineSample();
 
-          var bucketRow = buildRow();
+          // The first pattern /design/ has actually settled: Clasificador's
+          // own .bucket (was bordered) and Metrordle's own .roundel (was a
+          // bordered circle with a literal "STC" caption) are both gone,
+          // replaced by this one shared .line-badge - a REAL shared.css
+          // class now, not a .design- prefixed stand-in, used here exactly
+          // as Clasificador's own classification buttons use it (see
+          // AGENTS.md and shared.css's own comment on .line-badge).
+          var lineBadgeRow = buildRow();
           lines.forEach(function (line) {
             var badge = document.createElement('div');
-            badge.className = 'design-badge design-badge--bordered';
+            badge.className = 'line-badge';
+            badge.style.width = '3rem';
             badge.style.setProperty('--badge-bg', line.color);
             badge.style.setProperty('--badge-ink', line.textColor);
-            var caption = document.createElement('span');
-            caption.className = 'design-badge__caption';
-            caption.textContent = 'Línea';
+            var label = document.createElement('span');
+            label.className = 'line-badge__label';
+            label.textContent = 'Línea';
             var id = document.createElement('span');
-            id.className = 'design-badge__id';
+            id.className = 'line-badge__id';
             id.textContent = line.id;
-            badge.appendChild(caption);
+            badge.appendChild(label);
             badge.appendChild(id);
-            bucketRow.appendChild(badge);
+            lineBadgeRow.appendChild(badge);
           });
-          gallery.appendChild(buildExample(bucketRow, '<code>.bucket</code> · botón de clasificación, Clasificador.'));
+          gallery.appendChild(buildExample(lineBadgeRow, '<code>.line-badge</code> · ✅ consolidado - botón de clasificación de Clasificador e indicador de línea de Metrordle, ambos ahora iguales.'));
 
           var compactRow = buildRow();
           lines.forEach(function (line) {
@@ -240,44 +248,6 @@
             dotRow.appendChild(dot);
           });
           gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · resumen de ruta, Laberinto.'));
-
-          var roundelWrap = document.createElement('div');
-          roundelWrap.style.display = 'flex';
-          roundelWrap.style.flexDirection = 'column';
-          roundelWrap.style.gap = '0.6rem';
-          ['2', 'A'].forEach(function (id) {
-            var line = lineById(id);
-            var row = document.createElement('div');
-            row.className = 'design-roundel-row';
-
-            var roundel = document.createElement('div');
-            roundel.className = 'design-roundel';
-            roundel.style.setProperty('--badge-bg', line.color);
-            roundel.style.setProperty('--badge-ink', line.textColor);
-            var idEl = document.createElement('span');
-            idEl.className = 'design-roundel__id';
-            idEl.textContent = line.id;
-            var stc = document.createElement('span');
-            stc.className = 'design-roundel__stc';
-            stc.textContent = 'STC';
-            roundel.appendChild(idEl);
-            roundel.appendChild(stc);
-
-            var textWrap = document.createElement('div');
-            var nameEl = document.createElement('div');
-            nameEl.className = 'design-roundel-row__name';
-            nameEl.textContent = line.name;
-            var countEl = document.createElement('div');
-            countEl.className = 'design-roundel-row__count';
-            countEl.textContent = line.stations.length + ' estaciones en total';
-            textWrap.appendChild(nameEl);
-            textWrap.appendChild(countEl);
-
-            row.appendChild(roundel);
-            row.appendChild(textWrap);
-            roundelWrap.appendChild(row);
-          });
-          gallery.appendChild(buildExample(roundelWrap, '<code>.roundel</code>/<code>.roundel-row</code> · encabezado del propio juego, Metrordle - identifica la línea del día, junto a su nombre completo y su total de estaciones.'));
         }
 
         function renderStationsGallery() {

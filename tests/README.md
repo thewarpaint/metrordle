@@ -236,7 +236,11 @@ entries render as the attempts count (or "-" for a loss) with a "🧠"
 suffix on hard-mode ones:
 - The leaderboard section renders above the guess-board details, with
   the right title, and degrades gracefully to an empty-state message
-  rather than erroring when Firebase isn't reachable.
+  rather than erroring when Firebase isn't reachable. The same test also
+  checks the (unrelated to the leaderboard, but this is the only test
+  file here that already reaches a loaded page) line-of-the-day badge -
+  shared.css's own `.line-badge` - reads "Línea `<id>`", not the old
+  `.roundel`'s literal "STC" caption.
 - Saving an alias persists it under the site-wide `metrordle:alias` key,
   without a page error, even under `?debug=true`.
 - A play under `?debug=true` never marks `leaderboardSubmitted` true.
@@ -526,15 +530,16 @@ AGENTS.md's "Site config" section):
 reference page (see AGENTS.md's own bullet for it) - deliberately
 light, since this page's exact shape is expected to keep changing as
 the actual pattern-consolidation work happens:
-- The "Líneas" (5), "Estaciones" (4), and "Listas de estaciones" (2)
+- The "Líneas" (4), "Estaciones" (4), and "Listas de estaciones" (2)
   galleries each render their own script's expected example count, with
   no page errors.
-- Spot-checks that the first "Líneas" example (the bucket-style badge)
-  renders one badge per sampled line, the roundel example renders one
-  roundel row per sampled line, the station-card example renders one
-  card per sampled station, the platform-list example renders one row
-  per the puzzle's own 5 stations, and the queue-list example renders
-  one card per sampled station with exactly one marked active -
+- Spot-checks that the first "Líneas" example - the one pattern this
+  page has actually settled on, rendered with the real shared.css
+  `.line-badge` class rather than a `.design-` prefixed stand-in -
+  renders one badge per sampled line, the station-card example renders
+  one card per sampled station, the platform-list example renders one
+  row per the puzzle's own 5 stations, and the queue-list example
+  renders one card per sampled station with exactly one marked active -
   confirming the galleries actually populated real entries, not empty
   rows.
 

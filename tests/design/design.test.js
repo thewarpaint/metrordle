@@ -26,7 +26,7 @@ async function main() {
       await page.waitForTimeout(300);
 
       const lineExamples = await page.locator('#lines-gallery .design-example').count();
-      assert.strictEqual(lineExamples, 5, 'expected 5 line-indicator examples (bucket, compact, circle, dot, roundel)');
+      assert.strictEqual(lineExamples, 4, 'expected 4 line-indicator examples (line-badge, compact, circle, dot)');
 
       const stationExamples = await page.locator('#stations-gallery .design-example').count();
       assert.strictEqual(stationExamples, 4, 'expected 4 station-display examples (node, card, badge, plain text)');
@@ -36,12 +36,11 @@ async function main() {
 
       // One badge/circle/dot/card/row per sampled line or station -
       // confirms the galleries actually rendered real entries, not
-      // empty rows.
-      const bucketBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.design-badge').count();
-      assert.strictEqual(bucketBadges, 5, 'expected one bucket-style badge per sampled line');
-
-      const roundelRows = await page.locator('#lines-gallery .design-example').nth(4).locator('.design-roundel-row').count();
-      assert.strictEqual(roundelRows, 2, 'expected one roundel row per sampled line in that example');
+      // empty rows. The first "Líneas" example is the one already-
+      // consolidated pattern (shared.css's own real .line-badge, not a
+      // .design- prefixed stand-in - see shared.css's own comment on it).
+      const lineBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.line-badge').count();
+      assert.strictEqual(lineBadges, 5, 'expected one .line-badge per sampled line');
 
       const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.design-station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');

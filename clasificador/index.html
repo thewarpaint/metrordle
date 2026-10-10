@@ -150,7 +150,7 @@
          the player is actively classifying, and tinting it by its real
          line would hand them the answer before they've guessed. Only
          the buckets themselves (the thing being guessed, not the
-         mystery) get colored by line - see .bucket below. */
+         mystery) get colored by line - see .line-badge below. */
       .queue-card__icon {
         align-items: center;
         background: var(--paper-raised);
@@ -232,64 +232,44 @@
         display: none;
       }
 
-      /* Same shape as Metroguessr's own .target-icon-marker reveal
-         badge - a square with just the top-right corner rounded - but
-         colored by line and holding the line's own name/number instead
-         of a station icon (there's no "the" icon for a line anyway). */
-      .bucket {
-        align-items: center;
-        aspect-ratio: 1;
-        border: 3px solid var(--rule-strong);
-        border-radius: 0 33% 0 0;
+      /* The base shape/color/label (a square with just the top-right
+         corner rounded, colored by line, holding the line's own
+         name/number) now lives in shared.css as .line-badge - promoted
+         from this exact button once Metrordle's own .roundel adopted it
+         too (see shared.css's own comment on .line-badge). Only this
+         button's own interaction states stay page-local: the pointer
+         affordance/focus ring, and the wrong/correct tap feedback. */
+      .line-badge {
         cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        font-family: 'Overpass', sans-serif;
-        justify-content: center;
         padding: 0;
         transition: transform 0.12s ease;
       }
 
-      .bucket:active {
+      .line-badge:active {
         transform: translateY(1px) scale(0.97);
       }
 
-      .bucket:focus-visible {
+      .line-badge:focus-visible {
         outline: 3px solid var(--focus);
         outline-offset: 3px;
       }
 
-      .bucket__label {
-        font-size: 0.36rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        opacity: 0.85;
-        text-transform: uppercase;
-      }
-
-      .bucket__id {
-        font-size: 1.05rem;
-        font-weight: 900;
-        line-height: 1;
-        margin-top: 0.05rem;
-      }
-
-      .bucket--wrong {
-        animation: bucketWrong 0.36s ease;
+      .line-badge--wrong {
+        animation: lineBadgeWrong 0.36s ease;
         box-shadow: 0 0 0 4px var(--error, #c81e3a);
       }
 
-      @keyframes bucketWrong {
+      @keyframes lineBadgeWrong {
         0%, 100% { transform: translateX(0); }
         25% { transform: translateX(-4px); }
         75% { transform: translateX(4px); }
       }
 
-      .bucket--correct {
-        animation: bucketCorrect 0.4s ease;
+      .line-badge--correct {
+        animation: lineBadgeCorrect 0.4s ease;
       }
 
-      @keyframes bucketCorrect {
+      @keyframes lineBadgeCorrect {
         0% { transform: scale(1); }
         40% { transform: scale(1.12); }
         100% { transform: scale(1); }
@@ -668,19 +648,19 @@
           state.lines.forEach(function (line) {
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'bucket';
-            btn.style.background = line.color;
-            btn.style.color = line.textColor;
+            btn.className = 'line-badge';
+            btn.style.setProperty('--badge-bg', line.color);
+            btn.style.setProperty('--badge-ink', line.textColor);
             btn.dataset.lineId = line.id;
             btn.setAttribute('aria-label', line.name);
 
             var label = document.createElement('span');
-            label.className = 'bucket__label';
+            label.className = 'line-badge__label';
             label.textContent = 'Línea';
             btn.appendChild(label);
 
             var idEl = document.createElement('span');
-            idEl.className = 'bucket__id';
+            idEl.className = 'line-badge__id';
             idEl.textContent = line.id;
             btn.appendChild(idEl);
 
@@ -835,10 +815,10 @@
             renderQueueCards(ghostInfo);
 
             if (bucketEl) {
-              bucketEl.classList.remove('bucket--correct');
+              bucketEl.classList.remove('line-badge--correct');
               void bucketEl.offsetWidth;
-              bucketEl.classList.add('bucket--correct');
-              setTimeout(function () { bucketEl.classList.remove('bucket--correct'); }, 420);
+              bucketEl.classList.add('line-badge--correct');
+              setTimeout(function () { bucketEl.classList.remove('line-badge--correct'); }, 420);
             }
           } else {
             var activeEl = els.queue.querySelector('.queue-card--active');
@@ -849,10 +829,10 @@
               setTimeout(function () { activeEl.classList.remove('queue-card--shake'); }, 380);
             }
             if (bucketEl) {
-              bucketEl.classList.remove('bucket--wrong');
+              bucketEl.classList.remove('line-badge--wrong');
               void bucketEl.offsetWidth;
-              bucketEl.classList.add('bucket--wrong');
-              setTimeout(function () { bucketEl.classList.remove('bucket--wrong'); }, 380);
+              bucketEl.classList.add('line-badge--wrong');
+              setTimeout(function () { bucketEl.classList.remove('line-badge--wrong'); }, 380);
             }
           }
         }

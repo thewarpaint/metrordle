@@ -214,9 +214,9 @@
 
       .buckets {
         display: grid;
-        gap: 0.4rem;
-        grid-template-columns: repeat(5, 1fr);
-        padding: 0.2rem 0.9rem 1.2rem;
+        gap: 0.3rem;
+        grid-template-columns: repeat(6, 1fr);
+        padding: 0.2rem 0.7rem 1.2rem;
       }
 
       .buckets[hidden] {
@@ -251,15 +251,15 @@
       }
 
       .bucket__label {
-        font-size: 0.42rem;
+        font-size: 0.36rem;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         opacity: 0.85;
         text-transform: uppercase;
       }
 
       .bucket__id {
-        font-size: 1.25rem;
+        font-size: 1.05rem;
         font-weight: 900;
         line-height: 1;
         margin-top: 0.05rem;
@@ -452,7 +452,7 @@
 
         var ROUND_SECONDS = 60;
         var QUEUE_SIZE = 5;
-        var FEATURED_LINE_COUNT = 5;
+        var FEATURED_LINE_COUNT = 6;
 
         function $(id) {
           return document.getElementById(id);
@@ -495,13 +495,13 @@
         }
 
         // Builds the day's whole puzzle from ONE seeded generator, so
-        // both "which 5 lines" and "what order stations get dealt in"
+        // both "which 6 lines" and "what order stations get dealt in"
         // are fully reproducible from dateKey alone - every call with
         // the same dateKey (same calendar day, or the same debug-nav
         // date) produces the identical sequence, same deterministic-
         // per-day convention every other game in this family uses (see
         // MetroShared.createSeededRandom()). A station that's genuinely
-        // on more than one of today's 5 lines (a real transfer station,
+        // on more than one of today's 6 lines (a real transfer station,
         // e.g. Pantitlán) is dealt ONCE with every one of its real
         // lines recorded as a correct answer - nothing is filtered out
         // to dodge the ambiguity.
@@ -515,7 +515,7 @@
           // Kept in MetroShared.LINES' own fixed order (not shuffle
           // order) so the bucket row always reads left-to-right the
           // same way the real line numbering does, regardless of which
-          // 5 happened to get picked.
+          // 6 happened to get picked.
           var lines = MetroShared.LINES.filter(function (line) {
             return featuredIds[line.id];
           });
@@ -754,7 +754,7 @@
           setTimeout(function () { ghost.remove(); }, 420);
         }
 
-        // A station genuinely on more than one of today's 5 lines (a
+        // A station genuinely on more than one of today's 6 lines (a
         // real transfer station) counts correct on ANY of its real
         // lines - whichever bucket the player actually taps gets the
         // credit in correctByLine, not some fixed "canonical" line.

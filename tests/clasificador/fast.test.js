@@ -4,29 +4,30 @@
 // correctness, and basic round lifecycle - no real-time waiting beyond
 // a couple of short animation settles.
 //
-// 2026-11-13 is used throughout as a known-good fixture date: with the
-// real MetroShared.LINES data, 'metrordle-clasificador-2026-11-13'
-// deterministically picks Líneas 1/2/3/4/9, and the first station
-// dealt is 'Tacubaya' - itself a real transfer station between Línea 1
-// and Línea 9 (though not Línea 7, which this fixture date doesn't
-// even feature), making it a genuine multi-line case to test against,
-// not a contrived one. Recomputed independently in a throwaway Node
-// script against the real shared.js before writing this file - if a
-// future change to MetroShared.LINES or the seeded-shuffle algorithm
-// ever changes this date's picks, this file's own assertions will fail
-// loudly rather than silently testing the wrong scenario.
+// 2026-11-19 is used throughout as a known-good fixture date: with the
+// real MetroShared.LINES data, 'metrordle-clasificador-2026-11-19'
+// deterministically picks Líneas 1/4/5/6/7/12, and the first station
+// dealt is 'Pantitlán' - itself a real transfer station between Línea
+// 1 and Línea 5 (among others; not every one of its real lines is
+// featured today), making it a genuine multi-line case to test
+// against, not a contrived one. Recomputed independently in a
+// throwaway Node script against the real shared.js before writing this
+// file - if a future change to MetroShared.LINES, FEATURED_LINE_COUNT,
+// or the seeded-shuffle algorithm ever changes this date's picks, this
+// file's own assertions will fail loudly rather than silently testing
+// the wrong scenario.
 
 const assert = require('assert');
 const { chromium } = require('playwright');
 const { startServer, test, runAll } = require('../lib/harness');
 
-const FIXTURE_DATE = '2026-11-13';
+const FIXTURE_DATE = '2026-11-19';
 
 async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('the day\'s 5 featured lines and station dealing order are deterministic - identical across independent sessions', async () => {
+  test('the day\'s 6 featured lines and station dealing order are deterministic - identical across independent sessions', async () => {
     const context1 = await browser.newContext({ viewport: { width: 390, height: 900 } });
     const page1 = await context1.newPage();
     const context2 = await browser.newContext({ viewport: { width: 390, height: 900 } });
@@ -39,13 +40,13 @@ async function main() {
 
       const lines1 = await page1.$$eval('#buckets .bucket', (els) => els.map((e) => e.dataset.lineId));
       const lines2 = await page2.$$eval('#buckets .bucket', (els) => els.map((e) => e.dataset.lineId));
-      assert.deepStrictEqual(lines1, ['1', '2', '3', '4', '9'], 'expected the known fixture lines in MetroShared.LINES\' own ascending order, got: ' + lines1);
-      assert.deepStrictEqual(lines1, lines2, 'the same date should pick the exact same 5 lines in two independent sessions');
+      assert.deepStrictEqual(lines1, ['1', '4', '5', '6', '7', '12'], 'expected the known fixture lines in MetroShared.LINES\' own ascending order, got: ' + lines1);
+      assert.deepStrictEqual(lines1, lines2, 'the same date should pick the exact same 6 lines in two independent sessions');
 
       const names1 = await page1.$$eval('#queue .queue-card .queue-card__name', (els) => els.map((e) => e.textContent));
       const names2 = await page2.$$eval('#queue .queue-card .queue-card__name', (els) => els.map((e) => e.textContent));
       assert.deepStrictEqual(names1, names2, 'the same date should deal the exact same station queue in two independent sessions');
-      assert.strictEqual(names1[names1.length - 1], 'Tacubaya', 'expected the known fixture\'s first-dealt (active, bottom-of-queue) station, got: ' + names1[names1.length - 1]);
+      assert.strictEqual(names1[names1.length - 1], 'Pantitlán', 'expected the known fixture\'s first-dealt (active, bottom-of-queue) station, got: ' + names1[names1.length - 1]);
     } finally {
       await context1.close();
       await context2.close();
@@ -65,28 +66,28 @@ async function main() {
       await page.waitForTimeout(150);
 
       const activeName = await page.$eval('.queue-card--active .queue-card__name', (el) => el.textContent);
-      assert.strictEqual(activeName, 'Tacubaya', 'expected the fixture\'s known first active station');
+      assert.strictEqual(activeName, 'Pantitlán', 'expected the fixture\'s known first active station');
 
-      // Línea 2 is featured today but Tacubaya isn't on it - wrong tap
+      // Línea 4 is featured today but Pantitlán isn't on it - wrong tap
       // should shake the card and leave the score at 0.
-      await page.click('#buckets .bucket[data-line-id="2"]');
+      await page.click('#buckets .bucket[data-line-id="4"]');
       await page.waitForTimeout(450);
 
       const statusAfterWrong = await page.$eval('#status', (el) => el.textContent);
       assert.ok(statusAfterWrong.endsWith('0 correctas'), 'a wrong guess should not change the score, got: ' + statusAfterWrong);
       const stillActiveName = await page.$eval('.queue-card--active .queue-card__name', (el) => el.textContent);
-      assert.strictEqual(stillActiveName, 'Tacubaya', 'the wrongly-guessed station should still be active, not advanced');
+      assert.strictEqual(stillActiveName, 'Pantitlán', 'the wrongly-guessed station should still be active, not advanced');
 
-      // Línea 9 is Tacubaya's OTHER real line among today's 5 (not
+      // Línea 5 is Pantitlán's OTHER real line among today's 6 (not
       // Línea 1) - this is the actual point of the test: a station's
       // non-"primary" valid line must also be accepted.
-      await page.click('#buckets .bucket[data-line-id="9"]');
+      await page.click('#buckets .bucket[data-line-id="5"]');
       await page.waitForTimeout(450);
 
       const statusAfterCorrect = await page.$eval('#status', (el) => el.textContent);
       assert.ok(statusAfterCorrect.endsWith('1 correcta'), 'a correct guess on the non-primary valid line should count, got: ' + statusAfterCorrect);
       const newActiveName = await page.$eval('.queue-card--active .queue-card__name', (el) => el.textContent);
-      assert.notStrictEqual(newActiveName, 'Tacubaya', 'the queue should have advanced past the resolved station');
+      assert.notStrictEqual(newActiveName, 'Pantitlán', 'the queue should have advanced past the resolved station');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {
@@ -102,7 +103,7 @@ async function main() {
       await page.waitForTimeout(200);
 
       const href = await page.$eval('.queue-card--active .queue-card__icon use', (el) => el.getAttribute('href'));
-      assert.strictEqual(href, '/station-icons.svg#tacubaya');
+      assert.strictEqual(href, '/station-icons.svg#pantitlan');
     } finally {
       await context.close();
     }
@@ -118,8 +119,8 @@ async function main() {
       await page.goto(server.baseUrl + '/clasificador/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
       await page.evaluate((args) => {
         localStorage.setItem('clasificador:' + args.dateKey, JSON.stringify({
-          total: 7,
-          correctByLine: { '1': 3, '6': 1, '7': 2, '12': 1, 'B': 0 },
+          total: 9,
+          correctByLine: { '1': 3, '6': 1, '7': 2, '8': 1, '12': 1, 'B': 0 },
         }));
       }, { dateKey: DATE });
       await page.reload({ waitUntil: 'networkidle' });
@@ -130,10 +131,10 @@ async function main() {
       assert.strictEqual(await page.locator('#buckets').isVisible(), false, 'the buckets should stay hidden once done');
 
       const total = await page.$eval('#reveal-total', (el) => el.textContent);
-      assert.ok(total.includes('7'), 'expected the planted total in the reveal text, got: ' + total);
+      assert.ok(total.includes('9'), 'expected the planted total in the reveal text, got: ' + total);
 
       const counts = await page.$$eval('#line-bars .line-bar__count', (els) => els.map((e) => e.textContent));
-      assert.deepStrictEqual(counts, ['× 3', '× 1', '× 2', '× 1', '× 0'], 'expected each line\'s planted "× N" count in the known fixture\'s line order (1, 6, 7, 12, B)');
+      assert.deepStrictEqual(counts, ['× 3', '× 1', '× 2', '× 1', '× 1', '× 0'], 'expected each line\'s planted "× N" count in the known fixture\'s line order (1, 6, 7, 8, 12, B)');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {
@@ -154,7 +155,7 @@ async function main() {
       await page.click('#date-next');
       await page.waitForTimeout(200);
       const dateLabel = await page.$eval('#date-debug-label', (el) => el.textContent);
-      assert.strictEqual(dateLabel, '2026-11-14');
+      assert.strictEqual(dateLabel, '2026-11-20');
 
       await page.click('#date-prev');
       await page.waitForTimeout(200);

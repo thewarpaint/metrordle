@@ -154,7 +154,7 @@ Site copy/UI is in Spanish (`es-MX`).
   yet.
 - **`/clasificador/`** - Metrordle: Clasificador: a vertical queue of
   Metro stations (icon + name, same pictogram-on-a-badge convention as
-  the other games) stacks above a row of 5 "bucket" badges, one per
+  the other games) stacks above a row of 6 "bucket" badges, one per
   featured Metro line - tap the bucket for the bottom (active) station's
   own line before the 60-second timer runs out. A wrong tap shakes the
   active card in place (`.queue-card--shake`) and flashes the tapped
@@ -167,28 +167,28 @@ Site copy/UI is in Spanish (`es-MX`).
   Metro Crush originally did above, with that infrastructure left as a
   follow-up once the mechanic itself is validated.
 
-  Both **which 5 of the real 12 Metro lines are featured** and **the
+  Both **which 6 of the real 12 Metro lines are featured** and **the
   order stations get dealt in** are fully deterministic per calendar
   day, from a single `MetroShared.createSeededRandom('metrordle-
   clasificador-' + dateKey)` generator consumed in a fixed sequence
-  (pick the 5 lines first, then shuffle the day's station pool, then
+  (pick the 6 lines first, then shuffle the day's station pool, then
   reshuffle that same pool - using the SAME generator, not a fresh
   `Math.random()` - every time a 60-second round deals through it more
   than once) - the whole session's dealing order stays a pure function
   of `dateKey`, matching every other game's own single-seed-per-day
-  convention. The 5 featured lines are re-sorted back into
+  convention. The 6 featured lines are re-sorted back into
   `MetroShared.LINES`' own fixed order after the seeded shuffle picks
   them, so the bucket row always reads left-to-right the way the real
-  line numbering does, regardless of which 5 happened to get drawn.
+  line numbering does, regardless of which 6 happened to get drawn.
 
-  A real transfer station that lands on more than one of the day's 5
+  A real transfer station that lands on more than one of the day's 6
   featured lines (common - e.g. Pantitlán alone is on 4 of the real 12
   lines) is **never filtered out or forced onto one "canonical" line**:
-  it's dealt once with every one of its real lines among today's 5
+  it's dealt once with every one of its real lines among today's 6
   recorded as a correct answer (`item.lineIds`, an array, not a single
   id), and tapping any of them counts - credit in `correctByLine` goes
   to whichever bucket the player actually tapped, not a fixed choice.
-  This is deliberately NOT the same shape as the per-line "which 5 are
+  This is deliberately NOT the same shape as the per-line "which 6 are
   playable today" filtering decision - the ambiguity is the point of
   the mechanic, not something to design around.
 

@@ -106,6 +106,12 @@
           <p class="design-board__dek">Cómo se muestra una estación concreta - con o sin su línea, con o sin ícono.</p>
           <div id="stations-gallery"></div>
         </div>
+
+        <div class="sign design-board">
+          <h2 class="design-board__title">Listas de estaciones</h2>
+          <p class="design-board__dek">Cómo se muestra una lista de varias estaciones seguidas, no una estación suelta.</p>
+          <div id="station-lists-gallery"></div>
+        </div>
       </div>
     </div>
 
@@ -234,6 +240,44 @@
             dotRow.appendChild(dot);
           });
           gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · resumen de ruta, Laberinto.'));
+
+          var roundelWrap = document.createElement('div');
+          roundelWrap.style.display = 'flex';
+          roundelWrap.style.flexDirection = 'column';
+          roundelWrap.style.gap = '0.6rem';
+          ['2', 'A'].forEach(function (id) {
+            var line = lineById(id);
+            var row = document.createElement('div');
+            row.className = 'design-roundel-row';
+
+            var roundel = document.createElement('div');
+            roundel.className = 'design-roundel';
+            roundel.style.setProperty('--badge-bg', line.color);
+            roundel.style.setProperty('--badge-ink', line.textColor);
+            var idEl = document.createElement('span');
+            idEl.className = 'design-roundel__id';
+            idEl.textContent = line.id;
+            var stc = document.createElement('span');
+            stc.className = 'design-roundel__stc';
+            stc.textContent = 'STC';
+            roundel.appendChild(idEl);
+            roundel.appendChild(stc);
+
+            var textWrap = document.createElement('div');
+            var nameEl = document.createElement('div');
+            nameEl.className = 'design-roundel-row__name';
+            nameEl.textContent = line.name;
+            var countEl = document.createElement('div');
+            countEl.className = 'design-roundel-row__count';
+            countEl.textContent = line.stations.length + ' estaciones en total';
+            textWrap.appendChild(nameEl);
+            textWrap.appendChild(countEl);
+
+            row.appendChild(roundel);
+            row.appendChild(textWrap);
+            roundelWrap.appendChild(row);
+          });
+          gallery.appendChild(buildExample(roundelWrap, '<code>.roundel</code>/<code>.roundel-row</code> · encabezado del propio juego, Metrordle - identifica la línea del día, junto a su nombre completo y su total de estaciones.'));
         }
 
         function renderStationsGallery() {
@@ -283,8 +327,71 @@
           gallery.appendChild(buildExample(textRow, 'Texto simple · migas de pan de Laberinto, estación revelada de Metroguessr - sin ícono ni color.'));
         }
 
+        function renderStationListsGallery() {
+          var gallery = document.getElementById('station-lists-gallery');
+          var line = lineById('2');
+
+          // A real (if not necessarily consecutive) Línea 2 sequence,
+          // two of the five marked "incorrect" to show both marks at
+          // once - this is Metrordle's OWN reveal-state look (a finished
+          // round), not its live drag-to-reorder state.
+          var PLATFORM_SAMPLE = [
+            { name: 'Tacuba', correct: true },
+            { name: 'Hidalgo', correct: true },
+            { name: 'Bellas Artes', correct: false },
+            { name: 'Zócalo', correct: false },
+            { name: 'Pino Suárez', correct: true },
+          ];
+
+          var platform = document.createElement('ol');
+          platform.className = 'design-platform';
+          PLATFORM_SAMPLE.forEach(function (station, index) {
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var row = document.createElement('li');
+            row.className = 'design-platform__row ' + (station.correct ? 'design-platform__row--correct' : 'design-platform__row--incorrect');
+
+            var rank = document.createElement('span');
+            rank.className = 'design-platform__rank';
+            rank.textContent = String(index + 1);
+            row.appendChild(rank);
+
+            var icon = makeIcon('design-platform__icon', slug);
+            icon.style.color = line.color;
+            row.appendChild(icon);
+
+            var name = document.createElement('span');
+            name.className = 'design-platform__name';
+            name.textContent = station.name;
+            row.appendChild(name);
+
+            var mark = document.createElement('span');
+            mark.className = 'design-platform__mark';
+            mark.textContent = station.correct ? '🟩' : '🟥';
+            row.appendChild(mark);
+
+            platform.appendChild(row);
+          });
+          gallery.appendChild(buildExample(platform, '<code>.platform</code>/<code>.platform__row</code> · orden de las 5 estaciones, Metrordle - numerada, con el ícono coloreado por la línea del día y (al terminar la ronda) una marca 🟩/🟥 por fila.'));
+
+          var queue = document.createElement('div');
+          queue.className = 'design-queue';
+          STATION_SAMPLE.forEach(function (station, index) {
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var card = document.createElement('div');
+            card.className = 'design-queue-card' + (index === 0 ? ' design-queue-card--active' : '');
+            card.appendChild(makeIcon('design-queue-card__icon', slug));
+            var name = document.createElement('span');
+            name.className = 'design-queue-card__name';
+            name.textContent = station.name;
+            card.appendChild(name);
+            queue.appendChild(card);
+          });
+          gallery.appendChild(buildExample(queue, '<code>.queue</code>/<code>.queue-card</code> · fila de estaciones por clasificar, Clasificador - sin numerar, sin colorear por línea (revelaría la respuesta), con la estación activa destacada sobre las siguientes.'));
+        }
+
         renderLinesGallery();
         renderStationsGallery();
+        renderStationListsGallery();
       })();
     </script>
 

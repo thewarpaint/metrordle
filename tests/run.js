@@ -26,6 +26,7 @@ const FILES = [
   'clasificador/leaderboard.test.js',
   'admin/admin.test.js',
   'configurar/config.test.js',
+  'design/design.test.js',
   'shared/leaderboard-query.test.js',
   'shared/high-score-record.test.js',
   'security/csp.test.js',

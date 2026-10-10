@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Defense-in-depth against XSS - see the identical comment on the
+      other games' own CSP tag. This page has no leaderboard (no
+      Firestore-sourced text rendered anywhere), so unlike every other
+      game's CSP, script-src/connect-src don't need to allow Firebase's
+      gstatic.com/googleapis.com hosts at all - nothing on this page
+      ever loads the Firebase SDK or talks to Firestore.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="🪣 Clasificador · Metrordle">
+    <meta
+      name="description"
+      content="Clasifica cada estación del Metro de CDMX en su línea correcta antes de que se acabe el tiempo. Tienes 60 segundos."
+    >
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metrordle.com/clasificador/">
+    <meta property="og:title" content="🪣 Clasificador · Metrordle">
+    <meta property="og:description" content="Clasifica cada estación del Metro de CDMX en su línea correcta antes de que se acabe el tiempo. Tienes 60 segundos.">
+    <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="715">
+    <meta property="og:image:alt" content="Un tablero estilo Wordle deletrea METRORDLE, con el logo del Metro de la Ciudad de México y la silueta de la ciudad en dos de las casillas.">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Clasificador">
+
+    <title>🪣 Clasificador · Metrordle</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!--
+      Applies a saved theme override (see /configurar/) before first
+      paint - see the identical snippet on every other page's own
+      <head> for why this can't just wait for shared.js.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .status-bar {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.6rem;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .status-bar[hidden] {
+        display: none;
+      }
+
+      .status-bar__text {
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .timer-track {
+        background: var(--paper-well);
+        border-bottom: 1px solid var(--rule);
+        height: 0.35rem;
+        overflow: hidden;
+      }
+
+      .timer-track[hidden] {
+        display: none;
+      }
+
+      .timer-bar {
+        background: var(--line);
+        height: 100%;
+        transition: width 1s linear;
+        width: 100%;
+      }
+
+      /* --- Queue --- */
+
+      .queue-wrap {
+        position: relative;
+        padding: 1rem 1.1rem 0.6rem;
+        min-height: 16.5rem;
+      }
+
+      .queue {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .queue-card {
+        align-items: center;
+        background: var(--paper-well);
+        border: 2px solid var(--rule);
+        border-radius: 0.5rem;
+        display: flex;
+        gap: 0.6rem;
+        opacity: 0.72;
+        padding: 0.4rem 0.7rem;
+        transform: scale(0.96);
+        transition: transform 0.25s ease, opacity 0.25s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .queue-card--active {
+        background: var(--paper-raised);
+        border-color: var(--rule-strong);
+        border-width: 3px;
+        box-shadow: 0 4px 14px var(--shadow);
+        opacity: 1;
+        padding: 0.5rem 0.8rem;
+        transform: scale(1);
+      }
+
+      /* Deliberately neutral (not line-tinted) - this is the station
+         the player is actively classifying, and tinting it by its real
+         line would hand them the answer before they've guessed. Only
+         the buckets themselves (the thing being guessed, not the
+         mystery) get colored by line - see .bucket below. */
+      .queue-card__icon {
+        align-items: center;
+        background: var(--paper-raised);
+        border: 1.5px solid var(--rule);
+        border-radius: 0.4rem;
+        color: var(--ink-soft);
+        display: flex;
+        flex: 0 0 auto;
+        height: 2.3rem;
+        justify-content: center;
+        width: 2.3rem;
+      }
+
+      .queue-card--active .queue-card__icon {
+        border-color: var(--rule-strong);
+        color: var(--ink);
+        height: 2.6rem;
+        width: 2.6rem;
+      }
+
+      .queue-card__icon svg {
+        height: 68%;
+        width: 68%;
+      }
+
+      .queue-card__name {
+        color: var(--ink-soft);
+        flex: 1 1 auto;
+        font-size: 0.92rem;
+        font-weight: 700;
+        min-width: 0;
+      }
+
+      .queue-card--active .queue-card__name {
+        color: var(--ink);
+        font-size: 1.02rem;
+      }
+
+      .queue-card--entering {
+        animation: queueCardPopIn 0.28s ease;
+      }
+
+      @keyframes queueCardPopIn {
+        from { opacity: 0; transform: scale(0.8) translateY(-10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+
+      .queue-card--shake {
+        animation: queueCardShake 0.36s ease;
+      }
+
+      @keyframes queueCardShake {
+        0%, 100% { transform: scale(1) translateX(0); }
+        20% { transform: scale(1) translateX(-8px); }
+        40% { transform: scale(1) translateX(7px); }
+        60% { transform: scale(1) translateX(-5px); }
+        80% { transform: scale(1) translateX(3px); }
+      }
+
+      .queue-ghost {
+        left: 1.1rem;
+        pointer-events: none;
+        position: absolute;
+        right: 1.1rem;
+        transition: transform 0.4s cubic-bezier(.4, 0, .2, 1), opacity 0.4s ease;
+        z-index: 5;
+      }
+
+      /* --- Buckets --- */
+
+      .buckets {
+        display: grid;
+        gap: 0.4rem;
+        grid-template-columns: repeat(5, 1fr);
+        padding: 0.2rem 0.9rem 1.2rem;
+      }
+
+      .buckets[hidden] {
+        display: none;
+      }
+
+      /* Same shape as Metroguessr's own .target-icon-marker reveal
+         badge - a square with just the top-right corner rounded - but
+         colored by line and holding the line's own name/number instead
+         of a station icon (there's no "the" icon for a line anyway). */
+      .bucket {
+        align-items: center;
+        aspect-ratio: 1;
+        border: 3px solid var(--rule-strong);
+        border-radius: 0 33% 0 0;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Overpass', sans-serif;
+        justify-content: center;
+        padding: 0;
+        transition: transform 0.12s ease;
+      }
+
+      .bucket:active {
+        transform: translateY(1px) scale(0.97);
+      }
+
+      .bucket:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .bucket__label {
+        font-size: 0.42rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        opacity: 0.85;
+        text-transform: uppercase;
+      }
+
+      .bucket__id {
+        font-size: 1.25rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-top: 0.05rem;
+      }
+
+      .bucket--wrong {
+        animation: bucketWrong 0.36s ease;
+        box-shadow: 0 0 0 4px var(--error, #c81e3a);
+      }
+
+      @keyframes bucketWrong {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+      }
+
+      .bucket--correct {
+        animation: bucketCorrect 0.4s ease;
+      }
+
+      @keyframes bucketCorrect {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+      }
+
+      /* --- Start overlay --- */
+
+      .start-overlay {
+        align-items: center;
+        background: var(--paper-raised);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1.2rem;
+        position: absolute;
+        z-index: 10;
+      }
+
+      .start-overlay[hidden] {
+        display: none;
+      }
+
+      .start-overlay__panel {
+        max-width: 20rem;
+        text-align: center;
+      }
+
+      .start-overlay__text {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.45;
+        margin: 0 0 1rem;
+      }
+
+      /* --- Reveal --- */
+
+      .reveal__banner {
+        background: var(--line);
+        border-radius: 0.5rem;
+        color: var(--line-ink);
+        font-size: 1.02rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .reveal__total {
+        margin: 0 0 1rem;
+      }
+
+      .reveal__total strong {
+        font-size: 1.1rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .line-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        margin-bottom: 1.2rem;
+      }
+
+      .line-bar {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+      }
+
+      .line-bar__badge {
+        align-items: center;
+        border: 2px solid var(--rule-strong);
+        border-radius: 0 30% 0 0;
+        display: flex;
+        flex: 0 0 auto;
+        font-size: 0.78rem;
+        font-weight: 900;
+        height: 1.9rem;
+        justify-content: center;
+        width: 1.9rem;
+      }
+
+      .line-bar__track {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        flex: 1 1 auto;
+        height: 0.95rem;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .line-bar__fill {
+        border-radius: 999px 0 0 999px;
+        display: block;
+        height: 100%;
+        transition: width 0.5s ease;
+      }
+
+      .line-bar__count {
+        flex: 0 0 auto;
+        font-size: 0.92rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        text-align: right;
+        width: 1.6rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle: Clasificador · Minijuego del Metro CDMX</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      </div>
+
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1>Metrordle: Clasificador</h1>
+          <p class="dek">
+            Clasifica cada estación en su línea antes de que se acabe el tiempo. Tienes 60 segundos.
+          </p>
+        </div>
+
+        <div class="status-bar" id="status-bar">
+          <span class="status-bar__text" id="status"></span>
+        </div>
+
+        <div class="timer-track" id="timer-track">
+          <div class="timer-bar" id="timer-bar"></div>
+        </div>
+
+        <div class="queue-wrap" id="queue-wrap">
+          <div class="queue" id="queue"></div>
+
+          <div class="start-overlay" id="start-overlay" hidden>
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text">
+                Presiona "Comenzar" cuando estés listo para arrancar el conteo.
+              </p>
+              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="buckets" id="buckets"></div>
+
+        <div class="reveal" id="reveal" hidden>
+          <div class="reveal__banner" id="reveal-banner"></div>
+
+          <p class="reveal__total" id="reveal-total"></p>
+
+          <div class="line-bars" id="line-bars"></div>
+
+          <div id="game-promo-slot"></div>
+        </div>
+      </div>
+
+      <p class="credit">
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
+      </p>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var ROUND_SECONDS = 60;
+        var QUEUE_SIZE = 5;
+        var FEATURED_LINE_COUNT = 5;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function shuffle(array, rand) {
+          var copy = array.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        function storageKeyFor(dateKey) {
+          return 'clasificador:' + dateKey;
+        }
+
+        function loadSavedResult(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed.total !== 'number' || !parsed.correctByLine) return null;
+            return parsed;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistResult(dateKey, total, correctByLine) {
+          try {
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({ total: total, correctByLine: correctByLine }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the
+            // result just won't be there to reload, same as the other games.
+          }
+        }
+
+        // Builds the day's whole puzzle from ONE seeded generator, so
+        // both "which 5 lines" and "what order stations get dealt in"
+        // are fully reproducible from dateKey alone - every call with
+        // the same dateKey (same calendar day, or the same debug-nav
+        // date) produces the identical sequence, same deterministic-
+        // per-day convention every other game in this family uses (see
+        // MetroShared.createSeededRandom()). A station that's genuinely
+        // on more than one of today's 5 lines (a real transfer station,
+        // e.g. Pantitlán) is dealt ONCE with every one of its real
+        // lines recorded as a correct answer - nothing is filtered out
+        // to dodge the ambiguity.
+        function buildGame(dateKey) {
+          var rand = MetroShared.createSeededRandom('metrordle-clasificador-' + dateKey);
+
+          var featuredIds = {};
+          shuffle(MetroShared.LINES, rand).slice(0, FEATURED_LINE_COUNT).forEach(function (line) {
+            featuredIds[line.id] = true;
+          });
+          // Kept in MetroShared.LINES' own fixed order (not shuffle
+          // order) so the bucket row always reads left-to-right the
+          // same way the real line numbering does, regardless of which
+          // 5 happened to get picked.
+          var lines = MetroShared.LINES.filter(function (line) {
+            return featuredIds[line.id];
+          });
+
+          var lineIdsByStation = {};
+          lines.forEach(function (line) {
+            line.stations.forEach(function (name) {
+              if (!lineIdsByStation[name]) lineIdsByStation[name] = [];
+              lineIdsByStation[name].push(line.id);
+            });
+          });
+          var baseStations = Object.keys(lineIdsByStation).map(function (name) {
+            return { name: name, lineIds: lineIdsByStation[name] };
+          });
+
+          var pool = shuffle(baseStations, rand);
+          var dealCounter = 0;
+
+          // Keeps consuming the SAME seeded generator on every reshuffle,
+          // not just the first pass - a 60s round can easily deal through
+          // the whole pool more than once, and the entire session's
+          // dealing order (first pass and every reshuffle after it) stays
+          // a pure function of dateKey this way.
+          function nextStation() {
+            if (pool.length === 0) pool = shuffle(baseStations, rand);
+            var picked = pool.pop();
+            dealCounter += 1;
+            return { id: dealCounter, name: picked.name, lineIds: picked.lineIds };
+          }
+
+          return { lines: lines, nextStation: nextStation };
+        }
+
+        function makeStationIcon(name) {
+          var slug = MetroShared.STATION_ICON_SLUGS[name];
+          if (!slug) return null;
+          var svgNS = 'http://www.w3.org/2000/svg';
+          var svg = document.createElementNS(svgNS, 'svg');
+          svg.setAttribute('aria-hidden', 'true');
+          var use = document.createElementNS(svgNS, 'use');
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+          use.setAttribute('href', '/station-icons.svg#' + slug);
+          svg.appendChild(use);
+          return svg;
+        }
+
+        var els = {};
+        var state = null;
+        var debugDate = null;
+
+        function startNewGame() {
+          if (state && state.timerId) {
+            clearInterval(state.timerId);
+          }
+
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var game = buildGame(dateKey);
+
+          document.documentElement.style.setProperty('--line', game.lines[0].color);
+          document.documentElement.style.setProperty('--line-ink', game.lines[0].textColor);
+
+          var saved = loadSavedResult(dateKey);
+
+          if (saved) {
+            state = {
+              dateKey: dateKey,
+              status: 'done',
+              lines: game.lines,
+              total: saved.total,
+              correctByLine: saved.correctByLine,
+              queue: [],
+              timerId: null,
+            };
+            render();
+            return;
+          }
+
+          var correctByLine = {};
+          game.lines.forEach(function (line) { correctByLine[line.id] = 0; });
+
+          var queue = [];
+          for (var i = 0; i < QUEUE_SIZE; i++) queue.push(game.nextStation());
+
+          state = {
+            dateKey: dateKey,
+            status: 'ready',
+            lines: game.lines,
+            nextStation: game.nextStation,
+            queue: queue,
+            correctByLine: correctByLine,
+            total: 0,
+            timeLeft: ROUND_SECONDS,
+            timerId: null,
+          };
+
+          renderButtons();
+          render();
+        }
+
+        function renderButtons() {
+          els.buckets.innerHTML = '';
+          state.lines.forEach(function (line) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'bucket';
+            btn.style.background = line.color;
+            btn.style.color = line.textColor;
+            btn.dataset.lineId = line.id;
+            btn.setAttribute('aria-label', line.name);
+
+            var label = document.createElement('span');
+            label.className = 'bucket__label';
+            label.textContent = 'Línea';
+            btn.appendChild(label);
+
+            var idEl = document.createElement('span');
+            idEl.className = 'bucket__id';
+            idEl.textContent = line.id;
+            btn.appendChild(idEl);
+
+            btn.addEventListener('click', function () { attemptPlace(line.id); });
+            els.buckets.appendChild(btn);
+          });
+        }
+
+        function render() {
+          if (!state) return;
+
+          var ready = state.status === 'ready';
+          var playing = state.status === 'playing';
+          var done = state.status === 'done';
+
+          els.startOverlay.hidden = !ready;
+          els.statusBar.hidden = done;
+          els.timerTrack.hidden = !playing;
+          els.queueWrap.hidden = done;
+          els.buckets.hidden = done;
+          els.reveal.hidden = !done;
+
+          if (done) {
+            renderReveal();
+          } else {
+            renderStatus();
+            renderQueueCards(null);
+          }
+        }
+
+        function renderStatus() {
+          els.status.textContent = state.timeLeft + 's · ' + state.total + (state.total === 1 ? ' correcta' : ' correctas');
+          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        function buildQueueCard(item, isActive) {
+          var card = document.createElement('div');
+          card.className = 'queue-card' + (isActive ? ' queue-card--active' : '');
+          card.dataset.id = item.id;
+
+          var icon = document.createElement('span');
+          icon.className = 'queue-card__icon';
+          var svg = makeStationIcon(item.name);
+          if (svg) icon.appendChild(svg);
+          card.appendChild(icon);
+
+          var name = document.createElement('span');
+          name.className = 'queue-card__name';
+          name.textContent = item.name;
+          card.appendChild(name);
+
+          return card;
+        }
+
+        // Renders the queue top-to-bottom (newest first in the DOM,
+        // active/oldest last) and plays a small FLIP slide for cards
+        // that were already on screen, same renderBoardAnimated()-style
+        // convention the rest of this family uses for a reshuffled/
+        // refilled grid. resolvedGhostInfo, when given, also spawns a
+        // flying "ghost" of the just-resolved card toward the bucket it
+        // was sent to - the real card is already gone from state.queue
+        // by the time this runs, same split as Memoria's own
+        // spawnMatchGhost()/live-cell-refill pair.
+        function renderQueueCards(resolvedGhostInfo) {
+          var reduceMotion = MetroShared.prefersReducedMotion();
+          var oldRects = {};
+
+          if (!reduceMotion) {
+            Array.prototype.forEach.call(els.queue.querySelectorAll('.queue-card[data-id]'), function (card) {
+              oldRects[card.dataset.id] = card.getBoundingClientRect();
+            });
+          }
+
+          els.queue.innerHTML = '';
+          var ordered = state.queue.slice().reverse(); // newest (top) first
+          ordered.forEach(function (item, indexFromTop) {
+            var isActive = indexFromTop === ordered.length - 1;
+            els.queue.appendChild(buildQueueCard(item, isActive));
+          });
+
+          if (reduceMotion) return;
+
+          Array.prototype.forEach.call(els.queue.querySelectorAll('.queue-card[data-id]'), function (card) {
+            var oldRect = oldRects[card.dataset.id];
+            if (!oldRect) {
+              card.classList.add('queue-card--entering');
+              setTimeout(function () { card.classList.remove('queue-card--entering'); }, 300);
+              return;
+            }
+            var newRect = card.getBoundingClientRect();
+            var dy = oldRect.top - newRect.top;
+            if (!dy) return;
+            card.style.transition = 'none';
+            card.style.transform = 'translateY(' + dy + 'px)';
+            void card.offsetWidth;
+            card.style.transition = 'transform 0.3s ease';
+            card.style.transform = '';
+            setTimeout(function () { card.style.transition = ''; }, 300);
+          });
+
+          if (resolvedGhostInfo) spawnGhost(resolvedGhostInfo);
+        }
+
+        function spawnGhost(info) {
+          var ghost = buildQueueCard(info.item, true);
+          ghost.classList.add('queue-ghost');
+          ghost.style.top = info.top + 'px';
+          els.queueWrap.appendChild(ghost);
+
+          requestAnimationFrame(function () {
+            var bucketRect = info.bucketEl.getBoundingClientRect();
+            var wrapRect = els.queueWrap.getBoundingClientRect();
+            var dx = (bucketRect.left + bucketRect.width / 2) - (wrapRect.left + ghost.offsetWidth / 2);
+            var dy = (bucketRect.top + bucketRect.height / 2) - (wrapRect.top + info.top + ghost.offsetHeight / 2);
+            ghost.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.25)';
+            ghost.style.opacity = '0';
+          });
+
+          setTimeout(function () { ghost.remove(); }, 420);
+        }
+
+        // A station genuinely on more than one of today's 5 lines (a
+        // real transfer station) counts correct on ANY of its real
+        // lines - whichever bucket the player actually taps gets the
+        // credit in correctByLine, not some fixed "canonical" line.
+        function attemptPlace(lineId) {
+          if (!state || state.status !== 'playing') return;
+          var active = state.queue[0];
+          if (!active) return;
+
+          var bucketEl = els.buckets.querySelector('[data-line-id="' + lineId + '"]');
+
+          if (active.lineIds.indexOf(lineId) !== -1) {
+            var activeCardEl = els.queue.querySelector('.queue-card--active');
+            var ghostInfo = null;
+            if (activeCardEl && !MetroShared.prefersReducedMotion()) {
+              var cardRect = activeCardEl.getBoundingClientRect();
+              var wrapRect = els.queueWrap.getBoundingClientRect();
+              ghostInfo = {
+                item: active,
+                top: cardRect.top - wrapRect.top,
+                bucketEl: bucketEl,
+              };
+            }
+
+            state.correctByLine[lineId] += 1;
+            state.total += 1;
+            state.queue.shift();
+            state.queue.push(state.nextStation());
+
+            renderStatus();
+            renderQueueCards(ghostInfo);
+
+            if (bucketEl) {
+              bucketEl.classList.remove('bucket--correct');
+              void bucketEl.offsetWidth;
+              bucketEl.classList.add('bucket--correct');
+              setTimeout(function () { bucketEl.classList.remove('bucket--correct'); }, 420);
+            }
+          } else {
+            var activeEl = els.queue.querySelector('.queue-card--active');
+            if (activeEl) {
+              activeEl.classList.remove('queue-card--shake');
+              void activeEl.offsetWidth;
+              activeEl.classList.add('queue-card--shake');
+              setTimeout(function () { activeEl.classList.remove('queue-card--shake'); }, 380);
+            }
+            if (bucketEl) {
+              bucketEl.classList.remove('bucket--wrong');
+              void bucketEl.offsetWidth;
+              bucketEl.classList.add('bucket--wrong');
+              setTimeout(function () { bucketEl.classList.remove('bucket--wrong'); }, 380);
+            }
+          }
+        }
+
+        function beginRound() {
+          if (!state || state.status !== 'ready') return;
+          state.status = 'playing';
+          render();
+          startTimer();
+        }
+
+        function startTimer() {
+          renderStatus();
+          state.timerId = setInterval(tick, 1000);
+        }
+
+        function tick() {
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          renderStatus();
+          if (state.timeLeft <= 0) endRound();
+        }
+
+        function endRound() {
+          clearInterval(state.timerId);
+          state.timerId = null;
+          state.status = 'done';
+          persistResult(state.dateKey, state.total, state.correctByLine);
+          render();
+        }
+
+        function renderReveal() {
+          els.revealBanner.textContent = '¡Tiempo!';
+          els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
+            (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
+
+          var maxCount = Math.max(1, Math.max.apply(null, state.lines.map(function (l) { return state.correctByLine[l.id] || 0; })));
+
+          els.lineBars.innerHTML = '';
+          state.lines.forEach(function (line) {
+            var count = state.correctByLine[line.id] || 0;
+
+            var row = document.createElement('div');
+            row.className = 'line-bar';
+
+            var badge = document.createElement('span');
+            badge.className = 'line-bar__badge';
+            badge.style.background = line.color;
+            badge.style.color = line.textColor;
+            badge.textContent = line.id;
+            row.appendChild(badge);
+
+            var track = document.createElement('span');
+            track.className = 'line-bar__track';
+            var fill = document.createElement('span');
+            fill.className = 'line-bar__fill';
+            fill.style.width = (count / maxCount * 100) + '%';
+            fill.style.background = line.color;
+            track.appendChild(fill);
+            row.appendChild(track);
+
+            var countEl = document.createElement('span');
+            countEl.className = 'line-bar__count';
+            countEl.textContent = String(count);
+            row.appendChild(countEl);
+
+            els.lineBars.appendChild(row);
+          });
+
+          renderGamePromo('clasificador');
+        }
+
+        // Mounts the end screen's "sigue jugando hoy" component - see
+        // shared.js's buildGamePromo()/SUGGESTABLE_GAMES. Always the
+        // real calendar day, never this page's own (possibly debug-
+        // simulated) dateKey - suggestions reflect actual play
+        // activity, not whatever day is being previewed.
+        function renderGamePromo(currentGameKey) {
+          var slot = $('game-promo-slot');
+          if (!slot) return;
+          var todayKey = MetroShared.getDateKey(new Date());
+          var promo = MetroShared.buildGamePromo(currentGameKey, todayKey);
+          slot.innerHTML = '';
+          if (promo) slot.appendChild(promo);
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function init() {
+          els = {
+            statusBar: $('status-bar'),
+            status: $('status'),
+            timerTrack: $('timer-track'),
+            timerBar: $('timer-bar'),
+            queueWrap: $('queue-wrap'),
+            queue: $('queue'),
+            startOverlay: $('start-overlay'),
+            startBtn: $('start-btn'),
+            buckets: $('buckets'),
+            reveal: $('reveal'),
+            revealBanner: $('reveal-banner'),
+            revealTotal: $('reveal-total'),
+            lineBars: $('line-bars'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
+          };
+
+          els.startBtn.addEventListener('click', beginRound);
+
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        // Deliberately no controllerchange -> reload() here: a new
+        // service worker activates in the background (see sw.js) and
+        // simply serves the updated version on the next natural
+        // navigation, instead of yanking the page out from under a
+        // player mid-round the moment a deploy lands.
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>

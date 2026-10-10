@@ -289,6 +289,7 @@ var SUGGESTABLE_GAMES = [
   { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación →' },
   { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Encuentra la ruta →' },
   { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Forma filas de 3 →' },
+  { key: 'clasificador', href: '/clasificador/', name: 'Clasificador', glyph: '🪣', sub: 'Clasifica las líneas →' },
 ];
 
 // Whether `gameKey` already has a completed result for `dateKey`, read

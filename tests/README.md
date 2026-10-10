@@ -407,6 +407,34 @@ preserve node identity, a class toggle always does:
 - Selecting a different, non-adjacent tile moves the selection (old
   tile deselected, new one selected) without a rebuild either.
 
+**`clasificador/fast.test.js`** covers `/clasificador/`'s deterministic
+daily puzzle and multi-line correctness - no real-time waiting beyond a
+couple of short animation settles. Uses `2026-11-13` as a known-good
+fixture date (independently recomputed against the real `shared.js`
+before writing the file, not hand-picked by inspection): with the real
+`MetroShared.LINES` data, `'metrordle-clasificador-2026-11-13'`
+deterministically picks Líneas 1/2/3/4/9 and deals 'Tacubaya' as the
+first (active) station - itself a real transfer station between Línea
+1 and Línea 9, making it a genuine multi-line case rather than a
+contrived one:
+- The exact same 5 lines (in `MetroShared.LINES`' own ascending order,
+  not shuffle order) and the exact same station queue are dealt across
+  two independent sessions loading the same date.
+- A wrong tap (Línea 2, which Tacubaya isn't on) shakes the card and
+  leaves the score at 0, without advancing the queue; a correct tap on
+  Tacubaya's OTHER real line (Línea 9, not the "first" one found) does
+  count, advancing the queue and crediting that tapped line specifically
+  - the actual point of the test, not just "a correct guess works".
+- The active queue card's icon is the real pictogram from
+  `/station-icons.svg`, same convention as Metroguessr's own
+  `buildStationIconEl()`.
+- A planted finished result (`total`/`correctByLine` in
+  `'clasificador:' + dateKey`) shows the reveal screen on load instead
+  of a fresh queue, with each line's own bar/count matching what was
+  planted, in the day's own line order.
+- `?debug=true`'s date-nav changes which 5 lines are featured and
+  navigating back restores the fixture date's own deterministic picks.
+
 **`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads all three games' own collections):

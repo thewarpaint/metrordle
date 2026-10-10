@@ -182,6 +182,40 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // clasificador-leaderboard/{dateKey}/entries/{aliasId} - same shape
+    // as Memoria's and Metro Crush's (a single descending score), no
+    // hardMode field at all since this game has no normal/hard mode
+    // toggle to begin with. score is how many stations a player
+    // correctly classified into their own Metro line in the 60-second
+    // round - open-ended (no fixed puzzle size to derive a tight
+    // ceiling from, same reasoning as Metro Crush's own bound above),
+    // so the bound here is generous rather than tight. streak
+    // (display-only, see Memoria's own comment above) can legitimately
+    // be 0 here, same bound as Memoria's/Metro Crush's own - like Metro
+    // Crush, this game has no daily win/loss outcome to extend/reset a
+    // streak on, so it extends on any round with a non-zero score
+    // instead, resetting to 0 on a genuine 0-point round, which still
+    // submits.
+    match /clasificador-leaderboard/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'score', 'streak', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 500 &&
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 0 &&
+        request.resource.data.streak <= 5000 &&
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
+
     // records/{gameKey} - one document per game tracking its own
     // highest score ever (MetroShared.updateHighScoreRecord() in
     // shared.js), for Memoria and Metro Crush only: the two games whose

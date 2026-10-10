@@ -6,17 +6,18 @@
 // game's own "Ver este día en ___" deep link) - both hidden by default,
 // shown only under ?debug=true. Plus one leaderboard section per game
 // (metrordle-leaderboard, laberinto-leaderboard, memoria-leaderboard,
-// metroguessr-leaderboard), each reusing that game's own
-// collection/orderBySpecs/score-formatting - see admin/index.html's
-// GAMES array - plus the shared MetroShared.buildStreakBadge() (shared.js)
-// 🔥 × N badge (N > 1 only) every one of those four games' rows gets -
-// also used by Metrordle/Laberinto/Memoria's own in-page leaderboards
-// (see tests/metrordle|laberinto|memoria/leaderboard.test.js). Metro
-// Crush's own section isn't covered here yet, and has no streak concept
-// at all (see
-// AGENTS.md). Also covers the two .stat-grid/.stat-box tiles above the
-// boards (unique aliases, total entries that day) - these are NOT
-// debug-gated, unlike the date-nav/deep links.
+// metroguessr-leaderboard, clasificador-leaderboard), each reusing that
+// game's own collection/orderBySpecs/score-formatting - see
+// admin/index.html's GAMES array - plus the shared
+// MetroShared.buildStreakBadge() (shared.js) 🔥 × N badge (N > 1 only)
+// every one of those five games' rows gets - also used by Metrordle/
+// Laberinto/Memoria's own in-page leaderboards (see
+// tests/metrordle|laberinto|memoria/leaderboard.test.js). Metro Crush's
+// own section isn't covered by this file yet - it does have the same
+// streak concept (see AGENTS.md), just not exercised here. Also covers
+// the two .stat-grid/.stat-box tiles above the boards (unique aliases,
+// total entries that day) - these are NOT debug-gated, unlike the
+// date-nav/deep links.
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), so the "real data" checks stub
@@ -52,6 +53,9 @@ const SAMPLE_DATA = {
   'metroguessr-leaderboard': [
     { id: 'oscar', alias: 'Oscar', attempts: 1, hardMode: true, streak: 12 },
     { id: 'diego', alias: 'Diego', attempts: 5, hardMode: false, lost: true, streak: 0 },
+  ],
+  'clasificador-leaderboard': [
+    { id: 'valeria', alias: 'Valeria', score: 23, streak: 3 },
   ],
 };
 
@@ -223,17 +227,25 @@ async function main() {
       assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Diego');
       assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__score-number').textContent(), '-', 'a lost entry should show "-", not a number');
 
+      // Clasificador: plain score number, same shape as Memoria's own
+      // cell - both rank by a single descending score.
+      const clasificadorScore = await page.$eval('#clasificador-list .leaderboard__score--plain', (el) => el.textContent);
+      assert.strictEqual(clasificadorScore, '23');
+      const clasificadorStreak = await page.$eval('#clasificador-list .leaderboard__streak', (el) => el.textContent);
+      assert.strictEqual(clasificadorStreak, '🔥 × 3', 'a streak of 3 (>1) should show');
+
       // No empty-state message should show once real entries render.
-      for (const key of ['metrordle', 'laberinto', 'memoria']) {
+      for (const key of ['metrordle', 'laberinto', 'memoria', 'clasificador']) {
         const statusVisible = await page.locator('#' + key + '-status').isVisible();
         assert.strictEqual(statusVisible, false, key + ' should hide the empty-state message once it has entries');
       }
 
-      // 7 unique aliases (fer, eduardo, carla, karla, pao, oscar, diego
-      // - none overlap) across 7 total entries (3+1+1+2, Metro Crush's
-      // own collection isn't in SAMPLE_DATA so contributes 0).
-      assert.strictEqual(await page.locator('#admin-stat-users').textContent(), '7');
-      assert.strictEqual(await page.locator('#admin-stat-games').textContent(), '7');
+      // 8 unique aliases (fer, eduardo, carla, karla, pao, oscar, diego,
+      // valeria - none overlap) across 8 total entries (3+1+1+2+1,
+      // Metro Crush's own collection isn't in SAMPLE_DATA so
+      // contributes 0).
+      assert.strictEqual(await page.locator('#admin-stat-users').textContent(), '8');
+      assert.strictEqual(await page.locator('#admin-stat-games').textContent(), '8');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

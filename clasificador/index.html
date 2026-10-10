@@ -5,14 +5,23 @@
   <head>
     <meta charset="utf-8">
     <!--
-      Defense-in-depth against XSS - see the identical comment on the
-      other games' own CSP tag. This page has no leaderboard (no
-      Firestore-sourced text rendered anywhere), so unlike every other
-      game's CSP, script-src/connect-src don't need to allow Firebase's
-      gstatic.com/googleapis.com hosts at all - nothing on this page
-      ever loads the Firebase SDK or talks to Firestore.
+      Defense-in-depth against XSS, in addition to (not instead of) the
+      app's actual mitigation: every place Firestore-sourced leaderboard
+      data (aliases) gets rendered uses textContent, never innerHTML -
+      see renderLeaderboard() below. 'unsafe-inline' is needed for
+      script-src/style-src because this site has no build step to
+      generate per-script hashes/nonces for its inline <script>/<style>
+      blocks, so this policy does NOT block an injected inline <script>
+      or onerror= handler - but it does block loading a remote script
+      from any host but this site and Firebase's, block plugin/object
+      embeds, lock down <base>/form targets, and (via connect-src) keep
+      an injected script from exfiltrating data anywhere but Firebase.
+      gstatic.com is in connect-src too, not just script-src - with
+      DevTools' source maps enabled, the browser fetches the Firebase
+      SDK's own *.js.map files from that same already-trusted host as a
+      plain connect-src load.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="title" content="🪣 Clasificador · Metrordle">
     <meta
@@ -436,6 +445,13 @@
 
           <div class="line-bars" id="line-bars"></div>
 
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
           <div id="game-promo-slot"></div>
         </div>
       </div>
@@ -445,6 +461,9 @@
       </p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
@@ -453,6 +472,9 @@
         var ROUND_SECONDS = 60;
         var QUEUE_SIZE = 5;
         var FEATURED_LINE_COUNT = 6;
+        var STREAK_STORAGE_KEY = 'clasificador:streak';
+        var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
+        var LEADERBOARD_SIZE = 5;
 
         function $(id) {
           return document.getElementById(id);
@@ -479,15 +501,23 @@
             if (!raw) return null;
             var parsed = JSON.parse(raw);
             if (!parsed || typeof parsed.total !== 'number' || !parsed.correctByLine) return null;
-            return parsed;
+            return {
+              total: parsed.total,
+              correctByLine: parsed.correctByLine,
+              leaderboardSubmitted: !!parsed.leaderboardSubmitted,
+            };
           } catch (e) {
             return null;
           }
         }
 
-        function persistResult(dateKey, total, correctByLine) {
+        function persistResult(dateKey, total, correctByLine, leaderboardSubmitted) {
           try {
-            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({ total: total, correctByLine: correctByLine }));
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
+              total: total,
+              correctByLine: correctByLine,
+              leaderboardSubmitted: !!leaderboardSubmitted,
+            }));
           } catch (e) {
             // localStorage unavailable (private mode, quota, etc.) - the
             // result just won't be there to reload, same as the other games.
@@ -580,15 +610,25 @@
           var saved = loadSavedResult(dateKey);
 
           if (saved) {
+            var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state = {
               dateKey: dateKey,
               status: 'done',
               lines: game.lines,
               total: saved.total,
               correctByLine: saved.correctByLine,
+              leaderboardSubmitted: saved.leaderboardSubmitted,
+              streak: savedStreak.count,
+              maxStreak: savedStreak.max,
               queue: [],
               timerId: null,
             };
+            // submitScore() itself checks state.leaderboardSubmitted and
+            // no-ops if it's already true, so this is only ever a real
+            // retry when an earlier attempt is known to have failed (or
+            // never ran) - not a pointless resubmit-then-rerender on every
+            // normal reload of an already-submitted day.
+            submitScore();
             render();
             return;
           }
@@ -609,6 +649,8 @@
             total: 0,
             timeLeft: ROUND_SECONDS,
             timerId: null,
+            streak: 0,
+            maxStreak: 0,
           };
 
           renderButtons();
@@ -831,8 +873,52 @@
           clearInterval(state.timerId);
           state.timerId = null;
           state.status = 'done';
-          persistResult(state.dateKey, state.total, state.correctByLine);
+          state.leaderboardSubmitted = false;
+          persistResult(state.dateKey, state.total, state.correctByLine, false);
+          // "Won" here means a non-zero score - there's no puzzle to
+          // actually win or lose, same convention as Metro Crush's own
+          // STREAK_STORAGE_KEY (see its comment there).
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.total > 0);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+          submitScore();
           render();
+        }
+
+        // Submits the current result to today's leaderboard, if an alias
+        // is already set. Also called again once the player sets an alias
+        // from the reveal screen, in case a round already finished before
+        // they had one.
+        //
+        // Skips entirely under ?debug=true - date-nav testing plays
+        // through arbitrary past/future days and shouldn't pollute the
+        // real leaderboard with them.
+        function submitScore() {
+          if (!state || state.status !== 'done') return;
+          if (state.leaderboardSubmitted) return;
+          if (MetroShared.isDebugMode()) return;
+
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          // streak is submitted purely for display (see /admin/'s own
+          // 🔥 badge) - never part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not an entry (old
+          // or new) happens to have it. Can legitimately be 0 (a
+          // 0-point round still submits and resets it), same bound as
+          // Memoria's/Metro Crush's own leaderboard rule.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, streak: state.streak }, {})
+            .then(function () {
+              state.leaderboardSubmitted = true;
+              persistResult(state.dateKey, state.total, state.correctByLine, true);
+              renderLeaderboard();
+            })
+            .catch(function (err) {
+              // Best-effort - the player's own result is already saved
+              // locally either way, so a failed submission isn't shown as
+              // an error in the UI; it's silently retried the next time
+              // submitScore() runs (e.g. the next reload).
+              console.error('[Leaderboard] submitScore() failed:', err);
+            });
         }
 
         function renderReveal() {
@@ -862,7 +948,130 @@
             els.lineBars.appendChild(row);
           });
 
+          renderAliasRow();
+          renderLeaderboard();
           renderGamePromo('clasificador');
+        }
+
+        function renderAliasRow() {
+          var alias = MetroShared.getAlias();
+          if (alias) {
+            showAliasDisplay(alias);
+          } else {
+            showAliasInput();
+          }
+        }
+
+        function showAliasDisplay(alias) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var label = document.createElement('span');
+          label.textContent = 'Jugando como: ';
+          var strong = document.createElement('strong');
+          strong.textContent = alias;
+          label.appendChild(strong);
+
+          el.appendChild(label);
+        }
+
+        function showAliasInput() {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            showAliasDisplay(normalized);
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') save();
+          });
+
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+        }
+
+        // renderLeaderboard() can legitimately be called twice in close
+        // succession - once from render() showing the current state, and
+        // again from submitScore()'s success callback refreshing it with
+        // the just-submitted entry - and both are async. Without this
+        // guard, an earlier call's response can resolve after a later
+        // call already cleared and repainted the list, appending a stale
+        // copy of the rows on top instead of being discarded. Bumped on
+        // every call; a response only renders if it's still the latest.
+        var leaderboardRequestId = 0;
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+          // Deliberately not clearing els.leaderboardList/leaderboardStatus
+          // here - this call is often just a same-data refresh (e.g. a
+          // reload of an already-submitted day), and blanking the list
+          // before the fetch resolves would cause a visible flicker. The
+          // list is only ever touched once a response actually arrives.
+
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+          // myAliasId guarantees the player's own row is somewhere in the
+          // result even if it's ranked below the top LEADERBOARD_SIZE
+          // (see getTopLeaderboardScores()'s own comment).
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['streak'], myAliasId: myAliasId })
+            .then(function (entries) {
+              // Either the player navigated to a different day (debug
+              // date-nav) before this resolved, or a newer renderLeaderboard()
+              // call has already superseded this one - either way, don't
+              // paint a stale response over whatever's showing now.
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
+
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+
+              els.leaderboardStatus.hidden = true;
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + MetroShared.formatRank(entry, index);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score--plain';
+                score.textContent = entry.score;
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
+                els.leaderboardList.appendChild(li);
+              });
+            });
         }
 
         // Mounts the end screen's "sigue jugando hoy" component - see
@@ -909,6 +1118,9 @@
             revealBanner: $('reveal-banner'),
             revealTotal: $('reveal-total'),
             lineBars: $('line-bars'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),
             dateNextBtn: $('date-next'),

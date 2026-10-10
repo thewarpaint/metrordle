@@ -308,6 +308,16 @@
           <p class="leaderboard__status" id="metrocrush-status" hidden></p>
           <a class="admin-board__link" id="metrocrush-link" target="_blank" rel="noopener" hidden>Ver este día en Metro Crush →</a>
         </div>
+
+        <div class="sign admin-board" id="clasificador-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Clasificador <span class="admin-board__num" id="clasificador-num"></span></h2>
+            <p class="admin-board__dek">Más estaciones clasificadas gana</p>
+          </div>
+          <ol class="leaderboard__list" id="clasificador-list"></ol>
+          <p class="leaderboard__status" id="clasificador-status" hidden></p>
+          <a class="admin-board__link" id="clasificador-link" target="_blank" rel="noopener" hidden>Ver este día en Clasificador →</a>
+        </div>
       </div>
     </div>
 
@@ -338,11 +348,12 @@
         // below, never part of orderBySpecs), so without naming it here
         // it would never actually reach the entries this page renders
         // (see getTopLeaderboardScores()'s own comment in shared.js for
-        // why). All five games now track one - Metro Crush's own means
-        // something slightly different (extended by any non-zero-score
-        // round rather than a "won" outcome, since it has no daily win/
-        // loss puzzle to hook into - see its own STREAK_STORAGE_KEY
-        // comment) but is submitted/rendered exactly the same way.
+        // why). All six games now track one - Metro Crush's and
+        // Clasificador's own mean something slightly different (extended
+        // by any non-zero-score round rather than a "won" outcome, since
+        // neither has a daily win/loss puzzle to hook into - see their
+        // own STREAK_STORAGE_KEY comments) but are submitted/rendered
+        // exactly the same way.
         var GAMES = [
           {
             key: 'metrordle',
@@ -454,6 +465,20 @@
 
               score.appendChild(badge);
               score.appendChild(number);
+              return score;
+            },
+          },
+          {
+            key: 'clasificador',
+            collection: 'clasificador-leaderboard',
+            startDateKey: '2026-10-10',
+            orderBySpecs: [['score', 'desc']],
+            extraFields: ['streak'],
+            href: '/clasificador/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score--plain';
+              score.textContent = String(entry.score);
               return score;
             },
           },

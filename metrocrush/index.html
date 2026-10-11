@@ -167,37 +167,16 @@
         touch-action: manipulation;
       }
 
+      /* Shape/background now live in shared.css's own .station - only
+         the interactive/animation states below stay page-local. */
       .tile {
-        aspect-ratio: 1;
-        background: var(--tile-bg, var(--paper-well));
-        border: none;
-        border-radius: 0 33% 0 0;
-        color: var(--tile-ink, var(--ink));
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
         position: relative;
         touch-action: manipulation;
         transition: transform 0.12s ease, box-shadow 0.15s ease;
-        width: 100%;
       }
 
       .tile:disabled { cursor: default; }
-
-      .tile__icon {
-        color: inherit;
-        height: 60%;
-        pointer-events: none;
-        width: 60%;
-      }
-
-      .tile__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
-      }
 
       .tile--selected {
         box-shadow: 0 0 0 3px var(--paper-raised), 0 0 0 5px var(--focus);
@@ -327,7 +306,11 @@
 
       .board--done .tile:not(.tile--empty) { opacity: 0.5; }
 
+      /* Explicit background, not just a border/color override - .station's
+         own fallback (no --badge-bg set) is a dark --ink fill, not this
+         light neutral look, so this can't rely on that fallback alone. */
       .tile--neutral {
+        background: var(--paper-well);
         border: 2px solid var(--ink-soft);
         color: var(--ink);
       }
@@ -698,7 +681,7 @@
 
         function makeStationIcon(slug) {
           var wrap = document.createElement('span');
-          wrap.className = 'tile__icon';
+          wrap.className = 'station__icon';
           if (!slug) return wrap;
           var svgNS = 'http://www.w3.org/2000/svg';
           var svg = document.createElementNS(svgNS, 'svg');
@@ -1189,7 +1172,7 @@
               var id = state.board[r][c];
               var btn = document.createElement('button');
               btn.type = 'button';
-              btn.className = 'tile';
+              btn.className = 'station tile';
 
               if (id === null) {
                 btn.className += ' tile--empty';
@@ -1213,8 +1196,8 @@
                 if (neutralColor) {
                   btn.className += ' tile--neutral';
                 } else {
-                  btn.style.setProperty('--tile-bg', line.color);
-                  btn.style.setProperty('--tile-ink', line.textColor);
+                  btn.style.setProperty('--badge-bg', line.color);
+                  btn.style.setProperty('--badge-ink', line.textColor);
                 }
                 btn.appendChild(makeStationIcon(line.icon));
                 btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));

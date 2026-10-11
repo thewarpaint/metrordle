@@ -109,7 +109,9 @@ window.L = (function () {
       };
       window.__mgMarkers = window.__mgMarkers || [];
       window.__mgMarkers.push({ latlng: latlng, className: icon.options.className, el: el, marker: m });
-      if (icon.options.className === 'target-icon-marker') window.__mgIconMarkerEl = el;
+      // className can be a space-separated list now (e.g. 'station
+      // target-icon-marker') - check for the token, not an exact match.
+      if ((icon.options.className || '').split(' ').indexOf('target-icon-marker') !== -1) window.__mgIconMarkerEl = el;
       return m;
     },
     // Stands in for the real maplibre-gl-leaflet bridge - a fake vector

@@ -163,27 +163,16 @@
         .target-marker--live { animation: none; }
       }
 
-      /* Reveal marker: the station's own pictogram (same style as
-         Metro Crush's board tiles) on a badge colored with its Metro line,
+      /* Reveal marker: the station's own pictogram on a badge colored with
+         its Metro line (shape/background now shared.css's own .station),
          swapped in for the plain circle once the round ends. Passing our
          own `className` to L.divIcon() replaces Leaflet's default
          'leaflet-div-icon' class outright (rather than adding to it), so
-         this only needs to target our own class, not that default one. */
+         this only needs to target our own class, not that default one.
+         The box-shadow is page-local - needed to pop against the map
+         tiles underneath, not needed by .station's other consumers. */
       .target-icon-marker {
-        background: var(--badge-bg, var(--ink));
-        border: none;
-        border-radius: 0 33% 0 0;
         box-shadow: 0 2px 10px var(--shadow), 0 0 0 2px var(--paper);
-        color: var(--badge-ink, var(--paper));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .target-icon-marker svg {
-        display: block;
-        width: 60%;
-        height: 60%;
       }
 
       /* Same pill look as the (now-hidden-on-reveal) .history-chip, but
@@ -1657,7 +1646,7 @@
           var pos = stationByName[state.target];
           var line = lineForStation(state.target);
           targetIconMarker = L.marker([pos.lat, pos.lng], {
-            icon: L.divIcon({ className: 'target-icon-marker', iconSize: [34, 34], iconAnchor: [17, 17] }),
+            icon: L.divIcon({ className: 'station target-icon-marker', iconSize: [34, 34], iconAnchor: [17, 17] }),
             interactive: false,
           }).addTo(map);
           var iconEl = targetIconMarker.getElement();
@@ -1667,7 +1656,12 @@
               iconEl.style.setProperty('--badge-ink', line.textColor);
             }
             var svg = buildStationIconEl(state.target);
-            if (svg) iconEl.appendChild(svg);
+            if (svg) {
+              var iconWrap = document.createElement('span');
+              iconWrap.className = 'station__icon';
+              iconWrap.appendChild(svg);
+              iconEl.appendChild(iconWrap);
+            }
           }
 
           setLabelsVisible(true);

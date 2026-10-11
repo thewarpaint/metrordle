@@ -541,17 +541,19 @@ the actual pattern-consolidation work happens:
 - The "Líneas" (4), "Estaciones" (5), and "Listas de estaciones" (4)
   galleries each render their own script's expected example count, with
   no page errors.
-- Spot-checks that the first "Líneas" example and the second
-  "Estaciones" example - the two patterns this page has actually
+- Spot-checks that the first "Líneas" example and the second/third
+  "Estaciones" examples - the three patterns this page has actually
   settled on, rendered with the real shared.css `.line-badge`/
-  `.station-card` classes rather than a `.design-` prefixed stand-in -
-  render one badge per sampled line and one card per sampled station,
-  the reveal-grid example (Memoria's own matched-pairs-at-round-end
-  grid, which lives on the "Estaciones" board rather than "Listas de
-  estaciones" - it's a single-station widget shown several times for
-  comparison, not a list-structured pattern like the others) renders
-  18 cells (6 columns × 3 rows, the real grid's own size, not just a
-  handful), the platform-list example renders one row per the puzzle's
+  `.station-card`/`.station` classes rather than a `.design-` prefixed
+  stand-in - render one badge per sampled line, one card per sampled
+  station, and one `.station` badge per sampled station, the
+  reveal-grid example (Memoria's own matched-pairs-at-round-end grid,
+  now also the real `.station`/`.station--sm`, which lives on the
+  "Estaciones" board rather than "Listas de estaciones" - it's a
+  single-station widget shown several times for comparison, not a
+  list-structured pattern like the others) renders 18 cells (6 columns
+  × 3 rows, the real grid's own size, not just a handful), the
+  platform-list example renders one row per the puzzle's
   own 5
   stations, the queue-list example renders one card per sampled
   station with exactly one marked active, the breadcrumb example

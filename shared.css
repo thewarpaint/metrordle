@@ -675,6 +675,55 @@ h1 {
   display: none;
 }
 
+/* Square with a rounded top-right corner, same shape as .line-badge -
+   promoted from Memoria's own .memo-card (was 0.5rem all-around
+   corners). First shared station- prefixed class, for station-related
+   logos/elements the way line- is for line-related ones. Memoria layers
+   its own interaction states (hover/selected/entering/match-flash/
+   match-ghost/empty, cursor/transition) on top of this same class, same
+   split as .line-badge's own page-local states in Clasificador.
+
+   No flex-direction/gap here - a card only ever holds ONE child (icon
+   OR name, never both, see Memoria's own renderBoard()). */
+.station-card {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper-well);
+  border: 2px solid var(--rule);
+  border-radius: 0 33% 0 0;
+  display: flex;
+  font-family: 'Overpass', sans-serif;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.25rem;
+  width: 100%;
+}
+
+.station-card__icon {
+  color: var(--ink);
+  height: 1.9rem;
+  pointer-events: none;
+  width: 1.9rem;
+}
+
+.station-card__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.station-card__name {
+  color: var(--ink);
+  font-size: 0.66rem;
+  font-weight: 700;
+  hyphens: auto;
+  line-height: 1.15;
+  min-width: 0;
+  overflow-wrap: break-word;
+  pointer-events: none;
+  text-align: center;
+}
+
 /* Design-reference patterns: real CSS copied under a design- prefix,
    recolored via custom properties instead of each game's own inline
    style.background/color - still-competing options nothing has settled
@@ -786,52 +835,17 @@ h1 {
   width: 100%;
 }
 
-/* Memoria's .memo-card - bordered neutral card, icon above name. Omits
-   its selection/match-flash states (not relevant to a static ref). */
-.design-station-card {
-  align-items: center;
-  aspect-ratio: 1;
-  background: var(--paper-well);
-  border: 2px solid var(--rule);
-  border-radius: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Overpass', sans-serif;
-  gap: 0.25rem;
-  justify-content: center;
-  padding: 0.4rem;
-  width: 4.6rem;
-}
-
-.design-station-card__icon {
-  color: var(--ink);
-  height: 1.9rem;
-  width: 1.9rem;
-}
-
-.design-station-card__icon svg {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
-.design-station-card__name {
-  color: var(--ink);
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1.15;
-  text-align: center;
-}
-
 /* Memoria's .reveal__icons/.reveal__icon-cell - matched pairs at round
    end, icon only, each cell bordered by that station's real line
    (deliberately colorful - celebrates matches, doesn't compete with
    anything else). Lives here, not on "Listas de estaciones", since it's
-   a single-station widget shown repeatedly, not a list structure. */
+   a single-station widget shown repeatedly, not a list structure.
+   6 columns matches the real grid's own column count, not just a
+   stand-in count. */
 .design-reveal-grid {
   display: grid;
   gap: 0.5rem;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
 }
 
 .design-reveal-grid__cell {

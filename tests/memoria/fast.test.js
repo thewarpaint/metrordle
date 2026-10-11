@@ -154,10 +154,10 @@ async function main() {
       // instant the match resolves. Scoped to #memo-board since the two
       // ghost clones (still fading out, see below) also briefly show the
       // matched station and would otherwise double-count it.
-      const uniqueStations = await page.$$eval('#memo-board .memo-card:not(.memo-card--empty)', (els) => {
+      const uniqueStations = await page.$$eval('#memo-board .station-card:not(.station-card--empty)', (els) => {
         var counts = {};
         els.forEach((el) => {
-          var label = el.getAttribute('aria-label') || (el.querySelector('.memo-card__name') || {}).textContent;
+          var label = el.getAttribute('aria-label') || (el.querySelector('.station-card__name') || {}).textContent;
           counts[label] = (counts[label] || 0) + 1;
         });
         return Object.keys(counts).length;
@@ -167,15 +167,15 @@ async function main() {
       // The flash lives on two ghost clones outside #memo-board entirely
       // (see spawnMatchGhost()), not on the live cells now showing the
       // new pair - those should be plain, uncolored cards.
-      const liveFlashCount = await page.$$('#memo-board .memo-card--match-flash').then((els) => els.length);
+      const liveFlashCount = await page.$$('#memo-board .station-card--match-flash').then((els) => els.length);
       assert.strictEqual(liveFlashCount, 0, 'the live, freshly-dealt cards should not themselves be colored by the flash');
 
-      const ghosts = await page.$$('.memo-card--match-ghost');
+      const ghosts = await page.$$('.station-card--match-ghost');
       assert.strictEqual(ghosts.length, 2, 'the just-matched pair should each get a ghost clone');
       for (const ghost of ghosts) {
         const bg = await ghost.evaluate((el) => getComputedStyle(el).getPropertyValue('--match-bg').trim());
         assert.strictEqual(bg, expectedLine.color, 'the ghost should be colored by the JUST-matched station\'s own line');
-        const label = await ghost.evaluate((el) => el.getAttribute('aria-label') || (el.querySelector('.memo-card__name') || {}).textContent);
+        const label = await ghost.evaluate((el) => el.getAttribute('aria-label') || (el.querySelector('.station-card__name') || {}).textContent);
         assert.strictEqual(label, station, 'the ghost should still show the station that was actually matched');
       }
 
@@ -194,13 +194,13 @@ async function main() {
 
       // A third, unrelated card should be immediately selectable - the
       // ghosts fading out never block the rest of the board.
-      const thirdCard = await page.$('#memo-board .memo-card:not(.memo-card--empty):not(.memo-card--selected)');
+      const thirdCard = await page.$('#memo-board .station-card:not(.station-card--empty):not(.station-card--selected)');
       await thirdCard.click();
-      assert.ok(await thirdCard.evaluate((el) => el.classList.contains('memo-card--selected')), 'a third card should be selectable right away, not blocked by the ghosts');
+      assert.ok(await thirdCard.evaluate((el) => el.classList.contains('station-card--selected')), 'a third card should be selectable right away, not blocked by the ghosts');
 
       // Past MATCH_FLASH_MS - both ghosts and the popup are gone.
       await page.waitForTimeout(700);
-      assert.strictEqual(await page.$$('.memo-card--match-ghost').then((els) => els.length), 0, 'the ghosts should be removed once MATCH_FLASH_MS has passed');
+      assert.strictEqual(await page.$$('.station-card--match-ghost').then((els) => els.length), 0, 'the ghosts should be removed once MATCH_FLASH_MS has passed');
       assert.strictEqual(await page.$('.memo-score-popup'), null, 'the popup should have removed itself');
 
       assert.deepStrictEqual(pageErrors, [], 'no JS errors during play');
@@ -231,9 +231,9 @@ async function main() {
     const { context, page } = await freshPage(TEST_DATE);
     try {
       const info = await page.evaluate(() => {
-        const iconCard = document.querySelector('.memo-card--icon');
-        const nameCard = document.querySelector('.memo-card--name');
-        const nameText = nameCard.querySelector('.memo-card__name');
+        const iconCard = document.querySelector('.station-card--icon');
+        const nameCard = document.querySelector('.station-card--name');
+        const nameText = nameCard.querySelector('.station-card__name');
         return {
           iconBg: getComputedStyle(iconCard).backgroundColor,
           nameBg: getComputedStyle(nameCard).backgroundColor,

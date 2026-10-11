@@ -42,11 +42,14 @@ async function main() {
       const lineBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.line-badge').count();
       assert.strictEqual(lineBadges, 5, 'expected one .line-badge per sampled line');
 
-      const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.design-station-card').count();
+      // The second "Estaciones" example is the other already-
+      // consolidated pattern (shared.css's own real .station-card, not a
+      // .design- prefixed stand-in - see shared.css's own comment on it).
+      const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');
 
       const revealGridCells = await page.locator('#stations-gallery .design-example').nth(4).locator('.design-reveal-grid__cell').count();
-      assert.strictEqual(revealGridCells, 4, 'expected one reveal-grid cell per sampled station');
+      assert.strictEqual(revealGridCells, 18, 'expected 18 reveal-grid cells, mimicking the real end-of-round grid\'s own size');
 
       const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();
       assert.strictEqual(platformRows, 5, 'expected 5 platform rows (the puzzle\'s own station count)');

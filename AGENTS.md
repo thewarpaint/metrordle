@@ -26,9 +26,9 @@ Site copy/UI is in Spanish (`es-MX`).
   The just-matched pair itself gets a brief "you got it!" moment via
   `spawnMatchGhost()`: it clones each matched card exactly where it's
   sitting, pulls the clone out of the grid entirely (`position: absolute`
-  on `.memo-card--match-ghost`, appended to `#board-wrap` - a sibling of
+  on `.station-card--match-ghost`, appended to `#board-wrap` - a sibling of
   `#memo-board`, not a child of it) and lets it pop + fade away
-  (`.memo-card--match-flash` for the color, `--match-bg`/`--match-ink`
+  (`.station-card--match-flash` for the color, `--match-bg`/`--match-ink`
   set inline from the matched station's own line - same colored-by-line
   convention as Metro Crush's board tiles and Metroguessr's reveal badge;
   deliberately color-only, no line-id badge on top the way Metroguessr's
@@ -60,15 +60,15 @@ Site copy/UI is in Spanish (`es-MX`).
   starting or finishing a second match before the first one's own ghosts
   have finished fading. A plain card selection (no match involved) is
   applied via a dedicated `updateSelectionClasses()` that only toggles
-  which card has `.memo-card--selected`, rather than routing through
+  which card has `.station-card--selected`, rather than routing through
   `renderBoard()`'s full teardown/rebuild of all 16 cards - that full
   rebuild used to destroy and recreate all 16 `<use>`-referenced station
   icons on every single click, which was visibly slow enough to read as
   the icons briefly disappearing. Every test helper/selector touching the
   board (`tests/lib/memoria-helpers.js`) is scoped to `#memo-board` for
-  exactly this reason - a ghost clone also carries the plain `.memo-card`
+  exactly this reason - a ghost clone also carries the plain `.station-card`
   class (for its coloring) but lives outside `#memo-board` entirely, and
-  an unscoped `.memo-card` query would double-count the station it's
+  an unscoped `.station-card` query would double-count the station it's
   still fading out on top of. Once a round ends, the reveal screen's own
   "Seguir jugando sin guardar" button (`continuePractice()`) lets a
   player keep matching pairs on the same board with no stakes - a
@@ -254,25 +254,28 @@ Site copy/UI is in Spanish (`es-MX`).
   game's nav, `noindex`, same as `/admin/`): side-by-side examples of
   how a Metro line or a station is shown today - most of them still
   competing, un-redrawn copies of each game's own `<style>` block
-  (pulled as-is, not hand-approximated), pending a decision; one
-  concept has actually been decided and consolidated already (see
+  (pulled as-is, not hand-approximated), pending a decision; two
+  concepts have actually been decided and consolidated already (see
   below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
   Metroguessr's `.hint-line-badge`, Laberinto's `.route-dot`, plus the
-  one already-decided `.line-badge` - see "Shared infrastructure"
-  below), an "Estaciones" board (Laberinto's `.map-node`, Memoria's
-  `.memo-card`, Metro Crush's `.tile`/Metroguessr's
-  `.target-icon-marker`, plain text, and Memoria's own
-  `.reveal__icons`/`.reveal__icon-cell` - every matched pair at round
-  end, icon only, no name, each cell's own border colored by THAT
-  station's real line; unlike every other "too much color" case this
-  file's own consolidation work has trimmed, this one is deliberately
-  kept as-is, since it's a celebratory summary of the lines actually
-  matched, not a status/result indicator competing with anything else
-  on the page - lives here rather than on "Listas de estaciones" below
-  since it's a single-station widget shown several times for
-  comparison, same as every other example on this board, not a
-  pattern with list structure of its own the way the ones below are),
-  and a "Listas de estaciones" board for the different ways a GROUP of
+  already-decided `.line-badge` - see "Shared infrastructure" below),
+  an "Estaciones" board (Laberinto's `.map-node`, Metro Crush's
+  `.tile`/Metroguessr's `.target-icon-marker`, plain text, the
+  already-decided `.station-card` (Memoria's own board card - see
+  "Shared infrastructure" below), and Memoria's own
+  `.reveal__icons`/`.reveal__icon-cell` - 18 stations across 3 rows of
+  6, mimicking the real end-of-round grid's own look (not just a
+  handful like every other example here), icon only, no name, each
+  cell's own border colored by THAT station's real line; unlike every
+  other "too much color" case this file's own consolidation work has
+  trimmed, this one is deliberately kept as-is, since it's a
+  celebratory summary of the lines actually matched, not a status/
+  result indicator competing with anything else on the page - lives
+  here rather than on "Listas de estaciones" below since it's a
+  single-station widget shown several times for comparison, same as
+  every other example on this board, not a pattern with list structure
+  of its own the way the ones below are), and a "Listas de estaciones"
+  board for the different ways a GROUP of
   stations gets shown (not a single line or station board, since
   neither fits, and each pattern here has real list structure of its
   own - order, selection, growth - unlike the reveal-grid above):
@@ -300,8 +303,9 @@ Site copy/UI is in Spanish (`es-MX`).
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references
   those particular classes. This section is meant to shrink as more
-  concepts get decided (see `.line-badge`'s own comment, right above
-  it, for the one concept that already did) - not grow. Colors come
+  concepts get decided (see `.line-badge`'s and `.station-card`'s own
+  comments, right above it, for the two concepts that already did) -
+  not grow. Colors come
   from `MetroShared.LINES`/`STATION_ICON_SLUGS` at render time (via CSS
   custom properties - `--badge-bg`/`--badge-ink`, same convention as
   Metro Crush's own `--tile-bg`/Metroguessr's own `--badge-bg`) rather
@@ -352,7 +356,17 @@ are impossible without a debug override.
   Clasificador's own classification buttons and by Metrordle's own
   line-of-the-day indicator - the first pattern `/design/`'s own
   catalog actually settled on, see its own comment in `shared.css` and
-  `/design/`'s own bullet above). Game-specific CSS
+  `/design/`'s own bullet above; `.station-card` - a neutral station
+  card, same square-with-rounded-top-right-corner shape as `.line-badge`
+  but uncolored (background/border via `--paper-well`/`--rule`, not a
+  line), promoted from Memoria's own `.memo-card` (gone now) - the
+  second settled pattern, and the first shared class under the new
+  `station-` prefix (mirroring `line-` for line-related elements) for
+  station-related ones. Memoria still owns every interaction state
+  layered on top (hover/selected/entering/match-flash/match-ghost/
+  empty, cursor/transition) in its own `<style>` block, same split as
+  `.line-badge`'s own page-local states in Clasificador). Game-specific
+  CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

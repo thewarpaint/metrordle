@@ -534,20 +534,27 @@ AGENTS.md's "Site config" section):
 reference page (see AGENTS.md's own bullet for it) - deliberately
 light, since this page's exact shape is expected to keep changing as
 the actual pattern-consolidation work happens:
-- The "Líneas" (4), "Estaciones" (4), and "Listas de estaciones" (4)
+- The "Líneas" (4), "Estaciones" (5), and "Listas de estaciones" (4)
   galleries each render their own script's expected example count, with
   no page errors.
 - Spot-checks that the first "Líneas" example - the one pattern this
   page has actually settled on, rendered with the real shared.css
   `.line-badge` class rather than a `.design-` prefixed stand-in -
   renders one badge per sampled line, the station-card example renders
-  one card per sampled station, the platform-list example renders one
-  row per the puzzle's own 5 stations, the queue-list example renders
-  one card per sampled station with exactly one marked active, the
-  breadcrumb example renders one stop per sampled station with exactly
-  one marked current, and the reveal-grid example renders one cell per
-  sampled station - confirming the galleries actually populated real
-  entries, not empty rows.
+  one card per sampled station, the reveal-grid example (Memoria's own
+  matched-pairs-at-round-end grid, which lives on the "Estaciones"
+  board rather than "Listas de estaciones" - it's a single-station
+  widget shown several times for comparison, not a list-structured
+  pattern like the others) renders one cell per sampled station, the
+  platform-list example renders one row per the puzzle's own 5
+  stations, the queue-list example renders one card per sampled
+  station with exactly one marked active, the breadcrumb example
+  renders one stop per sampled station with exactly one marked
+  current, and the optimal-path example (Laberinto's own shown-at-
+  round-end shortest route) renders one row per sampled hop with
+  exactly one muted dot (the origin, which has no line of its own) -
+  confirming the galleries actually populated real entries, not empty
+  rows.
 
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
 real Firestore query-construction logic in `shared.js` - unlike every

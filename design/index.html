@@ -295,6 +295,19 @@
           textRow.style.fontSize = '0.85rem';
           textRow.textContent = STATION_SAMPLE.map(function (station) { return station.name; }).join(' · ');
           gallery.appendChild(buildExample(textRow, 'Texto simple · migas de pan de Laberinto, estación revelada de Metroguessr - sin ícono ni color.'));
+
+          var revealGrid = document.createElement('div');
+          revealGrid.className = 'design-reveal-grid';
+          STATION_SAMPLE.forEach(function (station) {
+            var line = lineById(station.lineId);
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var cell = document.createElement('span');
+            cell.className = 'design-reveal-grid__cell';
+            cell.style.setProperty('--badge-bg', line.color);
+            cell.appendChild(makeIcon('design-reveal-grid__icon', slug));
+            revealGrid.appendChild(cell);
+          });
+          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - solo ícono, sin nombre, con el borde de cada celda coloreado por la línea real de esa estación (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
         }
 
         function renderStationListsGallery() {
@@ -372,18 +385,37 @@
           });
           gallery.appendChild(buildExample(breadcrumb, '<code>.breadcrumb</code>/<code>.breadcrumb__stop</code> · ruta recorrida hasta ahora, Laberinto - sin ícono, sin color, solo la parada actual en negrita.'));
 
-          var revealGrid = document.createElement('div');
-          revealGrid.className = 'design-reveal-grid';
-          STATION_SAMPLE.forEach(function (station) {
-            var line = lineById(station.lineId);
-            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
-            var cell = document.createElement('span');
-            cell.className = 'design-reveal-grid__cell';
-            cell.style.setProperty('--badge-bg', line.color);
-            cell.appendChild(makeIcon('design-reveal-grid__icon', slug));
-            revealGrid.appendChild(cell);
+          // A real route with one transfer: Garibaldi/Lagunilla (origin,
+          // no line of its own - nothing was ridden to get there, same as
+          // the live page's own makeRouteDot(lineId) null-case) to Bellas
+          // Artes via Línea 8, transferring there onto Línea 2 the rest
+          // of the way (Allende, then Zócalo) - same line twice in a row
+          // shows the dot staying the same color, not just changing.
+          var OPTIMAL_PATH_SAMPLE = [
+            { name: 'Garibaldi/Lagunilla', lineId: null },
+            { name: 'Bellas Artes', lineId: '8' },
+            { name: 'Allende', lineId: '2' },
+            { name: 'Zócalo', lineId: '2' },
+          ];
+
+          var optimalPath = document.createElement('ol');
+          optimalPath.className = 'design-optimal-path';
+          OPTIMAL_PATH_SAMPLE.forEach(function (hop) {
+            var row = document.createElement('li');
+            row.className = 'design-optimal-path__row';
+
+            var dot = document.createElement('span');
+            dot.className = 'design-line-dot' + (hop.lineId ? '' : ' design-line-dot--muted');
+            if (hop.lineId) dot.style.setProperty('--badge-bg', lineById(hop.lineId).color);
+            row.appendChild(dot);
+
+            var name = document.createElement('span');
+            name.textContent = hop.name;
+            row.appendChild(name);
+
+            optimalPath.appendChild(row);
           });
-          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - solo ícono, sin nombre, con el borde de cada celda coloreado por la línea real de esa estación (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
+          gallery.appendChild(buildExample(optimalPath, '<code>#optimal-path-list</code> · ruta óptima mostrada al terminar la ronda, Laberinto - numerada con un contador CSS (no un círculo como <code>.platform__rank</code>), con el mismo <code>.route-dot</code> de "Líneas" reutilizado por parada.'));
         }
 
         renderLinesGallery();

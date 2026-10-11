@@ -771,13 +771,25 @@ h1 {
 }
 
 /* Laberinto's own .route-dot - color only, no text or icon at all;
-   the leanest of every line indicator this file catalogs. */
+   the leanest of every line indicator this file catalogs. align-self/
+   flex are only meaningful as a flex child (e.g. reused inside
+   .design-optimal-path__row below) - harmless no-ops in the standalone
+   example here. */
 .design-line-dot {
+  align-self: center;
   background: var(--badge-bg, var(--ink));
   border-radius: 50%;
   display: inline-block;
+  flex: 0 0 auto;
   height: 0.55rem;
   width: 0.55rem;
+}
+
+/* Laberinto's own .route-dot--muted - the origin hop, which has no
+   line of its own to show. */
+.design-line-dot--muted {
+  background: var(--paper-well);
+  border: 1px solid var(--rule);
 }
 
 /* Laberinto's own .map-node/.map-hub - a plain neutral circle holding
@@ -843,6 +855,49 @@ h1 {
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
+}
+
+/* Memoria's own .reveal__icons/.reveal__icon-cell - every matched pair
+   at round end, icon-only (no name at all), each cell's own border
+   colored by THAT station's own line (--badge-bg here, same per-
+   instance convention as every other colored-by-line pattern in this
+   file) - unlike every other "too much color" case this file's own
+   consolidation work has trimmed so far, this one is deliberately kept:
+   it's a celebratory summary of the lines actually matched, not a
+   status/result indicator competing with something else on the page.
+   A single-station widget shown several times for comparison, same as
+   every other example on this board - not a list-with-its-own-structure
+   pattern like the ones on the "Listas de estaciones" board below, which
+   is why it lives here instead, even though a real round always shows
+   several cells at once. Pop-in stagger animation not relevant to a
+   static reference. */
+.design-reveal-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.design-reveal-grid__cell {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper-well);
+  border: 2px solid var(--badge-bg, var(--rule));
+  border-radius: 0.4rem;
+  display: flex;
+  justify-content: center;
+  padding: 0.2rem;
+}
+
+.design-reveal-grid__icon {
+  color: var(--ink);
+  height: 1.1rem;
+  width: 1.1rem;
+}
+
+.design-reveal-grid__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 /* Metrordle's own .roundel/.roundel-row (a bordered circle with a
@@ -1016,42 +1071,39 @@ h1 {
   font-size: 0.72rem;
 }
 
-/* Memoria's own .reveal__icons/.reveal__icon-cell - every matched pair
-   at round end, icon-only (no name at all), each cell's own border
-   colored by THAT station's own line (--badge-bg here, same per-
-   instance convention as every other colored-by-line pattern in this
-   file) - unlike every other "too much color" case this file's own
-   consolidation work has trimmed so far, this one is deliberately kept:
-   it's a celebratory summary of the lines actually matched, not a
-   status/result indicator competing with something else on the page.
-   Pop-in stagger animation not relevant to a static reference. */
-.design-reveal-grid {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(4, 1fr);
+/* Laberinto's own .reveal__col/#optimal-path-list - the shown-at-
+   round-end shortest route, for comparison against the player's own
+   (which stays visible above it as the breadcrumb, unchanged once the
+   round ends). A numbered list, but unlike .platform's own rank circle
+   the number here is a plain CSS counter (counter-reset/counter-
+   increment/::before - see .design-optimal-path/__row below), paired
+   with a .route-dot (this file's own leanest line indicator, reused
+   here as a component rather than redrawn) colored by the line used to
+   reach that hop, muted gray for the origin (no line gets you there),
+   and the plain station name. */
+.design-optimal-path {
+  counter-reset: design-optimal-path-step;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.design-reveal-grid__cell {
-  align-items: center;
-  aspect-ratio: 1;
-  background: var(--paper-well);
-  border: 2px solid var(--badge-bg, var(--rule));
-  border-radius: 0.4rem;
+.design-optimal-path__row {
+  align-items: baseline;
+  counter-increment: design-optimal-path-step;
   display: flex;
-  justify-content: center;
-  padding: 0.2rem;
+  font-size: 0.88rem;
+  gap: 0.4rem;
+  line-height: 1.55;
 }
 
-.design-reveal-grid__icon {
-  color: var(--ink);
-  height: 1.1rem;
+.design-optimal-path__row::before {
+  color: var(--ink-soft);
+  content: counter(design-optimal-path-step) '.';
+  flex: 0 0 auto;
+  font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
   width: 1.1rem;
-}
-
-.design-reveal-grid__icon svg {
-  display: block;
-  height: 100%;
-  width: 100%;
 }
 
 .design-example {

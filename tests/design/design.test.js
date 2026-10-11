@@ -29,10 +29,10 @@ async function main() {
       assert.strictEqual(lineExamples, 4, 'expected 4 line-indicator examples (line-badge, compact, circle, dot)');
 
       const stationExamples = await page.locator('#stations-gallery .design-example').count();
-      assert.strictEqual(stationExamples, 4, 'expected 4 station-display examples (node, card, badge, plain text)');
+      assert.strictEqual(stationExamples, 5, 'expected 5 station-display examples (node, card, badge, plain text, reveal grid)');
 
       const stationListExamples = await page.locator('#station-lists-gallery .design-example').count();
-      assert.strictEqual(stationListExamples, 4, 'expected 4 station-list examples (platform, queue, breadcrumb, reveal grid)');
+      assert.strictEqual(stationListExamples, 4, 'expected 4 station-list examples (platform, queue, breadcrumb, optimal path)');
 
       // One badge/circle/dot/card/row per sampled line or station -
       // confirms the galleries actually rendered real entries, not
@@ -44,6 +44,9 @@ async function main() {
 
       const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.design-station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');
+
+      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(4).locator('.design-reveal-grid__cell').count();
+      assert.strictEqual(revealGridCells, 4, 'expected one reveal-grid cell per sampled station');
 
       const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();
       assert.strictEqual(platformRows, 5, 'expected 5 platform rows (the puzzle\'s own station count)');
@@ -59,8 +62,10 @@ async function main() {
       const currentBreadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop--current').count();
       assert.strictEqual(currentBreadcrumbStops, 1, 'expected exactly one breadcrumb stop marked current');
 
-      const revealGridCells = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-reveal-grid__cell').count();
-      assert.strictEqual(revealGridCells, 4, 'expected one reveal-grid cell per sampled station');
+      const optimalPathRows = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-optimal-path__row').count();
+      assert.strictEqual(optimalPathRows, 4, 'expected one optimal-path row per sampled hop');
+      const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-line-dot--muted').count();
+      assert.strictEqual(mutedDots, 1, 'expected exactly one muted dot (the origin, which has no line of its own)');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

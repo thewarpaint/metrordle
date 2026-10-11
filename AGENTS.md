@@ -251,14 +251,27 @@ Site copy/UI is in Spanish (`es-MX`).
   one already-decided `.line-badge` - see "Shared infrastructure"
   below), an "Estaciones" board (Laberinto's `.map-node`, Memoria's
   `.memo-card`, Metro Crush's `.tile`/Metroguessr's
-  `.target-icon-marker`, plain text), and a "Listas de estaciones"
-  board for the two different ways a GROUP of stations gets shown
-  (not a single line or station board, since neither fits): Metrordle's
+  `.target-icon-marker`, plain text, and Memoria's own
+  `.reveal__icons`/`.reveal__icon-cell` - every matched pair at round
+  end, icon only, no name, each cell's own border colored by THAT
+  station's real line; unlike every other "too much color" case this
+  file's own consolidation work has trimmed, this one is deliberately
+  kept as-is, since it's a celebratory summary of the lines actually
+  matched, not a status/result indicator competing with anything else
+  on the page - lives here rather than on "Listas de estaciones" below
+  since it's a single-station widget shown several times for
+  comparison, same as every other example on this board, not a
+  pattern with list structure of its own the way the ones below are),
+  and a "Listas de estaciones" board for the different ways a GROUP of
+  stations gets shown (not a single line or station board, since
+  neither fits, and each pattern here has real list structure of its
+  own - order, selection, growth - unlike the reveal-grid above):
+  Metrordle's
   own `.platform`/`.platform__row` (the puzzle's numbered, reorderable
   guess order - rank circle, neutral icon and row border (`--ink`/
   `--rule-strong` - was the day's own line color, which read as too
   much color competing with the roundel-row's own `.line-badge`
-  above it), name, and a 🟩/🟥 correctness mark once the round ends)
+  above it), name, and a 🟩/🟥 correctness mark once the round ends),
   Clasificador's own `.queue`/`.queue-card` (the upcoming stations
   to classify - unordered, the icon deliberately neutral/un-colored-by-
   line so it can't give away the answer, and borderless (background
@@ -267,13 +280,12 @@ Site copy/UI is in Spanish (`es-MX`).
   `.breadcrumb__stop` (the route trail so far, growing left to right -
   no icon, no color, no border at all, just plain station names
   separated by a "→", only the current/last stop emphasized), and
-  Memoria's own `.reveal__icons`/`.reveal__icon-cell` (every matched
-  pair at round end - icon only, no name, each cell's own border
-  colored by THAT station's real line; unlike every other "too much
-  color" case this file's own consolidation work has trimmed, this one
-  is deliberately kept as-is - it's a celebratory summary of the lines
-  actually matched, not a status/result indicator competing with
-  anything else on the page).
+  Laberinto's own `#optimal-path-list` (the shortest route, shown
+  alongside the breadcrumb once the round ends, for comparison against
+  the player's own route - numbered with a plain CSS counter rather
+  than a rank circle, each stop paired with the same `.route-dot` from
+  "Líneas" reused as a component, muted for the origin since it has no
+  line of its own).
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references

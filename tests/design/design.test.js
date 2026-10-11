@@ -42,13 +42,17 @@ async function main() {
       const lineBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.line-badge').count();
       assert.strictEqual(lineBadges, 5, 'expected one .line-badge per sampled line');
 
-      // The second "Estaciones" example is the other already-
-      // consolidated pattern (shared.css's own real .station-card, not a
-      // .design- prefixed stand-in - see shared.css's own comment on it).
+      // The second and third "Estaciones" examples are the other two
+      // already-consolidated patterns (shared.css's own real
+      // .station-card/.station, not .design- prefixed stand-ins - see
+      // shared.css's own comments on them).
       const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');
 
-      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(4).locator('.design-reveal-grid__cell').count();
+      const stationBadges = await page.locator('#stations-gallery .design-example').nth(2).locator('.station').count();
+      assert.strictEqual(stationBadges, 4, 'expected one .station badge per sampled station');
+
+      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(4).locator('.station--sm').count();
       assert.strictEqual(revealGridCells, 18, 'expected 18 reveal-grid cells, mimicking the real end-of-round grid\'s own size');
 
       const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();

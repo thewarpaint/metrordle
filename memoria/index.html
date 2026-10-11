@@ -342,17 +342,9 @@
         display: none;
       }
 
-      .reveal__icon-cell {
-        align-items: center;
-        aspect-ratio: 1;
-        background: var(--paper-well);
-        border: 2px solid var(--rule);
-        border-radius: 0.4rem;
-        display: flex;
-        justify-content: center;
-        padding: 0.2rem;
-        position: relative;
-      }
+      /* Shape/background now live in shared.css's own .station/
+         .station--sm (filled with the matched station's own line via
+         --badge-bg/--badge-ink, set inline by renderRevealIcons()). */
 
       /* Same pop-in as a freshly-refilled .station-card--entering, staggered
          a beat apart per cell (--stagger-delay, set inline by
@@ -369,19 +361,6 @@
       @keyframes memo-reveal-icon-pop-in {
         from { opacity: 0; transform: scale(0.7); }
         to { opacity: 1; transform: scale(1); }
-      }
-
-      .reveal__icon {
-        color: var(--ink);
-        height: 1.1rem;
-        pointer-events: none;
-        width: 1.1rem;
-      }
-
-      .reveal__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
       }
 
       /* .leaderboard* styling itself now lives in shared.css, common to
@@ -1302,18 +1281,21 @@
 
           sortedMatchedStations().forEach(function (entry, index) {
             var cell = document.createElement('span');
-            cell.className = 'reveal__icon-cell';
+            cell.className = 'station station--sm reveal__icon-cell';
             cell.title = entry.station;
             cell.setAttribute('aria-label', entry.station);
 
-            if (entry.line) cell.style.borderColor = entry.line.color;
+            if (entry.line) {
+              cell.style.setProperty('--badge-bg', entry.line.color);
+              cell.style.setProperty('--badge-ink', entry.line.textColor);
+            }
 
             if (!reduceMotion) {
               cell.classList.add('reveal__icon-cell--entering');
               cell.style.setProperty('--stagger-delay', (index * 0.04) + 's');
             }
 
-            cell.appendChild(makeIcon(entry.station, 'reveal__icon'));
+            cell.appendChild(makeIcon(entry.station, 'station__icon'));
             el.appendChild(cell);
           });
         }

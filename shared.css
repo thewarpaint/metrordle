@@ -720,6 +720,49 @@ h1 {
   text-align: center;
 }
 
+/* Square with a rounded top-right corner, filled with --badge-bg (same
+   convention as .line-badge), icon tinted via --badge-ink. Coalesces 3
+   near-identical copies - Metro Crush's .tile, Metroguessr's
+   .target-icon-marker, and Memoria's .reveal__icon-cell (was a neutral
+   cell with just a colored border instead of a filled badge) - each
+   keeps its own class as a page-local modifier for its own states/
+   animations layered on top, same split as .line-badge's in
+   Clasificador. border: none is explicit - Metro Crush's tiles are
+   real <button>s. */
+.station {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--badge-bg, var(--ink));
+  border: none;
+  border-radius: 0 33% 0 0;
+  color: var(--badge-ink, var(--paper));
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  width: 100%;
+}
+
+.station__icon {
+  color: inherit;
+  height: 60%;
+  pointer-events: none;
+  width: 60%;
+}
+
+.station__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Memoria's reveal grid: much smaller, denser cells - a 60%-of-cell
+   icon reads as cluttered there, so this keeps a small fixed size
+   instead of scaling with the cell. */
+.station--sm .station__icon {
+  height: 1.1rem;
+  width: 1.1rem;
+}
+
 /* Design-reference patterns: real CSS copied under a design- prefix,
    recolored via custom properties instead of each game's own inline
    style.background/color - still-competing options nothing has settled
@@ -729,47 +772,22 @@ h1 {
 
    --badge-bg/--badge-ink matches .line-badge's own convention, set per
    example by /design/'s own script from MetroShared.LINES. */
-.design-badge {
+.design-badge--sm {
   align-items: center;
   aspect-ratio: 1;
   background: var(--badge-bg, var(--paper-well));
-  border-radius: 0 33% 0 0;
+  border-radius: 0 30% 0 0;
   color: var(--badge-ink, var(--ink));
   display: flex;
-  flex-direction: column;
   font-family: 'Overpass', sans-serif;
   justify-content: center;
-  width: 3rem;
-}
-
-/* Full size = Metro Crush's .tile/.legend__chip and Metroguessr's
-   .target-icon-marker; --sm = Clasificador's .line-bar__badge (30% vs
-   33% corner radius). */
-.design-badge--sm {
-  border-radius: 0 30% 0 0;
   width: 1.9rem;
 }
 
 .design-badge__id {
-  font-size: 1.05rem;
+  font-size: 0.78rem;
   font-weight: 900;
   line-height: 1;
-}
-
-.design-badge--sm .design-badge__id {
-  font-size: 0.78rem;
-}
-
-.design-badge__icon {
-  height: 60%;
-  pointer-events: none;
-  width: 60%;
-}
-
-.design-badge__icon svg {
-  display: block;
-  height: 100%;
-  width: 100%;
 }
 
 /* Metroguessr's .hint-line-badge - a circle instead of the rounded-
@@ -831,38 +849,15 @@ h1 {
   width: 100%;
 }
 
-/* Proposed restyle of Memoria's real .reveal__icon-cell (still just a
-   bordered neutral cell there, untouched pending a decision) - same
-   shape as .line-badge/.station-card, filled with the line's color,
-   icon recolored via --badge-ink for contrast. Lives here, not on
-   "Listas de estaciones", since it's a single-station widget shown
-   repeatedly. 6 columns matches the real grid's own count. */
+/* Layout only - the cells themselves are the real, consolidated
+   .station/.station--sm now (see shared.css's own comment on .station).
+   Lives here, not on "Listas de estaciones", since it's a single-
+   station widget shown repeatedly. 6 columns matches the real grid's
+   own count. */
 .design-reveal-grid {
   display: grid;
   gap: 0.5rem;
   grid-template-columns: repeat(6, 1fr);
-}
-
-.design-reveal-grid__cell {
-  align-items: center;
-  aspect-ratio: 1;
-  background: var(--badge-bg, var(--paper-well));
-  border-radius: 0 33% 0 0;
-  display: flex;
-  justify-content: center;
-  padding: 0.2rem;
-}
-
-.design-reveal-grid__icon {
-  color: var(--badge-ink, #fff);
-  height: 1.1rem;
-  width: 1.1rem;
-}
-
-.design-reveal-grid__icon svg {
-  display: block;
-  height: 100%;
-  width: 100%;
 }
 
 /* .roundel/.roundel-row (bordered circle, "STC" caption) is gone -

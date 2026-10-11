@@ -254,28 +254,23 @@ Site copy/UI is in Spanish (`es-MX`).
   game's nav, `noindex`, same as `/admin/`): side-by-side examples of
   how a Metro line or a station is shown today - most of them still
   competing, un-redrawn copies of each game's own `<style>` block
-  (pulled as-is, not hand-approximated), pending a decision; two
+  (pulled as-is, not hand-approximated), pending a decision; three
   concepts have actually been decided and consolidated already (see
   below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
   Metroguessr's `.hint-line-badge`, Laberinto's `.route-dot`, plus the
   already-decided `.line-badge` - see "Shared infrastructure" below),
-  an "Estaciones" board (Laberinto's `.map-node`, Metro Crush's
-  `.tile`/Metroguessr's `.target-icon-marker`, plain text, the
-  already-decided `.station-card` (Memoria's own board card - see
-  "Shared infrastructure" below), and Memoria's own
-  `.reveal__icons`/`.reveal__icon-cell` - 18 stations across 3 rows of
-  6, mimicking the real end-of-round grid's own size (not just a
-  handful like every other example here), icon only, no name. This one
-  is a proposed restyle, not a faithful copy: the real game still just
-  tints a neutral cell's border by the station's line, while this
-  example fills the whole cell - same square-with-rounded-top-right-
-  corner shape as `.line-badge`/`.station-card` - with that color, icon
-  recolored for contrast on top of it. Unlike every other "too much
-  color" case this file's own consolidation work has trimmed, the
-  color itself here is deliberate either way, real or proposed - it's a
-  celebratory summary of the lines actually matched, not a status/
-  result indicator competing with anything else on the page - lives
-  here rather than on "Listas de estaciones" below since it's a
+  an "Estaciones" board (Laberinto's `.map-node`, plain text, the
+  already-decided `.station-card` (Memoria's own board card), the
+  already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
+  `.target-icon-marker` - see "Shared infrastructure" below), and
+  Memoria's own `.reveal__icons` - 18 stations across 3 rows of 6,
+  mimicking the real end-of-round grid's own size (not just a handful
+  like every other example here), using that same `.station`/
+  `.station--sm` - a celebratory summary of the lines actually matched,
+  deliberately colorful unlike every other "too much color" case this
+  file's own consolidation work has trimmed, since it doesn't compete
+  with a status/result indicator anywhere else on the page - lives here
+  rather than on "Listas de estaciones" below since it's a
   single-station widget shown several times for comparison, same as
   every other example on this board, not a pattern with list structure
   of its own the way the ones below are), and a "Listas de estaciones"
@@ -307,12 +302,12 @@ Site copy/UI is in Spanish (`es-MX`).
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references
   those particular classes. This section is meant to shrink as more
-  concepts get decided (see `.line-badge`'s and `.station-card`'s own
-  comments, right above it, for the two concepts that already did) -
-  not grow. Colors come
+  concepts get decided (see `.line-badge`'s, `.station-card`'s, and
+  `.station`'s own comments, right above it, for the three concepts
+  that already did) - not grow. Colors come
   from `MetroShared.LINES`/`STATION_ICON_SLUGS` at render time (via CSS
-  custom properties - `--badge-bg`/`--badge-ink`, same convention as
-  Metro Crush's own `--tile-bg`/Metroguessr's own `--badge-bg`) rather
+  custom properties - `--badge-bg`/`--badge-ink`, the same convention
+  every consolidated class now shares) rather
   than being hand-copied, so the examples can't silently drift from the
   real palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`,
   same reasoning as `/admin/`'s own exclusion (not a player-facing game
@@ -371,8 +366,30 @@ are impossible without a debug override.
   station-related ones. Memoria still owns every interaction state
   layered on top (hover/selected/entering/match-flash/match-ghost/
   empty, cursor/transition) in its own `<style>` block, same split as
-  `.line-badge`'s own page-local states in Clasificador). Game-specific
-  CSS
+  `.line-badge`'s own page-local states in Clasificador; `.station` -
+  same square-with-rounded-top-right-corner shape, filled with
+  `--badge-bg`/tinted via `--badge-ink` (falling back to a solid `--ink`
+  background with `--paper` icon) - the third settled pattern, coalescing
+  3 near-identical copies: Metro Crush's own `.tile` (its own
+  `--tile-bg`/`--tile-ink` custom properties renamed to the shared
+  `--badge-bg`/`--badge-ink` to match), Metroguessr's own
+  `.target-icon-marker`, and Memoria's own `.reveal__icon-cell` (was a
+  neutral cell with just a colored border, now filled like the other
+  two). Each keeps its own class as a page-local modifier for its own
+  states/animations (Metro Crush's many `.tile--*` interaction/
+  animation modifiers in particular, its `.tile--neutral` hard-mode/
+  preview state now setting its own explicit `--paper-well` background
+  rather than relying on `.station`'s own dark fallback, which it can
+  no longer count on going unused), same split as `.line-badge`'s/
+  `.station-card`'s own. A size modifier, `.station--sm`, keeps
+  Memoria's own reveal-grid icons a small fixed size instead of scaling
+  with the (much smaller, denser) cell the way the other two's `60%`
+  icons do; `.station__icon` is the shared icon wrapper all three now
+  use, including Metroguessr's own (a `<span>` now wraps the station
+  pictogram `<svg>` it appends to the marker element, where it used to
+  append the bare `<svg>` directly - see `tests/lib/leaflet-stub.js`'s
+  own token-based `className` match, no longer an exact-equality one,
+  for why)). Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

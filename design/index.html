@@ -312,13 +312,14 @@
             var line = lineById(station.lineId);
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
             var badge = document.createElement('div');
-            badge.className = 'design-badge';
+            badge.className = 'station';
+            badge.style.width = '3rem';
             badge.style.setProperty('--badge-bg', line.color);
             badge.style.setProperty('--badge-ink', line.textColor);
-            badge.appendChild(makeIcon('design-badge__icon', slug));
+            badge.appendChild(makeIcon('station__icon', slug));
             badgeRow.appendChild(badge);
           });
-          gallery.appendChild(buildExample(badgeRow, '<code>.tile</code>/<code>.target-icon-marker</code> · ficha de Metro Crush y marcador de revelación de Metroguessr - la estación Y su línea a la vez, coloreada por línea.'));
+          gallery.appendChild(buildExample(badgeRow, '<code>.station</code> · ✅ consolidado - ficha de Metro Crush y marcador de revelación de Metroguessr, ambos ahora iguales.'));
 
           var textRow = document.createElement('p');
           textRow.className = 'design-example__row';
@@ -332,13 +333,13 @@
             var line = lineById(station.lineId);
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
             var cell = document.createElement('span');
-            cell.className = 'design-reveal-grid__cell';
+            cell.className = 'station station--sm';
             cell.style.setProperty('--badge-bg', line.color);
             cell.style.setProperty('--badge-ink', line.textColor);
-            cell.appendChild(makeIcon('design-reveal-grid__icon', slug));
+            cell.appendChild(makeIcon('station__icon', slug));
             revealGrid.appendChild(cell);
           });
-          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - 18 estaciones en 3 filas de 6, igual que la cuadrícula real, solo ícono, sin nombre - propuesta: misma esquina superior derecha redondeada que <code>.line-badge</code>/<code>.station-card</code>, celda rellena con la línea real de esa estación en vez de solo el borde, ícono recoloreado para contraste (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más). El juego real todavía usa el trato anterior (borde coloreado, celda neutra) - esto es solo exploración en /design/.'));
+          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.station</code> (<code>.station--sm</code>) · ✅ consolidado - parejas encontradas al terminar la ronda, Memoria, 18 estaciones en 3 filas de 6 igual que la cuadrícula real, solo ícono, sin nombre (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
         }
 
         function renderStationListsGallery() {

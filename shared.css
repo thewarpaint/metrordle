@@ -963,7 +963,7 @@ h1 {
 
 .design-queue-card__icon {
   align-items: center;
-  background: var(--paper-raised);
+  background: transparent;
   border-radius: 0.4rem;
   color: var(--ink-soft);
   display: flex;

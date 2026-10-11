@@ -29,7 +29,7 @@ async function main() {
       assert.strictEqual(lineExamples, 4, 'expected 4 line-indicator examples (line-badge, compact, circle, dot)');
 
       const stationExamples = await page.locator('#stations-gallery .design-example').count();
-      assert.strictEqual(stationExamples, 5, 'expected 5 station-display examples (node, card, badge, plain text, reveal grid)');
+      assert.strictEqual(stationExamples, 6, 'expected 6 station-display examples (node, card, badge, chip, plain text, reveal grid)');
 
       const stationListExamples = await page.locator('#station-lists-gallery .design-example').count();
       assert.strictEqual(stationListExamples, 4, 'expected 4 station-list examples (platform, queue, breadcrumb, optimal path)');
@@ -42,17 +42,20 @@ async function main() {
       const lineBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.line-badge').count();
       assert.strictEqual(lineBadges, 5, 'expected one .line-badge per sampled line');
 
-      // The second and third "Estaciones" examples are the other two
+      // The second, third, and fourth "Estaciones" examples are the other
       // already-consolidated patterns (shared.css's own real
-      // .station-card/.station, not .design- prefixed stand-ins - see
-      // shared.css's own comments on them).
+      // .station-card/.station/.station--chip, not .design- prefixed
+      // stand-ins - see shared.css's own comments on them).
       const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');
 
       const stationBadges = await page.locator('#stations-gallery .design-example').nth(2).locator('.station').count();
       assert.strictEqual(stationBadges, 4, 'expected one .station badge per sampled station');
 
-      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(4).locator('.station--sm').count();
+      const stationChips = await page.locator('#stations-gallery .design-example').nth(3).locator('.station--chip').count();
+      assert.strictEqual(stationChips, 4, 'expected one .station--chip per sampled station');
+
+      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(5).locator('.station--sm').count();
       assert.strictEqual(revealGridCells, 18, 'expected 18 reveal-grid cells, mimicking the real end-of-round grid\'s own size');
 
       const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();

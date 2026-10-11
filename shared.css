@@ -721,12 +721,12 @@ h1 {
 }
 
 /* Square with a rounded top-right corner, filled with --badge-bg (same
-   convention as .line-badge), icon tinted via --badge-ink. Coalesces 3
-   near-identical copies - Metro Crush's .tile, Metroguessr's
-   .target-icon-marker, and Memoria's .reveal__icon-cell (was a neutral
-   cell with just a colored border instead of a filled badge) - each
-   keeps its own class as a page-local modifier for its own states/
-   animations layered on top, same split as .line-badge's in
+   convention as .line-badge), icon tinted via --badge-ink. Coalesces 4
+   near-identical copies - Metro Crush's .tile and .legend__chip,
+   Metroguessr's .target-icon-marker, and Memoria's .reveal__icon-cell
+   (was a neutral cell with just a colored border instead of a filled
+   badge) - each keeps its own class as a page-local modifier for its
+   own states/animations layered on top, same split as .line-badge's in
    Clasificador. border: none is explicit - Metro Crush's tiles are
    real <button>s. */
 .station {
@@ -761,6 +761,15 @@ h1 {
 .station--sm .station__icon {
   height: 1.1rem;
   width: 1.1rem;
+}
+
+/* Metro Crush's own .legend__chip - the pre-round line legend and the
+   reveal screen's per-line match-summary, both a fixed compact size
+   rather than filling a grid cell or a map-sized marker. Still the same
+   60%-of-container icon as the default size - only the container's own
+   size differs, so this needs nothing beyond that one dimension. */
+.station--chip {
+  width: 1.8rem;
 }
 
 /* Design-reference patterns: real CSS copied under a design- prefix,

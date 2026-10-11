@@ -321,6 +321,19 @@
           });
           gallery.appendChild(buildExample(badgeRow, '<code>.station</code> · ✅ consolidado - ficha de Metro Crush y marcador de revelación de Metroguessr, ambos ahora iguales.'));
 
+          var chipRow = buildRow();
+          STATION_SAMPLE.forEach(function (station) {
+            var line = lineById(station.lineId);
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var chip = document.createElement('div');
+            chip.className = 'station station--chip';
+            chip.style.setProperty('--badge-bg', line.color);
+            chip.style.setProperty('--badge-ink', line.textColor);
+            chip.appendChild(makeIcon('station__icon', slug));
+            chipRow.appendChild(chip);
+          });
+          gallery.appendChild(buildExample(chipRow, '<code>.station--chip</code> · ✅ consolidado - <code>.legend__chip</code>, leyenda de líneas y resumen de coincidencias de Metro Crush - mismo ícono al 60% que el tamaño normal, solo el contenedor es más chico.'));
+
           var textRow = document.createElement('p');
           textRow.className = 'design-example__row';
           textRow.style.fontSize = '0.85rem';

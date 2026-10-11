@@ -442,8 +442,8 @@ case rather than a contrived one:
   of a fresh queue, with each line's own "× N" chip count matching what
   was planted, in the day's own line order - and, from that same
   planted total/streak, clicking `#share-btn` copies the exact expected
-  text, `getRating()`'s band (the planted total of 9 lands in
-  "Regular" 🟨) included.
+  text, `getRating()`'s band (the planted total of 9 lands in "Mala"
+  🟧) included.
 - `?debug=true`'s date-nav changes which 6 lines are featured and
   navigating back restores the fixture date's own deterministic picks.
 

@@ -155,14 +155,14 @@ async function main() {
       const banner = await page.$eval('#reveal-banner', (el) => el.textContent);
       assert.strictEqual(banner, '¡Tiempo! 🔥 Racha: 4 días, máxima: 6 días', 'expected the reveal banner to show the planted streak, got: ' + banner);
 
-      // The planted total (9) falls in getRating()'s 'Regular' 🟨 band
-      // (9 through 18) - verifies both the rating logic and the share
+      // The planted total (9) falls in getRating()'s 'Mala' 🟧 band
+      // (6 through 15) - verifies both the rating logic and the share
       // text it feeds, in one real clipboard round-trip.
       await page.click('#share-btn');
       await page.waitForTimeout(300);
       const shareText = await page.evaluate(() => navigator.clipboard.readText());
       const expected = 'Metrordle: Clasificador #' + gameNumberFor(DATE) + '\n\n' +
-        '🟨 Calificación: Regular\n' +
+        '🟧 Calificación: Mala\n' +
         'Clasificadas: 9\n' +
         '🔥 Racha: 4 días, máxima: 6 días\n\n' +
         'https://metrordle.com/clasificador/';

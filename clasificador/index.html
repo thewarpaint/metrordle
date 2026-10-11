@@ -917,11 +917,11 @@
         // as Memoria's/Metro Crush's own getRating, tuned to how many
         // stations a round here actually tends to classify in 60s.
         function getRating(score) {
-          if (score === 0) return { label: 'Terrible', square: '🟥' };
-          if (score <= 8) return { label: 'Mala', square: '🟧' };
-          if (score <= 18) return { label: 'Regular', square: '🟨' };
-          if (score <= 28) return { label: 'Buena', square: '🟩' };
-          if (score <= 40) return { label: 'Excelente', square: '🟦' };
+          if (score <= 5) return { label: 'Terrible', square: '🟥' };
+          if (score <= 15) return { label: 'Mala', square: '🟧' };
+          if (score <= 25) return { label: 'Regular', square: '🟨' };
+          if (score <= 35) return { label: 'Buena', square: '🟩' };
+          if (score <= 45) return { label: 'Excelente', square: '🟦' };
           return { label: 'Sobresaliente', square: '🟪' };
         }
 

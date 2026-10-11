@@ -857,7 +857,9 @@ h1 {
    line-badge above it; the row's own border is --rule-strong rather
    than the softer --rule other bordered cards here use, same
    reasoning), name, and (once the round ends) a 🟩/🟥 correctness mark
-   in place of the up/down buttons the live page shows instead. */
+   in place of the up/down buttons the live page shows instead - the
+   border itself stays this same neutral color even then; it used to
+   also recolor green/red, which doubled up on the mark's own signal. */
 .design-platform {
   display: flex;
   flex-direction: column;
@@ -875,16 +877,6 @@ h1 {
   display: flex;
   gap: 0.6rem;
   padding: 0.4rem 0.55rem;
-}
-
-.design-platform__row--correct {
-  border-color: var(--ok);
-  box-shadow: inset 0 0 0 1px var(--ok);
-}
-
-.design-platform__row--incorrect {
-  border-color: var(--danger);
-  box-shadow: inset 0 0 0 1px var(--danger);
 }
 
 .design-platform__rank {

@@ -317,7 +317,7 @@
           PLATFORM_SAMPLE.forEach(function (station, index) {
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
             var row = document.createElement('li');
-            row.className = 'design-platform__row ' + (station.correct ? 'design-platform__row--correct' : 'design-platform__row--incorrect');
+            row.className = 'design-platform__row';
 
             var rank = document.createElement('span');
             rank.className = 'design-platform__rank';

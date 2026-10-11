@@ -274,7 +274,12 @@
          competing for attention); --rule-strong is literally the same
          value as --ink in both themes (see :root in shared.css), so this
          reads as "the text color" without hardcoding --ink onto a
-         border property. */
+         border property. Every row keeps this same neutral border once
+         the round ends too - .platform__row--correct/--incorrect used to
+         recolor it green/red, which doubled up on (and visually competed
+         with) the 🟩/🟥 mark each row already gets at that point (see
+         renderPlatformNormal()); removed rather than kept as redundant
+         color-only signal. */
       .platform__row {
         align-items: center;
         background: var(--paper-raised);
@@ -306,16 +311,6 @@
         position: relative;
         transition: none;
         z-index: 20;
-      }
-
-      .platform__row--correct {
-        border-color: var(--ok);
-        box-shadow: inset 0 0 0 1px var(--ok);
-      }
-
-      .platform__row--incorrect {
-        border-color: var(--danger);
-        box-shadow: inset 0 0 0 1px var(--danger);
       }
 
       .platform__rank {
@@ -1613,11 +1608,6 @@
             li.className = 'platform__row';
             li.setAttribute('data-station', name);
             li.addEventListener('pointerdown', function (event) { onRowPointerDown(li, name, event); });
-
-            if (state.gameOver) {
-              var isCorrect = name === state.correctOrder[index];
-              li.className += isCorrect ? ' platform__row--correct' : ' platform__row--incorrect';
-            }
 
             var rank = document.createElement('span');
             rank.className = 'platform__rank';

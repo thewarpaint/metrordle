@@ -416,8 +416,9 @@ preserve node identity, a class toggle always does:
   tile deselected, new one selected) without a rebuild either.
 
 **`clasificador/fast.test.js`** covers `/clasificador/`'s deterministic
-daily puzzle and multi-line correctness - no real-time waiting beyond a
-couple of short animation settles. Uses `2026-11-19` as a known-good
+daily puzzle, multi-line correctness, and the rating/share text a
+finished round builds - no real-time waiting beyond a couple of short
+animation settles. Uses `2026-11-19` as a known-good
 fixture date (independently recomputed against the real `shared.js`
 before writing the file, not hand-picked by inspection): with the real
 `MetroShared.LINES` data, `'metrordle-clasificador-2026-11-19'`
@@ -439,7 +440,10 @@ case rather than a contrived one:
 - A planted finished result (`total`/`correctByLine` in
   `'clasificador:' + dateKey`) shows the reveal screen on load instead
   of a fresh queue, with each line's own "× N" chip count matching what
-  was planted, in the day's own line order.
+  was planted, in the day's own line order - and, from that same
+  planted total/streak, clicking `#share-btn` copies the exact expected
+  text, `getRating()`'s band (the planted total of 9 lands in
+  "Regular" 🟨) included.
 - `?debug=true`'s date-nav changes which 6 lines are featured and
   navigating back restores the fixture date's own deterministic picks.
 

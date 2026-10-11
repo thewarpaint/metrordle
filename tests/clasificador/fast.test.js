@@ -1,8 +1,9 @@
 'use strict';
 
 // Covers /clasificador/'s deterministic daily puzzle, multi-line
-// correctness, and basic round lifecycle - no real-time waiting beyond
-// a couple of short animation settles.
+// correctness, basic round lifecycle, and the rating/share text a
+// finished round builds - no real-time waiting beyond a couple of
+// short animation settles.
 //
 // 2026-11-19 is used throughout as a known-good fixture date: with the
 // real MetroShared.LINES data, 'metrordle-clasificador-2026-11-19'
@@ -22,6 +23,16 @@ const { chromium } = require('playwright');
 const { startServer, test, runAll } = require('../lib/harness');
 
 const FIXTURE_DATE = '2026-11-19';
+
+// Must match START_DATE_KEY in clasificador/index.html.
+const START_DATE_KEY = '2026-10-10';
+
+function gameNumberFor(dateKey) {
+  var start = new Date(START_DATE_KEY + 'T00:00:00');
+  var target = new Date(dateKey + 'T00:00:00');
+  var msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((target.getTime() - start.getTime()) / msPerDay) + 1;
+}
 
 async function main() {
   const server = await startServer();
@@ -109,9 +120,10 @@ async function main() {
     }
   });
 
-  test('a completed round persists its per-line result and shows it on reload instead of a fresh queue', async () => {
+  test('a completed round persists its per-line result and shows it on reload instead of a fresh queue, with the right rating/share text', async () => {
     const DATE = '2026-11-20';
     const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
@@ -142,6 +154,19 @@ async function main() {
 
       const banner = await page.$eval('#reveal-banner', (el) => el.textContent);
       assert.strictEqual(banner, '¡Tiempo! 🔥 Racha: 4 días, máxima: 6 días', 'expected the reveal banner to show the planted streak, got: ' + banner);
+
+      // The planted total (9) falls in getRating()'s 'Regular' 🟨 band
+      // (9 through 18) - verifies both the rating logic and the share
+      // text it feeds, in one real clipboard round-trip.
+      await page.click('#share-btn');
+      await page.waitForTimeout(300);
+      const shareText = await page.evaluate(() => navigator.clipboard.readText());
+      const expected = 'Metrordle: Clasificador #' + gameNumberFor(DATE) + '\n\n' +
+        '🟨 Calificación: Regular\n' +
+        'Clasificadas: 9\n' +
+        '🔥 Racha: 4 días, máxima: 6 días\n\n' +
+        'https://metrordle.com/clasificador/';
+      assert.strictEqual(shareText, expected, 'expected the share text built from the planted total/streak, got: ' + shareText);
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

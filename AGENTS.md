@@ -162,9 +162,8 @@ Site copy/UI is in Spanish (`es-MX`).
   that bucket (`spawnGhost()`, same split-animation convention as
   Memoria's own `spawnMatchGhost()` - the ghost animates independently
   while the live queue re-renders underneath it) and the queue slides
-  down with a new station entering at the top. Has its own leaderboard
-  and streak now (see below) - no share text yet, still a deliberate
-  follow-up.
+  down with a new station entering at the top. Has its own leaderboard,
+  streak, and share text now (see below).
 
   Both **which 6 of the real 12 Metro lines are featured** and **the
   order stations get dealt in** are fully deterministic per calendar
@@ -227,10 +226,21 @@ Site copy/UI is in Spanish (`es-MX`).
   this collection was already `'2026-10-10'` from when the leaderboard
   itself shipped (see "Leaderboards" below) - it needed no change here,
   since admin's `#N` badge is computed purely from `startDateKey` and
-  today's date, not from anything this game's own page submits. Unlike
-  Metro Crush's own game number, this one isn't in any share text yet,
-  since Clasificador doesn't have share text at all yet either (see
-  above).
+  today's date, not from anything this game's own page submits. Now also
+  in this game's own share text (`buildShareText()`), same `#N` spot as
+  Metro Crush's own.
+
+  Share text (`shareResult()`/`MetroShared.shareOrCopyText()`, same
+  native-share-with-clipboard-fallback convention as every other game)
+  rates the round via a `getRating(score)` open-scale band - "Terrible"
+  at 0 up through "Sobresaliente", same label/🟥-🟪 square shape as
+  Memoria's/Metro Crush's own `getRating()`, thresholds tuned to how
+  many stations a 60-second round here actually tends to classify
+  rather than copied from either (there's no per-tap delay once a
+  placement lands, so the pace - and the bands - differ from Memoria's
+  card-flip-gated one). Shares `state.total`, the rating, and
+  `state.streak`/max-streak the same way Metro Crush's own share text
+  does.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each

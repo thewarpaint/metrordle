@@ -425,6 +425,8 @@
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
           </div>
 
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+
           <div id="game-promo-slot"></div>
         </div>
       </div>
@@ -449,6 +451,7 @@
         var STREAK_STORAGE_KEY = 'clasificador:streak';
         var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
         var LEADERBOARD_SIZE = 5;
+        var SHARE_URL = 'https://metrordle.com/clasificador/';
 
         function $(id) {
           return document.getElementById(id);
@@ -910,6 +913,32 @@
           return separator + MetroShared.formatMaxStreak(state.maxStreak);
         }
 
+        // Open scale, no "complete" state to measure against - same shape
+        // as Memoria's/Metro Crush's own getRating, tuned to how many
+        // stations a round here actually tends to classify in 60s.
+        function getRating(score) {
+          if (score === 0) return { label: 'Terrible', square: '🟥' };
+          if (score <= 8) return { label: 'Mala', square: '🟧' };
+          if (score <= 18) return { label: 'Regular', square: '🟨' };
+          if (score <= 28) return { label: 'Buena', square: '🟩' };
+          if (score <= 40) return { label: 'Excelente', square: '🟦' };
+          return { label: 'Sobresaliente', square: '🟪' };
+        }
+
+        function buildShareText() {
+          var rating = getRating(state.total);
+
+          return 'Metrordle: Clasificador #' + state.gameNumber + '\n\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Clasificadas: ' + state.total + '\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
+        }
+
         function renderReveal() {
           els.revealBanner.textContent = '¡Tiempo! 🔥 ' +
             MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
@@ -1111,6 +1140,7 @@
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardList: $('leaderboard-list'),
             leaderboardStatus: $('leaderboard-status'),
+            shareBtn: $('share-btn'),
             dateDebug: $('date-debug'),
             datePrevBtn: $('date-prev'),
             dateNextBtn: $('date-next'),
@@ -1118,6 +1148,7 @@
           };
 
           els.startBtn.addEventListener('click', beginRound);
+          els.shareBtn.addEventListener('click', shareResult);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;

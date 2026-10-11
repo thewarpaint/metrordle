@@ -684,11 +684,16 @@ h1 {
    split as .line-badge's own page-local states in Clasificador.
 
    No flex-direction/gap here - a card only ever holds ONE child (icon
-   OR name, never both, see Memoria's own renderBoard()). */
+   OR name, never both, see Memoria's own renderBoard()).
+
+   border: none is explicit, same reasoning as .line-badge's own -
+   Memoria's instances are real <button>s, which get a UA default
+   border otherwise. */
 .station-card {
   align-items: center;
   aspect-ratio: 1;
   background: var(--paper-well);
+  border: none;
   border-radius: 0 33% 0 0;
   display: flex;
   font-family: 'Overpass', sans-serif;

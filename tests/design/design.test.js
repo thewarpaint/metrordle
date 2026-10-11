@@ -55,7 +55,7 @@ async function main() {
       const stationChips = await page.locator('#stations-gallery .design-example').nth(3).locator('.station--chip').count();
       assert.strictEqual(stationChips, 4, 'expected one .station--chip per sampled station');
 
-      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(5).locator('.station--sm').count();
+      const revealGridCells = await page.locator('#stations-gallery .design-example').nth(5).locator('.station').count();
       assert.strictEqual(revealGridCells, 18, 'expected 18 reveal-grid cells, mimicking the real end-of-round grid\'s own size');
 
       const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();

@@ -549,7 +549,7 @@ the actual pattern-consolidation work happens:
   card per sampled station, one `.station` badge per sampled station,
   and one `.station--chip` per sampled station, the reveal-grid example
   (Memoria's own matched-pairs-at-round-end grid, now also the real
-  `.station`/`.station--sm`, which lives on the "Estaciones" board
+  `.station`, which lives on the "Estaciones" board
   rather than "Listas de estaciones" - it's a
   single-station widget shown several times for comparison, not a
   list-structured pattern like the others) renders 18 cells (6 columns

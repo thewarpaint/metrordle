@@ -744,9 +744,9 @@ h1 {
 
 .station__icon {
   color: inherit;
-  height: 60%;
+  height: 66%;
   pointer-events: none;
-  width: 60%;
+  width: 66%;
 }
 
 .station__icon svg {
@@ -755,18 +755,10 @@ h1 {
   width: 100%;
 }
 
-/* Memoria's reveal grid: much smaller, denser cells - a 60%-of-cell
-   icon reads as cluttered there, so this keeps a small fixed size
-   instead of scaling with the cell. */
-.station--sm .station__icon {
-  height: 1.1rem;
-  width: 1.1rem;
-}
-
 /* Metro Crush's own .legend__chip - the pre-round line legend and the
    reveal screen's per-line match-summary, both a fixed compact size
    rather than filling a grid cell or a map-sized marker. Still the same
-   60%-of-container icon as the default size - only the container's own
+   66%-of-container icon as the default size - only the container's own
    size differs, so this needs nothing beyond that one dimension. */
 .station--chip {
   width: 1.8rem;
@@ -859,10 +851,9 @@ h1 {
 }
 
 /* Layout only - the cells themselves are the real, consolidated
-   .station/.station--sm now (see shared.css's own comment on .station).
-   Lives here, not on "Listas de estaciones", since it's a single-
-   station widget shown repeatedly. 6 columns matches the real grid's
-   own count. */
+   .station now (see shared.css's own comment on .station). Lives here,
+   not on "Listas de estaciones", since it's a single-station widget
+   shown repeatedly. 6 columns matches the real grid's own count. */
 .design-reveal-grid {
   display: grid;
   gap: 0.5rem;

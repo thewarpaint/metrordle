@@ -32,7 +32,7 @@ async function main() {
       assert.strictEqual(stationExamples, 4, 'expected 4 station-display examples (node, card, badge, plain text)');
 
       const stationListExamples = await page.locator('#station-lists-gallery .design-example').count();
-      assert.strictEqual(stationListExamples, 2, 'expected 2 station-list examples (platform, queue)');
+      assert.strictEqual(stationListExamples, 4, 'expected 4 station-list examples (platform, queue, breadcrumb, reveal grid)');
 
       // One badge/circle/dot/card/row per sampled line or station -
       // confirms the galleries actually rendered real entries, not
@@ -53,6 +53,14 @@ async function main() {
 
       const activeQueueCards = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-queue-card--active').count();
       assert.strictEqual(activeQueueCards, 1, 'expected exactly one queue card marked active');
+
+      const breadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop').count();
+      assert.strictEqual(breadcrumbStops, 4, 'expected one breadcrumb stop per sampled station');
+      const currentBreadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop--current').count();
+      assert.strictEqual(currentBreadcrumbStops, 1, 'expected exactly one breadcrumb stop marked current');
+
+      const revealGridCells = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-reveal-grid__cell').count();
+      assert.strictEqual(revealGridCells, 4, 'expected one reveal-grid cell per sampled station');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

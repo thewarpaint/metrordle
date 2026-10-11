@@ -534,7 +534,7 @@ AGENTS.md's "Site config" section):
 reference page (see AGENTS.md's own bullet for it) - deliberately
 light, since this page's exact shape is expected to keep changing as
 the actual pattern-consolidation work happens:
-- The "Líneas" (4), "Estaciones" (4), and "Listas de estaciones" (2)
+- The "Líneas" (4), "Estaciones" (4), and "Listas de estaciones" (4)
   galleries each render their own script's expected example count, with
   no page errors.
 - Spot-checks that the first "Líneas" example - the one pattern this
@@ -542,10 +542,12 @@ the actual pattern-consolidation work happens:
   `.line-badge` class rather than a `.design-` prefixed stand-in -
   renders one badge per sampled line, the station-card example renders
   one card per sampled station, the platform-list example renders one
-  row per the puzzle's own 5 stations, and the queue-list example
-  renders one card per sampled station with exactly one marked active -
-  confirming the galleries actually populated real entries, not empty
-  rows.
+  row per the puzzle's own 5 stations, the queue-list example renders
+  one card per sampled station with exactly one marked active, the
+  breadcrumb example renders one stop per sampled station with exactly
+  one marked current, and the reveal-grid example renders one cell per
+  sampled station - confirming the galleries actually populated real
+  entries, not empty rows.
 
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
 real Firestore query-construction logic in `shared.js` - unlike every

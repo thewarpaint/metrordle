@@ -355,6 +355,35 @@
             queue.appendChild(card);
           });
           gallery.appendChild(buildExample(queue, '<code>.queue</code>/<code>.queue-card</code> · fila de estaciones por clasificar, Clasificador - sin numerar, sin colorear por línea (revelaría la respuesta), con la estación activa destacada sobre las siguientes.'));
+
+          var breadcrumb = document.createElement('div');
+          breadcrumb.className = 'design-breadcrumb';
+          STATION_SAMPLE.forEach(function (station, index) {
+            if (index > 0) {
+              var sep = document.createElement('span');
+              sep.className = 'design-breadcrumb__sep';
+              sep.textContent = '→';
+              breadcrumb.appendChild(sep);
+            }
+            var stop = document.createElement('span');
+            stop.className = 'design-breadcrumb__stop' + (index === STATION_SAMPLE.length - 1 ? ' design-breadcrumb__stop--current' : '');
+            stop.textContent = station.name;
+            breadcrumb.appendChild(stop);
+          });
+          gallery.appendChild(buildExample(breadcrumb, '<code>.breadcrumb</code>/<code>.breadcrumb__stop</code> · ruta recorrida hasta ahora, Laberinto - sin ícono, sin color, solo la parada actual en negrita.'));
+
+          var revealGrid = document.createElement('div');
+          revealGrid.className = 'design-reveal-grid';
+          STATION_SAMPLE.forEach(function (station) {
+            var line = lineById(station.lineId);
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var cell = document.createElement('span');
+            cell.className = 'design-reveal-grid__cell';
+            cell.style.setProperty('--badge-bg', line.color);
+            cell.appendChild(makeIcon('design-reveal-grid__icon', slug));
+            revealGrid.appendChild(cell);
+          });
+          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - solo ícono, sin nombre, con el borde de cada celda coloreado por la línea real de esa estación (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
         }
 
         renderLinesGallery();

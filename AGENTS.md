@@ -259,11 +259,21 @@ Site copy/UI is in Spanish (`es-MX`).
   `--rule-strong` - was the day's own line color, which read as too
   much color competing with the roundel-row's own `.line-badge`
   above it), name, and a 🟩/🟥 correctness mark once the round ends)
-  and Clasificador's own `.queue`/`.queue-card` (the upcoming stations
+  Clasificador's own `.queue`/`.queue-card` (the upcoming stations
   to classify - unordered, the icon deliberately neutral/un-colored-by-
   line so it can't give away the answer, and borderless (background
   alone sets it off from the card around it), with the one active card
-  visually emphasized over the rest).
+  visually emphasized over the rest), Laberinto's own `.breadcrumb`/
+  `.breadcrumb__stop` (the route trail so far, growing left to right -
+  no icon, no color, no border at all, just plain station names
+  separated by a "→", only the current/last stop emphasized), and
+  Memoria's own `.reveal__icons`/`.reveal__icon-cell` (every matched
+  pair at round end - icon only, no name, each cell's own border
+  colored by THAT station's real line; unlike every other "too much
+  color" case this file's own consolidation work has trimmed, this one
+  is deliberately kept as-is - it's a celebratory summary of the lines
+  actually matched, not a status/result indicator competing with
+  anything else on the page).
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references

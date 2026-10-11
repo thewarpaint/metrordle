@@ -246,8 +246,13 @@
         filter: drop-shadow(0 8px 12px var(--shadow));
       }
 
+      /* Neutral (--ink, not --line) - every icon/row border on the
+         platform used to be tinted by the day's own line color, which
+         read as too much color competing with the roundel-row's own
+         line-badge above it. --ink already adapts to light/dark mode on
+         its own (see :root in shared.css), same as any other page text. */
       .platform-icon-col__icon {
-        color: var(--line);
+        color: var(--ink);
         height: 2.9rem;
         width: 2.9rem;
       }
@@ -263,10 +268,22 @@
         gap: 0.15rem;
       }
 
+      /* Border color is --rule-strong rather than the softer --rule every
+         other bordered card here uses - same reasoning as
+         .platform-icon-col__icon above (less of the line's own color
+         competing for attention); --rule-strong is literally the same
+         value as --ink in both themes (see :root in shared.css), so this
+         reads as "the text color" without hardcoding --ink onto a
+         border property. Every row keeps this same neutral border once
+         the round ends too - .platform__row--correct/--incorrect used to
+         recolor it green/red, which doubled up on (and visually competed
+         with) the 🟩/🟥 mark each row already gets at that point (see
+         renderPlatformNormal()); removed rather than kept as redundant
+         color-only signal. */
       .platform__row {
         align-items: center;
         background: var(--paper-raised);
-        border: 2px solid var(--rule);
+        border: 2px solid var(--rule-strong);
         border-radius: 0.5rem;
         cursor: grab;
         display: flex;
@@ -296,16 +313,6 @@
         z-index: 20;
       }
 
-      .platform__row--correct {
-        border-color: var(--ok);
-        box-shadow: inset 0 0 0 1px var(--ok);
-      }
-
-      .platform__row--incorrect {
-        border-color: var(--danger);
-        box-shadow: inset 0 0 0 1px var(--danger);
-      }
-
       .platform__rank {
         align-items: center;
         background: var(--rule-strong);
@@ -320,8 +327,10 @@
         width: 1.6rem;
       }
 
+      /* --ink, not --line - see .platform-icon-col__icon's own comment
+         above. */
       .platform__icon {
-        color: var(--line);
+        color: var(--ink);
         flex: 0 0 auto;
         height: 1.6rem;
         width: 1.6rem;
@@ -1599,11 +1608,6 @@
             li.className = 'platform__row';
             li.setAttribute('data-station', name);
             li.addEventListener('pointerdown', function (event) { onRowPointerDown(li, name, event); });
-
-            if (state.gameOver) {
-              var isCorrect = name === state.correctOrder[index];
-              li.className += isCorrect ? ' platform__row--correct' : ' platform__row--incorrect';
-            }
 
             var rank = document.createElement('span');
             rank.className = 'platform__rank';

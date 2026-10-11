@@ -299,7 +299,6 @@
 
         function renderStationListsGallery() {
           var gallery = document.getElementById('station-lists-gallery');
-          var line = lineById('2');
 
           // A real (if not necessarily consecutive) Línea 2 sequence,
           // two of the five marked "incorrect" to show both marks at
@@ -318,7 +317,7 @@
           PLATFORM_SAMPLE.forEach(function (station, index) {
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
             var row = document.createElement('li');
-            row.className = 'design-platform__row ' + (station.correct ? 'design-platform__row--correct' : 'design-platform__row--incorrect');
+            row.className = 'design-platform__row';
 
             var rank = document.createElement('span');
             rank.className = 'design-platform__rank';
@@ -326,7 +325,6 @@
             row.appendChild(rank);
 
             var icon = makeIcon('design-platform__icon', slug);
-            icon.style.color = line.color;
             row.appendChild(icon);
 
             var name = document.createElement('span');
@@ -341,7 +339,7 @@
 
             platform.appendChild(row);
           });
-          gallery.appendChild(buildExample(platform, '<code>.platform</code>/<code>.platform__row</code> · orden de las 5 estaciones, Metrordle - numerada, con el ícono coloreado por la línea del día y (al terminar la ronda) una marca 🟩/🟥 por fila.'));
+          gallery.appendChild(buildExample(platform, '<code>.platform</code>/<code>.platform__row</code> · orden de las 5 estaciones, Metrordle - numerada, con ícono y borde neutros (ya no coloreados por la línea del día) y (al terminar la ronda) una marca 🟩/🟥 por fila.'));
 
           var queue = document.createElement('div');
           queue.className = 'design-queue';

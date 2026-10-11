@@ -80,14 +80,9 @@
         margin: 0.85rem 0 0.6rem;
       }
 
-      /* .line-badge itself (shape/color/label) lives in shared.css now -
-         promoted from this exact badge (it used to be a bordered circle
-         with a literal "STC" caption, .roundel/.roundel__stc). This page
-         is the one place that still needs its own size: shared.css
-         deliberately leaves .line-badge unsized so Clasificador's own
-         grid can stretch it, but .roundel-row is a flex row, not a
-         stretching grid, so this badge needs an explicit size of its
-         own - same size .roundel used to be. */
+      /* .line-badge itself lives in shared.css (unsized there so
+         Clasificador's grid can stretch it); this flex row needs an
+         explicit width instead - same size .roundel used to be. */
       #line-badge {
         flex: 0 0 auto;
         transition: background-color 0.25s ease;
@@ -246,11 +241,8 @@
         filter: drop-shadow(0 8px 12px var(--shadow));
       }
 
-      /* Neutral (--ink, not --line) - every icon/row border on the
-         platform used to be tinted by the day's own line color, which
-         read as too much color competing with the roundel-row's own
-         line-badge above it. --ink already adapts to light/dark mode on
-         its own (see :root in shared.css), same as any other page text. */
+      /* --ink, not --line - was tinted by the day's own line color,
+         too much color competing with the roundel-row's own line-badge. */
       .platform-icon-col__icon {
         color: var(--ink);
         height: 2.9rem;
@@ -268,18 +260,10 @@
         gap: 0.15rem;
       }
 
-      /* Border color is --rule-strong rather than the softer --rule every
-         other bordered card here uses - same reasoning as
-         .platform-icon-col__icon above (less of the line's own color
-         competing for attention); --rule-strong is literally the same
-         value as --ink in both themes (see :root in shared.css), so this
-         reads as "the text color" without hardcoding --ink onto a
-         border property. Every row keeps this same neutral border once
-         the round ends too - .platform__row--correct/--incorrect used to
-         recolor it green/red, which doubled up on (and visually competed
-         with) the 🟩/🟥 mark each row already gets at that point (see
-         renderPlatformNormal()); removed rather than kept as redundant
-         color-only signal. */
+      /* Border is --rule-strong (= --ink in both themes), not the softer
+         --rule - same reasoning as the icon above. Stays neutral even
+         after the round ends; used to go green/red, doubling up on the
+         🟩/🟥 mark's own signal. */
       .platform__row {
         align-items: center;
         background: var(--paper-raised);

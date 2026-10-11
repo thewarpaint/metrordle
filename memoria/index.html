@@ -176,7 +176,7 @@
         margin: 0 0 1rem;
       }
 
-      @keyframes memo-card-pop-in {
+      @keyframes station-card-pop-in {
         from {
           opacity: 0;
           transform: scale(0.7);
@@ -188,42 +188,29 @@
         }
       }
 
-      .memo-card--entering {
-        animation: memo-card-pop-in 0.3s ease;
+      .station-card--entering {
+        animation: station-card-pop-in 0.3s ease;
       }
 
-      .memo-card {
-        align-items: center;
-        aspect-ratio: 1;
-        background: var(--paper-well);
-        border: 2px solid var(--rule);
-        border-radius: 0.5rem;
+      /* Shape/background now live in shared.css's own .station-card -
+         only interaction states stay page-local here, same split as
+         .line-badge's in Clasificador. */
+      .station-card {
         cursor: pointer;
-        display: flex;
-        font-family: 'Overpass', sans-serif;
-        justify-content: center;
-        min-width: 0;
-        padding: 0.25rem;
         position: relative;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
-        width: 100%;
+        transition: box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
       }
 
-      .memo-card:hover:not(:disabled) {
-        border-color: var(--ink-soft);
-      }
-
-      .memo-card:focus-visible {
+      .station-card:focus-visible {
         outline: 3px solid var(--focus);
         outline-offset: 2px;
       }
 
-      .memo-card:disabled {
+      .station-card:disabled {
         cursor: default;
       }
 
-      .memo-card--selected {
-        border-color: var(--focus);
+      .station-card--selected {
         box-shadow: 0 0 0 2px var(--focus);
       }
 
@@ -231,17 +218,16 @@
          convention as Metro Crush's board tiles and Metroguessr's reveal
          badge) - used only by the cloned "ghost" spawnMatchGhost() makes
          of a just-matched card, never by a live board cell. This class
-         supplies only the coloring; .memo-card--match-ghost below (always
+         supplies only the coloring; .station-card--match-ghost below (always
          applied alongside it) is what actually positions and animates
          the clone. */
-      .memo-card--match-flash {
+      .station-card--match-flash {
         background: var(--match-bg, var(--ok));
-        border-color: var(--match-bg, var(--ok));
         color: var(--match-ink, var(--ok-ink));
       }
 
-      .memo-card--match-flash .memo-card__icon,
-      .memo-card--match-flash .memo-card__name {
+      .station-card--match-flash .station-card__icon,
+      .station-card--match-flash .station-card__name {
         color: var(--match-ink, var(--ok-ink));
       }
 
@@ -257,21 +243,20 @@
          it was cloned. The animation duration matches MATCH_FLASH_MS,
          which is also how long spawnMatchGhost() waits before actually
          removing the (by-then invisible) element from the DOM. */
-      .memo-card--match-ghost {
+      .station-card--match-ghost {
         position: absolute;
         pointer-events: none;
-        animation: memo-card-match-ghost-pop 0.2s ease forwards;
+        animation: station-card-match-ghost-pop 0.2s ease forwards;
       }
 
-      @keyframes memo-card-match-ghost-pop {
+      @keyframes station-card-match-ghost-pop {
         0% { transform: scale(1); opacity: 1; }
         40% { transform: scale(1.14); opacity: 1; }
         100% { transform: scale(0.85); opacity: 0; }
       }
 
-      .memo-card--empty {
+      .station-card--empty {
         background: transparent;
-        border-style: dashed;
         cursor: default;
       }
 
@@ -298,31 +283,6 @@
         0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
         15% { transform: translate(-50%, -60%) scale(1.05); opacity: 1; }
         100% { transform: translate(-50%, -160%) scale(1); opacity: 0; }
-      }
-
-      .memo-card__icon {
-        color: var(--ink);
-        height: 1.9rem;
-        pointer-events: none;
-        width: 1.9rem;
-      }
-
-      .memo-card__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
-      }
-
-      .memo-card__name {
-        color: var(--ink);
-        font-size: 0.66rem;
-        font-weight: 700;
-        hyphens: auto;
-        line-height: 1.15;
-        min-width: 0;
-        overflow-wrap: break-word;
-        pointer-events: none;
-        text-align: center;
       }
 
       .reveal {
@@ -394,7 +354,7 @@
         position: relative;
       }
 
-      /* Same pop-in as a freshly-refilled .memo-card--entering, staggered
+      /* Same pop-in as a freshly-refilled .station-card--entering, staggered
          a beat apart per cell (--stagger-delay, set inline by
          renderRevealIcons()) so the whole grid reads as a little cascade
          landing into place rather than popping in all at once - a nicer
@@ -1011,7 +971,7 @@
         // Clones a just-matched card exactly where it's currently sitting,
         // then pops and fades it away entirely on its own - out of the
         // grid's own layout flow (position: absolute, see
-        // .memo-card--match-ghost), so it can play a clear "you got it!"
+        // .station-card--match-ghost), so it can play a clear "you got it!"
         // moment for the station that was ACTUALLY just matched, fully
         // independent of the grid's own re-render replacing that slot
         // with a new pair right underneath it. Animating the live cell
@@ -1029,8 +989,8 @@
           ghost.disabled = true;
           ghost.tabIndex = -1;
           ghost.setAttribute('aria-hidden', 'true');
-          ghost.className = 'memo-card memo-card--' + (sourceEl.classList.contains('memo-card--icon') ? 'icon' : 'name') +
-            ' memo-card--match-flash memo-card--match-ghost';
+          ghost.className = 'station-card station-card--' + (sourceEl.classList.contains('station-card--icon') ? 'icon' : 'name') +
+            ' station-card--match-flash station-card--match-ghost';
           ghost.style.left = (rect.left - wrapRect.left) + 'px';
           ghost.style.top = (rect.top - wrapRect.top) + 'px';
           ghost.style.width = rect.width + 'px';
@@ -1158,7 +1118,7 @@
           els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
-        // Toggles which single card shows .memo-card--selected without
+        // Toggles which single card shows .station-card--selected without
         // rebuilding anything - a plain selection change (picking a
         // first card, or swapping which one is picked before a second
         // click) never alters what any cell actually shows, so there's
@@ -1173,7 +1133,7 @@
         // renderBoard(), since those do change what specific cells show.
         function updateSelectionClasses() {
           Array.prototype.forEach.call(els.board.children, function (btn, index) {
-            btn.classList.toggle('memo-card--selected', index === state.selectedIndex);
+            btn.classList.toggle('station-card--selected', index === state.selectedIndex);
           });
         }
 
@@ -1186,25 +1146,25 @@
             btn.type = 'button';
 
             if (!cell || cell.type === null) {
-              btn.className = 'memo-card memo-card--empty';
+              btn.className = 'station-card station-card--empty';
               btn.disabled = true;
               btn.setAttribute('aria-hidden', 'true');
               el.appendChild(btn);
               return;
             }
 
-            var classes = ['memo-card', 'memo-card--' + cell.type];
-            if (index === state.selectedIndex) classes.push('memo-card--selected');
+            var classes = ['station-card', 'station-card--' + cell.type];
+            if (index === state.selectedIndex) classes.push('station-card--selected');
             btn.className = classes.join(' ');
             btn.disabled = state.status !== 'playing' && state.status !== 'practice';
             btn.dataset.key = cell.type + ':' + cell.station;
 
             if (cell.type === 'icon') {
-              btn.appendChild(makeIcon(cell.station, 'memo-card__icon'));
+              btn.appendChild(makeIcon(cell.station, 'station-card__icon'));
               btn.setAttribute('aria-label', cell.station);
             } else {
               var label = document.createElement('span');
-              label.className = 'memo-card__name';
+              label.className = 'station-card__name';
               label.textContent = cell.station;
               btn.appendChild(label);
             }
@@ -1229,7 +1189,7 @@
           var oldRects = {};
 
           if (!reduceMotion) {
-            Array.prototype.forEach.call(el.querySelectorAll('.memo-card[data-key]'), function (card) {
+            Array.prototype.forEach.call(el.querySelectorAll('.station-card[data-key]'), function (card) {
               oldRects[card.dataset.key] = card.getBoundingClientRect();
             });
           }
@@ -1238,13 +1198,13 @@
 
           if (reduceMotion) return;
 
-          Array.prototype.forEach.call(el.querySelectorAll('.memo-card[data-key]'), function (card) {
+          Array.prototype.forEach.call(el.querySelectorAll('.station-card[data-key]'), function (card) {
             var oldRect = oldRects[card.dataset.key];
 
             if (!oldRect) {
-              card.classList.add('memo-card--entering');
+              card.classList.add('station-card--entering');
               setTimeout(function () {
-                card.classList.remove('memo-card--entering');
+                card.classList.remove('station-card--entering');
               }, 300);
               return;
             }

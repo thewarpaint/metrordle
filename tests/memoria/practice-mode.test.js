@@ -51,7 +51,7 @@ async function main() {
       assert.strictEqual(await page.locator('#practice-banner').isVisible(), true, 'the practice banner should explain nothing is being saved');
       assert.strictEqual(await page.locator('#timer-track').isVisible(), false, 'no countdown should run during practice');
 
-      const cardCount = await page.locator('#memo-board .memo-card:not(.memo-card--empty)').count();
+      const cardCount = await page.locator('#memo-board .station-card:not(.station-card--empty)').count();
       assert.strictEqual(cardCount, 16, 'a fresh practice board should deal a full 16-card grid, since the finished day never had one saved');
 
       // Practice has its own stats, not the real round's - an elapsed-time

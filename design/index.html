@@ -137,6 +137,30 @@
           { name: 'Insurgentes', lineId: '1' },
         ];
 
+        // 18 stations (3 per line, Líneas 1-6), matching the real
+        // end-of-round grid's size (6 cols × 3 rows), pre-grouped by
+        // line so each row reads as solid-color blocks.
+        var REVEAL_GRID_SAMPLE = [
+          { name: 'Observatorio', lineId: '1' },
+          { name: 'Tacubaya', lineId: '1' },
+          { name: 'Juanacatlán', lineId: '1' },
+          { name: 'Cuatro Caminos', lineId: '2' },
+          { name: 'Panteones', lineId: '2' },
+          { name: 'Tacuba', lineId: '2' },
+          { name: 'Indios Verdes', lineId: '3' },
+          { name: 'Deportivo 18 de Marzo', lineId: '3' },
+          { name: 'Potrero', lineId: '3' },
+          { name: 'Martín Carrera', lineId: '4' },
+          { name: 'Talismán', lineId: '4' },
+          { name: 'Bondojito', lineId: '4' },
+          { name: 'Politécnico', lineId: '5' },
+          { name: 'Instituto del Petróleo', lineId: '5' },
+          { name: 'Autobuses del Norte', lineId: '5' },
+          { name: 'El Rosario', lineId: '6' },
+          { name: 'Tezozómoc', lineId: '6' },
+          { name: 'UAM Azcapotzalco', lineId: '6' },
+        ];
+
         function lineById(id) {
           for (var i = 0; i < MetroShared.LINES.length; i++) {
             if (MetroShared.LINES[i].id === id) return MetroShared.LINES[i];
@@ -263,19 +287,25 @@
           });
           gallery.appendChild(buildExample(nodeRow, '<code>.map-node</code> · mapa de trasbordos, Laberinto - sin color de línea ni nombre (el nombre aparece aparte, en las migas de pan).'));
 
+          // .station-card only ever holds one child in the real game
+          // (icon or name, never both) - shown together here, with
+          // flex-direction/gap/width added locally, just to compare both.
           var cardRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
             var card = document.createElement('div');
-            card.className = 'design-station-card';
-            card.appendChild(makeIcon('design-station-card__icon', slug));
+            card.className = 'station-card';
+            card.style.flexDirection = 'column';
+            card.style.gap = '0.25rem';
+            card.style.width = '4.6rem';
+            card.appendChild(makeIcon('station-card__icon', slug));
             var name = document.createElement('span');
-            name.className = 'design-station-card__name';
+            name.className = 'station-card__name';
             name.textContent = station.name;
             card.appendChild(name);
             cardRow.appendChild(card);
           });
-          gallery.appendChild(buildExample(cardRow, '<code>.memo-card</code> · tablero de memoria, Memoria.'));
+          gallery.appendChild(buildExample(cardRow, '<code>.station-card</code> · ✅ consolidado - tablero de Memoria, antes <code>.memo-card</code> (esquina superior derecha redondeada, mismo patrón que <code>.line-badge</code>, pero sin color de línea).'));
 
           var badgeRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {
@@ -298,16 +328,17 @@
 
           var revealGrid = document.createElement('div');
           revealGrid.className = 'design-reveal-grid';
-          STATION_SAMPLE.forEach(function (station) {
+          REVEAL_GRID_SAMPLE.forEach(function (station) {
             var line = lineById(station.lineId);
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
             var cell = document.createElement('span');
             cell.className = 'design-reveal-grid__cell';
             cell.style.setProperty('--badge-bg', line.color);
+            cell.style.setProperty('--badge-ink', line.textColor);
             cell.appendChild(makeIcon('design-reveal-grid__icon', slug));
             revealGrid.appendChild(cell);
           });
-          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - solo ícono, sin nombre, con el borde de cada celda coloreado por la línea real de esa estación (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
+          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - 18 estaciones en 3 filas de 6, igual que la cuadrícula real, solo ícono, sin nombre - propuesta: misma esquina superior derecha redondeada que <code>.line-badge</code>/<code>.station-card</code>, celda rellena con la línea real de esa estación en vez de solo el borde, ícono recoloreado para contraste (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más). El juego real todavía usa el trato anterior (borde coloreado, celda neutra) - esto es solo exploración en /design/.'));
         }
 
         function renderStationListsGallery() {

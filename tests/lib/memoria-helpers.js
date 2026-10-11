@@ -7,9 +7,9 @@
 //
 // Every selector here is scoped to #memo-board - a just-matched card's
 // ghost clone (spawnMatchGhost() in memoria/index.html) also carries the
-// .memo-card class (for its coloring/animation) but lives in #board-wrap
+// .station-card class (for its coloring/animation) but lives in #board-wrap
 // as a SIBLING of #memo-board, not inside the grid itself, so an
-// unscoped '.memo-card' query would also catch it and skew any of these
+// unscoped '.station-card' query would also catch it and skew any of these
 // helpers' counts/lookups while a ghost is still fading out.
 
 function checkerboardOk(types) {
@@ -25,19 +25,19 @@ function checkerboardOk(types) {
 }
 
 function getCardTypes(page) {
-  return page.$$eval('#memo-board .memo-card', function (els) {
+  return page.$$eval('#memo-board .station-card', function (els) {
     return els.map(function (e) {
-      return e.classList.contains('memo-card--icon') ? 'icon' : e.classList.contains('memo-card--name') ? 'name' : 'empty';
+      return e.classList.contains('station-card--icon') ? 'icon' : e.classList.contains('station-card--name') ? 'name' : 'empty';
     });
   });
 }
 
 function getCells(page) {
-  return page.$$eval('#memo-board .memo-card', function (els) {
+  return page.$$eval('#memo-board .station-card', function (els) {
     return els.map(function (e) {
-      var nameEl = e.querySelector('.memo-card__name');
+      var nameEl = e.querySelector('.station-card__name');
       return {
-        empty: e.classList.contains('memo-card--empty'),
+        empty: e.classList.contains('station-card--empty'),
         disabled: e.disabled,
         label: e.getAttribute('aria-label') || (nameEl ? nameEl.textContent : null),
       };
@@ -55,11 +55,11 @@ async function findMatchingStation(page) {
 }
 
 async function clickCardForStation(page, station) {
-  var cards = await page.$$('#memo-board .memo-card:not(.memo-card--empty):not(.memo-card--selected)');
+  var cards = await page.$$('#memo-board .station-card:not(.station-card--empty):not(.station-card--selected)');
   for (var i = 0; i < cards.length; i++) {
     var card = cards[i];
     var label = await card.getAttribute('aria-label') ||
-      await card.$eval('.memo-card__name', function (el) { return el.textContent; }).catch(function () { return null; });
+      await card.$eval('.station-card__name', function (el) { return el.textContent; }).catch(function () { return null; });
     if (label === station) {
       await card.click();
       return true;
@@ -81,7 +81,7 @@ async function matchOnePair(page) {
 }
 
 function keyedRects(page) {
-  return page.$$eval('#memo-board .memo-card[data-key]', function (els) {
+  return page.$$eval('#memo-board .station-card[data-key]', function (els) {
     return Object.fromEntries(els.map(function (e) {
       var r = e.getBoundingClientRect();
       return [e.dataset.key, { left: r.left, top: r.top }];

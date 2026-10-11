@@ -90,7 +90,7 @@ seconds):
   afterward.
 - A match deals the refilled pair onto the board immediately (no delay,
   no flash of its own) while the just-matched pair gets a `--match-bg`
-  -colored `.memo-card--match-ghost` clone of itself, positioned over its
+  -colored `.station-card--match-ghost` clone of itself, positioned over its
   old spot outside `#memo-board` entirely, that pops and fades away on
   its own; a same-colored "+1" `.memo-score-popup` rises over where the
   match happened at the same time. Both are gone once `MATCH_FLASH_MS`
@@ -541,16 +541,18 @@ the actual pattern-consolidation work happens:
 - The "Líneas" (4), "Estaciones" (5), and "Listas de estaciones" (4)
   galleries each render their own script's expected example count, with
   no page errors.
-- Spot-checks that the first "Líneas" example - the one pattern this
-  page has actually settled on, rendered with the real shared.css
-  `.line-badge` class rather than a `.design-` prefixed stand-in -
-  renders one badge per sampled line, the station-card example renders
-  one card per sampled station, the reveal-grid example (Memoria's own
-  matched-pairs-at-round-end grid, which lives on the "Estaciones"
-  board rather than "Listas de estaciones" - it's a single-station
-  widget shown several times for comparison, not a list-structured
-  pattern like the others) renders one cell per sampled station, the
-  platform-list example renders one row per the puzzle's own 5
+- Spot-checks that the first "Líneas" example and the second
+  "Estaciones" example - the two patterns this page has actually
+  settled on, rendered with the real shared.css `.line-badge`/
+  `.station-card` classes rather than a `.design-` prefixed stand-in -
+  render one badge per sampled line and one card per sampled station,
+  the reveal-grid example (Memoria's own matched-pairs-at-round-end
+  grid, which lives on the "Estaciones" board rather than "Listas de
+  estaciones" - it's a single-station widget shown several times for
+  comparison, not a list-structured pattern like the others) renders
+  18 cells (6 columns × 3 rows, the real grid's own size, not just a
+  handful), the platform-list example renders one row per the puzzle's
+  own 5
   stations, the queue-list example renders one card per sampled
   station with exactly one marked active, the breadcrumb example
   renders one stop per sampled station with exactly one marked

@@ -92,23 +92,6 @@
         padding: 0 1.1rem 1rem;
       }
 
-      .legend__chip {
-        align-items: center;
-        border-radius: 0 33% 0 0;
-        color: var(--chip-ink);
-        background: var(--chip-bg);
-        display: flex;
-        height: 1.8rem;
-        justify-content: center;
-        width: 1.8rem;
-      }
-
-      .legend__chip svg {
-        color: inherit;
-        height: 60%;
-        width: 60%;
-      }
-
       .status-bar {
         align-items: center;
         background: var(--paper-well);
@@ -679,6 +662,10 @@
         var state = null;
         var debugDate = null;
 
+        // Shared by every .station consumer here (.tile and .legend__chip
+        // alike) - relies entirely on shared.css's own .station__icon
+        // sizing, no page-local svg-sizing override on top of it (that
+        // used to double up with .legend__chip's own, shrinking its icon).
         function makeStationIcon(slug) {
           var wrap = document.createElement('span');
           wrap.className = 'station__icon';
@@ -977,9 +964,9 @@
           var names = [];
           state.activeLines.forEach(function (line) {
             var chip = document.createElement('span');
-            chip.className = 'legend__chip';
-            chip.style.setProperty('--chip-bg', line.color);
-            chip.style.setProperty('--chip-ink', line.textColor);
+            chip.className = 'station station--chip legend__chip';
+            chip.style.setProperty('--badge-bg', line.color);
+            chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
             els.legend.appendChild(chip);
             names.push(line.name);
@@ -1457,9 +1444,9 @@
             li.className = 'match-summary__item';
 
             var chip = document.createElement('span');
-            chip.className = 'legend__chip';
-            chip.style.setProperty('--chip-bg', line.color);
-            chip.style.setProperty('--chip-ink', line.textColor);
+            chip.className = 'station station--chip legend__chip';
+            chip.style.setProperty('--badge-bg', line.color);
+            chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
             li.appendChild(chip);
 

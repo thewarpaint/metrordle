@@ -262,11 +262,12 @@ Site copy/UI is in Spanish (`es-MX`).
   an "Estaciones" board (Laberinto's `.map-node`, plain text, the
   already-decided `.station-card` (Memoria's own board card), the
   already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
-  `.target-icon-marker` - see "Shared infrastructure" below), and
+  `.target-icon-marker` - see "Shared infrastructure" below) plus its
+  own `.station--chip` size (Metro Crush's `.legend__chip`), and
   Memoria's own `.reveal__icons` - 18 stations across 3 rows of 6,
   mimicking the real end-of-round grid's own size (not just a handful
-  like every other example here), using that same `.station`/
-  `.station--sm` - a celebratory summary of the lines actually matched,
+  like every other example here), using that same plain `.station` -
+  a celebratory summary of the lines actually matched,
   deliberately colorful unlike every other "too much color" case this
   file's own consolidation work has trimmed, since it doesn't compete
   with a status/result indicator anywhere else on the page - lives here
@@ -370,22 +371,42 @@ are impossible without a debug override.
   same square-with-rounded-top-right-corner shape, filled with
   `--badge-bg`/tinted via `--badge-ink` (falling back to a solid `--ink`
   background with `--paper` icon) - the third settled pattern, coalescing
-  3 near-identical copies: Metro Crush's own `.tile` (its own
-  `--tile-bg`/`--tile-ink` custom properties renamed to the shared
-  `--badge-bg`/`--badge-ink` to match), Metroguessr's own
-  `.target-icon-marker`, and Memoria's own `.reveal__icon-cell` (was a
-  neutral cell with just a colored border, now filled like the other
-  two). Each keeps its own class as a page-local modifier for its own
-  states/animations (Metro Crush's many `.tile--*` interaction/
-  animation modifiers in particular, its `.tile--neutral` hard-mode/
-  preview state now setting its own explicit `--paper-well` background
-  rather than relying on `.station`'s own dark fallback, which it can
-  no longer count on going unused), same split as `.line-badge`'s/
-  `.station-card`'s own. A size modifier, `.station--sm`, keeps
-  Memoria's own reveal-grid icons a small fixed size instead of scaling
-  with the (much smaller, denser) cell the way the other two's `60%`
-  icons do; `.station__icon` is the shared icon wrapper all three now
-  use, including Metroguessr's own (a `<span>` now wraps the station
+  4 near-identical copies: Metro Crush's own `.tile` AND `.legend__chip`
+  (its own `--tile-bg`/`--tile-ink`/`--chip-bg`/`--chip-ink` custom
+  properties all renamed to the shared `--badge-bg`/`--badge-ink` to
+  match), Metroguessr's own `.target-icon-marker`, and Memoria's own
+  `.reveal__icon-cell` (was a neutral cell with just a colored border,
+  now filled like the others). Each keeps its own class as a page-local
+  modifier for its own states/animations (Metro Crush's many `.tile--*`
+  interaction/animation modifiers in particular, its `.tile--neutral`
+  hard-mode/preview state now setting its own explicit `--paper-well`
+  background rather than relying on `.station`'s own dark fallback,
+  which it can no longer count on going unused), same split as
+  `.line-badge`'s/`.station-card`'s own. `.station--chip` is the one
+  size modifier - just a smaller fixed container (1.8rem) for
+  `.legend__chip`'s own pre-round legend/reveal match-summary use, same
+  icon proportion as the default size - added once `.legend__chip`'s
+  own join into `.station` surfaced a real bug its own CSS had been
+  masking: `.legend__chip svg { height: 60%; width: 60% }` (same
+  specificity as shared.css's own `.station__icon svg`, loaded after
+  it) was *also* matching the very same `<svg>` `makeStationIcon()`
+  already wraps in a 60%-sized `.station__icon` span, shrinking the icon
+  to 60% of 60% and reading as off-center - gone now that `.legend__chip`
+  carries no sizing of its own at all, same as every other `.station`
+  consumer. A `.station--sm` modifier existed briefly too (Memoria's own
+  reveal grid, a fixed 1.1rem icon rather than a proportional one, since
+  its much smaller/denser cells made a proportional icon read as
+  cluttered at the time) - gone now: an audit of every real `.station`
+  consumer's actual rendered icon-to-container ratio (prompted by that
+  same reveal grid visibly reading smaller than Memoria's own live board)
+  found `.station--sm` the one inconsistent outlier (34.4%, against
+  60% everywhere else, including Memoria's own board which is a
+  different class, `.station-card`, at 37.7% - left alone, since its
+  cards hold a name label too, not just an icon) - simpler to size
+  `.station__icon` itself up to a single shared `66%` (every consumer,
+  `.station--sm` included) than to keep carrying a per-consumer
+  exception. `.station__icon` is the shared icon wrapper every consumer
+  now uses, including Metroguessr's own (a `<span>` now wraps the station
   pictogram `<svg>` it appends to the marker element, where it used to
   append the bare `<svg>` directly - see `tests/lib/leaflet-stub.js`'s
   own token-based `className` match, no longer an exact-equality one,

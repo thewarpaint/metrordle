@@ -264,11 +264,15 @@ Site copy/UI is in Spanish (`es-MX`).
   already-decided `.station-card` (Memoria's own board card - see
   "Shared infrastructure" below), and Memoria's own
   `.reveal__icons`/`.reveal__icon-cell` - 18 stations across 3 rows of
-  6, mimicking the real end-of-round grid's own look (not just a
-  handful like every other example here), icon only, no name, each
-  cell's own border colored by THAT station's real line; unlike every
-  other "too much color" case this file's own consolidation work has
-  trimmed, this one is deliberately kept as-is, since it's a
+  6, mimicking the real end-of-round grid's own size (not just a
+  handful like every other example here), icon only, no name. This one
+  is a proposed restyle, not a faithful copy: the real game still just
+  tints a neutral cell's border by the station's line, while this
+  example fills the whole cell - same square-with-rounded-top-right-
+  corner shape as `.line-badge`/`.station-card` - with that color, icon
+  recolored for contrast on top of it. Unlike every other "too much
+  color" case this file's own consolidation work has trimmed, the
+  color itself here is deliberate either way, real or proposed - it's a
   celebratory summary of the lines actually matched, not a status/
   result indicator competing with anything else on the page - lives
   here rather than on "Listas de estaciones" below since it's a
@@ -358,8 +362,10 @@ are impossible without a debug override.
   catalog actually settled on, see its own comment in `shared.css` and
   `/design/`'s own bullet above; `.station-card` - a neutral station
   card, same square-with-rounded-top-right-corner shape as `.line-badge`
-  but uncolored (background/border via `--paper-well`/`--rule`, not a
-  line), promoted from Memoria's own `.memo-card` (gone now) - the
+  but uncolored and borderless (just `--paper-well` for the background,
+  no line, no border - the border was dropped after promotion, so
+  Memoria's own page-local interaction states no longer recolor one
+  either), promoted from Memoria's own `.memo-card` (gone now) - the
   second settled pattern, and the first shared class under the new
   `station-` prefix (mirroring `line-` for line-related elements) for
   station-related ones. Memoria still owns every interaction state

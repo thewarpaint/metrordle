@@ -341,10 +341,11 @@
             var cell = document.createElement('span');
             cell.className = 'design-reveal-grid__cell';
             cell.style.setProperty('--badge-bg', line.color);
+            cell.style.setProperty('--badge-ink', line.textColor);
             cell.appendChild(makeIcon('design-reveal-grid__icon', slug));
             revealGrid.appendChild(cell);
           });
-          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - 18 estaciones en 3 filas de 6, igual que la cuadrícula real, solo ícono, sin nombre, con el borde de cada celda coloreado por la línea real de esa estación (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
+          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.reveal__icon-cell</code> · parejas encontradas al terminar la ronda, Memoria - 18 estaciones en 3 filas de 6, igual que la cuadrícula real, solo ícono, sin nombre - propuesta: misma esquina superior derecha redondeada que <code>.line-badge</code>/<code>.station-card</code>, celda rellena con la línea real de esa estación en vez de solo el borde, ícono recoloreado para contraste (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más). El juego real todavía usa el trato anterior (borde coloreado, celda neutra) - esto es solo exploración en /design/.'));
         }
 
         function renderStationListsGallery() {

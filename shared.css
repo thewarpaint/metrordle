@@ -689,7 +689,6 @@ h1 {
   align-items: center;
   aspect-ratio: 1;
   background: var(--paper-well);
-  border: 2px solid var(--rule);
   border-radius: 0 33% 0 0;
   display: flex;
   font-family: 'Overpass', sans-serif;
@@ -835,13 +834,16 @@ h1 {
   width: 100%;
 }
 
-/* Memoria's .reveal__icons/.reveal__icon-cell - matched pairs at round
-   end, icon only, each cell bordered by that station's real line
-   (deliberately colorful - celebrates matches, doesn't compete with
-   anything else). Lives here, not on "Listas de estaciones", since it's
-   a single-station widget shown repeatedly, not a list structure.
-   6 columns matches the real grid's own column count, not just a
-   stand-in count. */
+/* A proposed restyle of Memoria's real .reveal__icons/.reveal__icon-cell
+   (which still just tints a neutral cell's own border by the station's
+   line, see memoria/index.html) - same square-with-rounded-top-right-
+   corner shape as .line-badge/.station-card, filled with the line's own
+   color instead of just bordered by it, icon recolored to --badge-ink
+   for contrast on top of it. Still design-only - the real game is
+   untouched pending a decision. Lives here, not on "Listas de
+   estaciones", since it's a single-station widget shown repeatedly, not
+   a list structure. 6 columns matches the real grid's own column count,
+   not just a stand-in count. */
 .design-reveal-grid {
   display: grid;
   gap: 0.5rem;
@@ -851,16 +853,15 @@ h1 {
 .design-reveal-grid__cell {
   align-items: center;
   aspect-ratio: 1;
-  background: var(--paper-well);
-  border: 2px solid var(--badge-bg, var(--rule));
-  border-radius: 0.4rem;
+  background: var(--badge-bg, var(--paper-well));
+  border-radius: 0 33% 0 0;
   display: flex;
   justify-content: center;
   padding: 0.2rem;
 }
 
 .design-reveal-grid__icon {
-  color: var(--ink);
+  color: var(--badge-ink, #fff);
   height: 1.1rem;
   width: 1.1rem;
 }

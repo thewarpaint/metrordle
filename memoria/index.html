@@ -192,18 +192,14 @@
         animation: station-card-pop-in 0.3s ease;
       }
 
-      /* Shape/background/border/layout now live in shared.css's own
-         .station-card (promoted from here) - only the interaction states
+      /* Shape/background/layout now live in shared.css's own .station-card
+         (promoted from here, now borderless) - only the interaction states
          below (clickable affordance, focus, selection) stay page-local,
          same split as .line-badge's own page-local states in Clasificador. */
       .station-card {
         cursor: pointer;
         position: relative;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
-      }
-
-      .station-card:hover:not(:disabled) {
-        border-color: var(--ink-soft);
+        transition: box-shadow 0.15s ease, opacity 0.2s ease, transform 0.15s ease;
       }
 
       .station-card:focus-visible {
@@ -216,7 +212,6 @@
       }
 
       .station-card--selected {
-        border-color: var(--focus);
         box-shadow: 0 0 0 2px var(--focus);
       }
 
@@ -229,7 +224,6 @@
          the clone. */
       .station-card--match-flash {
         background: var(--match-bg, var(--ok));
-        border-color: var(--match-bg, var(--ok));
         color: var(--match-ink, var(--ok-ink));
       }
 
@@ -264,7 +258,6 @@
 
       .station-card--empty {
         background: transparent;
-        border-style: dashed;
         cursor: default;
       }
 

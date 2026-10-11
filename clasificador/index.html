@@ -420,6 +420,7 @@
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <p class="leaderboard__record" id="leaderboard-record" hidden></p>
             <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
             <ol class="leaderboard__list" id="leaderboard-list"></ol>
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
@@ -893,6 +894,11 @@
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.total, state.correctByLine, true);
               renderLeaderboard();
+              // Best-effort, same as the leaderboard submission above -
+              // never rejects, so this can't turn an otherwise-successful
+              // submission into a visible error. See
+              // updateHighScoreRecord()'s own comment in shared.js.
+              MetroShared.updateHighScoreRecord('clasificador', state.total, alias, state.dateKey, state.gameNumber);
             })
             .catch(function (err) {
               // Best-effort - the player's own result is already saved
@@ -1035,6 +1041,22 @@
         // every call; a response only renders if it's still the latest.
         var leaderboardRequestId = 0;
 
+        // Clasificador's own all-time high score (see MetroShared.
+        // getHighScoreRecord() in shared.js) - unlike renderLeaderboard()
+        // below, not scoped to state.dateKey at all (records/clasificador
+        // has no date dimension), so this only ever needs to load once,
+        // from init(), not on every debug date-nav shiftDebugDate().
+        function renderHighScoreRecord() {
+          MetroShared.getHighScoreRecord('clasificador').then(function (record) {
+            if (!record) {
+              els.leaderboardRecord.hidden = true;
+              return;
+            }
+            els.leaderboardRecord.textContent = MetroShared.formatHighScoreRecord(record);
+            els.leaderboardRecord.hidden = false;
+          });
+        }
+
         function renderLeaderboard() {
           var dateKey = state.dateKey;
           var requestId = ++leaderboardRequestId;
@@ -1137,6 +1159,7 @@
             revealBanner: $('reveal-banner'),
             revealTotal: $('reveal-total'),
             lineBars: $('line-bars'),
+            leaderboardRecord: $('leaderboard-record'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardList: $('leaderboard-list'),
             leaderboardStatus: $('leaderboard-status'),
@@ -1158,6 +1181,7 @@
 
           startNewGame();
           renderDateDebugLabel();
+          renderHighScoreRecord();
         }
 
         document.addEventListener('DOMContentLoaded', init);

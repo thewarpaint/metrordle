@@ -5,7 +5,10 @@
 // submitLeaderboardScore/getTopLeaderboardScores). Ranked purely by
 // score (total stations correctly classified), descending - same shape
 // as Memoria's and Metro Crush's own leaderboards, no hardMode field at
-// all since this game has no normal/hard mode toggle.
+// all since this game has no normal/hard mode toggle. Also covers the
+// all-time high score record next to the leaderboard (records/clasificador,
+// see shared.js's updateHighScoreRecord()/getHighScoreRecord()), same
+// pattern as Memoria's and Metro Crush's own.
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), which is itself a useful case to cover:
@@ -153,6 +156,69 @@ async function main() {
 
       const stored = await page.evaluate((k) => JSON.parse(localStorage.getItem('clasificador:' + k)), DATE);
       assert.strictEqual(stored.leaderboardSubmitted, true, 'leaderboardSubmitted should be persisted true after a successful submission');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('shows Clasificador\'s own all-time high score next to its leaderboard, fed by MetroShared.getHighScoreRecord() - and stays hidden with no record yet', async () => {
+    const DATE = '2027-03-04';
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            window.MetroShared.getHighScoreRecord = function (gameKey) {
+              return Promise.resolve(gameKey === 'clasificador' ? { score: 59, alias: 'Tío Leo', dateKey: '2026-10-10', gameNumber: 1 } : null);
+            };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/clasificador/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 14, { '1': 14 }, true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), true, 'Clasificador has a real record - should show');
+      assert.strictEqual(await page.locator('#leaderboard-record').textContent(), '🏆 Récord: 59 por Tío Leo · #1 · 10 oct 2026');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('hides the high score record when none exists yet, not "🏆 Récord: undefined"', async () => {
+    const DATE = '2027-03-05';
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.route('**/shared.js', async (route) => {
+        const response = await route.fetch();
+        const body = await response.text();
+        const patched = body + `
+          (function () {
+            window.MetroShared.getHighScoreRecord = function () { return Promise.resolve(null); };
+          })();
+        `;
+        await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+      });
+      await page.goto(server.baseUrl + '/clasificador/?date=' + DATE, { waitUntil: 'networkidle' });
+      await plantSavedResult(page, DATE, 14, { '1': 14 }, true);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+
+      assert.strictEqual(await page.locator('#leaderboard-record').isVisible(), false, 'no record yet - should stay hidden');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

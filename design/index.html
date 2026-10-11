@@ -137,13 +137,9 @@
           { name: 'Insurgentes', lineId: '1' },
         ];
 
-        // 18 stations (3 per line, Líneas 1-6, in each line's own
-        // station order) so the reveal-grid example below can mimic the
-        // real end-of-round grid's own size (6 columns × 3 rows) instead
-        // of the handful every other example here uses - already grouped
-        // by line, same order Memoria's own sortedMatchedStations()
-        // would produce, so each row reads as two solid-color blocks
-        // rather than a shuffle.
+        // 18 stations (3 per line, Líneas 1-6), matching the real
+        // end-of-round grid's size (6 cols × 3 rows), pre-grouped by
+        // line so each row reads as solid-color blocks.
         var REVEAL_GRID_SAMPLE = [
           { name: 'Observatorio', lineId: '1' },
           { name: 'Tacubaya', lineId: '1' },
@@ -291,12 +287,9 @@
           });
           gallery.appendChild(buildExample(nodeRow, '<code>.map-node</code> · mapa de trasbordos, Laberinto - sin color de línea ni nombre (el nombre aparece aparte, en las migas de pan).'));
 
-          // .station-card only ever holds ONE child in the real game
-          // (icon OR name, never both at once - see Memoria's own
-          // renderBoard()); shown together here, with the design-page's
-          // own flex-direction/gap/width layered on top of the shared,
-          // unsized base, purely so this one example can compare both
-          // pieces the card can hold at a glance.
+          // .station-card only ever holds one child in the real game
+          // (icon or name, never both) - shown together here, with
+          // flex-direction/gap/width added locally, just to compare both.
           var cardRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];

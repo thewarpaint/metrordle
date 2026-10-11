@@ -676,19 +676,11 @@ h1 {
 }
 
 /* Square with a rounded top-right corner, same shape as .line-badge -
-   promoted from Memoria's own .memo-card (was 0.5rem all-around
-   corners). First shared station- prefixed class, for station-related
-   logos/elements the way line- is for line-related ones. Memoria layers
-   its own interaction states (hover/selected/entering/match-flash/
-   match-ghost/empty, cursor/transition) on top of this same class, same
-   split as .line-badge's own page-local states in Clasificador.
-
-   No flex-direction/gap here - a card only ever holds ONE child (icon
-   OR name, never both, see Memoria's own renderBoard()).
-
-   border: none is explicit, same reasoning as .line-badge's own -
-   Memoria's instances are real <button>s, which get a UA default
-   border otherwise. */
+   promoted from Memoria's own .memo-card. First shared station- prefixed
+   class; Memoria's own interaction states (hover/selected/etc.) stay
+   page-local, same split as .line-badge's in Clasificador. No flex-
+   direction/gap - a card only ever holds one child (icon or name).
+   border: none is explicit - Memoria's instances are real <button>s. */
 .station-card {
   align-items: center;
   aspect-ratio: 1;
@@ -839,16 +831,12 @@ h1 {
   width: 100%;
 }
 
-/* A proposed restyle of Memoria's real .reveal__icons/.reveal__icon-cell
-   (which still just tints a neutral cell's own border by the station's
-   line, see memoria/index.html) - same square-with-rounded-top-right-
-   corner shape as .line-badge/.station-card, filled with the line's own
-   color instead of just bordered by it, icon recolored to --badge-ink
-   for contrast on top of it. Still design-only - the real game is
-   untouched pending a decision. Lives here, not on "Listas de
-   estaciones", since it's a single-station widget shown repeatedly, not
-   a list structure. 6 columns matches the real grid's own column count,
-   not just a stand-in count. */
+/* Proposed restyle of Memoria's real .reveal__icon-cell (still just a
+   bordered neutral cell there, untouched pending a decision) - same
+   shape as .line-badge/.station-card, filled with the line's color,
+   icon recolored via --badge-ink for contrast. Lives here, not on
+   "Listas de estaciones", since it's a single-station widget shown
+   repeatedly. 6 columns matches the real grid's own count. */
 .design-reveal-grid {
   display: grid;
   gap: 0.5rem;

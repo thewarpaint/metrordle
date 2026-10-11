@@ -192,10 +192,9 @@
         animation: station-card-pop-in 0.3s ease;
       }
 
-      /* Shape/background/layout now live in shared.css's own .station-card
-         (promoted from here, now borderless) - only the interaction states
-         below (clickable affordance, focus, selection) stay page-local,
-         same split as .line-badge's own page-local states in Clasificador. */
+      /* Shape/background now live in shared.css's own .station-card -
+         only interaction states stay page-local here, same split as
+         .line-badge's in Clasificador. */
       .station-card {
         cursor: pointer;
         position: relative;

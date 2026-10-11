@@ -255,12 +255,15 @@ Site copy/UI is in Spanish (`es-MX`).
   board for the two different ways a GROUP of stations gets shown
   (not a single line or station board, since neither fits): Metrordle's
   own `.platform`/`.platform__row` (the puzzle's numbered, reorderable
-  guess order - rank circle, line-colored icon, name, and a 🟩/🟥
-  correctness mark once the round ends) and Clasificador's own
-  `.queue`/`.queue-card` (the upcoming stations to classify - unordered,
-  deliberately neutral/un-colored-by-line so the icon can't give away
-  the answer, with the one active card visually emphasized over the
-  rest).
+  guess order - rank circle, neutral icon and row border (`--ink`/
+  `--rule-strong` - was the day's own line color, which read as too
+  much color competing with the roundel-row's own `.line-badge`
+  above it), name, and a 🟩/🟥 correctness mark once the round ends)
+  and Clasificador's own `.queue`/`.queue-card` (the upcoming stations
+  to classify - unordered, the icon deliberately neutral/un-colored-by-
+  line so it can't give away the answer, and borderless (background
+  alone sets it off from the card around it), with the one active card
+  visually emphasized over the rest).
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references

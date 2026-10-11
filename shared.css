@@ -852,9 +852,12 @@ h1 {
 
 /* Metrordle's own .platform/.platform__row - a numbered, reorderable
    list (drag/up-down mechanics not relevant to a static reference):
-   rank circle, line-colored icon, name, and (once the round ends) a
-   🟩/🟥 correctness mark in place of the up/down buttons the live page
-   shows instead. */
+   rank circle, a neutral --ink icon (was tinted by the day's own line
+   color - read as too much color competing with the roundel-row's own
+   line-badge above it; the row's own border is --rule-strong rather
+   than the softer --rule other bordered cards here use, same
+   reasoning), name, and (once the round ends) a 🟩/🟥 correctness mark
+   in place of the up/down buttons the live page shows instead. */
 .design-platform {
   display: flex;
   flex-direction: column;
@@ -867,7 +870,7 @@ h1 {
 .design-platform__row {
   align-items: center;
   background: var(--paper-raised);
-  border: 2px solid var(--rule);
+  border: 2px solid var(--rule-strong);
   border-radius: 0.5rem;
   display: flex;
   gap: 0.6rem;
@@ -899,7 +902,7 @@ h1 {
 }
 
 .design-platform__icon {
-  color: var(--badge-bg, var(--line));
+  color: var(--ink);
   flex: 0 0 auto;
   height: 1.6rem;
   width: 1.6rem;
@@ -961,7 +964,6 @@ h1 {
 .design-queue-card__icon {
   align-items: center;
   background: var(--paper-raised);
-  border: 1.5px solid var(--rule);
   border-radius: 0.4rem;
   color: var(--ink-soft);
   display: flex;
@@ -972,7 +974,6 @@ h1 {
 }
 
 .design-queue-card--active .design-queue-card__icon {
-  border-color: var(--rule-strong);
   color: var(--ink);
   height: 2.6rem;
   width: 2.6rem;

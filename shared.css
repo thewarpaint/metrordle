@@ -313,37 +313,21 @@ h1 {
   max-width: 36ch;
 }
 
-/* A line indicator: a square with just its top-right corner rounded,
-   filled with the line's own color, holding a small "Línea" caption
-   above the line's id/number. The first pattern promoted out of
-   /design/'s own catalog (see AGENTS.md) - standardized from two
-   previously-competing patterns: Clasificador's own .bucket (borderless
-   here; it was bordered) and Metrordle's own .roundel (was a bordered
-   CIRCLE with a literal "STC" caption instead of "Línea" - both now
-   gone, replaced by this).
+/* Square with a rounded top-right corner, filled with the line's color,
+   "Línea" caption above the id. Promoted from Clasificador's .bucket
+   (was bordered) and Metrordle's .roundel (bordered circle, "STC") -
+   both gone now.
 
-   Colored via --badge-bg/--badge-ink, falling back to the site-wide
-   --line/--line-ink tokens (:root, above) - Metrordle only ever shows
-   ONE line's color document-wide (already set on those site-wide
-   tokens by its own script), so its own markup needs no per-instance
-   custom property at all; Clasificador shows several simultaneously
-   (one per featured line), so it sets --badge-bg/--badge-ink per
-   instance, overriding the fallback, the same way it previously set
-   plain background/color per instance.
+   Colored via --badge-bg/--badge-ink, falling back to --line/--line-ink
+   (:root) - Metrordle needs no override (one line document-wide);
+   Clasificador sets both per instance (several lines shown at once).
 
-   Deliberately unsized (no width/height of its own) - Clasificador's
-   own .buckets grid (grid-template-columns: repeat(6, 1fr)) stretches
-   each badge to fill its own column by default, same as before this
-   was promoted; a page whose own layout isn't a stretching grid (e.g.
-   Metrordle's own flex roundel-row) sets an explicit width in its own
-   <style> block instead, same as any other shared.css primitive a page
-   needs to size for its own context.
+   Unsized on purpose: Clasificador's .buckets grid stretches it to fill
+   its column; a non-grid page (e.g. Metrordle) sets an explicit width
+   locally instead.
 
-   border: none is explicit, not just omitted - Clasificador's own
-   instances are real <button> elements, which get a visible default
-   border from the browser's own UA stylesheet unless something
-   overrides it; Metrordle's own <div> instance never had one to begin
-   with, so this line is a no-op there. */
+   border: none is explicit - Clasificador's instances are real
+   <button>s, which get a UA default border otherwise. */
 .line-badge {
   align-items: center;
   aspect-ratio: 1;
@@ -691,23 +675,15 @@ h1 {
   display: none;
 }
 
-/* Design-reference patterns, extracted as-is (same shapes/sizes, just
-   renamed under a design- prefix and recolored via CSS custom
-   properties instead of a game's own inline style.background/color)
-   from each game's own <style> block, to back /design/'s side-by-side
-   catalog of how a line or a station gets shown today - still-competing
-   options nothing has settled on yet, so no game references these
-   classes. Once we settle on a winning pattern per concept, THAT pattern
-   moves OUT of this prefix and becomes a real, unprefixed shared.css
-   class every relevant game actually references (see .line-badge, above
-   this comment, for the first one that happened to) - so this section
-   should shrink as more concepts get decided, not grow.
+/* Design-reference patterns: real CSS copied under a design- prefix,
+   recolored via custom properties instead of each game's own inline
+   style.background/color - still-competing options nothing has settled
+   on yet, so no game references these classes. A winner moves OUT of
+   this prefix into a real, unprefixed class (see .line-badge above) -
+   this section should shrink, not grow.
 
-   --badge-bg/--badge-ink is the same per-instance coloring convention
-   .line-badge itself uses, already established by Metro Crush's own
-   --tile-bg/--chip-bg and Metroguessr's own --badge-bg/--reveal-line-color
-   before either of them existed - set inline per example by /design/'s
-   own script, from MetroShared.LINES. */
+   --badge-bg/--badge-ink matches .line-badge's own convention, set per
+   example by /design/'s own script from MetroShared.LINES. */
 .design-badge {
   align-items: center;
   aspect-ratio: 1;
@@ -721,11 +697,9 @@ h1 {
   width: 3rem;
 }
 
-/* This full size is Metro Crush's own .tile/.legend__chip and
-   Metroguessr's own .target-icon-marker; .design-badge--sm below is
-   Clasificador's own (still bordered-less, like .line-badge now)
-   .line-bar__badge, smaller with a slightly different corner radius
-   (30% vs 33%). */
+/* Full size = Metro Crush's .tile/.legend__chip and Metroguessr's
+   .target-icon-marker; --sm = Clasificador's .line-bar__badge (30% vs
+   33% corner radius). */
 .design-badge--sm {
   border-radius: 0 30% 0 0;
   width: 1.9rem;
@@ -753,9 +727,8 @@ h1 {
   width: 100%;
 }
 
-/* Metroguessr's own .hint-line-badge shape - a circle instead of
-   .design-badge's rounded-corner square, holding the same kind of id
-   text. */
+/* Metroguessr's .hint-line-badge - a circle instead of the rounded-
+   corner square, same kind of id text. */
 .design-line-circle {
   align-items: center;
   background: var(--badge-bg, var(--ink));
@@ -770,19 +743,26 @@ h1 {
   width: 2.75rem;
 }
 
-/* Laberinto's own .route-dot - color only, no text or icon at all;
-   the leanest of every line indicator this file catalogs. */
+/* Laberinto's .route-dot - color only, no text or icon. align-self/flex
+   matter once reused inside a flex row (.design-optimal-path__row). */
 .design-line-dot {
+  align-self: center;
   background: var(--badge-bg, var(--ink));
   border-radius: 50%;
   display: inline-block;
+  flex: 0 0 auto;
   height: 0.55rem;
   width: 0.55rem;
 }
 
-/* Laberinto's own .map-node/.map-hub - a plain neutral circle holding
-   only a station icon, no line color and no name shown directly (the
-   name appears separately, in Laberinto's own breadcrumb trail). */
+/* .route-dot--muted - the origin hop, which has no line of its own. */
+.design-line-dot--muted {
+  background: var(--paper-well);
+  border: 1px solid var(--rule);
+}
+
+/* Laberinto's .map-node/.map-hub - neutral circle, icon only, no line
+   color, no name (shown separately in the breadcrumb). */
 .design-station-node {
   align-items: center;
   background: var(--paper-raised);
@@ -806,10 +786,8 @@ h1 {
   width: 100%;
 }
 
-/* Memoria's own .memo-card - a bordered, neutral-colored card with the
-   station's icon above its name, both stacked and centered. Memoria's
-   own version also carries selection/match-flash states that don't
-   apply to a static reference card. */
+/* Memoria's .memo-card - bordered neutral card, icon above name. Omits
+   its selection/match-flash states (not relevant to a static ref). */
 .design-station-card {
   align-items: center;
   aspect-ratio: 1;
@@ -845,21 +823,49 @@ h1 {
   text-align: center;
 }
 
-/* Metrordle's own .roundel/.roundel-row (a bordered circle with a
-   literal "STC" caption) is gone - consolidated into .line-badge above,
-   the first pattern this file has actually settled on. See
-   .line-badge's own comment. */
+/* Memoria's .reveal__icons/.reveal__icon-cell - matched pairs at round
+   end, icon only, each cell bordered by that station's real line
+   (deliberately colorful - celebrates matches, doesn't compete with
+   anything else). Lives here, not on "Listas de estaciones", since it's
+   a single-station widget shown repeatedly, not a list structure. */
+.design-reveal-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(4, 1fr);
+}
 
-/* Metrordle's own .platform/.platform__row - a numbered, reorderable
-   list (drag/up-down mechanics not relevant to a static reference):
-   rank circle, a neutral --ink icon (was tinted by the day's own line
-   color - read as too much color competing with the roundel-row's own
-   line-badge above it; the row's own border is --rule-strong rather
-   than the softer --rule other bordered cards here use, same
-   reasoning), name, and (once the round ends) a 🟩/🟥 correctness mark
-   in place of the up/down buttons the live page shows instead - the
-   border itself stays this same neutral color even then; it used to
-   also recolor green/red, which doubled up on the mark's own signal. */
+.design-reveal-grid__cell {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--paper-well);
+  border: 2px solid var(--badge-bg, var(--rule));
+  border-radius: 0.4rem;
+  display: flex;
+  justify-content: center;
+  padding: 0.2rem;
+}
+
+.design-reveal-grid__icon {
+  color: var(--ink);
+  height: 1.1rem;
+  width: 1.1rem;
+}
+
+.design-reveal-grid__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* .roundel/.roundel-row (bordered circle, "STC" caption) is gone -
+   consolidated into .line-badge above. */
+
+/* Metrordle's .platform/.platform__row - numbered guess order (drag/
+   up-down mechanics not relevant to a static reference). Icon and
+   border are neutral (--ink/--rule-strong), not line-tinted - too much
+   color next to the roundel-row's own line-badge. 🟩/🟥 mark replaces
+   the up/down buttons once the round ends; the border stays neutral
+   then too (used to also go green/red, doubling the mark's signal). */
 .design-platform {
   display: flex;
   flex-direction: column;
@@ -921,11 +927,9 @@ h1 {
   width: 1.5rem;
 }
 
-/* Clasificador's own .queue-wrap/.queue-card - an unordered stack (the
-   next few stations to classify, not a ranked/reorderable list): a
-   neutral (never line-tinted - see .queue-card's own comment in
-   clasificador/index.html for why) icon+name row per station, with the
-   one row currently being played visually emphasized over the rest. */
+/* Clasificador's .queue-wrap/.queue-card - unordered upcoming stations,
+   icon never line-tinted (see queue-card's own comment in
+   clasificador/index.html), active row emphasized. */
 .design-queue {
   display: flex;
   flex-direction: column;
@@ -988,6 +992,59 @@ h1 {
 .design-queue-card--active .design-queue-card__name {
   color: var(--ink);
   font-size: 1.02rem;
+}
+
+/* Laberinto's .breadcrumb/.breadcrumb__stop - route so far, growing
+   left to right: plain names separated by "→", no icon/color/border,
+   current stop bold. */
+.design-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.design-breadcrumb__stop {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.design-breadcrumb__stop--current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.design-breadcrumb__sep {
+  color: var(--rule);
+  font-size: 0.72rem;
+}
+
+/* Laberinto's #optimal-path-list - shortest route shown at round end.
+   Numbered via CSS counter (not a rank circle), each stop paired with
+   .route-dot (reused, not redrawn), muted for the origin. */
+.design-optimal-path {
+  counter-reset: design-optimal-path-step;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.design-optimal-path__row {
+  align-items: baseline;
+  counter-increment: design-optimal-path-step;
+  display: flex;
+  font-size: 0.88rem;
+  gap: 0.4rem;
+  line-height: 1.55;
+}
+
+.design-optimal-path__row::before {
+  color: var(--ink-soft);
+  content: counter(design-optimal-path-step) '.';
+  flex: 0 0 auto;
+  font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  width: 1.1rem;
 }
 
 .design-example {

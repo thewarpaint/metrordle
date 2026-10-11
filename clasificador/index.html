@@ -230,13 +230,9 @@
         display: none;
       }
 
-      /* The base shape/color/label (a square with just the top-right
-         corner rounded, colored by line, holding the line's own
-         name/number) now lives in shared.css as .line-badge - promoted
-         from this exact button once Metrordle's own .roundel adopted it
-         too (see shared.css's own comment on .line-badge). Only this
-         button's own interaction states stay page-local: the pointer
-         affordance/focus ring, and the wrong/correct tap feedback. */
+      /* Base shape/color/label now lives in shared.css as .line-badge;
+         only interaction states (focus ring, wrong/correct feedback)
+         stay page-local. */
       .line-badge {
         cursor: pointer;
         padding: 0;

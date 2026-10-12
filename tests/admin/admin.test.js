@@ -284,7 +284,7 @@ async function main() {
     }
   });
 
-  test('shows Memoria\'s and Metro Crush\'s own all-time high score next to their sections, fed by MetroShared.getHighScoreRecord() - and stays hidden when there is no record yet', async () => {
+  test('shows Memoria\'s, Metro Crush\'s, and Clasificador\'s own all-time high score next to their sections, fed by MetroShared.getHighScoreRecord() - and stays hidden when there is no record yet', async () => {
     // Unlike every other section on this page, the record isn't scoped
     // to the shown date at all (records/{gameKey} has no date dimension
     // - see shared.js's own getHighScoreRecord()), so it's stubbed
@@ -302,6 +302,7 @@ async function main() {
             var RECORDS = {
               memoria: { score: 39, alias: '🐱', dateKey: '2026-09-20', gameNumber: 30 },
               metrocrush: null,
+              clasificador: { score: 59, alias: 'Tío Leo', dateKey: '2026-10-10', gameNumber: 1 },
             };
             window.MetroShared.getHighScoreRecord = function (gameKey) {
               return Promise.resolve(RECORDS[gameKey] || null);
@@ -317,6 +318,9 @@ async function main() {
       assert.strictEqual(await page.locator('#memoria-record').textContent(), '🏆 Récord: 39 por 🐱 · #30 · 20 sep 2026');
 
       assert.strictEqual(await page.locator('#metrocrush-record').isVisible(), false, 'no Metro Crush record yet - should stay hidden, not show "undefined"');
+
+      assert.strictEqual(await page.locator('#clasificador-record').isVisible(), true, 'Clasificador has a real record - should show');
+      assert.strictEqual(await page.locator('#clasificador-record').textContent(), '🏆 Récord: 59 por Tío Leo · #1 · 10 oct 2026');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

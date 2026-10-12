@@ -206,10 +206,7 @@ Site copy/UI is in Spanish (`es-MX`).
   mode toggle to begin with. Also tracks a streak (`clasificador:streak`)
   the same way Metro Crush's own does - extended by any round with a
   non-zero score rather than a "won" outcome, since there's no daily
-  win/loss puzzle to hook into (see "Streaks" below). Deliberately left
-  out of `/admin/`'s own `RECORD_GAMES` (no all-time high-score record
-  tracking yet, unlike Memoria's/Metro Crush's `records/{gameKey}`) -
-  another deliberate follow-up, not an oversight. The reveal banner
+  win/loss puzzle to hook into (see "Streaks" below). The reveal banner
   itself now shows it too (`¡Tiempo! 🔥 Racha: N días` via
   `MetroShared.formatStreak()`, plus a `, máxima: M días` only once
   `state.maxStreak` is actually ahead of today's own `state.streak` -
@@ -217,6 +214,14 @@ Site copy/UI is in Spanish (`es-MX`).
   - this shipped after the leaderboard/streak-tracking itself did, so
   for a while the streak was tracked and shown in the leaderboard rows
   but never surfaced to the player on their own end screen.
+
+  Also now tracks an all-time high score (`records/clasificador`, same
+  `MetroShared.updateHighScoreRecord()`/`getHighScoreRecord()` pattern
+  as Memoria's/Metro Crush's own, rendered next to the leaderboard and
+  on `/admin/`'s own board the same way too - see "High score records"
+  below), seeded from the real leaderboard's own highest entry to date
+  rather than starting empty, so it isn't orphaned once a genuinely
+  higher score eventually overwrites it.
 
   Also has a game number now, same `#N` convention as Metrordle/
   Laberinto/Metroguessr/Metro Crush (`MetroShared.getGameNumberForDateKey(
@@ -527,6 +532,31 @@ added to lock the fix in.
   `score` is the round's own `total` (stations correctly classified) -
   open-ended like Metro Crush's own, so its Firestore rule bounds it
   generously (500) rather than tightly.
+
+### High score records
+
+Memoria, Metro Crush, and Clasificador - the three games ranked by a
+raw score rather than a fixed day's puzzle outcome - also track an
+all-time high score, separate from (and never cleared by) the daily
+leaderboards above: a single long-lived `records/{gameKey}` Firestore
+document (`MetroShared.updateHighScoreRecord()`/`getHighScoreRecord()`/
+`formatHighScoreRecord()` in `shared.js`, `{score, alias, dateKey,
+gameNumber, submittedAt}`), only ever overwritten by a genuinely higher
+score - `firestore.rules`' own `request.resource.data.score >
+resource.data.score` on `update` makes that a server-enforced
+guarantee, not just well-behaved client code's own restraint. Each
+game's `submitScore()` calls `updateHighScoreRecord(gameKey,
+state.score, alias, state.dateKey, state.gameNumber)` as a best-effort
+side effect of a successful leaderboard submission (never rejects, so
+it can't turn an otherwise-successful submission into a visible
+error). `getHighScoreRecord(gameKey)` + `formatHighScoreRecord()`
+(`'🏆 Récord: N por alias · #N · date'`) render it in two places: each
+game's own reveal-screen leaderboard (`.leaderboard__record`, shared
+markup/CSS - see `shared.css`) and `/admin/`'s matching board, both
+loading it once (no date dimension to re-fetch on date-nav) rather than
+per-render like the per-day leaderboard lists above. Clasificador's own
+`records/clasificador` was seeded from its real leaderboard's own
+highest entry to date, rather than starting empty.
 
 ### Losses
 

@@ -2,9 +2,10 @@
 
 // Covers MetroShared.updateHighScoreRecord()/getHighScoreRecord() (see
 // shared.js's own comment, and firestore.rules' matching records/{gameKey}
-// block) - the all-time-highest-score tracker for Memoria and Metro
-// Crush. The existing tests/lib/firestore-stub.js only simulates the
-// query surface (collection().doc().collection().orderBy().limit().get())
+// block) - the all-time-highest-score tracker for Memoria, Metro Crush,
+// and Clasificador. The existing tests/lib/firestore-stub.js only
+// simulates the query surface
+// (collection().doc().collection().orderBy().limit().get())
 // getTopLeaderboardScores() uses - this function uses a different shape
 // entirely (a single top-level records/{gameKey} document, read and
 // conditionally written inside a runTransaction()), so this file
@@ -183,7 +184,7 @@ async function main() {
     }
   });
 
-  test('formatHighScoreRecord() renders the shared "🏆 Récord: N por alias · #N · date" line used by /admin/ and by Memoria\'s/Metro Crush\'s own reveal screens', async () => {
+  test('formatHighScoreRecord() renders the shared "🏆 Récord: N por alias · #N · date" line used by /admin/ and by Memoria\'s/Metro Crush\'s/Clasificador\'s own reveal screens', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];

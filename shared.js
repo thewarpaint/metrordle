@@ -981,10 +981,11 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
 }
 
 // records/{gameKey} - a single long-lived document per game tracking its
-// own highest score ever, for Memoria and Metro Crush only (the two
-// games ranked by a raw score rather than a fixed puzzle's outcome, so
-// "highest ever" is meaningful to chase) - see firestore.rules' own
-// comment on this collection for the full design rationale.
+// own highest score ever, for Memoria, Metro Crush, and Clasificador
+// (the games ranked by a raw score rather than a fixed puzzle's
+// outcome, so "highest ever" is meaningful to chase) - see
+// firestore.rules' own comment on this collection for the full design
+// rationale.
 //
 // A Firestore transaction (not a plain read-then-write) is what makes
 // this safe against two players' near-simultaneous submissions both

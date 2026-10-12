@@ -355,25 +355,47 @@ about `//`/`/* */` comments in the actual game/test code.)
   and an "Avisos" board for how each game announces the round's own
   result once it ends - success, failure, or just "it's over" for the
   three games with no win/lose outcome to begin with - usually paired
-  with that game's own streak. Five competing patterns, all still
-  undecided: Metrordle's/Laberinto's/Memoria's own `.reveal__banner`/
-  `--win`/`--lose` (a bordered card, solid `--ok`/`--danger` background
-  - Metro Crush reuses this same bordered card too, just always in the
-  "win" look, since a round there never actually loses), Clasificador's
-  own `.reveal__banner` (no border, no win/lose variant either, filled
-  with the generic `--line`/`--line-ink` token pair instead of
-  `--ok`/`--danger`), Metroguessr's own `.reveal__line`/`.reveal__banner`/
-  `.reveal__station` (no card at all - just bold win/lose-colored text
-  sitting inline with the station name, one line), and Metrordle's own
+  with that game's own streak.
+
+  The `.reveal__banner` card shape is consolidated now: Metrordle's/
+  Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and
+  Clasificador's own borderless, `--line`-colored flat one were four
+  near-identical page-local copies of basically the same "colored
+  banner" idea - now one real shared.css class, `.notice` (base shape)
+  plus `.notice--success`/`.notice--error`/`.notice--info` (color),
+  shown here directly as ✅ consolidado, same as `.line-badge`'s/
+  `.station-card`'s/`.station`'s own entries above. The black/white
+  border every page but Clasificador's own had (`--rule-strong`) is
+  gone entirely - background color alone now carries the result, the
+  way Clasificador's already did. `success`/`error` map onto the old
+  win/lose; `info` is new - Clasificador's own banner has no win/lose
+  outcome to begin with (every round submits regardless of score), so
+  it no longer borrows `--line` (the day's own color, which read as
+  one more thing competing with the roundel/bucket row's own color);
+  a dedicated `--info`/`--info-ink` token pair (shared.css's own
+  `:root`, same stable blue as `--focus`) replaces it - deliberately
+  **not** aliased to `--line`, since several games reassign that one
+  at runtime to the day's own line color, which a neutral "it's over"
+  notice should never inherit. Metro Crush's own banner is always
+  `.notice--success` (static markup, no JS toggling it - a round there
+  never actually loses).
+
+  Two patterns stay outside this consolidation, genuinely different
+  shapes rather than more copies of the same card: Metroguessr's own
+  `.reveal__line`/`.reveal__banner`/`.reveal__station` (no card at all -
+  just bold win/lose-colored text sitting inline with the station name,
+  one line - `.reveal__banner` here is the exact same class *name* as
+  the consolidated one above, but page-local CSS with none of its
+  shape, so renaming would mean giving it the card look it was
+  deliberately built without) and Metrordle's own
   `.status-bar__text[data-tone]` (the compact status line above the
   board, not the end-of-round reveal screen - also turns win/lose-
   colored once the round ends, but reports the attempt count, not the
-  streak, and no other game has an equivalent). Each is a `.design-`
-  prefixed stand-in like the rest of this section (`.design-notice`/
-  `--win`/`--lose`/`--flat`, `.design-notice-line`/`__banner`/
-  `__station`, `.design-notice-status`), built with real sample streak
-  data via `MetroShared.formatStreak()`/`formatMaxStreak()` so the text
-  reads exactly like a real reveal screen's own.
+  streak, and no other game has an equivalent). Both still backed by
+  `.design-` stand-ins (`.design-notice-line`/`__banner`/`__station`,
+  `.design-notice-status`), built with real sample streak data via
+  `MetroShared.formatStreak()`/`formatMaxStreak()` so the text reads
+  exactly like a real reveal screen's own.
 
   A "Formularios" board catalogs buttons/inputs, with the same split as
   every board above: already-consolidated shared.css classes shown
@@ -522,7 +544,13 @@ are impossible without a debug override.
   four. `.route-dot--muted` is its one modifier - a hop with no line to
   show at all, in practice unreachable now that the origin borrows the
   next hop's own color instead (see `makeRouteDot(lineId)`'s own
-  comment in `laberinto/index.html`). Game-specific CSS
+  comment in `laberinto/index.html`). A sixth pattern joined these:
+  `.notice`/`--success`/`--error`/`--info` (end-of-round banner -
+  Metrordle's/Laberinto's/Memoria's/Metro Crush's own bordered win/lose
+  card and Clasificador's own borderless, day's-line-colored flat one,
+  four page-local copies of the same idea now one shared class, border
+  dropped entirely - see `/design/`'s own "Avisos" bullet above for the
+  full history). Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

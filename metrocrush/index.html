@@ -302,21 +302,6 @@
 
       .reveal[hidden] { display: none; }
 
-      .reveal__banner {
-        align-items: center;
-        background: var(--ok);
-        border: 2px solid var(--rule-strong);
-        border-radius: 0.5rem;
-        color: var(--ok-ink);
-        display: flex;
-        font-size: 1.05rem;
-        font-weight: 800;
-        gap: 0.6rem;
-        justify-content: center;
-        margin-bottom: 1rem;
-        padding: 0.75rem 0.9rem;
-      }
-
       .reveal__score {
         font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
         font-size: 2.4rem;
@@ -474,7 +459,7 @@
         </div>
 
         <div class="reveal" id="reveal" hidden>
-          <div class="reveal__banner" id="reveal-banner"></div>
+          <div class="notice notice--success" id="reveal-banner"></div>
           <div class="reveal__score" id="reveal-score">0</div>
           <div class="reveal__score-label">puntos</div>
           <div class="stat-grid">

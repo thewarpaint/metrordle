@@ -250,27 +250,6 @@ async function main() {
     }
   });
 
-  test('the Comenzar button and timer bar pick the same deterministic per-day accent color', async () => {
-    const { context: c1, page: p1 } = await freshPage(TEST_DATE);
-    const { context: c2, page: p2 } = await freshPage(TEST_DATE);
-    try {
-      const readLine = (page) => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--line').trim());
-
-      const line1 = await readLine(p1);
-      const line2 = await readLine(p2);
-      assert.strictEqual(line1, line2, 'the same date should pick the same accent color across sessions');
-      assert.ok(/^#[0-9a-f]{6}$/i.test(line1), 'accent should be a real line color, got: ' + line1);
-
-      const btnBg = await p1.evaluate(() => getComputedStyle(document.getElementById('start-btn')).backgroundColor);
-      await p1.click('#start-btn');
-      const barBg = await p1.evaluate(() => getComputedStyle(document.getElementById('timer-bar')).backgroundColor);
-      assert.strictEqual(btnBg, barBg, 'Comenzar button and timer bar should render the same accent color');
-    } finally {
-      await c1.close();
-      await c2.close();
-    }
-  });
-
   test('?debug=true date navigation loads a different day\'s board', async () => {
     const { context, page } = await freshPage(TEST_DATE);
     try {

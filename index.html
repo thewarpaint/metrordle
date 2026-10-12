@@ -1648,10 +1648,12 @@
 
           els.reveal.hidden = false;
 
-          var banner = $('reveal-banner');
-          banner.className = 'notice ' + (state.won ? 'notice--success' : 'notice--error');
-          banner.textContent = (state.won ? '¡Lo lograste!' : 'Suerte para la próxima…') + ' 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
+          MetroShared.renderNoticeBanner(
+            $('reveal-banner'),
+            state.won ? 'notice--success' : 'notice--error',
+            (state.won ? '¡Lo lograste!' : 'Suerte para la próxima…') + ' 🔥',
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+          );
 
           renderAliasRow();
           renderLeaderboard();

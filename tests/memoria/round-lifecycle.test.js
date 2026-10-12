@@ -97,8 +97,10 @@ async function main() {
       // matches above took to click through.
       await page.locator('#reveal').waitFor({ state: 'visible', timeout: 65000 });
 
-      const banner = await page.$eval('#reveal-banner', (el) => el.textContent);
-      assert.strictEqual(banner, 'Se acabó el tiempo 🔥 Racha: 0 días');
+      const bannerTitle = await page.$eval('#reveal-banner .notice__title', (el) => el.textContent);
+      assert.strictEqual(bannerTitle, 'Se acabó el tiempo 🔥');
+      const bannerText = await page.$eval('#reveal-banner .notice__text', (el) => el.textContent);
+      assert.strictEqual(bannerText, 'Racha: 0 días');
 
       const stat = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(stat, 'Parejas: 3');

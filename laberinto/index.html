@@ -940,10 +940,12 @@
 
         function renderReveal() {
           var won = state.status === 'won';
-          var banner = $('reveal-banner');
-          banner.className = 'notice ' + (won ? 'notice--success' : 'notice--error');
-          banner.textContent = (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
+          MetroShared.renderNoticeBanner(
+            $('reveal-banner'),
+            won ? 'notice--success' : 'notice--error',
+            (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥',
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+          );
 
           var yourStops = countStops(state.path);
           var yourTransfers = countTransfers(state.path);

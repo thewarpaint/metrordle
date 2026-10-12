@@ -550,19 +550,16 @@
           var gallery = document.getElementById('notices-gallery');
 
           var win = document.createElement('div');
-          win.className = 'notice notice--success';
-          win.textContent = '¡Ganaste! 🔥 ' + MetroShared.formatStreak(6) + ', ' + MetroShared.formatMaxStreak(9);
-          gallery.appendChild(buildExample(win, '<code>.notice</code>/<code>.notice--success</code> · ✅ consolidado - Metrordle, Laberinto, Memoria al ganar; Metro Crush siempre (nunca "pierde") - ya sin el borde negro/blanco que tenían antes.'));
+          MetroShared.renderNoticeBanner(win, 'notice--success', '¡Ganaste! 🔥', MetroShared.formatStreak(6) + ', ' + MetroShared.formatMaxStreak(9));
+          gallery.appendChild(buildExample(win, '<code>.notice</code>/<code>.notice__title</code>/<code>.notice__text</code> · ✅ consolidado - Metrordle, Laberinto, Memoria al ganar; Metro Crush siempre (nunca "pierde").'));
 
           var lose = document.createElement('div');
-          lose.className = 'notice notice--error';
-          lose.textContent = 'Suerte para la próxima… 🔥 ' + MetroShared.formatStreak(0) + ', ' + MetroShared.formatMaxStreak(4);
-          gallery.appendChild(buildExample(lose, '<code>.notice</code>/<code>.notice--error</code> · ✅ consolidado - Metrordle, Laberinto, Memoria al perder/rendirse - la racha se reinicia a 0, pero la máxima histórica sigue mostrándose si es mayor.'));
+          MetroShared.renderNoticeBanner(lose, 'notice--error', 'Suerte para la próxima… 🔥', MetroShared.formatStreak(0) + ', ' + MetroShared.formatMaxStreak(4));
+          gallery.appendChild(buildExample(lose, '<code>.notice--error</code> · ✅ consolidado - Metrordle, Laberinto, Memoria al perder/rendirse - la racha se reinicia a 0, pero la máxima histórica sigue mostrándose si es mayor.'));
 
           var info = document.createElement('div');
-          info.className = 'notice notice--info';
-          info.textContent = '¡Tiempo! 🔥 ' + MetroShared.formatStreak(3);
-          gallery.appendChild(buildExample(info, '<code>.notice</code>/<code>.notice--info</code> · ✅ consolidado - Clasificador, sin ganar/perder (cada ronda se envía sin importar el puntaje) - antes coloreada con <code>--line</code>, el de la línea del día; ahora un azul fijo, igual en cualquier día.'));
+          MetroShared.renderNoticeBanner(info, 'notice--info', '¡Tiempo! 🔥', MetroShared.formatStreak(3));
+          gallery.appendChild(buildExample(info, '<code>.notice--info</code> · ✅ consolidado - Clasificador, sin ganar/perder (cada ronda se envía sin importar el puntaje) - antes coloreada con <code>--line</code>, el de la línea del día; ahora un azul fijo, igual en cualquier día.'));
 
           var line = document.createElement('p');
           line.className = 'design-notice-line';

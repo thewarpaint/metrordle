@@ -381,6 +381,19 @@ about `//`/`/* */` comments in the actual game/test code.)
   `.notice--success` (static markup, no JS toggling it - a round there
   never actually loses).
 
+  The banner's own text is a headline (win/lose/round-over copy, plus
+  🔥) over a smaller, normal-weight line underneath (the streak, and
+  the max-streak mention when it's still ahead) - `.notice__title`/
+  `.notice__text`, built by one shared `MetroShared.renderNoticeBanner(el,
+  variantClass, title, bodyText)` in `shared.js` rather than five
+  near-identical `textContent` assignments (one per game). `.notice__title`
+  carries no CSS of its own - it just inherits `.notice`'s own size/weight,
+  same as the single-line text did before this split; `.notice__text` is
+  the one with its own smaller/normal-weight rule. `/status/`'s own
+  plain-text notices (see its own bullet above) don't go through this
+  helper at all - they're a single line with no title/body split, so
+  they still just set `.notice`'s own `textContent` directly.
+
   Two patterns stay outside this consolidation, genuinely different
   shapes rather than more copies of the same card: Metroguessr's own
   `.reveal__line`/`.reveal__banner`/`.reveal__station` (no card at all -
@@ -493,9 +506,11 @@ are impossible without a debug override.
   helpers (`shareOrCopyText`, native `navigator.share` with a
   clipboard-copy fallback), `buildGamePromo(currentGameKey,
   dateKey)` for the "sigue jugando hoy" component on every game's own
-  end screen (see "Game suggestions" below), and the site-wide config
-  object (`loadConfig`/`saveConfig`/`getThemeMode`/`applyThemeMode`/
-  `setThemeMode` - see "Site config" below).
+  end screen (see "Game suggestions" below), `renderNoticeBanner(el,
+  variantClass, title, bodyText)` for every game's own end-of-round
+  `.notice` banner (see `/design/`'s own "Avisos" bullet above), and
+  the site-wide config object (`loadConfig`/`saveConfig`/`getThemeMode`/
+  `applyThemeMode`/`setThemeMode` - see "Site config" below).
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`

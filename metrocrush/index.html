@@ -1397,8 +1397,12 @@
         }
 
         function renderRevealStats() {
-          els.revealBanner.textContent = '¡Se acabó el tiempo! 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
+          MetroShared.renderNoticeBanner(
+            els.revealBanner,
+            'notice--success',
+            '¡Se acabó el tiempo! 🔥',
+            MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+          );
           els.revealScore.textContent = String(state.score);
           els.revealGroups.textContent = String(state.groupsFormed);
           els.revealCombo.textContent = '×' + state.maxCombo;

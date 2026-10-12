@@ -449,12 +449,9 @@
         var ROUND_SECONDS = 60;
         var QUEUE_SIZE = 5;
         var FEATURED_LINE_COUNT = 6;
-        // A day's 6 random lines can overlap heavily enough (shared
-        // transfer stations) that the deduplicated pool runs short -
-        // as low as 62 unique stations in the worst case across all
-        // possible 6-line picks. Re-drawing until the pool clears this
-        // floor keeps a round from ever feeling thin. Tweak this alone
-        // if the minimum ever needs to change.
+        // A day's 6 random lines can overlap enough to leave a thin
+        // pool (as low as 62 unique stations in the worst case) - see
+        // pickFeaturedLines()'s own retry.
         var MIN_STATION_POOL = 80;
         var STREAK_STORAGE_KEY = 'clasificador:streak';
         var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
@@ -509,19 +506,11 @@
           }
         }
 
-        // Picks today's 6 featured lines, re-drawing from the SAME
-        // seeded generator whenever the result's own deduplicated
-        // station pool (see buildGame()'s own comment on dedup) comes
-        // up short of MIN_STATION_POOL - a few lines overlap heavily
-        // enough in shared transfer stations that the naive first draw
-        // can land as low as 62 unique stations. Re-drawing keeps the
-        // whole day's sequence a pure function of dateKey, same as
-        // everything else buildGame() derives from this one generator -
-        // it just occasionally spends more of that generator before
-        // settling. Returns lineIdsByStation straight away (not just
-        // the lines) since computing it is how the pool size is known
-        // in the first place - buildGame() would otherwise have to
-        // redo the exact same work right after calling this.
+        // Picks 6 lines, re-drawing from the same generator until the
+        // deduplicated pool clears MIN_STATION_POOL - still a pure
+        // function of dateKey, just spends more of the generator on a
+        // short day. Returns lineIdsByStation too, since buildGame()
+        // would otherwise redo this same computation.
         function pickFeaturedLines(rand) {
           var lines, lineIdsByStation;
           do {

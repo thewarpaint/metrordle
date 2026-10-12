@@ -12,6 +12,12 @@ every page is a single self-contained `.html` file with inline
 `<style>`/`<script>`, deployed as-is via GitHub Pages (see `CNAME`).
 Site copy/UI is in Spanish (`es-MX`).
 
+**Keep code comments succinct and useful** - explain the non-obvious
+why, not the what, and don't let a comment sprawl past what a reader
+actually needs. (This instruction is itself an exception: AGENTS.md's
+own prose stays as thorough as the rest of this file - this rule is
+about `//`/`/* */` comments in the actual game/test code.)
+
 ## The games
 
 - **`/` (`index.html`)** - Metrordle: order 5 stations of one Metro line

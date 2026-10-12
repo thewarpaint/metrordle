@@ -4,11 +4,12 @@
 // 'clasificador-leaderboard' Firestore collection - see shared.js's
 // submitLeaderboardScore/getTopLeaderboardScores). Ranked purely by
 // score (total stations correctly classified), descending - same shape
-// as Memoria's and Metro Crush's own leaderboards, no hardMode field at
-// all since this game has no normal/hard mode toggle. Also covers the
-// all-time high score record next to the leaderboard (records/clasificador,
-// see shared.js's updateHighScoreRecord()/getHighScoreRecord()), same
-// pattern as Memoria's and Metro Crush's own.
+// as Memoria's and Metro Crush's own leaderboards. hardMode isn't part
+// of orderBySpecs here either (just the 🧠 badge), same as Metro
+// Crush's own. Also covers the all-time high score record next to the
+// leaderboard (records/clasificador, see shared.js's
+// updateHighScoreRecord()/getHighScoreRecord()), same pattern as
+// Memoria's and Metro Crush's own.
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), which is itself a useful case to cover:
@@ -62,7 +63,7 @@ async function main() {
     }
   });
 
-  test('shows a 🔥 × N streak badge (N > 1 only) per row, with a plain score cell, fed by getTopLeaderboardScores() extraFields', async () => {
+  test('shows both the 🧠 hard-mode badge and a 🔥 × N streak badge (N > 1 only) per row, fed by getTopLeaderboardScores() extraFields', async () => {
     const DATE = '2027-03-02';
     const context = await browser.newContext({ viewport: { width: 420, height: 900 }, serviceWorkers: 'block' });
     const page = await context.newPage();
@@ -75,13 +76,13 @@ async function main() {
         const patched = body + `
           (function () {
             var DATA = [
-              { id: 'ana', alias: 'Ana', score: 31, streak: 8 },
+              { id: 'ana', alias: 'Ana', score: 31, hardMode: true, streak: 8 },
               // A streak of 1 (not yet "a streak" worth calling out) and
               // no streak field at all (predates the field) should both
               // render nothing - same threshold as every other game's
               // own streak badge.
-              { id: 'beto', alias: 'Beto', score: 20, streak: 1 },
-              { id: 'caro', alias: 'Caro', score: 9 },
+              { id: 'beto', alias: 'Beto', score: 20, hardMode: false, streak: 1 },
+              { id: 'caro', alias: 'Caro', score: 9, hardMode: false },
             ];
             window.MetroShared.getTopLeaderboardScores = function () {
               return Promise.resolve(DATA);
@@ -98,8 +99,11 @@ async function main() {
       const rows = page.locator('#leaderboard-list .leaderboard__row');
       assert.strictEqual(await rows.count(), 3);
 
-      const scores = await rows.locator('.leaderboard__score--plain').allTextContents();
+      const scores = await rows.locator('.leaderboard__score-number').allTextContents();
       assert.deepStrictEqual(scores, ['31', '20', '9']);
+
+      const badges = await rows.locator('.leaderboard__score-badge').allTextContents();
+      assert.deepStrictEqual(badges, ['🧠', '', ''], 'only Ana (hardMode: true) should show the brain badge');
 
       const streaks = await rows.locator('.leaderboard__streak').allTextContents();
       assert.deepStrictEqual(streaks, ['🔥 × 8', '', ''], 'only a streak > 1 should render, everything else should show nothing');

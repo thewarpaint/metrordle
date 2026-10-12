@@ -105,7 +105,7 @@ async function main() {
     try {
       await page.goto(server.baseUrl + '/clasificador/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(150);
 
       const activeName = await page.$eval('.queue-card--active .queue-card__name', (el) => el.textContent);
@@ -147,6 +147,40 @@ async function main() {
 
       const href = await page.$eval('.queue-card--active .queue-card__icon use', (el) => el.getAttribute('href'));
       assert.strictEqual(href, '/station-icons.svg#pantitlan');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('hard mode shows the same vertical queue with nameless, centered .station-card icons instead of named rows, and still plays correctly', async () => {
+    const DATE = FIXTURE_DATE;
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/clasificador/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+      await page.click('#start-hard-btn');
+      await page.waitForTimeout(150);
+
+      assert.strictEqual(await page.locator('#queue').getAttribute('class'), 'queue queue--hard');
+      const iconCount = await page.locator('#queue .station-card.queue-icon').count();
+      assert.strictEqual(iconCount, 5, 'expected one .station-card icon per queued station');
+      assert.strictEqual(await page.locator('#queue .queue-card__name').count(), 0, 'hard mode should show no station name at all');
+
+      const href = await page.$eval('.queue-active .station-card__icon use', (el) => el.getAttribute('href'));
+      assert.strictEqual(href, '/station-icons.svg#pantitlan', 'expected the known fixture\'s first active station icon');
+
+      // Línea 5 is one of Pantitlán's real lines among today's 6 - a
+      // correct tap should still advance the queue same as normal mode.
+      await page.click('#buckets .line-badge[data-line-id="5"]');
+      await page.waitForTimeout(450);
+
+      const statusAfterCorrect = await page.$eval('#status', (el) => el.textContent);
+      assert.ok(statusAfterCorrect.endsWith('1 correcta'), 'a correct guess should still count in hard mode, got: ' + statusAfterCorrect);
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {
       await context.close();
     }

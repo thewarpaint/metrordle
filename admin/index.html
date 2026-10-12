@@ -142,12 +142,13 @@
          width, a wider number pushes the WHOLE badge+number block (and
          so the badge) further left, breaking the badge's own column
          alignment despite its fixed width. leaderboard__score-number--wide
-         (used only for Metro Crush, see its GAMES entry below) fixes
-         that with a min-width sized to firestore.rules' own 20000
-         ceiling for that collection (5 digits) plus right-alignment,
-         so the badge lands at the same spot on every row unless a
-         score is large enough to need more room than that.
-         Laberinto/Memoria use the simpler plain variant below. */
+         (Metro Crush and Clasificador, see their GAMES entries below)
+         fixes that with a min-width generous enough for Metro Crush's
+         own 20000 ceiling (5 digits), comfortably covering
+         Clasificador's smaller 500 one too, plus right-alignment, so
+         the badge lands at the same spot on every row unless a score
+         is large enough to need more room than that. Laberinto/Memoria
+         use the simpler plain variant below. */
       .leaderboard__score {
         align-items: center;
         display: flex;
@@ -474,12 +475,22 @@
             collection: 'clasificador-leaderboard',
             startDateKey: '2026-10-10',
             orderBySpecs: [['score', 'desc']],
-            extraFields: ['streak'],
+            extraFields: ['streak', 'hardMode'],
             href: '/clasificador/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
-              score.className = 'leaderboard__score--plain';
-              score.textContent = String(entry.score);
+              score.className = 'leaderboard__score';
+
+              var badge = document.createElement('span');
+              badge.className = 'leaderboard__score-badge';
+              if (entry.hardMode) badge.textContent = '🧠';
+
+              var number = document.createElement('span');
+              number.className = 'leaderboard__score-number leaderboard__score-number--wide';
+              number.textContent = entry.score;
+
+              score.appendChild(badge);
+              score.appendChild(number);
               return score;
             },
           },

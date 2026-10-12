@@ -55,7 +55,7 @@ const SAMPLE_DATA = {
     { id: 'diego', alias: 'Diego', attempts: 5, hardMode: false, lost: true, streak: 0 },
   ],
   'clasificador-leaderboard': [
-    { id: 'valeria', alias: 'Valeria', score: 23, streak: 3 },
+    { id: 'valeria', alias: 'Valeria', score: 23, hardMode: true, streak: 3 },
   ],
 };
 
@@ -227,9 +227,12 @@ async function main() {
       assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__alias-name').textContent(), 'Diego');
       assert.strictEqual(await metroguessrRows.nth(1).locator('.leaderboard__score-number').textContent(), '-', 'a lost entry should show "-", not a number');
 
-      // Clasificador: plain score number, same shape as Memoria's own
-      // cell - both rank by a single descending score.
-      const clasificadorScore = await page.$eval('#clasificador-list .leaderboard__score--plain', (el) => el.textContent);
+      // Clasificador: same badge (left) + number (right) layout as
+      // Metrordle's/Metro Crush's own, added once this game grew its
+      // own normal/hard mode split.
+      const clasificadorBadge = await page.$eval('#clasificador-list .leaderboard__score-badge', (el) => el.textContent);
+      assert.strictEqual(clasificadorBadge, '🧠');
+      const clasificadorScore = await page.$eval('#clasificador-list .leaderboard__score-number', (el) => el.textContent);
       assert.strictEqual(clasificadorScore, '23');
       const clasificadorStreak = await page.$eval('#clasificador-list .leaderboard__streak', (el) => el.textContent);
       assert.strictEqual(clasificadorStreak, '🔥 × 3', 'a streak of 3 (>1) should show');

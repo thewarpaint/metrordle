@@ -16,7 +16,7 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('renders the Líneas, Estaciones, and Listas de estaciones galleries with one example row per pattern, no page errors', async () => {
+  test('renders the Líneas, Estaciones, Listas de estaciones, and Avisos galleries with one example row per pattern, no page errors', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 1200 } });
     const page = await context.newPage();
     const errors = [];
@@ -84,6 +84,24 @@ async function main() {
       assert.strictEqual(optimalPathRows, 11, 'expected one optimal-path row per sampled hop, long enough to show a 2-digit step number');
       const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.route-dot--muted').count();
       assert.strictEqual(mutedDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
+
+      const noticeExamples = await page.locator('#notices-gallery .design-example').count();
+      assert.strictEqual(noticeExamples, 5, 'expected 5 notice examples (win card, lose card, flat card, inline text, status-bar text)');
+
+      const winText = await page.locator('#notices-gallery .design-notice--win').textContent();
+      assert.ok(winText.indexOf('Racha: 6 días') !== -1, 'expected the win notice to include a streak: ' + winText);
+      assert.ok(winText.indexOf('máxima: 9 días') !== -1, 'expected the win notice to include a max-streak mention: ' + winText);
+
+      const loseText = await page.locator('#notices-gallery .design-notice--lose').textContent();
+      assert.ok(loseText.indexOf('Racha: 0 días') !== -1, 'a loss should show the now-reset streak, not the pre-reset one: ' + loseText);
+
+      const inlineBanner = await page.locator('#notices-gallery .design-notice-line__banner').textContent();
+      const inlineStation = await page.locator('#notices-gallery .design-notice-line__station').textContent();
+      assert.ok(inlineBanner.indexOf('Racha') !== -1, 'expected Metroguessr\'s inline banner to include a streak: ' + inlineBanner);
+      assert.strictEqual(inlineStation, 'La estación era: Zócalo');
+
+      const statusText = await page.locator('#notices-gallery .design-notice-status').textContent();
+      assert.strictEqual(statusText.indexOf('Racha') !== -1, false, 'the status-bar notice reports attempts, not a streak: ' + statusText);
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

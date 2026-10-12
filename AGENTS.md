@@ -313,7 +313,29 @@ Site copy/UI is in Spanish (`es-MX`).
   `.route-dot` from "Líneas" reused as a component - the origin has no
   line of its own, so rather than leaving its dot unstyled it borrows
   the very next hop's own line color, same `makeRouteDot(lineId)`
-  lookahead on both the live page and this gallery's own sample data).
+  lookahead on both the live page and this gallery's own sample data),
+  and an "Avisos" board for how each game announces the round's own
+  result once it ends - success, failure, or just "it's over" for the
+  three games with no win/lose outcome to begin with - usually paired
+  with that game's own streak. Five competing patterns, all still
+  undecided: Metrordle's/Laberinto's/Memoria's own `.reveal__banner`/
+  `--win`/`--lose` (a bordered card, solid `--ok`/`--danger` background
+  - Metro Crush reuses this same bordered card too, just always in the
+  "win" look, since a round there never actually loses), Clasificador's
+  own `.reveal__banner` (no border, no win/lose variant either, filled
+  with the generic `--line`/`--line-ink` token pair instead of
+  `--ok`/`--danger`), Metroguessr's own `.reveal__line`/`.reveal__banner`/
+  `.reveal__station` (no card at all - just bold win/lose-colored text
+  sitting inline with the station name, one line), and Metrordle's own
+  `.status-bar__text[data-tone]` (the compact status line above the
+  board, not the end-of-round reveal screen - also turns win/lose-
+  colored once the round ends, but reports the attempt count, not the
+  streak, and no other game has an equivalent). Each is a `.design-`
+  prefixed stand-in like the rest of this section (`.design-notice`/
+  `--win`/`--lose`/`--flat`, `.design-notice-line`/`__banner`/
+  `__station`, `.design-notice-status`), built with real sample streak
+  data via `MetroShared.formatStreak()`/`formatMaxStreak()` so the text
+  reads exactly like a real reveal screen's own.
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references

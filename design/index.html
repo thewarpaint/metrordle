@@ -112,6 +112,12 @@
           <p class="design-board__dek">Cómo se muestra una lista de varias estaciones seguidas, no una estación suelta.</p>
           <div id="station-lists-gallery"></div>
         </div>
+
+        <div class="sign design-board">
+          <h2 class="design-board__title">Avisos</h2>
+          <p class="design-board__dek">Cómo cada juego anuncia el resultado de la ronda al terminar - éxito, fracaso, o solo "se acabó" cuando no hay ninguno de los dos - y la racha que suele acompañarlo.</p>
+          <div id="notices-gallery"></div>
+        </div>
       </div>
     </div>
 
@@ -496,9 +502,47 @@
           gallery.appendChild(buildExample(optimalPath, '<code>#optimal-path-list</code> · ruta óptima mostrada al terminar la ronda, Laberinto - numerada con un contador CSS (no un círculo como <code>.platform__rank</code>), con el mismo <code>.route-dot</code> de "Líneas" reutilizado por parada.'));
         }
 
+        function renderNoticesGallery() {
+          var gallery = document.getElementById('notices-gallery');
+
+          var win = document.createElement('div');
+          win.className = 'design-notice design-notice--win';
+          win.textContent = '¡Ganaste! 🔥 ' + MetroShared.formatStreak(6) + ', ' + MetroShared.formatMaxStreak(9);
+          gallery.appendChild(buildExample(win, '<code>.reveal__banner</code>/<code>.reveal__banner--win</code> · Metrordle, Laberinto, Memoria - tarjeta con borde, al ganar. Metro Crush reusa esta misma tarjeta siempre (sin variante de derrota - una ronda ahí nunca "pierde").'));
+
+          var lose = document.createElement('div');
+          lose.className = 'design-notice design-notice--lose';
+          lose.textContent = 'Suerte para la próxima… 🔥 ' + MetroShared.formatStreak(0) + ', ' + MetroShared.formatMaxStreak(4);
+          gallery.appendChild(buildExample(lose, '<code>.reveal__banner</code>/<code>.reveal__banner--lose</code> · Metrordle, Laberinto, Memoria - misma tarjeta, al perder/rendirse - la racha se reinicia a 0, pero la máxima histórica sigue mostrándose si es mayor.'));
+
+          var flat = document.createElement('div');
+          flat.className = 'design-notice--flat';
+          flat.textContent = '¡Tiempo! 🔥 ' + MetroShared.formatStreak(3);
+          gallery.appendChild(buildExample(flat, '<code>.reveal__banner</code> · Clasificador - sin borde, sin ganar/perder (cada ronda se envía sin importar el puntaje), coloreada con el token genérico <code>--line</code> en vez de <code>--ok</code>/<code>--danger</code>.'));
+
+          var line = document.createElement('p');
+          line.className = 'design-notice-line';
+          var lineBanner = document.createElement('span');
+          lineBanner.className = 'design-notice-line__banner design-notice-line__banner--win';
+          lineBanner.textContent = '¡Correcto! 🔥 ' + MetroShared.formatStreak(12);
+          line.appendChild(lineBanner);
+          line.appendChild(document.createTextNode(' '));
+          var lineStation = document.createElement('span');
+          lineStation.className = 'design-notice-line__station';
+          lineStation.textContent = 'La estación era: Zócalo';
+          line.appendChild(lineStation);
+          gallery.appendChild(buildExample(line, '<code>.reveal__line</code>/<code>.reveal__banner</code>/<code>.reveal__station</code> · Metroguessr - sin tarjeta, solo texto en negrita coloreado por resultado, en la misma línea que el nombre de la estación.'));
+
+          var status = document.createElement('p');
+          status.className = 'design-notice-status design-notice-status--win';
+          status.textContent = 'Resuelto en 3 intentos';
+          gallery.appendChild(buildExample(status, '<code>.status-bar__text[data-tone]</code> · Metrordle - la barra de estado compacta (arriba del tablero) también cambia a texto coloreado al terminar, sin tarjeta - a diferencia de los anteriores, reporta el número de intentos, no la racha.'));
+        }
+
         renderLinesGallery();
         renderStationsGallery();
         renderStationListsGallery();
+        renderNoticesGallery();
       })();
     </script>
 

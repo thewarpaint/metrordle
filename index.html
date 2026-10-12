@@ -241,18 +241,11 @@
         filter: drop-shadow(0 8px 12px var(--shadow));
       }
 
-      /* --ink, not --line - was tinted by the day's own line color,
-         too much color competing with the roundel-row's own line-badge. */
+      /* .station-card (shared.css) is width: 100% of its parent by
+         default - fixed here to roughly the old bare icon's own
+         footprint, since .platform-icon-col itself is flex: 0 0 auto. */
       .platform-icon-col__icon {
-        color: var(--ink);
-        height: 2.9rem;
         width: 2.9rem;
-      }
-
-      .platform-icon-col__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
       }
 
       .platform-icon-col__nav {
@@ -311,8 +304,8 @@
         width: 1.6rem;
       }
 
-      /* --ink, not --line - see .platform-icon-col__icon's own comment
-         above. */
+      /* --ink, not --line - was tinted by the day's own line color,
+         too much color competing with the roundel-row's own line-badge. */
       .platform__icon {
         color: var(--ink);
         flex: 0 0 auto;
@@ -1540,7 +1533,7 @@
             rank.textContent = String(index + 1);
 
             var iconWrap = document.createElement('span');
-            iconWrap.className = 'platform-icon-col__icon';
+            iconWrap.className = 'station-card platform-icon-col__icon';
             var iconSlug = MetroShared.STATION_ICON_SLUGS[name];
             if (iconSlug) {
               var svgNS = 'http://www.w3.org/2000/svg';
@@ -1550,7 +1543,10 @@
               use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'station-icons.svg#' + iconSlug);
               use.setAttribute('href', 'station-icons.svg#' + iconSlug);
               svg.appendChild(use);
-              iconWrap.appendChild(svg);
+              var iconEl = document.createElement('span');
+              iconEl.className = 'station-card__icon';
+              iconEl.appendChild(svg);
+              iconWrap.appendChild(iconEl);
             }
 
             var nav = document.createElement('span');

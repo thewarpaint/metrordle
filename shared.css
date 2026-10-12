@@ -945,7 +945,10 @@ h1 {
    screen falls back to .design-platform above even in hard mode), a
    horizontal icon shelf instead of a numbered name list - no station
    name shown at all, ◀▶ (.chev/.chev--compact, already shared) swap
-   a column with its neighbor instead of up/down buttons on a row. */
+   a column with its neighbor instead of up/down buttons on a row. The
+   icon itself is the shared .station-card (sized here via an inline
+   width, same as the live page's own .platform-icon-col__icon) rather
+   than a page-local icon class - consolidated, not a stand-in. */
 .design-platform-hard {
   display: flex;
   gap: 0.3rem;
@@ -960,18 +963,6 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-}
-
-.design-platform-hard__icon {
-  color: var(--ink);
-  height: 2.9rem;
-  width: 2.9rem;
-}
-
-.design-platform-hard__icon svg {
-  display: block;
-  height: 100%;
-  width: 100%;
 }
 
 .design-platform-hard__nav {

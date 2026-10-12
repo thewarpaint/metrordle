@@ -65,6 +65,24 @@
         border-color: var(--line);
         box-shadow: 0 0 0 2px var(--line) inset;
       }
+
+      .alias-notice {
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin: 0.5rem 0 0;
+      }
+
+      .alias-notice[hidden] {
+        display: none;
+      }
+
+      .alias-notice--success {
+        color: var(--ok);
+      }
+
+      .alias-notice--error {
+        color: var(--danger);
+      }
     </style>
   </head>
 
@@ -129,6 +147,18 @@
             </button>
           </div>
         </div>
+
+        <div class="config-section">
+          <h2 class="config-section__title">Alias</h2>
+          <p class="dek">
+            Aparece en las tablas de posiciones de todos los juegos. Cambiarlo no mueve tus puntajes ya guardados - seguirán apareciendo bajo tu alias anterior.
+          </p>
+          <div class="leaderboard__alias" id="alias-row">
+            <input type="text" id="alias-input" maxlength="20" placeholder="Tu alias" aria-label="Tu alias para las tablas de posiciones">
+            <button type="button" class="btn-primary" id="alias-save-btn">Guardar</button>
+          </div>
+          <p class="alias-notice" id="alias-notice" aria-live="polite" hidden></p>
+        </div>
       </div>
 
       <p class="credit">
@@ -178,6 +208,45 @@
         });
 
         renderMotion(MetroShared.getReducedMotion());
+
+        var aliasInput = document.getElementById('alias-input');
+        var aliasSaveBtn = document.getElementById('alias-save-btn');
+        var aliasNotice = document.getElementById('alias-notice');
+        var aliasNoticeTimer = null;
+
+        aliasInput.value = MetroShared.getAlias();
+
+        function showAliasNotice(text, isError) {
+          if (aliasNoticeTimer) clearTimeout(aliasNoticeTimer);
+          aliasNotice.textContent = text;
+          aliasNotice.className = 'alias-notice ' + (isError ? 'alias-notice--error' : 'alias-notice--success');
+          aliasNotice.hidden = false;
+          aliasNoticeTimer = setTimeout(function () { aliasNotice.hidden = true; }, 4000);
+        }
+
+        function saveAlias() {
+          if (!aliasInput.value.trim()) {
+            showAliasNotice('Escribe un alias antes de guardar.', true);
+            return;
+          }
+
+          var normalized = MetroShared.setAlias(aliasInput.value);
+          // setAlias() always returns the normalized value even if the
+          // localStorage write itself silently failed (private mode,
+          // quota) - reading it back is the only way to tell the two
+          // apart, since setAlias() itself has no other success signal.
+          if (normalized && MetroShared.getAlias() === normalized) {
+            aliasInput.value = normalized;
+            showAliasNotice('Alias guardado: ' + normalized, false);
+          } else {
+            showAliasNotice('No se pudo guardar el alias en este dispositivo.', true);
+          }
+        }
+
+        aliasSaveBtn.addEventListener('click', saveAlias);
+        aliasInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') saveAlias();
+        });
       })();
     </script>
   </body>

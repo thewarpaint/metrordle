@@ -1,16 +1,27 @@
 'use strict';
 
-// Covers /configurar/, the site-wide settings page - for now just the
-// light/dark/system appearance picker (see AGENTS.md's "Site config"
-// section and shared.js's loadConfig()/saveConfig()/getThemeMode()/
-// applyThemeMode()/setThemeMode()). The whole mechanism hinges on one
+// Covers /configurar/, the site-wide settings page: the light/dark/
+// system appearance picker and the reduced-motion picker (see AGENTS.md's
+// "Site config" section and shared.js's loadConfig()/saveConfig()/
+// getThemeMode()/applyThemeMode()/setThemeMode()). Those two hinge on one
 // localStorage key ('metrordle:config') holding a plain object that's
 // meant to grow more settings later, and on shared.css's own
 // [data-theme] rules (present but unused before this page existed) -
-// this file checks both the picker's own UI state and that the choice
-// actually reaches <html>'s data-theme attribute, on this page and on
-// another page entirely, not just that something gets written to
-// localStorage.
+// this file checks both each picker's own UI state and that the choice
+// actually reaches <html>'s data-theme/data-reduced-motion attribute, on
+// this page and on another page entirely, not just that something gets
+// written to localStorage.
+//
+// Also covers the alias field (a separate, pre-existing
+// 'metrordle:alias' key - see MetroShared.getAlias()/setAlias(), the
+// same functions every game's own leaderboard alias row already uses)
+// added as this page's third section: pre-fills with the current
+// alias, trims on save, and shows a success/error notice. Renaming
+// here does NOT move any already-submitted leaderboard entries (the
+// alias is the Firestore document ID - see AGENTS.md's "Leaderboards"
+// bullet) - this file doesn't re-test that documented limitation
+// itself, just that the new field persists/reads MetroShared's alias
+// correctly.
 
 const assert = require('assert');
 const { chromium } = require('playwright');
@@ -222,6 +233,95 @@ async function main() {
 
       await page.click('#theme-option-light');
       assert.deepStrictEqual(await getConfig(page), { mode: 'light', reducedMotion: true }, 'changing the theme afterward should not clear the reduced-motion choice');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('with no saved alias, the field starts empty and shows no notice', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      assert.strictEqual(await page.locator('#alias-input').inputValue(), '');
+      assert.strictEqual(await page.locator('#alias-notice').isVisible(), false);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a saved alias pre-fills the field on load', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.evaluate(() => localStorage.setItem('metrordle:alias', 'Eduardo'));
+
+      await page.reload({ waitUntil: 'networkidle' });
+      assert.strictEqual(await page.locator('#alias-input').inputValue(), 'Eduardo');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('saving a new alias persists it (trimmed), shows a success notice, and applies site-wide', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      await page.fill('#alias-input', '  Roberto  ');
+      await page.click('#alias-save-btn');
+
+      assert.strictEqual(await page.evaluate(() => localStorage.getItem('metrordle:alias')), 'Roberto', 'should trim before saving, same as MetroShared.normalizeAlias()');
+      assert.strictEqual(await page.locator('#alias-input').inputValue(), 'Roberto');
+
+      const notice = page.locator('#alias-notice');
+      assert.strictEqual(await notice.isVisible(), true);
+      assert.ok((await notice.textContent()).includes('Roberto'), 'the success notice should name the alias that was saved');
+      assert.strictEqual(await notice.getAttribute('class'), 'alias-notice alias-notice--success');
+
+      // Site-wide, same as the alias every other page's own leaderboard
+      // alias row reads via MetroShared.getAlias().
+      await page.goto(server.baseUrl + '/clasificador/?debug=true&date=2026-11-19', { waitUntil: 'networkidle' });
+      assert.strictEqual(await page.evaluate(() => MetroShared.getAlias()), 'Roberto');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('saving a blank alias shows an error notice and leaves the existing alias untouched', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.evaluate(() => localStorage.setItem('metrordle:alias', 'Eduardo'));
+      await page.reload({ waitUntil: 'networkidle' });
+
+      await page.fill('#alias-input', '   ');
+      await page.click('#alias-save-btn');
+
+      assert.strictEqual(await page.evaluate(() => localStorage.getItem('metrordle:alias')), 'Eduardo', 'a blank submission should not clear the existing alias');
+      const notice = page.locator('#alias-notice');
+      assert.strictEqual(await notice.isVisible(), true);
+      assert.strictEqual(await notice.getAttribute('class'), 'alias-notice alias-notice--error');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('pressing Enter in the alias field saves it, same as clicking "Guardar"', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      await page.fill('#alias-input', 'Karla');
+      await page.locator('#alias-input').press('Enter');
+
+      assert.strictEqual(await page.evaluate(() => localStorage.getItem('metrordle:alias')), 'Karla');
+      assert.strictEqual(await page.locator('#alias-notice').isVisible(), true);
     } finally {
       await context.close();
     }

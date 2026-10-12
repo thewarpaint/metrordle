@@ -540,10 +540,15 @@ Each game has its own daily Firestore leaderboard:
 `metroguessr-leaderboard` / `metrocrush-leaderboard` /
 `clasificador-leaderboard`.
 Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
-key, shared across all games) with **no rename** - the alias *is* the
-document ID (lowercased), so changing it would orphan the old entry;
-two players choosing the same alias silently share/overwrite one entry
-(known, accepted limitation).
+key, shared across all games), changeable from `/configurar/` (see
+"Site config" below) - but still no way to carry old entries forward
+when you do: the alias *is* the document ID (lowercased), so renaming
+only changes what *future* submissions use, leaving every
+already-submitted entry under the old alias orphaned, permanently
+(nothing re-keys past documents - there is no bulk-rename operation on
+Firestore data here). Two players choosing the same alias still
+silently share/overwrite one entry too (both known, accepted
+limitations).
 
 Per-game conventions, each with its own ranking rule baked into
 `orderBySpecs` (an ordered `[field, 'asc'|'desc']` list; `submittedAt`
@@ -861,6 +866,27 @@ animation with no JS gate of its own - `shared.css` has a
 `:root[data-reduced-motion="true"] *` rule that's an exact twin of its
 own `@media (prefers-reduced-motion: reduce)` block, rather than a
 combined selector, so the two stay simple and independently readable.
+
+`/configurar/`'s third section, Alias, is the one place to change
+`metrordle:alias` directly (every other place it's ever set is a
+per-game leaderboard's own first-time alias-input row, see
+"Leaderboards" above) - a `.leaderboard__alias` input+button row
+(shared.css, the exact markup every game's own leaderboard alias row
+already uses) pre-filled from `MetroShared.getAlias()`, saved via the
+same `MetroShared.setAlias()` every other call site uses. A blank/
+whitespace-only submission is rejected with an error notice rather
+than silently clearing the alias (every other call site's own
+`save()` just `return`s on an empty `setAlias()` result, with no
+feedback either way - fine for a quick inline leaderboard row, not for
+a dedicated settings field someone could accidentally submit blank).
+The success/error notice (`#alias-notice`, `aria-live="polite"` same
+as Metro Crush's own `.toast`) auto-hides after 4s. Detecting a
+genuine save failure (private mode, full storage) needs an extra step
+since `setAlias()` itself always returns the normalized value
+regardless of whether the write actually landed - the only way to
+tell is reading `getAlias()` back immediately after and comparing.
+See the Leaderboards section's own intro above for what changing the
+alias here does and doesn't do to already-submitted entries.
 
 ## Rendering safety
 

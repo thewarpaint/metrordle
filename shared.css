@@ -29,6 +29,9 @@
   --ok-ink: #ffffff;
   --danger: #b5382b;
   --danger-ink: #ffffff;
+  /* Not an alias of --line - that's reassigned per day at runtime. */
+  --info: #0057a8;
+  --info-ink: #ffffff;
   --shadow: rgba(20, 24, 26, 0.14);
   --focus: #0057a8;
 }
@@ -442,6 +445,30 @@ h1 {
 
 .btn-secondary:hover {
   background: var(--paper-well);
+}
+
+/* Shared end-of-round banner; Metroguessr's own .reveal__banner is a different, page-local shape (inline text, no card). */
+.notice {
+  border-radius: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.notice--success {
+  background: var(--ok);
+  color: var(--ok-ink);
+}
+
+.notice--error {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
+.notice--info {
+  background: var(--info);
+  color: var(--info-ink);
 }
 
 .credit {
@@ -1099,47 +1126,6 @@ h1 {
   font-variant-numeric: tabular-nums;
   text-align: right;
   width: 1.5rem;
-}
-
-/* Metrordle's/Laberinto's/Memoria's own .reveal__banner/--win/--lose -
-   a bordered card with a solid win/lose background, shown once the
-   round ends. Also Metro Crush's own .reveal__banner - same shape/
-   border, but always this "win" look (no loss to color for, since a
-   round there always just ends, never wins or loses). */
-.design-notice {
-  align-items: center;
-  border: 2px solid var(--rule-strong);
-  border-radius: 0.5rem;
-  display: flex;
-  font-size: 1.05rem;
-  font-weight: 800;
-  gap: 0.6rem;
-  padding: 0.75rem 0.9rem;
-}
-
-.design-notice--win {
-  background: var(--ok);
-  color: var(--ok-ink);
-}
-
-.design-notice--lose {
-  background: var(--danger);
-  color: var(--danger-ink);
-}
-
-/* Clasificador's own .reveal__banner - no border, no win/lose (every
-   round submits regardless of score, so there's nothing to color by
-   outcome), filled with the generic --line/--line-ink token pair
-   instead of --ok/--danger. */
-.design-notice--flat {
-  background: var(--line);
-  border: none;
-  border-radius: 0.5rem;
-  color: var(--line-ink);
-  display: block;
-  font-size: 1.02rem;
-  font-weight: 800;
-  padding: 0.85rem 1rem;
 }
 
 /* Metroguessr's own .reveal__line/.reveal__banner/.reveal__station -

@@ -276,28 +276,6 @@
         display: none;
       }
 
-      .reveal__banner {
-        align-items: center;
-        border: 2px solid var(--rule-strong);
-        border-radius: 0.5rem;
-        display: flex;
-        gap: 0.6rem;
-        font-weight: 800;
-        font-size: 1.05rem;
-        margin-bottom: 1rem;
-        padding: 0.75rem 0.9rem;
-      }
-
-      .reveal__banner--win {
-        background: var(--ok);
-        color: var(--ok-ink);
-      }
-
-      .reveal__banner--lose {
-        background: var(--danger);
-        color: var(--danger-ink);
-      }
-
       .stats-row {
         display: flex;
         flex-direction: column;
@@ -963,7 +941,7 @@
         function renderReveal() {
           var won = state.status === 'won';
           var banner = $('reveal-banner');
-          banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
+          banner.className = 'notice ' + (won ? 'notice--success' : 'notice--error');
           banner.textContent = (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥 ' +
             MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
 

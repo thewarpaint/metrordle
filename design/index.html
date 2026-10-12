@@ -550,19 +550,19 @@
           var gallery = document.getElementById('notices-gallery');
 
           var win = document.createElement('div');
-          win.className = 'design-notice design-notice--win';
+          win.className = 'notice notice--success';
           win.textContent = '¡Ganaste! 🔥 ' + MetroShared.formatStreak(6) + ', ' + MetroShared.formatMaxStreak(9);
-          gallery.appendChild(buildExample(win, '<code>.reveal__banner</code>/<code>.reveal__banner--win</code> · Metrordle, Laberinto, Memoria - tarjeta con borde, al ganar. Metro Crush reusa esta misma tarjeta siempre (sin variante de derrota - una ronda ahí nunca "pierde").'));
+          gallery.appendChild(buildExample(win, '<code>.notice</code>/<code>.notice--success</code> · ✅ consolidado - Metrordle, Laberinto, Memoria al ganar; Metro Crush siempre (nunca "pierde") - ya sin el borde negro/blanco que tenían antes.'));
 
           var lose = document.createElement('div');
-          lose.className = 'design-notice design-notice--lose';
+          lose.className = 'notice notice--error';
           lose.textContent = 'Suerte para la próxima… 🔥 ' + MetroShared.formatStreak(0) + ', ' + MetroShared.formatMaxStreak(4);
-          gallery.appendChild(buildExample(lose, '<code>.reveal__banner</code>/<code>.reveal__banner--lose</code> · Metrordle, Laberinto, Memoria - misma tarjeta, al perder/rendirse - la racha se reinicia a 0, pero la máxima histórica sigue mostrándose si es mayor.'));
+          gallery.appendChild(buildExample(lose, '<code>.notice</code>/<code>.notice--error</code> · ✅ consolidado - Metrordle, Laberinto, Memoria al perder/rendirse - la racha se reinicia a 0, pero la máxima histórica sigue mostrándose si es mayor.'));
 
-          var flat = document.createElement('div');
-          flat.className = 'design-notice--flat';
-          flat.textContent = '¡Tiempo! 🔥 ' + MetroShared.formatStreak(3);
-          gallery.appendChild(buildExample(flat, '<code>.reveal__banner</code> · Clasificador - sin borde, sin ganar/perder (cada ronda se envía sin importar el puntaje), coloreada con el token genérico <code>--line</code> en vez de <code>--ok</code>/<code>--danger</code>.'));
+          var info = document.createElement('div');
+          info.className = 'notice notice--info';
+          info.textContent = '¡Tiempo! 🔥 ' + MetroShared.formatStreak(3);
+          gallery.appendChild(buildExample(info, '<code>.notice</code>/<code>.notice--info</code> · ✅ consolidado - Clasificador, sin ganar/perder (cada ronda se envía sin importar el puntaje) - antes coloreada con <code>--line</code>, el de la línea del día; ahora un azul fijo, igual en cualquier día.'));
 
           var line = document.createElement('p');
           line.className = 'design-notice-line';

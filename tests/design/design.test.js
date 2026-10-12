@@ -95,14 +95,17 @@ async function main() {
       assert.strictEqual(mutedDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       const noticeExamples = await page.locator('#notices-gallery .design-example').count();
-      assert.strictEqual(noticeExamples, 5, 'expected 5 notice examples (win card, lose card, flat card, inline text, status-bar text)');
+      assert.strictEqual(noticeExamples, 5, 'expected 5 notice examples (success card, error card, info card, inline text, status-bar text)');
 
-      const winText = await page.locator('#notices-gallery .design-notice--win').textContent();
-      assert.ok(winText.indexOf('Racha: 6 días') !== -1, 'expected the win notice to include a streak: ' + winText);
-      assert.ok(winText.indexOf('máxima: 9 días') !== -1, 'expected the win notice to include a max-streak mention: ' + winText);
+      const winText = await page.locator('#notices-gallery .notice--success').textContent();
+      assert.ok(winText.indexOf('Racha: 6 días') !== -1, 'expected the success notice to include a streak: ' + winText);
+      assert.ok(winText.indexOf('máxima: 9 días') !== -1, 'expected the success notice to include a max-streak mention: ' + winText);
 
-      const loseText = await page.locator('#notices-gallery .design-notice--lose').textContent();
+      const loseText = await page.locator('#notices-gallery .notice--error').textContent();
       assert.ok(loseText.indexOf('Racha: 0 días') !== -1, 'a loss should show the now-reset streak, not the pre-reset one: ' + loseText);
+
+      const infoText = await page.locator('#notices-gallery .notice--info').textContent();
+      assert.ok(infoText.indexOf('Racha: 3 días') !== -1, 'expected the info notice (Clasificador\'s own, no win/lose) to include a streak: ' + infoText);
 
       const inlineBanner = await page.locator('#notices-gallery .design-notice-line__banner').textContent();
       const inlineStation = await page.locator('#notices-gallery .design-notice-line__station').textContent();

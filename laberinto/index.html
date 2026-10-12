@@ -943,8 +943,8 @@
           MetroShared.renderNoticeBanner(
             $('reveal-banner'),
             won ? 'notice--success' : 'notice--error',
-            (won ? '¡Llegaste!' : 'Te rendiste') + ' 🔥',
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+            won ? '¡Llegaste!' : 'Te rendiste',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
 
           var yourStops = countStops(state.path);

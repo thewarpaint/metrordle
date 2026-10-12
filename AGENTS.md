@@ -381,9 +381,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   `.notice--success` (static markup, no JS toggling it - a round there
   never actually loses).
 
-  The banner's own text is a headline (win/lose/round-over copy, plus
-  🔥) over a smaller, normal-weight line underneath (the streak, and
-  the max-streak mention when it's still ahead) - `.notice__title`/
+  The banner's own text is a headline (plain win/lose/round-over copy)
+  over a smaller, normal-weight line underneath (🔥 plus the streak,
+  and the max-streak mention when it's still ahead) - `.notice__title`/
   `.notice__text`, built by one shared `MetroShared.renderNoticeBanner(el,
   variantClass, title, bodyText)` in `shared.js` rather than five
   near-identical `textContent` assignments (one per game). `.notice__title`

@@ -1190,8 +1190,8 @@
           MetroShared.renderNoticeBanner(
             $('reveal-banner'),
             won ? 'notice--success' : 'notice--error',
-            (won ? '¡Buena memoria!' : 'Se acabó el tiempo') + ' 🔥',
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+            won ? '¡Buena memoria!' : 'Se acabó el tiempo',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
 
           $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';

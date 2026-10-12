@@ -219,9 +219,9 @@ async function main() {
       assert.deepStrictEqual(counts, ['× 3', '× 1', '× 2', '× 1', '× 1', '× 0'], 'expected each line\'s planted "× N" count in the known fixture\'s line order (1, 6, 7, 8, 12, B)');
 
       const bannerTitle = await page.$eval('#reveal-banner .notice__title', (el) => el.textContent);
-      assert.strictEqual(bannerTitle, '¡Tiempo! 🔥');
+      assert.strictEqual(bannerTitle, '¡Tiempo!');
       const bannerText = await page.$eval('#reveal-banner .notice__text', (el) => el.textContent);
-      assert.strictEqual(bannerText, 'Racha: 4 días, máxima: 6 días', 'expected the reveal banner to show the planted streak, got: ' + bannerText);
+      assert.strictEqual(bannerText, '🔥 Racha: 4 días, máxima: 6 días', 'expected the reveal banner to show the planted streak, got: ' + bannerText);
 
       // The planted total (9) falls in getRating()'s 'Mala' 🟧 band
       // (6 through 15) - verifies both the rating logic and the share

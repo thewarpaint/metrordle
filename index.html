@@ -1651,8 +1651,8 @@
           MetroShared.renderNoticeBanner(
             $('reveal-banner'),
             state.won ? 'notice--success' : 'notice--error',
-            (state.won ? '¡Lo lograste!' : 'Suerte para la próxima…') + ' 🔥',
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+            state.won ? '¡Lo lograste!' : 'Suerte para la próxima…',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
 
           renderAliasRow();

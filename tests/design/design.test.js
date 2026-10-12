@@ -32,7 +32,7 @@ async function main() {
       assert.strictEqual(stationExamples, 6, 'expected 6 station-display examples (node, card, badge, chip, plain text, reveal grid)');
 
       const stationListExamples = await page.locator('#station-lists-gallery .design-example').count();
-      assert.strictEqual(stationListExamples, 4, 'expected 4 station-list examples (platform, queue, breadcrumb, optimal path)');
+      assert.strictEqual(stationListExamples, 5, 'expected 5 station-list examples (platform, platform hard mode, queue, breadcrumb, optimal path)');
 
       // One badge/circle/dot/card/row per sampled line or station -
       // confirms the galleries actually rendered real entries, not
@@ -65,24 +65,33 @@ async function main() {
       const platformRows = await page.locator('#station-lists-gallery .design-example').nth(0).locator('.design-platform__row').count();
       assert.strictEqual(platformRows, 5, 'expected 5 platform rows (the puzzle\'s own station count)');
 
-      const queueCards = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-queue-card').count();
+      const platformHardCols = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-platform-hard__col').count();
+      assert.strictEqual(platformHardCols, 5, 'expected one hard-mode column per sampled station');
+      const platformHardNames = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-platform__name').count();
+      assert.strictEqual(platformHardNames, 0, 'hard mode should show no station name at all');
+      const platformHardCards = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.station-card').count();
+      assert.strictEqual(platformHardCards, 5, 'expected one .station-card per sampled station - hard mode\'s icon is the shared station-card now, not a page-local icon');
+      const platformHardCardNames = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.station-card__name').count();
+      assert.strictEqual(platformHardCardNames, 0, 'hard mode\'s station-card should drop the name, same as Memoria\'s own icon-type cards');
+
+      const queueCards = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-queue-card').count();
       assert.strictEqual(queueCards, 4, 'expected one queue card per sampled station');
 
-      const activeQueueCards = await page.locator('#station-lists-gallery .design-example').nth(1).locator('.design-queue-card--active').count();
+      const activeQueueCards = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-queue-card--active').count();
       assert.strictEqual(activeQueueCards, 1, 'expected exactly one queue card marked active');
 
-      const breadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop').count();
+      const breadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-breadcrumb__stop').count();
       assert.strictEqual(breadcrumbStops, 11, 'expected one breadcrumb stop per sampled hop, same route as the optimal-path example below');
-      const currentBreadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop--current').count();
+      const currentBreadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-breadcrumb__stop--current').count();
       assert.strictEqual(currentBreadcrumbStops, 1, 'expected exactly one breadcrumb stop marked current');
-      const breadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop-group .route-dot').count();
+      const breadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-breadcrumb__stop-group .route-dot').count();
       assert.strictEqual(breadcrumbDots, 11, 'expected one line dot per breadcrumb stop');
-      const mutedBreadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.route-dot--muted').count();
+      const mutedBreadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.route-dot--muted').count();
       assert.strictEqual(mutedBreadcrumbDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
-      const optimalPathRows = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-optimal-path__row').count();
+      const optimalPathRows = await page.locator('#station-lists-gallery .design-example').nth(4).locator('.design-optimal-path__row').count();
       assert.strictEqual(optimalPathRows, 11, 'expected one optimal-path row per sampled hop, long enough to show a 2-digit step number');
-      const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.route-dot--muted').count();
+      const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(4).locator('.route-dot--muted').count();
       assert.strictEqual(mutedDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       const noticeExamples = await page.locator('#notices-gallery .design-example').count();

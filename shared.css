@@ -940,6 +940,34 @@ h1 {
   width: 1.5rem;
 }
 
+/* Metrordle's .platform--hard/.platform-icon-col - hard mode's own
+   live-play layout (swapped in only while !state.gameOver; the reveal
+   screen falls back to .design-platform above even in hard mode), a
+   horizontal icon shelf instead of a numbered name list - no station
+   name shown at all, ◀▶ (.chev/.chev--compact, already shared) swap
+   a column with its neighbor instead of up/down buttons on a row. Icon
+   is the shared .station-card, sized here via an inline width. */
+.design-platform-hard {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: space-between;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.design-platform-hard__col {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.design-platform-hard__nav {
+  display: flex;
+  gap: 0.15rem;
+}
+
 /* Clasificador's .queue-wrap/.queue-card - unordered upcoming stations,
    icon never line-tinted (see queue-card's own comment in
    clasificador/index.html), active row emphasized. */

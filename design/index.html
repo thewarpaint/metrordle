@@ -405,6 +405,44 @@
           });
           gallery.appendChild(buildExample(platform, '<code>.platform</code>/<code>.platform__row</code> · orden de las 5 estaciones, Metrordle - numerada, con ícono y borde neutros (ya no coloreados por la línea del día) y (al terminar la ronda) una marca 🟩/🟥 por fila.'));
 
+          var platformHard = document.createElement('ol');
+          platformHard.className = 'design-platform-hard';
+          PLATFORM_SAMPLE.forEach(function (station, index) {
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var col = document.createElement('li');
+            col.className = 'design-platform-hard__col';
+
+            var rank = document.createElement('span');
+            rank.className = 'design-platform__rank';
+            rank.textContent = String(index + 1);
+            col.appendChild(rank);
+
+            var card = document.createElement('div');
+            card.className = 'station-card';
+            card.style.width = '2.9rem';
+            card.appendChild(makeIcon('station-card__icon', slug));
+            col.appendChild(card);
+
+            var nav = document.createElement('span');
+            nav.className = 'design-platform-hard__nav';
+            var leftBtn = document.createElement('button');
+            leftBtn.type = 'button';
+            leftBtn.className = 'chev chev--compact';
+            leftBtn.textContent = '◀';
+            leftBtn.disabled = index === 0;
+            var rightBtn = document.createElement('button');
+            rightBtn.type = 'button';
+            rightBtn.className = 'chev chev--compact';
+            rightBtn.textContent = '▶';
+            rightBtn.disabled = index === PLATFORM_SAMPLE.length - 1;
+            nav.appendChild(leftBtn);
+            nav.appendChild(rightBtn);
+            col.appendChild(nav);
+
+            platformHard.appendChild(col);
+          });
+          gallery.appendChild(buildExample(platformHard, '<code>.platform--hard</code>/<code>.platform-icon-col</code> · modo difícil, Metrordle - mismo orden, pero solo mientras se juega (al terminar la ronda, incluso en modo difícil, vuelve al <code>.platform</code> de arriba). Sin nombre - ◀▶ intercambian la columna con su vecina en vez de los botones ▲▼ por fila. El ícono es una <code>.station-card</code> sin <code>.station-card__name</code> (✅ consolidado - misma ficha que las cartas de ícono de Memoria, antes un ícono suelto propio de esta página).'));
+
           var queue = document.createElement('div');
           queue.className = 'design-queue';
           STATION_SAMPLE.forEach(function (station, index) {

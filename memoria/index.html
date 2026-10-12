@@ -646,15 +646,6 @@
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
           var saved = loadSavedResult(dateKey);
 
-          // A decorative daily accent - which line's color shows up on
-          // the Comenzar button and the countdown bar - picked the same
-          // way the main game picks its daily line, but from its own
-          // seed namespace so it never touches the pool's draw order.
-          var accentRand = MetroShared.createSeededRandom('metrordle-memoria-accent-' + dateKey);
-          var accentLine = MetroShared.LINES[Math.floor(accentRand() * MetroShared.LINES.length)];
-          document.documentElement.style.setProperty('--line', accentLine.color);
-          document.documentElement.style.setProperty('--line-ink', accentLine.textColor);
-
           if (saved) {
             var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state = {

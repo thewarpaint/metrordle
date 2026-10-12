@@ -401,10 +401,10 @@ h1 {
 }
 
 .btn-primary {
-  background: var(--line);
+  background: var(--rule-strong);
   border: 2px solid var(--rule-strong);
   border-radius: 0.5rem;
-  color: var(--line-ink);
+  color: var(--paper);
   cursor: pointer;
   display: block;
   font-family: 'Overpass', sans-serif;

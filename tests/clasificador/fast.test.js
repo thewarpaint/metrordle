@@ -24,6 +24,15 @@ const { startServer, test, runAll } = require('../lib/harness');
 
 const FIXTURE_DATE = '2026-11-19';
 
+// 2027-02-22's naive first draw (no MIN_STATION_POOL retry) picks
+// Líneas 1/4/5/6/8/9 - a 74-station pool, short of the 80 floor. The
+// seeded generator keeps drawing from that same point until Líneas
+// 1/5/7/8/9/A comes up (an 81-station pool), which is what the real
+// page actually shows - recomputed independently in a throwaway Node
+// script against the real shared.js before writing this file, same as
+// FIXTURE_DATE's own fixture comment above.
+const SHORT_POOL_FIXTURE_DATE = '2027-02-22';
+
 // Must match START_DATE_KEY in clasificador/index.html.
 const START_DATE_KEY = '2026-10-10';
 
@@ -58,6 +67,29 @@ async function main() {
       const names2 = await page2.$$eval('#queue .queue-card .queue-card__name', (els) => els.map((e) => e.textContent));
       assert.deepStrictEqual(names1, names2, 'the same date should deal the exact same station queue in two independent sessions');
       assert.strictEqual(names1[names1.length - 1], 'Pantitlán', 'expected the known fixture\'s first-dealt (active, bottom-of-queue) station, got: ' + names1[names1.length - 1]);
+    } finally {
+      await context1.close();
+      await context2.close();
+    }
+  });
+
+  test('a day whose naive 6-line draw falls short of MIN_STATION_POOL re-draws until it clears it, still deterministically', async () => {
+    const context1 = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const page1 = await context1.newPage();
+    const context2 = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const page2 = await context2.newPage();
+    try {
+      await page1.goto(server.baseUrl + '/clasificador/?debug=true&date=' + SHORT_POOL_FIXTURE_DATE, { waitUntil: 'networkidle' });
+      await page2.goto(server.baseUrl + '/clasificador/?debug=true&date=' + SHORT_POOL_FIXTURE_DATE, { waitUntil: 'networkidle' });
+      await page1.waitForTimeout(200);
+      await page2.waitForTimeout(200);
+
+      const lines1 = await page1.$$eval('#buckets .line-badge', (els) => els.map((e) => e.dataset.lineId));
+      const lines2 = await page2.$$eval('#buckets .line-badge', (els) => els.map((e) => e.dataset.lineId));
+      // Not ['1','4','5','6','8','9'] - that's the naive first draw
+      // (74 stations) a pre-MIN_STATION_POOL build would have kept.
+      assert.deepStrictEqual(lines1, ['1', '5', '7', '8', '9', 'A'], 'expected the re-drawn fixture lines (not the naive, too-short first draw), got: ' + lines1);
+      assert.deepStrictEqual(lines1, lines2, 'the retry should still land on the exact same lines in two independent sessions');
     } finally {
       await context1.close();
       await context2.close();

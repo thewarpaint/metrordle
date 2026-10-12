@@ -12,6 +12,12 @@ every page is a single self-contained `.html` file with inline
 `<style>`/`<script>`, deployed as-is via GitHub Pages (see `CNAME`).
 Site copy/UI is in Spanish (`es-MX`).
 
+**Keep code comments succinct and useful** - explain the non-obvious
+why, not the what, and don't let a comment sprawl past what a reader
+actually needs. (This instruction is itself an exception: AGENTS.md's
+own prose stays as thorough as the rest of this file - this rule is
+about `//`/`/* */` comments in the actual game/test code.)
+
 ## The games
 
 - **`/` (`index.html`)** - Metrordle: order 5 stations of one Metro line
@@ -178,6 +184,18 @@ Site copy/UI is in Spanish (`es-MX`).
   `MetroShared.LINES`' own fixed order after the seeded shuffle picks
   them, so the bucket row always reads left-to-right the way the real
   line numbering does, regardless of which 6 happened to get drawn.
+  Picking 6 lines purely at random can land on a heavily-overlapping
+  set (several lines sharing the same transfer stations) small enough
+  to feel thin - as few as 62 unique stations across all possible
+  6-line draws, against an 89.6-station average - so `pickFeaturedLines()`
+  keeps re-drawing from that same generator (not a fresh one) until the
+  deduplicated pool clears `MIN_STATION_POOL` (80), a single named
+  constant kept right next to `FEATURED_LINE_COUNT` for exactly this
+  kind of tuning. Re-drawing rather than padding the pool some other
+  way (e.g. adding a 7th line, or topping up with extra stations from
+  outside the 6) keeps the "always exactly 6 real lines, one bucket
+  each" shape intact - a short day just spends a bit more of the same
+  seeded generator before settling, still a pure function of `dateKey`.
 
   A real transfer station that lands on more than one of the day's 6
   featured lines (common - e.g. Pantitlán alone is on 4 of the real 12

@@ -449,6 +449,10 @@
         var ROUND_SECONDS = 60;
         var QUEUE_SIZE = 5;
         var FEATURED_LINE_COUNT = 6;
+        // A day's 6 random lines can overlap enough to leave a thin
+        // pool (as low as 62 unique stations in the worst case) - see
+        // pickFeaturedLines()'s own retry.
+        var MIN_STATION_POOL = 80;
         var STREAK_STORAGE_KEY = 'clasificador:streak';
         var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
         var LEADERBOARD_SIZE = 5;
@@ -502,6 +506,38 @@
           }
         }
 
+        // Picks 6 lines, re-drawing from the same generator until the
+        // deduplicated pool clears MIN_STATION_POOL - still a pure
+        // function of dateKey, just spends more of the generator on a
+        // short day. Returns lineIdsByStation too, since buildGame()
+        // would otherwise redo this same computation.
+        function pickFeaturedLines(rand) {
+          var lines, lineIdsByStation;
+          do {
+            var featuredIds = {};
+            shuffle(MetroShared.LINES, rand).slice(0, FEATURED_LINE_COUNT).forEach(function (line) {
+              featuredIds[line.id] = true;
+            });
+            // Kept in MetroShared.LINES' own fixed order (not shuffle
+            // order) so the bucket row always reads left-to-right the
+            // same way the real line numbering does, regardless of
+            // which 6 happened to get picked.
+            lines = MetroShared.LINES.filter(function (line) {
+              return featuredIds[line.id];
+            });
+
+            lineIdsByStation = {};
+            lines.forEach(function (line) {
+              line.stations.forEach(function (name) {
+                if (!lineIdsByStation[name]) lineIdsByStation[name] = [];
+                lineIdsByStation[name].push(line.id);
+              });
+            });
+          } while (Object.keys(lineIdsByStation).length < MIN_STATION_POOL);
+
+          return { lines: lines, lineIdsByStation: lineIdsByStation };
+        }
+
         // Builds the day's whole puzzle from ONE seeded generator, so
         // both "which 6 lines" and "what order stations get dealt in"
         // are fully reproducible from dateKey alone - every call with
@@ -516,27 +552,10 @@
         function buildGame(dateKey) {
           var rand = MetroShared.createSeededRandom('metrordle-clasificador-' + dateKey);
 
-          var featuredIds = {};
-          shuffle(MetroShared.LINES, rand).slice(0, FEATURED_LINE_COUNT).forEach(function (line) {
-            featuredIds[line.id] = true;
-          });
-          // Kept in MetroShared.LINES' own fixed order (not shuffle
-          // order) so the bucket row always reads left-to-right the
-          // same way the real line numbering does, regardless of which
-          // 6 happened to get picked.
-          var lines = MetroShared.LINES.filter(function (line) {
-            return featuredIds[line.id];
-          });
-
-          var lineIdsByStation = {};
-          lines.forEach(function (line) {
-            line.stations.forEach(function (name) {
-              if (!lineIdsByStation[name]) lineIdsByStation[name] = [];
-              lineIdsByStation[name].push(line.id);
-            });
-          });
-          var baseStations = Object.keys(lineIdsByStation).map(function (name) {
-            return { name: name, lineIds: lineIdsByStation[name] };
+          var pickedLines = pickFeaturedLines(rand);
+          var lines = pickedLines.lines;
+          var baseStations = Object.keys(pickedLines.lineIdsByStation).map(function (name) {
+            return { name: name, lineIds: pickedLines.lineIdsByStation[name] };
           });
 
           var pool = shuffle(baseStations, rand);

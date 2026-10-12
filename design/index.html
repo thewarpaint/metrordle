@@ -430,28 +430,44 @@
           });
           gallery.appendChild(buildExample(breadcrumb, '<code>.breadcrumb</code>/<code>.breadcrumb__stop</code> · ruta recorrida hasta ahora, Laberinto - sin ícono, sin color, solo la parada actual en negrita.'));
 
-          // A real route with one transfer: Garibaldi/Lagunilla (origin,
-          // no line of its own - nothing was ridden to get there, same as
-          // the live page's own makeRouteDot(lineId) null-case) to Bellas
-          // Artes via Línea 8, transferring there onto Línea 2 the rest
-          // of the way (Allende, then Zócalo) - same line twice in a row
-          // shows the dot staying the same color, not just changing.
+          // A real 11-stop route with two transfers - long enough to show
+          // a 2-digit step number (the counter column is sized/padded
+          // for exactly that). Garibaldi/Lagunilla (origin, no line of
+          // its own - nothing was ridden to get there) to Bellas Artes
+          // via Línea 8, transferring there onto Línea 2 through Zócalo
+          // and Pino Suárez (same line several times in a row shows the
+          // dot staying the same color, not just changing), then onto
+          // Línea 1 the rest of the way.
           var OPTIMAL_PATH_SAMPLE = [
             { name: 'Garibaldi/Lagunilla', lineId: null },
             { name: 'Bellas Artes', lineId: '8' },
             { name: 'Allende', lineId: '2' },
             { name: 'Zócalo', lineId: '2' },
+            { name: 'Pino Suárez', lineId: '2' },
+            { name: 'Merced', lineId: '1' },
+            { name: 'Candelaria', lineId: '1' },
+            { name: 'San Lázaro', lineId: '1' },
+            { name: 'Moctezuma', lineId: '1' },
+            { name: 'Balbuena', lineId: '1' },
+            { name: 'Boulevard Puerto Aéreo', lineId: '1' },
           ];
 
           var optimalPath = document.createElement('ol');
           optimalPath.className = 'design-optimal-path';
-          OPTIMAL_PATH_SAMPLE.forEach(function (hop) {
+          OPTIMAL_PATH_SAMPLE.forEach(function (hop, index) {
             var row = document.createElement('li');
             row.className = 'design-optimal-path__row';
 
+            // The origin has no line of its own - color its dot with the
+            // next hop's line instead (the line about to be ridden away
+            // from it), same as the live page's own makeRouteDot(lineId)
+            // lookahead, rather than leaving it muted.
+            var nextHop = OPTIMAL_PATH_SAMPLE[index + 1];
+            var dotLineId = hop.lineId || (nextHop && nextHop.lineId);
+
             var dot = document.createElement('span');
-            dot.className = 'design-line-dot' + (hop.lineId ? '' : ' design-line-dot--muted');
-            if (hop.lineId) dot.style.setProperty('--badge-bg', lineById(hop.lineId).color);
+            dot.className = 'design-line-dot' + (dotLineId ? '' : ' design-line-dot--muted');
+            if (dotLineId) dot.style.setProperty('--badge-bg', lineById(dotLineId).color);
             row.appendChild(dot);
 
             var name = document.createElement('span');

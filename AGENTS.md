@@ -301,9 +301,13 @@ Site copy/UI is in Spanish (`es-MX`).
   Laberinto's own `#optimal-path-list` (the shortest route, shown
   alongside the breadcrumb once the round ends, for comparison against
   the player's own route - numbered with a plain CSS counter rather
-  than a rank circle, each stop paired with the same `.route-dot` from
-  "Líneas" reused as a component, muted for the origin since it has no
-  line of its own).
+  than a rank circle, the counter's own column sized/padded for a
+  2-digit stop number since a route can run past 9 stations, each stop
+  paired with the same `.route-dot` from "Líneas" reused as a component
+  - the origin has no line of its own, so rather than leaving its dot
+  unstyled it borrows the very next hop's own line color, same
+  `makeRouteDot(lineId)` lookahead on both the live page and this
+  gallery's own sample data).
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references

@@ -73,9 +73,9 @@ async function main() {
       assert.strictEqual(currentBreadcrumbStops, 1, 'expected exactly one breadcrumb stop marked current');
 
       const optimalPathRows = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-optimal-path__row').count();
-      assert.strictEqual(optimalPathRows, 4, 'expected one optimal-path row per sampled hop');
+      assert.strictEqual(optimalPathRows, 11, 'expected one optimal-path row per sampled hop, long enough to show a 2-digit step number');
       const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-line-dot--muted').count();
-      assert.strictEqual(mutedDots, 1, 'expected exactly one muted dot (the origin, which has no line of its own)');
+      assert.strictEqual(mutedDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

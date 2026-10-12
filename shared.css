@@ -819,7 +819,9 @@ h1 {
   width: 0.55rem;
 }
 
-/* .route-dot--muted - the origin hop, which has no line of its own. */
+/* .route-dot--muted - fallback for a hop with no line at all to show
+   (practically unreachable now that the origin borrows the next hop's
+   own line color instead - see makeRouteDot()'s own comment). */
 .design-line-dot--muted {
   background: var(--paper-well);
   border: 1px solid var(--rule);
@@ -1024,7 +1026,9 @@ h1 {
 
 /* Laberinto's #optimal-path-list - shortest route shown at round end.
    Numbered via CSS counter (not a rank circle), each stop paired with
-   .route-dot (reused, not redrawn), muted for the origin. */
+   .route-dot (reused, not redrawn) - the origin borrows the next hop's
+   own line color rather than going unstyled. The counter column is
+   sized/padded for 2-digit stops (routes can run past 9 stations). */
 .design-optimal-path {
   counter-reset: design-optimal-path-step;
   list-style: none;
@@ -1047,7 +1051,9 @@ h1 {
   flex: 0 0 auto;
   font-family: ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-  width: 1.1rem;
+  padding-right: 0.15rem;
+  text-align: left;
+  width: 1.5rem;
 }
 
 .design-example {

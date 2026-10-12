@@ -339,7 +339,9 @@
         flex: 0 0 auto;
         font-family: ui-monospace, monospace;
         font-variant-numeric: tabular-nums;
-        width: 1.1rem;
+        padding-right: 0.15rem;
+        text-align: left;
+        width: 1.5rem;
       }
 
       .route-dot {
@@ -976,9 +978,15 @@
 
           var list = $('optimal-path-list');
           list.innerHTML = '';
-          state.shortestPath.forEach(function (hop) {
+          state.shortestPath.forEach(function (hop, index) {
             var li = document.createElement('li');
-            li.appendChild(makeRouteDot(hop.lineId));
+            // The origin has no line of its own (nothing was ridden to
+            // get there) - color its dot with the line of the very next
+            // hop instead (the line about to be ridden away from it)
+            // rather than leaving it muted, so every stop in the list
+            // shows a real line color.
+            var nextHop = state.shortestPath[index + 1];
+            li.appendChild(makeRouteDot(hop.lineId || (nextHop && nextHop.lineId)));
             var text = document.createElement('span');
             text.textContent = hop.station;
             li.appendChild(text);

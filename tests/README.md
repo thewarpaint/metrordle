@@ -565,6 +565,21 @@ the actual pattern-consolidation work happens:
   confirming the galleries actually populated real entries, not empty
   rows.
 
+**`status/status.test.js`** covers `/status/`, the read-only ops health
+check (see AGENTS.md's own bullet for it):
+- A fresh visit with the service worker blocked shows "no active cache
+  yet" (`caches.keys()` returns empty).
+- The `/healthcheck.json` check goes green with a measured latency in
+  ms - this sandboxed environment's own local static server actually
+  serves that file, so this is a real (same-origin) round trip, not a
+  stub.
+- The Firebase check goes red with a clear "SDK no disponible" reason
+  rather than hanging - this environment can't reach `gstatic.com`, so
+  the SDK itself never loads, same as every leaderboard test's own
+  "Firebase unreachable" case.
+- "Volver a comprobar" resets both checks to their neutral `.notice--info`
+  "checking" state and re-resolves them.
+
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s
 real Firestore query-construction logic in `shared.js` - unlike every
 leaderboard test above (which only ever exercises its "Firebase

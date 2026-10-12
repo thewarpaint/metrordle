@@ -208,13 +208,35 @@
         80% { transform: scale(1) translateX(3px); }
       }
 
+      /* left/top/width are all set inline per-ghost (see spawnGhost()),
+         matching the resolved card's own real position/size exactly. */
       .queue-ghost {
-        left: 1.1rem;
         pointer-events: none;
         position: absolute;
-        right: 1.1rem;
         transition: transform 0.4s cubic-bezier(.4, 0, .2, 1), opacity 0.4s ease;
         z-index: 5;
+      }
+
+      /* Hard mode: still .queue's own vertical list (one station per
+         row), just plain .station-card icons (shared.css) horizontally
+         centered in each row instead of the named .queue-card rows
+         above - active/inactive uses the same scale-based emphasis as
+         .queue-card--active, just on this shape instead. */
+      .queue--hard {
+        align-items: center;
+      }
+
+      .queue-icon {
+        opacity: 0.72;
+        transform: scale(0.85);
+        transition: transform 0.25s ease, opacity 0.25s ease, box-shadow 0.2s ease;
+        width: 2.8rem;
+      }
+
+      .queue-icon--active {
+        box-shadow: 0 4px 14px var(--shadow);
+        opacity: 1;
+        transform: scale(1);
       }
 
       /* --- Buckets --- */
@@ -298,6 +320,16 @@
         margin: 0 0 1rem;
       }
 
+      .start-overlay__text strong {
+        color: var(--ink);
+      }
+
+      .start-overlay__modes {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
       /* --- Reveal --- */
 
       .reveal {
@@ -358,6 +390,21 @@
         font-size: 0.92rem;
         font-weight: 700;
       }
+
+      /* min-width keeps a short score from shifting the 🧠 badge left. */
+      .leaderboard__score {
+        align-items: center;
+        display: flex;
+        gap: 0.35rem;
+      }
+
+      .leaderboard__score-number {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        min-width: 2.7rem;
+        text-align: right;
+      }
     </style>
   </head>
 
@@ -402,9 +449,12 @@
           <div class="start-overlay" id="start-overlay" hidden>
             <div class="start-overlay__panel">
               <p class="start-overlay__text">
-                Presiona "Comenzar" cuando estés listo para arrancar el conteo.
+                <strong>Modo difícil:</strong> las estaciones no muestran su nombre, solo su ícono.
               </p>
-              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
+              <div class="start-overlay__modes">
+                <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
+                <button type="button" class="btn-secondary" id="start-hard-btn">Jugar modo difícil</button>
+              </div>
             </div>
           </div>
         </div>
@@ -486,6 +536,7 @@
             return {
               total: parsed.total,
               correctByLine: parsed.correctByLine,
+              mode: parsed.mode === 'hard' ? 'hard' : 'normal',
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
           } catch (e) {
@@ -493,11 +544,12 @@
           }
         }
 
-        function persistResult(dateKey, total, correctByLine, leaderboardSubmitted) {
+        function persistResult(dateKey, total, correctByLine, mode, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               total: total,
               correctByLine: correctByLine,
+              mode: mode,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
           } catch (e) {
@@ -616,6 +668,7 @@
               lines: game.lines,
               total: saved.total,
               correctByLine: saved.correctByLine,
+              mode: saved.mode,
               leaderboardSubmitted: saved.leaderboardSubmitted,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
@@ -648,6 +701,7 @@
             queue: queue,
             correctByLine: correctByLine,
             total: 0,
+            mode: 'normal',
             timeLeft: ROUND_SECONDS,
             timerId: null,
             streak: 0,
@@ -714,7 +768,7 @@
 
         function buildQueueCard(item, isActive) {
           var card = document.createElement('div');
-          card.className = 'queue-card' + (isActive ? ' queue-card--active' : '');
+          card.className = 'queue-card' + (isActive ? ' queue-card--active queue-active' : '');
           card.dataset.id = item.id;
 
           var icon = document.createElement('span');
@@ -731,35 +785,52 @@
           return card;
         }
 
-        // Renders the queue top-to-bottom (newest first in the DOM,
-        // active/oldest last) and plays a small FLIP slide for cards
-        // that were already on screen, same renderBoardAnimated()-style
-        // convention the rest of this family uses for a reshuffled/
-        // refilled grid. resolvedGhostInfo, when given, also spawns a
-        // flying "ghost" of the just-resolved card toward the bucket it
-        // was sent to - the real card is already gone from state.queue
-        // by the time this runs, same split as Memoria's own
-        // spawnMatchGhost()/live-cell-refill pair.
+        // Hard mode's own queue item - a plain .station-card icon (no
+        // name), shared with /index.html's hard mode and Memoria's board.
+        function buildQueueIcon(item, isActive) {
+          var card = document.createElement('div');
+          card.className = 'station-card queue-icon' + (isActive ? ' queue-icon--active queue-active' : '');
+          card.dataset.id = item.id;
+
+          var icon = document.createElement('span');
+          icon.className = 'station-card__icon';
+          var svg = makeStationIcon(item.name);
+          if (svg) icon.appendChild(svg);
+          card.appendChild(icon);
+
+          return card;
+        }
+
+        function buildQueueItem(item, isActive) {
+          return state.mode === 'hard' ? buildQueueIcon(item, isActive) : buildQueueCard(item, isActive);
+        }
+
+        // Newest item first in the DOM, active/oldest last (bottom row
+        // either way) - plays a FLIP slide for cards already on screen.
+        // resolvedGhostInfo, when given, also spawns a flying ghost of
+        // the just-resolved card toward its bucket, same split as
+        // Memoria's own spawnMatchGhost().
         function renderQueueCards(resolvedGhostInfo) {
           var reduceMotion = MetroShared.prefersReducedMotion();
           var oldRects = {};
 
           if (!reduceMotion) {
-            Array.prototype.forEach.call(els.queue.querySelectorAll('.queue-card[data-id]'), function (card) {
+            Array.prototype.forEach.call(els.queue.querySelectorAll('[data-id]'), function (card) {
               oldRects[card.dataset.id] = card.getBoundingClientRect();
             });
           }
 
+          els.queue.className = 'queue' + (state.mode === 'hard' ? ' queue--hard' : '');
           els.queue.innerHTML = '';
-          var ordered = state.queue.slice().reverse(); // newest (top) first
+          var ordered = state.queue.slice().reverse(); // newest first
           ordered.forEach(function (item, indexFromTop) {
             var isActive = indexFromTop === ordered.length - 1;
-            els.queue.appendChild(buildQueueCard(item, isActive));
+            els.queue.appendChild(buildQueueItem(item, isActive));
           });
 
           if (reduceMotion) return;
 
-          Array.prototype.forEach.call(els.queue.querySelectorAll('.queue-card[data-id]'), function (card) {
+          Array.prototype.forEach.call(els.queue.querySelectorAll('[data-id]'), function (card) {
             var oldRect = oldRects[card.dataset.id];
             if (!oldRect) {
               card.classList.add('queue-card--entering');
@@ -781,15 +852,17 @@
         }
 
         function spawnGhost(info) {
-          var ghost = buildQueueCard(info.item, true);
+          var ghost = buildQueueItem(info.item, true);
           ghost.classList.add('queue-ghost');
           ghost.style.top = info.top + 'px';
+          ghost.style.left = info.left + 'px';
+          ghost.style.width = info.width + 'px';
           els.queueWrap.appendChild(ghost);
 
           requestAnimationFrame(function () {
             var bucketRect = info.bucketEl.getBoundingClientRect();
             var wrapRect = els.queueWrap.getBoundingClientRect();
-            var dx = (bucketRect.left + bucketRect.width / 2) - (wrapRect.left + ghost.offsetWidth / 2);
+            var dx = (bucketRect.left + bucketRect.width / 2) - (wrapRect.left + info.left + ghost.offsetWidth / 2);
             var dy = (bucketRect.top + bucketRect.height / 2) - (wrapRect.top + info.top + ghost.offsetHeight / 2);
             ghost.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(0.25)';
             ghost.style.opacity = '0';
@@ -810,7 +883,7 @@
           var bucketEl = els.buckets.querySelector('[data-line-id="' + lineId + '"]');
 
           if (active.lineIds.indexOf(lineId) !== -1) {
-            var activeCardEl = els.queue.querySelector('.queue-card--active');
+            var activeCardEl = els.queue.querySelector('.queue-active');
             var ghostInfo = null;
             if (activeCardEl && !MetroShared.prefersReducedMotion()) {
               var cardRect = activeCardEl.getBoundingClientRect();
@@ -818,6 +891,8 @@
               ghostInfo = {
                 item: active,
                 top: cardRect.top - wrapRect.top,
+                left: cardRect.left - wrapRect.left,
+                width: cardRect.width,
                 bucketEl: bucketEl,
               };
             }
@@ -837,7 +912,7 @@
               setTimeout(function () { bucketEl.classList.remove('line-badge--correct'); }, 420);
             }
           } else {
-            var activeEl = els.queue.querySelector('.queue-card--active');
+            var activeEl = els.queue.querySelector('.queue-active');
             if (activeEl) {
               activeEl.classList.remove('queue-card--shake');
               void activeEl.offsetWidth;
@@ -853,8 +928,9 @@
           }
         }
 
-        function beginRound() {
+        function beginRound(mode) {
           if (!state || state.status !== 'ready') return;
+          state.mode = mode;
           state.status = 'playing';
           render();
           startTimer();
@@ -876,7 +952,7 @@
           state.timerId = null;
           state.status = 'done';
           state.leaderboardSubmitted = false;
-          persistResult(state.dateKey, state.total, state.correctByLine, false);
+          persistResult(state.dateKey, state.total, state.correctByLine, state.mode, false);
           // "Won" here means a non-zero score - there's no puzzle to
           // actually win or lose, same convention as Metro Crush's own
           // STREAK_STORAGE_KEY (see its comment there).
@@ -902,16 +978,13 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          // streak is submitted purely for display (see /admin/'s own
-          // 🔥 badge) - never part of orderBySpecs, so a query's
-          // ranking/results are identical whether or not an entry (old
-          // or new) happens to have it. Can legitimately be 0 (a
-          // 0-point round still submits and resets it), same bound as
-          // Memoria's/Metro Crush's own leaderboard rule.
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, streak: state.streak }, {})
+          // streak and hardMode are submitted purely for display (see
+          // /admin/'s own 🔥/🧠 badges) - neither is part of
+          // orderBySpecs, so ranking is unaffected either way.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
-              persistResult(state.dateKey, state.total, state.correctByLine, true);
+              persistResult(state.dateKey, state.total, state.correctByLine, state.mode, true);
               renderLeaderboard();
               // Best-effort, same as the leaderboard submission above -
               // never rejects, so this can't turn an otherwise-successful
@@ -952,8 +1025,9 @@
 
         function buildShareText() {
           var rating = getRating(state.total);
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
-          return 'Metrordle: Clasificador #' + state.gameNumber + '\n\n' +
+          return 'Metrordle: Clasificador #' + state.gameNumber + '\n' + hardModeLine + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Clasificadas: ' + state.total + '\n' +
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
@@ -1090,7 +1164,7 @@
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['streak'], myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['hardMode', 'streak'], myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1122,8 +1196,18 @@
                 name.textContent = entry.alias;
 
                 var score = document.createElement('span');
-                score.className = 'leaderboard__score--plain';
-                score.textContent = entry.score;
+                score.className = 'leaderboard__score';
+
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                if (entry.hardMode) badge.textContent = '🧠';
+
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number';
+                number.textContent = entry.score;
+
+                score.appendChild(badge);
+                score.appendChild(number);
 
                 li.appendChild(rank);
                 li.appendChild(name);
@@ -1172,7 +1256,8 @@
             queueWrap: $('queue-wrap'),
             queue: $('queue'),
             startOverlay: $('start-overlay'),
-            startBtn: $('start-btn'),
+            startNormalBtn: $('start-normal-btn'),
+            startHardBtn: $('start-hard-btn'),
             buckets: $('buckets'),
             reveal: $('reveal'),
             revealBanner: $('reveal-banner'),
@@ -1189,7 +1274,8 @@
             dateDebugLabel: $('date-debug-label'),
           };
 
-          els.startBtn.addEventListener('click', beginRound);
+          els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
+          els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
           els.shareBtn.addEventListener('click', shareResult);
 
           if (MetroShared.isDebugMode()) {

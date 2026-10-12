@@ -219,9 +219,8 @@ about `//`/`/* */` comments in the actual game/test code.)
 
   Has its own daily `clasificador-leaderboard` collection now (see
   "Leaderboards" below) - ranked by a single descending `score` (the
-  round's own `total`), same shape as Memoria's and Metro Crush's own,
-  with no `hardMode` field at all since this game has no normal/hard
-  mode toggle to begin with. Also tracks a streak (`clasificador:streak`)
+  round's own `total`), same shape as Memoria's and Metro Crush's own.
+  Also tracks a streak (`clasificador:streak`)
   the same way Metro Crush's own does - extended by any round with a
   non-zero score rather than a "won" outcome, since there's no daily
   win/loss puzzle to hook into (see "Streaks" below). The reveal banner
@@ -264,6 +263,27 @@ about `//`/`/* */` comments in the actual game/test code.)
   card-flip-gated one). Shares `state.total`, the rating, and
   `state.streak`/max-streak the same way Metro Crush's own share text
   does.
+
+  Has a normal/hard mode toggle now too, chosen Metro-Crush-style via
+  two buttons in the existing `.start-overlay` (`beginRound(mode)`)
+  rather than a separate pre-round `.mode-modal`, since this game
+  already has a "press start" step to attach the choice to. Hard mode
+  keeps the same vertical, one-station-per-row `.queue` list but swaps
+  each named `.queue-card` row for a plain `.station-card` icon
+  (shared.css), horizontally centered in the row (`.queue--hard`,
+  `buildQueueIcon()`) - no name, same icon-only treatment Memoria's own
+  cards use - with the active station still the biggest, same role
+  `.queue-card--active` plays in the normal-mode list (`buildQueueItem()`
+  picks the right builder per `state.mode`; both share a `.queue-active`
+  marker class so `attemptPlace()`'s shake/ghost lookups don't need
+  their own mode branch). `spawnGhost()`'s fly-to-bucket animation now
+  tracks the resolved card's exact left/top/width instead of relying
+  on `.queue-ghost`'s own stretched-edge-to-edge CSS, since a hard-mode
+  icon ghost is a small centered square, not a full-width row. Submitted
+  as `hardMode` alongside `score` (🧠 badge, share text), same as Metro
+  Crush's own - not part of `orderBySpecs`, since there's no
+  attempts-count tiebreak for it to win at the same score the way
+  Metrordle's own hard mode does.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each
@@ -586,10 +606,11 @@ added to lock the fix in.
   its Firestore rule bounds `score` generously (20000) instead of
   tightly (see `firestore.rules`).
 - Clasificador: highest score, descending - same shape as Memoria's and
-  Metro Crush's (no `hardMode` field, since there's no mode toggle).
-  `score` is the round's own `total` (stations correctly classified) -
-  open-ended like Metro Crush's own, so its Firestore rule bounds it
-  generously (500) rather than tightly.
+  Metro Crush's, including a display-only `hardMode` field (not part
+  of `orderBySpecs`, same as Metro Crush's own). `score` is the
+  round's own `total` (stations correctly classified) - open-ended
+  like Metro Crush's own, so its Firestore rule bounds it generously
+  (500) rather than tightly.
 
 ### High score records
 

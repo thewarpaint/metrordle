@@ -29,10 +29,7 @@
   --ok-ink: #ffffff;
   --danger: #b5382b;
   --danger-ink: #ffffff;
-  /* Same blue as --focus - a deliberate separate token, not an alias:
-     --line is the day's own line color on several games (reassigned at
-     runtime via style.setProperty()), so a notice that needs a stable
-     blue regardless of the page's own daily color can't borrow it. */
+  /* Not an alias of --line - that's reassigned per day at runtime. */
   --info: #0057a8;
   --info-ink: #ffffff;
   --shadow: rgba(20, 24, 26, 0.14);
@@ -450,18 +447,7 @@ h1 {
   background: var(--paper-well);
 }
 
-/* Metrordle's/Laberinto's/Memoria's/Metro Crush's own reveal-screen
-   .reveal__banner/--win/--lose, and Clasificador's own flat, no-variant
-   one - four near-identical page-local copies (plus one that dropped
-   the border already), consolidated. The black/white border
-   (--rule-strong) every page but Clasificador's own had is gone -
-   background color alone now carries the result, same as Clasificador's
-   already did. success/error map to the old win/lose; info is new -
-   Clasificador's own banner (no win/lose outcome to begin with) used to
-   borrow --line, the day's own color, for this; now a stable blue
-   regardless of the day. Metroguessr's own .reveal__banner is a
-   different shape entirely (inline text, no card) and stays page-local -
-   not part of this consolidation. */
+/* Shared end-of-round banner; Metroguessr's own .reveal__banner is a different, page-local shape (inline text, no card). */
 .notice {
   border-radius: 0.5rem;
   font-size: 1.05rem;

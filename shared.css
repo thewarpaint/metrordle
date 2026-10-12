@@ -1000,12 +1000,20 @@ h1 {
 }
 
 /* Laberinto's .breadcrumb/.breadcrumb__stop - route so far, growing
-   left to right: plain names separated by "→", no icon/color/border,
-   current stop bold. */
+   left to right: names separated by "→", each paired with the same
+   .route-dot #optimal-path-list uses below, current stop bold. */
 .design-breadcrumb {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+}
+
+/* .breadcrumb__stop-group - wraps a stop's dot and name together so a
+   flex-wrap line break can't strand one without the other. */
+.design-breadcrumb__stop-group {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
 }
 
 .design-breadcrumb__stop {
@@ -1028,7 +1036,9 @@ h1 {
    Numbered via CSS counter (not a rank circle), each stop paired with
    .route-dot (reused, not redrawn) - the origin borrows the next hop's
    own line color rather than going unstyled. The counter column is
-   sized/padded for 2-digit stops (routes can run past 9 stations). */
+   sized for a 2-digit stop number (routes can run past 9 stations) and
+   right-aligned, so the period before each station name lands in the
+   same spot whether the step is 1 digit or 2. */
 .design-optimal-path {
   counter-reset: design-optimal-path-step;
   list-style: none;
@@ -1051,8 +1061,7 @@ h1 {
   flex: 0 0 auto;
   font-family: ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-  padding-right: 0.15rem;
-  text-align: left;
+  text-align: right;
   width: 1.5rem;
 }
 

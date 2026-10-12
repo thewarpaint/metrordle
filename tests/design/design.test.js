@@ -68,9 +68,13 @@ async function main() {
       assert.strictEqual(activeQueueCards, 1, 'expected exactly one queue card marked active');
 
       const breadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop').count();
-      assert.strictEqual(breadcrumbStops, 4, 'expected one breadcrumb stop per sampled station');
+      assert.strictEqual(breadcrumbStops, 11, 'expected one breadcrumb stop per sampled hop, same route as the optimal-path example below');
       const currentBreadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop--current').count();
       assert.strictEqual(currentBreadcrumbStops, 1, 'expected exactly one breadcrumb stop marked current');
+      const breadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop-group .design-line-dot').count();
+      assert.strictEqual(breadcrumbDots, 11, 'expected one line dot per breadcrumb stop');
+      const mutedBreadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-line-dot--muted').count();
+      assert.strictEqual(mutedBreadcrumbDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       const optimalPathRows = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-optimal-path__row').count();
       assert.strictEqual(optimalPathRows, 11, 'expected one optimal-path row per sampled hop, long enough to show a 2-digit step number');

@@ -25,10 +25,13 @@ async function plantWonState(page, dateKey, stations, transfers, leaderboardSubm
   await page.evaluate(function (args) {
     // A path with `args.stations` hops and a line change on the final
     // hop only if args.transfers > 0 - countStops() = path.length - 1,
-    // countTransfers() only looks at index >= 2 onward.
+    // countTransfers() only looks at index >= 2 onward. Real line ids
+    // ('1'/'2'), not made-up ones - the breadcrumb now renders a real
+    // makeRouteDot(lineId) per hop, which needs a line this page's own
+    // getLineById() can actually resolve.
     var path = [{ station: 'Origen', lineId: null }];
     for (var i = 1; i <= args.stations; i++) {
-      var lineId = (args.transfers > 0 && i === args.stations) ? 'line-b' : 'line-a';
+      var lineId = (args.transfers > 0 && i === args.stations) ? '2' : '1';
       path.push({ station: 'Estacion' + i, lineId: lineId });
     }
     localStorage.setItem('laberinto:' + args.dateKey, JSON.stringify({
@@ -127,7 +130,7 @@ async function main() {
       await page.evaluate(() => localStorage.setItem('metrordle:alias', 'Eduardo'));
       await page.evaluate((d) => {
         localStorage.setItem('laberinto:' + d, JSON.stringify({
-          path: [{ station: 'Origen', lineId: null }, { station: 'Estacion1', lineId: 'line-a' }],
+          path: [{ station: 'Origen', lineId: null }, { station: 'Estacion1', lineId: '1' }],
           status: 'gaveup',
           leaderboardSubmitted: false,
         }));

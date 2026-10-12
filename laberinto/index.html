@@ -238,6 +238,12 @@
         padding: 0.7rem 1.1rem 0.2rem;
       }
 
+      .breadcrumb__stop-group {
+        align-items: center;
+        display: flex;
+        gap: 0.25rem;
+      }
+
       .breadcrumb__stop {
         color: var(--ink-soft);
         font-size: 0.72rem;
@@ -339,8 +345,7 @@
         flex: 0 0 auto;
         font-family: ui-monospace, monospace;
         font-variant-numeric: tabular-nums;
-        padding-right: 0.15rem;
-        text-align: left;
+        text-align: right;
         width: 1.5rem;
       }
 
@@ -865,10 +870,18 @@
               sep.textContent = '→';
               el.appendChild(sep);
             }
+            var group = document.createElement('span');
+            group.className = 'breadcrumb__stop-group';
+            // Same line-dot convention as #optimal-path-list below - the
+            // origin has no line of its own, so it borrows the next
+            // hop's line color instead of going unstyled.
+            var nextHop = state.path[index + 1];
+            group.appendChild(makeRouteDot(hop.lineId || (nextHop && nextHop.lineId)));
             var stop = document.createElement('span');
             stop.className = 'breadcrumb__stop' + (index === state.path.length - 1 ? ' breadcrumb__stop--current' : '');
             stop.textContent = hop.station;
-            el.appendChild(stop);
+            group.appendChild(stop);
+            el.appendChild(group);
           });
         }
 

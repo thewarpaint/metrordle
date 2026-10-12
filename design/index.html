@@ -267,11 +267,11 @@
           var dotRow = buildRow();
           lines.forEach(function (line) {
             var dot = document.createElement('span');
-            dot.className = 'design-line-dot';
+            dot.className = 'route-dot';
             dot.style.setProperty('--badge-bg', line.color);
             dotRow.appendChild(dot);
           });
-          gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · resumen de ruta, Laberinto.'));
+          gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · ✅ consolidado - breadcrumb y ruta óptima de Laberinto, ambos ahora iguales.'));
         }
 
         function renderStationsGallery() {
@@ -414,44 +414,77 @@
           });
           gallery.appendChild(buildExample(queue, '<code>.queue</code>/<code>.queue-card</code> · fila de estaciones por clasificar, Clasificador - sin numerar, sin colorear por línea (revelaría la respuesta), con la estación activa destacada sobre las siguientes.'));
 
+          // A real 11-stop route with two transfers - long enough to show
+          // a 2-digit step number in the optimal-path list below.
+          // Garibaldi/Lagunilla (origin, no line of its own - nothing
+          // was ridden to get there) to Bellas Artes via Línea 8,
+          // transferring there onto Línea 2 through Zócalo and Pino
+          // Suárez (same line several times in a row shows the dot
+          // staying the same color, not just changing), then onto Línea
+          // 1 the rest of the way. Shared between the breadcrumb and
+          // optimal-path examples below - same route, shown live
+          // (growing as you play) and as the post-round summary.
+          var OPTIMAL_PATH_SAMPLE = [
+            { name: 'Garibaldi/Lagunilla', lineId: null },
+            { name: 'Bellas Artes', lineId: '8' },
+            { name: 'Allende', lineId: '2' },
+            { name: 'Zócalo', lineId: '2' },
+            { name: 'Pino Suárez', lineId: '2' },
+            { name: 'Merced', lineId: '1' },
+            { name: 'Candelaria', lineId: '1' },
+            { name: 'San Lázaro', lineId: '1' },
+            { name: 'Moctezuma', lineId: '1' },
+            { name: 'Balbuena', lineId: '1' },
+            { name: 'Boulevard Puerto Aéreo', lineId: '1' },
+          ];
+
+          // The origin has no line of its own - color its dot with the
+          // next hop's line instead (the line about to be ridden away
+          // from it), same as the live page's own makeRouteDot(lineId)
+          // lookahead, rather than leaving it unstyled.
+          function dotLineIdFor(index) {
+            var hop = OPTIMAL_PATH_SAMPLE[index];
+            var nextHop = OPTIMAL_PATH_SAMPLE[index + 1];
+            return hop.lineId || (nextHop && nextHop.lineId);
+          }
+
           var breadcrumb = document.createElement('div');
           breadcrumb.className = 'design-breadcrumb';
-          STATION_SAMPLE.forEach(function (station, index) {
+          OPTIMAL_PATH_SAMPLE.forEach(function (hop, index) {
             if (index > 0) {
               var sep = document.createElement('span');
               sep.className = 'design-breadcrumb__sep';
               sep.textContent = '→';
               breadcrumb.appendChild(sep);
             }
-            var stop = document.createElement('span');
-            stop.className = 'design-breadcrumb__stop' + (index === STATION_SAMPLE.length - 1 ? ' design-breadcrumb__stop--current' : '');
-            stop.textContent = station.name;
-            breadcrumb.appendChild(stop);
-          });
-          gallery.appendChild(buildExample(breadcrumb, '<code>.breadcrumb</code>/<code>.breadcrumb__stop</code> · ruta recorrida hasta ahora, Laberinto - sin ícono, sin color, solo la parada actual en negrita.'));
+            var group = document.createElement('span');
+            group.className = 'design-breadcrumb__stop-group';
 
-          // A real route with one transfer: Garibaldi/Lagunilla (origin,
-          // no line of its own - nothing was ridden to get there, same as
-          // the live page's own makeRouteDot(lineId) null-case) to Bellas
-          // Artes via Línea 8, transferring there onto Línea 2 the rest
-          // of the way (Allende, then Zócalo) - same line twice in a row
-          // shows the dot staying the same color, not just changing.
-          var OPTIMAL_PATH_SAMPLE = [
-            { name: 'Garibaldi/Lagunilla', lineId: null },
-            { name: 'Bellas Artes', lineId: '8' },
-            { name: 'Allende', lineId: '2' },
-            { name: 'Zócalo', lineId: '2' },
-          ];
+            var dotLineId = dotLineIdFor(index);
+            var dot = document.createElement('span');
+            dot.className = 'route-dot' + (dotLineId ? '' : ' route-dot--muted');
+            if (dotLineId) dot.style.setProperty('--badge-bg', lineById(dotLineId).color);
+            group.appendChild(dot);
+
+            var stop = document.createElement('span');
+            stop.className = 'design-breadcrumb__stop' + (index === OPTIMAL_PATH_SAMPLE.length - 1 ? ' design-breadcrumb__stop--current' : '');
+            stop.textContent = hop.name;
+            group.appendChild(stop);
+
+            breadcrumb.appendChild(group);
+          });
+          gallery.appendChild(buildExample(breadcrumb, '<code>.breadcrumb</code>/<code>.breadcrumb__stop</code> · ruta recorrida hasta ahora, Laberinto - mismo <code>.route-dot</code> por parada que <code>#optimal-path-list</code> abajo, solo la parada actual en negrita.'));
 
           var optimalPath = document.createElement('ol');
           optimalPath.className = 'design-optimal-path';
-          OPTIMAL_PATH_SAMPLE.forEach(function (hop) {
+          OPTIMAL_PATH_SAMPLE.forEach(function (hop, index) {
             var row = document.createElement('li');
             row.className = 'design-optimal-path__row';
 
+            var dotLineId = dotLineIdFor(index);
             var dot = document.createElement('span');
-            dot.className = 'design-line-dot' + (hop.lineId ? '' : ' design-line-dot--muted');
-            if (hop.lineId) dot.style.setProperty('--badge-bg', lineById(hop.lineId).color);
+            dot.className = 'route-dot' + (dotLineId ? '' : ' route-dot--muted');
+            if (dotLineId) dot.style.setProperty('--badge-bg', lineById(dotLineId).color);
             row.appendChild(dot);
 
             var name = document.createElement('span');

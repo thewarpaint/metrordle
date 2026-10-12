@@ -807,9 +807,16 @@ h1 {
   width: 2.75rem;
 }
 
-/* Laberinto's .route-dot - color only, no text or icon. align-self/flex
-   matter once reused inside a flex row (.design-optimal-path__row). */
-.design-line-dot {
+/* Laberinto's .route-dot - color only, no text or icon (compare
+   .line-badge/.station above for ones that hold an id or icon).
+   Colored via --badge-bg, same convention as .line-badge/.station.
+   align-self/flex matter once used inside a flex row with other,
+   taller siblings (.breadcrumb__stop-group, .design-optimal-path__row).
+   Consolidated here - the live page's own breadcrumb and
+   #optimal-path-list, and this gallery's "Líneas" swatch row and
+   "Listas de estaciones" examples, all use this one real class now,
+   not a page-local copy or a .design- prefixed stand-in. */
+.route-dot {
   align-self: center;
   background: var(--badge-bg, var(--ink));
   border-radius: 50%;
@@ -819,8 +826,11 @@ h1 {
   width: 0.55rem;
 }
 
-/* .route-dot--muted - the origin hop, which has no line of its own. */
-.design-line-dot--muted {
+/* .route-dot--muted - fallback for a hop with no line at all to show
+   (practically unreachable now that the origin borrows the next hop's
+   own line color instead - see makeRouteDot()'s own comment in
+   laberinto/index.html). */
+.route-dot--muted {
   background: var(--paper-well);
   border: 1px solid var(--rule);
 }
@@ -998,12 +1008,20 @@ h1 {
 }
 
 /* Laberinto's .breadcrumb/.breadcrumb__stop - route so far, growing
-   left to right: plain names separated by "→", no icon/color/border,
-   current stop bold. */
+   left to right: names separated by "→", each paired with the same
+   .route-dot #optimal-path-list uses below, current stop bold. */
 .design-breadcrumb {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+}
+
+/* .breadcrumb__stop-group - wraps a stop's dot and name together so a
+   flex-wrap line break can't strand one without the other. */
+.design-breadcrumb__stop-group {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
 }
 
 .design-breadcrumb__stop {
@@ -1024,7 +1042,11 @@ h1 {
 
 /* Laberinto's #optimal-path-list - shortest route shown at round end.
    Numbered via CSS counter (not a rank circle), each stop paired with
-   .route-dot (reused, not redrawn), muted for the origin. */
+   .route-dot (reused, not redrawn) - the origin borrows the next hop's
+   own line color rather than going unstyled. The counter column is
+   sized for a 2-digit stop number (routes can run past 9 stations) and
+   right-aligned, so the period before each station name lands in the
+   same spot whether the step is 1 digit or 2. */
 .design-optimal-path {
   counter-reset: design-optimal-path-step;
   list-style: none;
@@ -1047,7 +1069,8 @@ h1 {
   flex: 0 0 auto;
   font-family: ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-  width: 1.1rem;
+  text-align: right;
+  width: 1.5rem;
 }
 
 .design-example {

@@ -3,7 +3,7 @@
 // Bump this on every deploy that changes index.html or the precached
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow.
-var CACHE_NAME = 'metrordle-v113';
+var CACHE_NAME = 'metrordle-v114';
 
 // How long a page navigation waits on the network before falling back to
 // the cached version - see the fetch handler below.
@@ -24,6 +24,8 @@ var PRECACHE_URLS = [
   '/clasificador/index.html',
   '/configurar/',
   '/configurar/index.html',
+  '/status/',
+  '/status/index.html',
   // Assets
   '/apple-touch-icon.png',
   '/favicon.png',
@@ -109,6 +111,11 @@ self.addEventListener('fetch', function (event) {
   var request = event.request;
 
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // /status/'s latency probe - must stay uncached or every check after the first becomes a meaningless near-0ms cache hit.
+  if (new URL(request.url).pathname === '/healthcheck.json') {
     return;
   }
 

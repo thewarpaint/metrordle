@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+>
+  <head>
+    <meta charset="utf-8">
+    <!-- Same policy as /admin/'s own - see its CSP comment for the full rationale. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+
+    <title>Status · Metrordle 🚇</title>
+
+    <link rel="icon" href="/favicon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!-- Pre-paint theme override - see /admin/'s own identical snippet. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .status-boards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .status-board {
+        padding: 1.1rem 1.3rem 1.3rem;
+      }
+
+      #recheck-btn {
+        margin-top: 0.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle · Status</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Settings" title="Settings">⚙️</a>
+      </div>
+
+      <div class="status-boards">
+        <div class="sign status-board">
+          <h2 class="leaderboard__title">Cache</h2>
+          <!-- caches.keys() - the active CACHE_NAME, not a round trip to the SW. -->
+          <p class="leaderboard__status" id="cache-info">Checking…</p>
+        </div>
+
+        <div class="sign status-board">
+          <h2 class="leaderboard__title">Checks</h2>
+          <!-- sw.js never caches this path - see its fetch handler. -->
+          <div class="notice notice--info" id="healthcheck-notice">Checking healthcheck.json…</div>
+          <!-- Reads Firestore directly, not shared.js's getHighScoreRecord() - that one hides failures behind a plain null. -->
+          <div class="notice notice--info" id="firebase-notice">Checking Firebase…</div>
+          <button type="button" class="btn-secondary" id="recheck-btn">Recheck</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var HEALTHCHECK_TIMEOUT_MS = 8000;
+        var FIRESTORE_TIMEOUT_MS = 10000;
+
+        var els = {
+          cacheInfo: document.getElementById('cache-info'),
+          healthcheck: document.getElementById('healthcheck-notice'),
+          firebase: document.getElementById('firebase-notice'),
+          recheckBtn: document.getElementById('recheck-btn'),
+        };
+
+        function renderCacheInfo() {
+          if (!('caches' in window)) {
+            els.cacheInfo.textContent = 'This browser does not support Cache Storage.';
+            return;
+          }
+          caches.keys().then(function (keys) {
+            els.cacheInfo.textContent = keys.length
+              ? 'Active cache: ' + keys.join(', ')
+              : 'No active cache yet (first visit, or the service worker is still installing).';
+          }).catch(function () {
+            els.cacheInfo.textContent = 'Could not read Cache Storage.';
+          });
+        }
+
+        function setChecking(el, label) {
+          el.className = 'notice notice--info';
+          el.textContent = 'Checking ' + label + '…';
+        }
+
+        function setResult(el, ok, text) {
+          el.className = 'notice ' + (ok ? 'notice--success' : 'notice--error');
+          el.textContent = (ok ? '✅ ' : '❌ ') + text;
+        }
+
+        function checkHealthcheck() {
+          setChecking(els.healthcheck, 'healthcheck.json');
+          var start = performance.now();
+          var controller = ('AbortController' in window) ? new AbortController() : null;
+          var timer = controller && setTimeout(function () { controller.abort(); }, HEALTHCHECK_TIMEOUT_MS);
+          // Cache-busting + no-store: belt-and-suspenders on top of sw.js's own bypass.
+          var url = '/healthcheck.json?t=' + Date.now();
+
+          fetch(url, { cache: 'no-store', signal: controller ? controller.signal : undefined })
+            .then(function (res) {
+              if (timer) clearTimeout(timer);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              return res.json();
+            })
+            .then(function (data) {
+              var ms = Math.round(performance.now() - start);
+              if (data && data.status === 'ok') {
+                setResult(els.healthcheck, true, 'healthcheck.json responded "ok" in ' + ms + ' ms');
+              } else {
+                setResult(els.healthcheck, false, 'healthcheck.json responded with unexpected content (' + ms + ' ms)');
+              }
+            })
+            .catch(function (err) {
+              if (timer) clearTimeout(timer);
+              var ms = Math.round(performance.now() - start);
+              var reason = (err && err.name === 'AbortError') ? 'timed out' : ((err && err.message) || 'unknown error');
+              setResult(els.healthcheck, false, 'healthcheck.json failed (' + reason + ', ' + ms + ' ms)');
+            });
+        }
+
+        function checkFirebase() {
+          setChecking(els.firebase, 'Firebase');
+          var start = performance.now();
+
+          if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
+            var readyMs = Math.round(performance.now() - start);
+            setResult(els.firebase, false, 'Firebase did not initialize (SDK unavailable, ' + readyMs + ' ms)');
+            return;
+          }
+
+          var query = firebase.firestore().collection('records').doc('memoria').get();
+          // Promise.race only stops waiting - it doesn't cancel the request, which is fine for a one-off diagnostic read.
+          var timeout = new Promise(function (resolve, reject) {
+            setTimeout(function () { reject(new Error('timeout')); }, FIRESTORE_TIMEOUT_MS);
+          });
+
+          Promise.race([query, timeout])
+            .then(function () {
+              var ms = Math.round(performance.now() - start);
+              setResult(els.firebase, true, 'Firebase (Firestore) responded in ' + ms + ' ms');
+            })
+            .catch(function (err) {
+              var ms = Math.round(performance.now() - start);
+              var reason = (err && err.message === 'timeout') ? 'timed out' : ((err && err.message) || 'unknown error');
+              setResult(els.firebase, false, 'Firebase (Firestore) failed (' + reason + ', ' + ms + ' ms)');
+            });
+        }
+
+        function runChecks() {
+          renderCacheInfo();
+          checkHealthcheck();
+          checkFirebase();
+        }
+
+        els.recheckBtn.addEventListener('click', runChecks);
+        runChecks();
+      })();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -10,7 +10,8 @@ first; it links out to the deeper docs (`tests/README.md`,
 themed around the Mexico City Metro. Static site, **no build step** -
 every page is a single self-contained `.html` file with inline
 `<style>`/`<script>`, deployed as-is via GitHub Pages (see `CNAME`).
-Site copy/UI is in Spanish (`es-MX`).
+Site copy/UI is in Spanish (`es-MX`) - except `/status/`, an internal
+ops page, which is English (see its own bullet below).
 
 **Keep code comments succinct and useful** - explain the non-obvious
 why, not the what, and don't let a comment sprawl past what a reader
@@ -445,6 +446,32 @@ about `//`/`/* */` comments in the actual game/test code.)
   Claro/Oscuro/Sistema appearance picker - see "Site config" below for
   the storage/theming mechanism, meant to grow more settings later
   without a new page or a new localStorage key.
+- **`/status/`** - a read-only ops health check (not linked from any
+  game's nav, `noindex`, same as `/admin/`/`/design/`), but unlike
+  those two, deliberately precached (`sw.js`'s own `PRECACHE_URLS`) so
+  it's reachable even when the network is the very thing being
+  diagnosed. An internal/ops page, not player-facing, so its copy is
+  English - the one page on the site that isn't es-MX. Shows which
+  `CACHE_NAME` is actually populated in this
+  browser right now (`caches.keys()` - the simplest honest answer to
+  "what version is this tab running," no page/service-worker message
+  round trip needed), then runs two live checks: a fetch of
+  `/healthcheck.json` (a static, hardcoded `{"status":"ok"}` file at
+  the repo root) and a real Firestore read of `records/memoria` (already
+  seeded - see "High score records" below), each timed with
+  `performance.now()` and rendered as a green `.notice--success` or red
+  `.notice--error` with its own latency in ms. `/healthcheck.json` is
+  deliberately excluded from `PRECACHE_URLS` *and* given its own early
+  bypass in `sw.js`'s fetch handler (`pathname === '/healthcheck.json'`
+  returns before the cache-first asset branch runs) - without both, the
+  first request would populate Cache Storage and every later check
+  would read a near-0ms cache hit instead of a real network round
+  trip, defeating the whole point of measuring latency. The Firestore
+  check deliberately doesn't reuse `shared.js`'s own
+  `getHighScoreRecord()` - that helper swallows every failure into a
+  plain `null` (see its own comment), which is exactly backwards for a
+  page whose job is to surface a real failure as red rather than quietly
+  degrade. A "Recheck" button re-runs both checks on demand.
 - **`/purge/`** - a recovery page that clears Cache Storage + unregisters
   the service worker, then redirects home. Deliberately self-contained
   (no `/shared.js`/`/shared.css` dependency), since it exists to recover
@@ -587,7 +614,12 @@ are impossible without a debug override.
   adding a new game, add both paths here (and bump `CACHE_NAME`) in the
   same PR that ships it. `/admin/` and `/purge/` are deliberately
   excluded (not linked from any game's nav, and "must never itself be
-  cached," respectively) - don't add those.
+  cached," respectively) - don't add those. `/status/` is the opposite
+  exception - precached on purpose, so it stays reachable offline (see
+  its own bullet above) - but `/healthcheck.json`, which that page
+  fetches, must stay out of `PRECACHE_URLS` *and* has its own early
+  bypass in the fetch handler below, or its whole point (a real,
+  uncached network round trip every time) breaks.
 
 ## Leaderboards
 

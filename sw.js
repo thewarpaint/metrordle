@@ -114,10 +114,7 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // /status/'s own network-latency probe - deliberately never
-  // precached and never handled by the cache-first branch below, or
-  // the very first request would poison every later one with a
-  // near-0ms cache hit instead of a real round trip.
+  // /status/'s latency probe - must stay uncached or every check after the first becomes a meaningless near-0ms cache hit.
   if (new URL(request.url).pathname === '/healthcheck.json') {
     return;
   }

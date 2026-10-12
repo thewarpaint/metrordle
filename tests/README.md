@@ -577,7 +577,7 @@ check (see AGENTS.md's own bullet for it):
   rather than hanging - this environment can't reach `gstatic.com`, so
   the SDK itself never loads, same as every leaderboard test's own
   "Firebase unreachable" case.
-- "Volver a comprobar" resets both checks to their neutral `.notice--info`
+- "Recheck" resets both checks to their neutral `.notice--info`
   "checking" state and re-resolves them.
 
 **`shared/leaderboard-query.test.js`** covers `MetroShared.getTopLeaderboardScores()`'s

@@ -1,29 +1,21 @@
 <!DOCTYPE html>
 <html
-  lang="es-MX"
+  lang="en"
 >
   <head>
     <meta charset="utf-8">
-    <!--
-      Same policy as /admin/'s own (see its CSP comment for the full
-      rationale) - connect-src 'self' already covers this page's own
-      /healthcheck.json fetch.
-    -->
+    <!-- Same policy as /admin/'s own - see its CSP comment for the full rationale. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
 
-    <title>Estado · Metrordle 🚇</title>
+    <title>Status · Metrordle 🚇</title>
 
     <link rel="icon" href="/favicon.png">
 
     <link rel="stylesheet" href="/shared.css">
 
-    <!--
-      Applies a saved theme override (see /configurar/) before first
-      paint - see /admin/'s own identical snippet for why this can't
-      just wait for shared.js.
-    -->
+    <!-- Pre-paint theme override - see /admin/'s own identical snippet. -->
     <script>
       (function () {
         try {
@@ -61,39 +53,24 @@
           <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
           <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
         </svg>
-        <span class="brand__text">Metrordle · Estado</span>
-        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+        <span class="brand__text">Metrordle · Status</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Settings" title="Settings">⚙️</a>
       </div>
 
       <div class="status-boards">
         <div class="sign status-board">
-          <h2 class="leaderboard__title">Caché</h2>
-          <!-- This page is itself precached (see sw.js's own
-               PRECACHE_URLS) - caches.keys() reports whichever
-               CACHE_NAME is actually populated in this browser right
-               now, which is the simplest honest way to show "what
-               version is this tab running" without a page/SW message
-               round trip. -->
-          <p class="leaderboard__status" id="cache-info">Comprobando…</p>
+          <h2 class="leaderboard__title">Cache</h2>
+          <!-- caches.keys() - the active CACHE_NAME, not a round trip to the SW. -->
+          <p class="leaderboard__status" id="cache-info">Checking…</p>
         </div>
 
         <div class="sign status-board">
-          <h2 class="leaderboard__title">Comprobaciones</h2>
-          <!-- /healthcheck.json is a static, hardcoded-content file
-               that sw.js deliberately never caches (see its own fetch
-               handler) - every check here is a real network round
-               trip, not a cache hit. -->
-          <div class="notice notice--info" id="healthcheck-notice">Comprobando healthcheck.json…</div>
-          <!-- A single real Firestore doc read (records/memoria,
-               already seeded - see AGENTS.md's "High score records"),
-               not shared.js's own getHighScoreRecord(): that helper
-               deliberately swallows every failure into a plain `null`
-               (see its own comment), which is the opposite of what a
-               status page needs - this reads Firestore directly so a
-               genuine failure shows up as red, not as an indistinguishable
-               "no record yet". -->
-          <div class="notice notice--info" id="firebase-notice">Comprobando Firebase…</div>
-          <button type="button" class="btn-secondary" id="recheck-btn">Volver a comprobar</button>
+          <h2 class="leaderboard__title">Checks</h2>
+          <!-- sw.js never caches this path - see its fetch handler. -->
+          <div class="notice notice--info" id="healthcheck-notice">Checking healthcheck.json…</div>
+          <!-- Reads Firestore directly, not shared.js's getHighScoreRecord() - that one hides failures behind a plain null. -->
+          <div class="notice notice--info" id="firebase-notice">Checking Firebase…</div>
+          <button type="button" class="btn-secondary" id="recheck-btn">Recheck</button>
         </div>
       </div>
     </div>
@@ -118,21 +95,21 @@
 
         function renderCacheInfo() {
           if (!('caches' in window)) {
-            els.cacheInfo.textContent = 'Este navegador no soporta Cache Storage.';
+            els.cacheInfo.textContent = 'This browser does not support Cache Storage.';
             return;
           }
           caches.keys().then(function (keys) {
             els.cacheInfo.textContent = keys.length
-              ? 'Caché activa: ' + keys.join(', ')
-              : 'Sin caché activa todavía (primera visita, o el service worker sigue instalando).';
+              ? 'Active cache: ' + keys.join(', ')
+              : 'No active cache yet (first visit, or the service worker is still installing).';
           }).catch(function () {
-            els.cacheInfo.textContent = 'No se pudo leer Cache Storage.';
+            els.cacheInfo.textContent = 'Could not read Cache Storage.';
           });
         }
 
         function setChecking(el, label) {
           el.className = 'notice notice--info';
-          el.textContent = 'Comprobando ' + label + '…';
+          el.textContent = 'Checking ' + label + '…';
         }
 
         function setResult(el, ok, text) {
@@ -145,10 +122,7 @@
           var start = performance.now();
           var controller = ('AbortController' in window) ? new AbortController() : null;
           var timer = controller && setTimeout(function () { controller.abort(); }, HEALTHCHECK_TIMEOUT_MS);
-          // Cache-busting query string, plus cache: 'no-store' for the
-          // browser's own HTTP cache - sw.js's fetch handler already
-          // skips this path entirely (see its own comment), this is
-          // belt-and-suspenders against any other layer of caching.
+          // Cache-busting + no-store: belt-and-suspenders on top of sw.js's own bypass.
           var url = '/healthcheck.json?t=' + Date.now();
 
           fetch(url, { cache: 'no-store', signal: controller ? controller.signal : undefined })
@@ -160,16 +134,16 @@
             .then(function (data) {
               var ms = Math.round(performance.now() - start);
               if (data && data.status === 'ok') {
-                setResult(els.healthcheck, true, 'healthcheck.json respondió "ok" en ' + ms + ' ms');
+                setResult(els.healthcheck, true, 'healthcheck.json responded "ok" in ' + ms + ' ms');
               } else {
-                setResult(els.healthcheck, false, 'healthcheck.json respondió con contenido inesperado (' + ms + ' ms)');
+                setResult(els.healthcheck, false, 'healthcheck.json responded with unexpected content (' + ms + ' ms)');
               }
             })
             .catch(function (err) {
               if (timer) clearTimeout(timer);
               var ms = Math.round(performance.now() - start);
-              var reason = (err && err.name === 'AbortError') ? 'tiempo agotado' : ((err && err.message) || 'error desconocido');
-              setResult(els.healthcheck, false, 'healthcheck.json falló (' + reason + ', ' + ms + ' ms)');
+              var reason = (err && err.name === 'AbortError') ? 'timed out' : ((err && err.message) || 'unknown error');
+              setResult(els.healthcheck, false, 'healthcheck.json failed (' + reason + ', ' + ms + ' ms)');
             });
         }
 
@@ -179,15 +153,12 @@
 
           if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) {
             var readyMs = Math.round(performance.now() - start);
-            setResult(els.firebase, false, 'Firebase no inicializó (SDK no disponible, ' + readyMs + ' ms)');
+            setResult(els.firebase, false, 'Firebase did not initialize (SDK unavailable, ' + readyMs + ' ms)');
             return;
           }
 
           var query = firebase.firestore().collection('records').doc('memoria').get();
-          // Promise.race doesn't cancel the underlying Firestore
-          // request, only stops waiting on it - fine here, this is a
-          // one-off diagnostic read, not something that needs to be
-          // aborted on the wire.
+          // Promise.race only stops waiting - it doesn't cancel the request, which is fine for a one-off diagnostic read.
           var timeout = new Promise(function (resolve, reject) {
             setTimeout(function () { reject(new Error('timeout')); }, FIRESTORE_TIMEOUT_MS);
           });
@@ -195,12 +166,12 @@
           Promise.race([query, timeout])
             .then(function () {
               var ms = Math.round(performance.now() - start);
-              setResult(els.firebase, true, 'Firebase (Firestore) respondió en ' + ms + ' ms');
+              setResult(els.firebase, true, 'Firebase (Firestore) responded in ' + ms + ' ms');
             })
             .catch(function (err) {
               var ms = Math.round(performance.now() - start);
-              var reason = (err && err.message === 'timeout') ? 'tiempo agotado' : ((err && err.message) || 'error desconocido');
-              setResult(els.firebase, false, 'Firebase (Firestore) falló (' + reason + ', ' + ms + ' ms)');
+              var reason = (err && err.message === 'timeout') ? 'timed out' : ((err && err.message) || 'unknown error');
+              setResult(els.firebase, false, 'Firebase (Firestore) failed (' + reason + ', ' + ms + ' ms)');
             });
         }
 

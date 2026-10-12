@@ -1186,6 +1186,28 @@ h1 {
   color: var(--danger);
 }
 
+/* Metro Crush's/Clasificador's own .start-overlay__modes - two stacked
+   .btn-primary/.btn-secondary buttons for a pre-round normal/hard
+   choice, page-local and identical in both (copy-pasted, not shared) -
+   unlike .mode-modal/.mode-option below, no full-screen dialog here,
+   since both games already have a "press start" step of their own to
+   attach the choice to. */
+.design-overlay-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* /configurar/'s own .mode-option[aria-pressed="true"] override - the
+   pre-game modal/overlay choices below are dismissed the moment one is
+   picked, so .mode-option itself has no persistent "selected" look;
+   this page's own pickers (appearance, reduced motion) stay on screen
+   showing the current choice, so this is the one place that needed one. */
+.design-option-pressed {
+  border-color: var(--line);
+  box-shadow: 0 0 0 2px var(--line) inset;
+}
+
 .design-example {
   margin-bottom: 1.3rem;
 }

@@ -16,7 +16,7 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('renders the Líneas, Estaciones, Listas de estaciones, and Avisos galleries with one example row per pattern, no page errors', async () => {
+  test('renders the Líneas, Estaciones, Listas de estaciones, Avisos, and Formularios galleries with one example row per pattern, no page errors', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 1200 } });
     const page = await context.newPage();
     const errors = [];
@@ -111,6 +111,33 @@ async function main() {
 
       const statusText = await page.locator('#notices-gallery .design-notice-status').textContent();
       assert.strictEqual(statusText.indexOf('Racha') !== -1, false, 'the status-bar notice reports attempts, not a streak: ' + statusText);
+
+      const formExamples = await page.locator('#forms-gallery .design-example').count();
+      assert.strictEqual(formExamples, 5, 'expected 5 form examples (buttons, alias field, mode modal, overlay modes, persistent picker)');
+
+      // First and second examples are already-consolidated shared.css
+      // classes (.btn-primary/.btn-secondary, .leaderboard__alias),
+      // same "no .design- stand-in needed" convention as the other
+      // boards' own ✅ consolidado examples.
+      const buttons = await page.locator('#forms-gallery .design-example').nth(0).locator('.btn-primary, .btn-secondary').count();
+      assert.strictEqual(buttons, 2, 'expected one primary and one secondary button');
+
+      const aliasField = await page.locator('#forms-gallery .design-example').nth(1).locator('.leaderboard__alias input').count();
+      assert.strictEqual(aliasField, 1, 'expected the shared alias input');
+
+      const modalOptions = await page.locator('#forms-gallery .design-example').nth(2).locator('.mode-option').count();
+      assert.strictEqual(modalOptions, 2, 'expected the mode modal\'s own two options (normal/hard)');
+
+      // Fourth and fifth examples are undecided/page-local patterns,
+      // backed by .design- prefixed stand-ins in shared.css (same
+      // convention as every other still-undecided example on this page).
+      const overlayButtons = await page.locator('#forms-gallery .design-example').nth(3).locator('.design-overlay-modes .btn-primary, .design-overlay-modes .btn-secondary').count();
+      assert.strictEqual(overlayButtons, 2, 'expected the overlay mode group\'s own two buttons');
+
+      const pickerOptions = await page.locator('#forms-gallery .design-example').nth(4).locator('.mode-option').count();
+      assert.strictEqual(pickerOptions, 3, 'expected the persistent picker\'s three options (claro/oscuro/sistema)');
+      const pressedOption = await page.locator('#forms-gallery .design-example').nth(4).locator('.design-option-pressed').count();
+      assert.strictEqual(pressedOption, 1, 'expected exactly one option shown as the current choice');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

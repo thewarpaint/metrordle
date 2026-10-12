@@ -118,6 +118,12 @@
           <p class="design-board__dek">Cómo cada juego anuncia el resultado de la ronda al terminar - éxito, fracaso, o solo "se acabó" cuando no hay ninguno de los dos - y la racha que suele acompañarlo.</p>
           <div id="notices-gallery"></div>
         </div>
+
+        <div class="sign design-board">
+          <h2 class="design-board__title">Formularios</h2>
+          <p class="design-board__dek">Botones y campos - sobre todo las distintas formas de elegir "esto o aquello" repartidas por el sitio.</p>
+          <div id="forms-gallery"></div>
+        </div>
       </div>
     </div>
 
@@ -577,10 +583,123 @@
           gallery.appendChild(buildExample(status, '<code>.status-bar__text[data-tone]</code> · Metrordle - la barra de estado compacta (arriba del tablero) también cambia a texto coloreado al terminar, sin tarjeta - a diferencia de los anteriores, reporta el número de intentos, no la racha.'));
         }
 
+        function renderFormsGallery() {
+          var gallery = document.getElementById('forms-gallery');
+
+          var buttonsRow = buildRow();
+          var primaryBtn = document.createElement('button');
+          primaryBtn.type = 'button';
+          primaryBtn.className = 'btn-primary';
+          primaryBtn.textContent = 'Comenzar';
+          buttonsRow.appendChild(primaryBtn);
+          var secondaryBtn = document.createElement('button');
+          secondaryBtn.type = 'button';
+          secondaryBtn.className = 'btn-secondary';
+          secondaryBtn.style.marginTop = '0';
+          secondaryBtn.textContent = 'Compartir';
+          buttonsRow.appendChild(secondaryBtn);
+          gallery.appendChild(buildExample(buttonsRow, '<code>.btn-primary</code>/<code>.btn-secondary</code> · ✅ consolidado - el par de botones que usa cada juego (comenzar, guardar, compartir…), en todas partes.'));
+
+          var aliasRow = document.createElement('div');
+          aliasRow.className = 'leaderboard__alias';
+          aliasRow.style.width = '100%';
+          var aliasInput = document.createElement('input');
+          aliasInput.type = 'text';
+          aliasInput.value = 'Eduardo';
+          aliasInput.readOnly = true;
+          aliasRow.appendChild(aliasInput);
+          var aliasBtn = document.createElement('button');
+          aliasBtn.type = 'button';
+          aliasBtn.className = 'btn-primary';
+          aliasBtn.textContent = 'Guardar';
+          aliasRow.appendChild(aliasBtn);
+          gallery.appendChild(buildExample(aliasRow, '<code>.leaderboard__alias</code> · ✅ consolidado - fila de alias de cada juego, y ahora también la de <code>/configurar/</code>.'));
+
+          // .mode-modal itself (the full-screen backdrop) is
+          // position: fixed - shown here as just its own .mode-modal__card,
+          // inline instead of overlaid, same trick every other example
+          // on this page uses to show a real class outside its own
+          // normal layout context.
+          var modalCard = document.createElement('div');
+          modalCard.className = 'mode-modal__card';
+          modalCard.style.position = 'static';
+          modalCard.style.maxWidth = 'none';
+          var modalTitle = document.createElement('h2');
+          modalTitle.textContent = 'Elige tu modo';
+          modalCard.appendChild(modalTitle);
+          var modalDek = document.createElement('p');
+          modalDek.className = 'mode-modal__dek';
+          modalDek.textContent = '¿Cómo quieres jugar hoy?';
+          modalCard.appendChild(modalDek);
+          var modalOptions = document.createElement('div');
+          modalOptions.className = 'mode-modal__options';
+          [
+            { title: 'Normal', desc: 'Nombre y símbolo de cada estación' },
+            { title: 'Difícil', desc: 'Solo símbolos, sin nombres' },
+          ].forEach(function (opt) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'mode-option';
+            var title = document.createElement('span');
+            title.className = 'mode-option__title';
+            title.textContent = opt.title;
+            btn.appendChild(title);
+            var desc = document.createElement('span');
+            desc.className = 'mode-option__desc';
+            desc.textContent = opt.desc;
+            btn.appendChild(desc);
+            modalOptions.appendChild(btn);
+          });
+          modalCard.appendChild(modalOptions);
+          gallery.appendChild(buildExample(modalCard, '<code>.mode-modal</code>/<code>.mode-option</code> · ✅ consolidado - elección de modo antes de jugar, Metrordle y Metroguessr - modal de pantalla completa en un día nuevo.'));
+
+          var overlayModes = document.createElement('div');
+          overlayModes.className = 'design-overlay-modes';
+          var overlayPrimary = document.createElement('button');
+          overlayPrimary.type = 'button';
+          overlayPrimary.className = 'btn-primary';
+          overlayPrimary.textContent = 'Jugar modo normal';
+          overlayModes.appendChild(overlayPrimary);
+          var overlaySecondary = document.createElement('button');
+          overlaySecondary.type = 'button';
+          overlaySecondary.className = 'btn-secondary';
+          overlaySecondary.style.marginTop = '0';
+          overlaySecondary.textContent = 'Jugar modo difícil';
+          overlayModes.appendChild(overlaySecondary);
+          gallery.appendChild(buildExample(overlayModes, '<code>.start-overlay__modes</code> · exploración, no consolidado todavía - Metro Crush y Clasificador, mismo CSS copiado en los dos en vez de compartido - dos botones en la propia pantalla de "Comenzar" en vez de un modal aparte.'));
+
+          var persistentPicker = document.createElement('div');
+          persistentPicker.style.display = 'flex';
+          persistentPicker.style.flexDirection = 'column';
+          persistentPicker.style.gap = '0.5rem';
+          persistentPicker.style.width = '100%';
+          [
+            { title: 'Claro', desc: 'Siempre usa el tema claro', pressed: false },
+            { title: 'Oscuro', desc: 'Siempre usa el tema oscuro', pressed: true },
+            { title: 'Sistema', desc: 'Usa el tema de tu dispositivo', pressed: false },
+          ].forEach(function (opt) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'mode-option' + (opt.pressed ? ' design-option-pressed' : '');
+            btn.setAttribute('aria-pressed', String(opt.pressed));
+            var title = document.createElement('span');
+            title.className = 'mode-option__title';
+            title.textContent = opt.title;
+            btn.appendChild(title);
+            var desc = document.createElement('span');
+            desc.className = 'mode-option__desc';
+            desc.textContent = opt.desc;
+            btn.appendChild(desc);
+            persistentPicker.appendChild(btn);
+          });
+          gallery.appendChild(buildExample(persistentPicker, '<code>.mode-option[aria-pressed]</code> · <code>/configurar/</code> - mismo botón que el modal de arriba, reutilizado como picker que se queda en pantalla mostrando la opción actual (borde/sombra de color propios de esta página, ya que <code>.mode-option</code> en sí no tiene estado "seleccionado" persistente).'));
+        }
+
         renderLinesGallery();
         renderStationsGallery();
         renderStationListsGallery();
         renderNoticesGallery();
+        renderFormsGallery();
       })();
     </script>
 

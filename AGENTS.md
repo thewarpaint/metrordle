@@ -374,13 +374,42 @@ about `//`/`/* */` comments in the actual game/test code.)
   `__station`, `.design-notice-status`), built with real sample streak
   data via `MetroShared.formatStreak()`/`formatMaxStreak()` so the text
   reads exactly like a real reveal screen's own.
+
+  A "Formularios" board catalogs buttons/inputs, with the same split as
+  every board above: already-consolidated shared.css classes shown
+  directly, undecided/page-local ones backed by a `.design-` stand-in.
+  `.btn-primary`/`.btn-secondary` (every game's own start/save/share
+  button), `.leaderboard__alias` (the alias input+button row every
+  leaderboard uses, now also `/configurar/`'s own Alias section), and
+  `.mode-modal`/`.mode-option` (Metrordle's/Metroguessr's full-screen
+  pre-game normal/hard choice, shown here as just `.mode-modal__card`
+  inline - `.mode-modal` itself is `position: fixed`, which would break
+  out of the gallery's own layout the way every other example on this
+  page stays inline) are all real, already-shared classes. Two more are
+  genuinely scattered, not consolidated: `.start-overlay__modes` (Metro
+  Crush's and Clasificador's own two-button pre-round choice, identical
+  CSS copy-pasted into each page's own `<style>` block rather than
+  shared - `.design-overlay-modes` stands in for it here, since neither
+  game's own page-local class is loaded on `/design/` to begin with) and
+  `.mode-option[aria-pressed="true"]` (`/configurar/`'s own persistent-
+  selection override on the same `.mode-option` the modal above uses -
+  `.design-option-pressed` stands in for it, same reasoning). Unlike the
+  other boards' own `.design-` stand-ins, these two aren't competing
+  alternatives for the same concept - they're two genuinely different
+  shapes (a dismiss-once modal vs. a two-button overlay group vs. a
+  picker that stays showing the current choice) that happen to share
+  `.mode-option` as their base button, surfaced here specifically
+  because nothing elsewhere in this file had cataloged the overlap
+  before.
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references
-  those particular classes. This section is meant to shrink as more
-  concepts get decided (see `.line-badge`'s, `.station-card`'s, and
-  `.station`'s own comments, right above it, for the three concepts
-  that already did) - not grow. Colors come
+  those particular classes. This section is meant to shrink as each
+  individual concept gets decided (see `.line-badge`'s, `.station-card`'s,
+  and `.station`'s own comments, right above it, for the three that
+  already did) - not grow once something's settled, though cataloging a
+  genuinely new, previously-unsurfaced pattern (like the two above) is
+  exactly this page's own job, not a regression of that goal. Colors come
   from `MetroShared.LINES`/`STATION_ICON_SLUGS` at render time (via CSS
   custom properties - `--badge-bg`/`--badge-ink`, the same convention
   every consolidated class now shares) rather

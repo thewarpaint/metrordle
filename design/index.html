@@ -267,11 +267,11 @@
           var dotRow = buildRow();
           lines.forEach(function (line) {
             var dot = document.createElement('span');
-            dot.className = 'design-line-dot';
+            dot.className = 'route-dot';
             dot.style.setProperty('--badge-bg', line.color);
             dotRow.appendChild(dot);
           });
-          gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · resumen de ruta, Laberinto.'));
+          gallery.appendChild(buildExample(dotRow, '<code>.route-dot</code> · ✅ consolidado - breadcrumb y ruta óptima de Laberinto, ambos ahora iguales.'));
         }
 
         function renderStationsGallery() {
@@ -462,7 +462,7 @@
 
             var dotLineId = dotLineIdFor(index);
             var dot = document.createElement('span');
-            dot.className = 'design-line-dot' + (dotLineId ? '' : ' design-line-dot--muted');
+            dot.className = 'route-dot' + (dotLineId ? '' : ' route-dot--muted');
             if (dotLineId) dot.style.setProperty('--badge-bg', lineById(dotLineId).color);
             group.appendChild(dot);
 
@@ -483,7 +483,7 @@
 
             var dotLineId = dotLineIdFor(index);
             var dot = document.createElement('span');
-            dot.className = 'design-line-dot' + (dotLineId ? '' : ' design-line-dot--muted');
+            dot.className = 'route-dot' + (dotLineId ? '' : ' route-dot--muted');
             if (dotLineId) dot.style.setProperty('--badge-bg', lineById(dotLineId).color);
             row.appendChild(dot);
 

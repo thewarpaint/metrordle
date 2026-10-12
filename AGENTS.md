@@ -259,11 +259,11 @@ Site copy/UI is in Spanish (`es-MX`).
   game's nav, `noindex`, same as `/admin/`): side-by-side examples of
   how a Metro line or a station is shown today - most of them still
   competing, un-redrawn copies of each game's own `<style>` block
-  (pulled as-is, not hand-approximated), pending a decision; three
+  (pulled as-is, not hand-approximated), pending a decision; four
   concepts have actually been decided and consolidated already (see
   below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
-  Metroguessr's `.hint-line-badge`, Laberinto's `.route-dot`, plus the
-  already-decided `.line-badge` - see "Shared infrastructure" below),
+  Metroguessr's `.hint-line-badge`, plus the already-decided
+  `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
   an "Estaciones" board (Laberinto's `.map-node`, plain text, the
   already-decided `.station-card` (Memoria's own board card), the
   already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
@@ -425,7 +425,15 @@ are impossible without a debug override.
   pictogram `<svg>` it appends to the marker element, where it used to
   append the bare `<svg>` directly - see `tests/lib/leaflet-stub.js`'s
   own token-based `className` match, no longer an exact-equality one,
-  for why)). Game-specific CSS
+  for why)). A fifth pattern joined these: `.route-dot` (Laberinto's
+  small line-color dot, no text or icon - the per-stop indicator in
+  both `.breadcrumb` and `#optimal-path-list`), consolidating the live
+  page's own copy with `/design/`'s own `.design-line-dot` stand-in
+  into one real class, colored the same `--badge-bg` way as the other
+  four. `.route-dot--muted` is its one modifier - a hop with no line to
+  show at all, in practice unreachable now that the origin borrows the
+  next hop's own color instead (see `makeRouteDot(lineId)`'s own
+  comment in `laberinto/index.html`). Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

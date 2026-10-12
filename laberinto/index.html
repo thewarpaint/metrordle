@@ -349,18 +349,9 @@
         width: 1.5rem;
       }
 
-      .route-dot {
-        align-self: center;
-        border-radius: 50%;
-        flex: 0 0 auto;
-        height: 0.55rem;
-        width: 0.55rem;
-      }
-
-      .route-dot--muted {
-        background: var(--paper-well);
-        border: 1px solid var(--rule);
-      }
+      /* .route-dot/.route-dot--muted now live in shared.css, shared
+         with /design/'s own gallery - nothing page-local to override
+         here. */
 
       /* .leaderboard* styling itself now lives in shared.css, common to
          every game with a leaderboard - nothing Laberinto-specific to
@@ -824,7 +815,7 @@
           dot.setAttribute('aria-hidden', 'true');
           if (lineId) {
             var line = getLineById(lineId);
-            dot.style.background = line.color;
+            dot.style.setProperty('--badge-bg', line.color);
             dot.title = line.name;
           } else {
             dot.classList.add('route-dot--muted');

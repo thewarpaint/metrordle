@@ -36,11 +36,15 @@ async function main() {
 
       // One badge/circle/dot/card/row per sampled line or station -
       // confirms the galleries actually rendered real entries, not
-      // empty rows. The first "Líneas" example is the one already-
-      // consolidated pattern (shared.css's own real .line-badge, not a
-      // .design- prefixed stand-in - see shared.css's own comment on it).
+      // empty rows. The first and fourth "Líneas" examples are
+      // already-consolidated patterns (shared.css's own real
+      // .line-badge/.route-dot, not .design- prefixed stand-ins - see
+      // shared.css's own comments on them).
       const lineBadges = await page.locator('#lines-gallery .design-example').nth(0).locator('.line-badge').count();
       assert.strictEqual(lineBadges, 5, 'expected one .line-badge per sampled line');
+
+      const lineDots = await page.locator('#lines-gallery .design-example').nth(3).locator('.route-dot').count();
+      assert.strictEqual(lineDots, 5, 'expected one .route-dot per sampled line');
 
       // The second, third, and fourth "Estaciones" examples are the other
       // already-consolidated patterns (shared.css's own real
@@ -71,14 +75,14 @@ async function main() {
       assert.strictEqual(breadcrumbStops, 11, 'expected one breadcrumb stop per sampled hop, same route as the optimal-path example below');
       const currentBreadcrumbStops = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop--current').count();
       assert.strictEqual(currentBreadcrumbStops, 1, 'expected exactly one breadcrumb stop marked current');
-      const breadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop-group .design-line-dot').count();
+      const breadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-breadcrumb__stop-group .route-dot').count();
       assert.strictEqual(breadcrumbDots, 11, 'expected one line dot per breadcrumb stop');
-      const mutedBreadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.design-line-dot--muted').count();
+      const mutedBreadcrumbDots = await page.locator('#station-lists-gallery .design-example').nth(2).locator('.route-dot--muted').count();
       assert.strictEqual(mutedBreadcrumbDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       const optimalPathRows = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-optimal-path__row').count();
       assert.strictEqual(optimalPathRows, 11, 'expected one optimal-path row per sampled hop, long enough to show a 2-digit step number');
-      const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.design-line-dot--muted').count();
+      const mutedDots = await page.locator('#station-lists-gallery .design-example').nth(3).locator('.route-dot--muted').count();
       assert.strictEqual(mutedDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));

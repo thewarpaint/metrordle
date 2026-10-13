@@ -488,23 +488,6 @@
       }
       .reveal[hidden] { display: none; }
 
-      /* Banner + station name render as two <span>s inside one <p> so
-         they read as a single line ("¡Correcto! La estación era: X")
-         instead of the two stacked lines this used to be - the
-         whitespace between the spans in the markup below collapses to
-         the separating space, no explicit one needed in JS. */
-      .reveal__line {
-        font-family: 'Overpass', sans-serif;
-        font-size: 1rem;
-        margin: 0;
-      }
-
-      .reveal__banner { font-weight: 800; }
-      .reveal__banner--win { color: var(--ok); }
-      .reveal__banner--lose { color: var(--danger); }
-
-      .reveal__station { font-weight: 700; }
-
       /* .leaderboard* styling itself lives in shared.css, common to every
          game with a leaderboard - these are just this page's own deltas,
          sized down a bit further to fit the compact bottom sheet, plus
@@ -663,10 +646,7 @@
         <button type="button" class="guess-btn hint-btn" id="hint-btn" hidden></button>
 
         <div class="reveal" id="reveal" hidden>
-          <p class="reveal__line">
-            <span class="reveal__banner" id="reveal-banner"></span>
-            <span class="reveal__station" id="reveal-station"></span>
-          </p>
+          <div id="reveal-banner"></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -1682,11 +1662,15 @@
 
           var reveal = $('reveal');
           reveal.hidden = false;
-          var banner = $('reveal-banner');
-          banner.textContent = (won ? '¡Correcto!' : 'Se acabaron los intentos') + ' 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
-          banner.className = 'reveal__banner ' + (won ? 'reveal__banner--win' : 'reveal__banner--lose');
-          $('reveal-station').textContent = 'La estación era: ' + state.target;
+          // On a win the player just guessed the station themselves - no
+          // need to repeat it back. Only a loss names it.
+          var streakLine = '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '.';
+          MetroShared.renderNoticeBanner(
+            $('reveal-banner'),
+            won ? 'notice--success' : 'notice--error',
+            won ? '¡Correcto!' : 'Se acabaron los intentos',
+            won ? streakLine : streakLine + ' La estación era: ' + state.target + '.'
+          );
 
           renderAliasRow();
           renderLeaderboard();

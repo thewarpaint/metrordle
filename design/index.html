@@ -561,18 +561,9 @@
           MetroShared.renderNoticeBanner(info, 'notice--info', '¡Tiempo!', '🔥 ' + MetroShared.formatStreak(3));
           gallery.appendChild(buildExample(info, '<code>.notice--info</code> · ✅ consolidado - Clasificador, sin ganar/perder (cada ronda se envía sin importar el puntaje) - antes coloreada con <code>--line</code>, el de la línea del día; ahora un azul fijo, igual en cualquier día.'));
 
-          var line = document.createElement('p');
-          line.className = 'design-notice-line';
-          var lineBanner = document.createElement('span');
-          lineBanner.className = 'design-notice-line__banner design-notice-line__banner--win';
-          lineBanner.textContent = '¡Correcto! 🔥 ' + MetroShared.formatStreak(12);
-          line.appendChild(lineBanner);
-          line.appendChild(document.createTextNode(' '));
-          var lineStation = document.createElement('span');
-          lineStation.className = 'design-notice-line__station';
-          lineStation.textContent = 'La estación era: Zócalo';
-          line.appendChild(lineStation);
-          gallery.appendChild(buildExample(line, '<code>.reveal__line</code>/<code>.reveal__banner</code>/<code>.reveal__station</code> · Metroguessr - sin tarjeta, solo texto en negrita coloreado por resultado, en la misma línea que el nombre de la estación.'));
+          var guessr = document.createElement('div');
+          MetroShared.renderNoticeBanner(guessr, 'notice--error', 'Se acabaron los intentos', '🔥 ' + MetroShared.formatStreak(0) + '. La estación era: Zócalo.');
+          gallery.appendChild(buildExample(guessr, '<code>.notice</code> · ✅ consolidado - Metroguessr al perder, con el nombre de la estación acoplado al texto en vez de en su propia línea como antes; al ganar, ese nombre se omite por completo - ya lo acertaste.'));
 
           var status = document.createElement('p');
           status.className = 'design-notice-status design-notice-status--win';

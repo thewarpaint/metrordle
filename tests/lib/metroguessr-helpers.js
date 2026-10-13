@@ -68,8 +68,22 @@ async function playToReveal(page) {
   }
 }
 
+// Reads the target back off the reveal's own station-icon badge
+// (window.__mgIconMarkerEl, set by the Leaflet stub - see its own
+// comment) rather than the banner text, which only names the station
+// on a loss now (a win's own guess already said it - see
+// showReveal()'s own comment).
 function revealedTarget(page) {
-  return page.locator('#reveal-station').textContent().then((t) => t.replace('La estación era: ', '').trim());
+  return page.evaluate(() => {
+    var el = window.__mgIconMarkerEl;
+    var use = el ? el.querySelector('use') : null;
+    var href = use ? use.getAttribute('href') : null;
+    var slug = href ? href.replace('/station-icons.svg#', '') : null;
+    for (var name in MetroShared.STATION_ICON_SLUGS) {
+      if (MetroShared.STATION_ICON_SLUGS[name] === slug) return name;
+    }
+    return null;
+  });
 }
 
 module.exports = {

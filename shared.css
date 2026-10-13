@@ -1135,32 +1135,6 @@ h1 {
   width: 1.5rem;
 }
 
-/* Metroguessr's own .reveal__line/.reveal__banner/.reveal__station -
-   no card at all, just bold win/lose-colored text sitting inline with
-   the station name ("¡Correcto! La estación era: X" reads as one
-   line). */
-.design-notice-line {
-  font-family: 'Overpass', sans-serif;
-  font-size: 1rem;
-  margin: 0;
-}
-
-.design-notice-line__banner {
-  font-weight: 800;
-}
-
-.design-notice-line__banner--win {
-  color: var(--ok);
-}
-
-.design-notice-line__banner--lose {
-  color: var(--danger);
-}
-
-.design-notice-line__station {
-  font-weight: 700;
-}
-
 /* Metrordle's own .status-bar__text[data-tone] - the compact status
    line above the board (attempts remaining, while playing) turns
    win/lose-colored plain text once the round ends, no card/background

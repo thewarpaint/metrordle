@@ -276,9 +276,9 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   is meant to provide.
 - A wrong guess adds exactly one distance+direction history chip;
   guessing the real target ends the round immediately as a win.
-- Five wrong guesses end the round as a loss, with a single-line reveal
-  (`.reveal__line`, not two separate paragraphs) and the history chips
-  hidden once the round is over.
+- Five wrong guesses end the round as a loss, with the station name
+  folded into the shared `.notice` banner's own `.notice__text` (not a
+  separate element) and the history chips hidden once the round is over.
 - The reveal shows the target's own station-icon badge, colored by its
   line, matching the pictogram Metrordle/Metro Crush already use.
 - A wrong guess gets its own distance/direction map pin (see

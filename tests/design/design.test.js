@@ -127,10 +127,10 @@ async function main() {
       const buttons = await page.locator('#forms-gallery .design-example').nth(0).locator('.btn-primary, .btn-secondary').count();
       assert.strictEqual(buttons, 2, 'expected one primary and one secondary button');
 
-      // nth(1): Metroguessr's own .guess-btn, page-local - backed by the
-      // .design-guess-btn stand-in (two instances: "Adivinar" + hint).
-      const guessButtons = await page.locator('#forms-gallery .design-example').nth(1).locator('.design-guess-btn').count();
-      assert.strictEqual(guessButtons, 2, 'expected the guess button and its hint variant');
+      // nth(1): the shared .btn-primary--sm small variant Metroguessr
+      // now uses for "Adivinar" + its hint button (two instances).
+      const smButtons = await page.locator('#forms-gallery .design-example').nth(1).locator('.btn-primary--sm').count();
+      assert.strictEqual(smButtons, 2, 'expected the small guess button and its hint variant');
 
       const aliasField = await page.locator('#forms-gallery .design-example').nth(2).locator('.leaderboard__alias input').count();
       assert.strictEqual(aliasField, 1, 'expected the shared alias input');

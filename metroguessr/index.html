@@ -428,27 +428,6 @@
       .suggestion:not(:last-child) { border-bottom: 1px solid var(--rule); }
       .suggestion:hover, .suggestion--active { background: var(--paper-well); }
 
-      .guess-btn {
-        flex: none;
-        width: 100%;
-        font-family: inherit;
-        font-weight: 800;
-        font-size: 0.8rem;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        /* --ink/--paper already flip between the two themes, so this
-           reads as a dark button with light text in light mode and a
-           light button with dark text in dark mode, for free. */
-        color: var(--paper);
-        background: var(--ink);
-        border: none;
-        border-radius: 0 0.7rem 0 0.7rem;
-        padding: 0.62rem;
-        cursor: pointer;
-      }
-
-      .guess-btn:disabled { opacity: 0.4; cursor: default; }
-
       .status-line {
         flex: none;
         text-align: center;
@@ -458,16 +437,15 @@
         margin: 0;
       }
 
-      /* .guess-btn already gives this the same look as "Adivinar" -
-         this just adds the standalone spacing .guess-form's own flex
-         gap would otherwise have provided. Unlike .btn-secondary
-         (used elsewhere on this page), .guess-btn never sets its own
-         `display`, so toggling the `hidden` PROPERTY in JS
-         (renderHintButton()) is left free to work via the browser's
-         own default [hidden] { display: none } rule. */
+      /* Just the standalone top spacing .guess-form's own flex gap would
+         otherwise have provided (the hint button sits outside that
+         form). The shared .btn-primary--sm gives it the same look as
+         "Adivinar"; .btn-primary[hidden] in shared.css is what lets the
+         hidden-property toggle (renderHintButton()) still hide it despite
+         .btn-primary's own display:block. */
       .hint-btn {
         flex: none;
-        margin: 0.5rem 0 0;
+        margin-top: 0.5rem;
       }
 
       /* flex:1 1 auto + min-height:0 (rather than the flex:none every
@@ -638,12 +616,12 @@
             <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
             <div class="suggestions" id="suggestions" hidden></div>
           </div>
-          <button class="guess-btn" id="guess-btn" disabled>Adivinar</button>
+          <button type="button" class="btn-primary btn-primary--sm" id="guess-btn" disabled>Adivinar</button>
         </div>
 
         <p class="status-line" id="status-line"></p>
 
-        <button type="button" class="guess-btn hint-btn" id="hint-btn" hidden></button>
+        <button type="button" class="btn-primary btn-primary--sm hint-btn" id="hint-btn" hidden></button>
 
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>

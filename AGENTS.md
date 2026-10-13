@@ -112,8 +112,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   normal mode leaves it free throughout. Either way the map unlocks and
   swaps in the target's real station-icon badge (Metro Crush's
   pictogram style, colored by line) once the round ends. Once the first
-  guess is in, a hint button (`🪄`, same `.btn-primary--sm` styling as
-  "Adivinar") unlocks - up to two sequential hints, each burning one
+  guess is in, a hint button (`🪄`, the `.btn-secondary--sm` outline
+  variant next to "Adivinar"'s filled `.btn-primary--sm`) unlocks - up
+  to two sequential hints, each burning one
   of the round's 5 attempts like a wrong guess would: the first
   recolors the live marker to the target's real line color AND pins a
   small badge marker (`hintLineMarker`, `.hint-line-badge`) right on
@@ -446,19 +447,20 @@ about `//`/`/* */` comments in the actual game/test code.)
   `.mode-option` as their base button, surfaced here specifically
   because nothing elsewhere in this file had cataloged the overlap
   before. A second-pass audit added the form controls the first pass
-  missed, chiefly Metroguessr's own, which has a whole input system of
-  its own distinct from the shared buttons/fields: `.btn-primary--sm`
-  (the shared small button variant Metroguessr's "Adivinar"/hint
-  buttons now use - was a bespoke page-local `.guess-btn` with its own
-  asymmetric Metro corner, consolidated into a real `.btn-primary`
-  size modifier: shorter, smaller text, but the same all-4 rounded
-  corners; shown ✅ consolidado, no stand-in), its search
-  field (`input[type="text"]` + `.search-box`/`.suggestions`/
-  `.suggestion` type-ahead - a larger Metro-corner text input distinct
-  from the small `.leaderboard__alias input`, with its own autocomplete
-  dropdown; `.design-search-input`/`.design-suggestions`/
-  `.design-suggestion` stand in, the dropdown shown static rather than
-  the live `position: absolute` pop-over), and `.map-maximize-btn` (its
+  missed, chiefly Metroguessr's own: `.btn-primary--sm`/
+  `.btn-secondary--sm` (the shared small button variants - "Adivinar"
+  is the filled primary, the hint button the outline secondary; both
+  were once a bespoke page-local `.guess-btn` with its own asymmetric
+  Metro corner, consolidated into real `.btn-primary`/`.btn-secondary`
+  size modifiers: shorter, smaller text, but the same all-4 rounded
+  corners; shown ✅ consolidado, no stand-in) and its search
+  field, now the shared `input[type="text"]` too (every text input
+  site-wide shares one look - the buttons' 0.5rem corner radius and a
+  slightly bigger text; the alias input is the same style now), with
+  only its `.suggestions`/`.suggestion` autocomplete dropdown still
+  page-local (shown via the `.design-suggestions`/`.design-suggestion`
+  stand-ins, static rather than the live `position: absolute`
+  pop-over). Also `.map-maximize-btn` (its
   round map-maximize icon button, `position: fixed` on the live page;
   `.design-map-maximize-btn` stands in). Two shared.css primitives the
   first pass also skipped are shown directly (✅ consolidado, no
@@ -553,9 +555,14 @@ are impossible without a debug override.
   `.mode-modal`/`.mode-option*` pre-game normal/hard choice,
   `.btn-primary`/`.btn-secondary` (sharing one box-geometry rule so the
   two stand the same height side by side; they differ only in fill/
-  weight/spacing) plus `.btn-primary--sm` (a shorter, smaller-text size
-  modifier with the same all-4 rounded corners, used by Metroguessr's
-  "Adivinar"/hint buttons), `.leaderboard*` including the
+  weight/spacing) plus `.btn-primary--sm`/`.btn-secondary--sm` (one
+  shorter, smaller-text size modifier for each, same all-4 rounded
+  corners - Metroguessr uses the primary for "Adivinar" and the
+  secondary for its hint button), one shared `input[type="text"]` rule
+  (every text field site-wide - the alias rows and Metroguessr's search
+  box - shares it: the buttons' own 0.5rem corner radius and a slightly
+  bigger text, so fields and buttons read as one system; only width/
+  flex sizing stays per-context), `.leaderboard*` including the
   `.leaderboard__score-badge` hard-mode 🧠 flag, `.line-badge` - a line
   indicator, colored by line via `--badge-bg`/`--badge-ink` falling
   back to the site-wide `--line`/`--line-ink` tokens, used by

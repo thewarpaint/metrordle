@@ -597,11 +597,11 @@
           guessBtnWrap.appendChild(guessBtn);
           var hintBtn = document.createElement('button');
           hintBtn.type = 'button';
-          hintBtn.className = 'btn-primary btn-primary--sm';
+          hintBtn.className = 'btn-secondary btn-secondary--sm';
           hintBtn.style.marginTop = '0.5rem';
           hintBtn.textContent = '🪄 Revelar línea (-1 intento)';
           guessBtnWrap.appendChild(hintBtn);
-          gallery.appendChild(buildExample(guessBtnWrap, '<code>.btn-primary--sm</code> · ✅ consolidado - variante chica del botón primario: texto más chico y algo más baja que la base, mismas 4 esquinas redondeadas. Metroguessr la usa para "Adivinar" y la pista (antes era <code>.guess-btn</code>, con una esquina de Metro asimétrica propia).'));
+          gallery.appendChild(buildExample(guessBtnWrap, '<code>.btn-primary--sm</code>/<code>.btn-secondary--sm</code> · ✅ consolidado - variantes chicas de los botones: texto más chico y algo más bajas que la base, mismas 4 esquinas redondeadas. Metroguessr usa la primaria para "Adivinar" y la secundaria para la pista.'));
 
           var aliasRow = document.createElement('div');
           aliasRow.className = 'leaderboard__alias';
@@ -622,7 +622,7 @@
           searchWrap.style.width = '100%';
           var searchInput = document.createElement('input');
           searchInput.type = 'text';
-          searchInput.className = 'design-search-input';
+          searchInput.style.width = '100%';
           searchInput.value = 'Pino';
           searchInput.readOnly = true;
           searchWrap.appendChild(searchInput);
@@ -635,7 +635,7 @@
             suggestions.appendChild(item);
           });
           searchWrap.appendChild(suggestions);
-          gallery.appendChild(buildExample(searchWrap, '<code>.search-box</code>/<code>.suggestions</code> · exploración, no consolidado todavía - Metroguessr, el campo donde escribes la estación. Más grande que el campo de alias y con su propio desplegable de autocompletado; misma esquina de Metro que <code>.guess-btn</code>.'));
+          gallery.appendChild(buildExample(searchWrap, '<code>input[type="text"]</code> + <code>.suggestions</code> · el campo (texto y radio de 0.5rem iguales a los botones) es el <code>input</code> compartido ✅ consolidado - mismo estilo que el de alias; el desplegable de autocompletado sigue siendo propio de Metroguessr.'));
 
           // .mode-modal itself (the full-screen backdrop) is
           // position: fixed - shown here as just its own .mode-modal__card,

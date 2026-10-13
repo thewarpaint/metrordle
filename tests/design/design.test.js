@@ -127,18 +127,21 @@ async function main() {
       const buttons = await page.locator('#forms-gallery .design-example').nth(0).locator('.btn-primary, .btn-secondary').count();
       assert.strictEqual(buttons, 2, 'expected one primary and one secondary button');
 
-      // nth(1): the shared .btn-primary--sm small variant Metroguessr
-      // now uses for "Adivinar" + its hint button (two instances).
-      const smButtons = await page.locator('#forms-gallery .design-example').nth(1).locator('.btn-primary--sm').count();
-      assert.strictEqual(smButtons, 2, 'expected the small guess button and its hint variant');
+      // nth(1): the shared small button variants Metroguessr uses -
+      // .btn-primary--sm for "Adivinar", .btn-secondary--sm for the hint.
+      const smPrimary = await page.locator('#forms-gallery .design-example').nth(1).locator('.btn-primary--sm').count();
+      assert.strictEqual(smPrimary, 1, 'expected the small primary guess button');
+      const smSecondary = await page.locator('#forms-gallery .design-example').nth(1).locator('.btn-secondary--sm').count();
+      assert.strictEqual(smSecondary, 1, 'expected the small secondary hint button');
 
       const aliasField = await page.locator('#forms-gallery .design-example').nth(2).locator('.leaderboard__alias input').count();
       assert.strictEqual(aliasField, 1, 'expected the shared alias input');
 
-      // nth(3): Metroguessr's own search field, page-local - backed by
-      // the .design-search-input + .design-suggestions stand-ins.
-      const searchInput = await page.locator('#forms-gallery .design-example').nth(3).locator('.design-search-input').count();
-      assert.strictEqual(searchInput, 1, 'expected the search input');
+      // nth(3): the search field is the shared input[type="text"] now
+      // (consolidated); only the .design-suggestions dropdown stays a
+      // page-local stand-in.
+      const searchInput = await page.locator('#forms-gallery .design-example').nth(3).locator('input[type="text"]').count();
+      assert.strictEqual(searchInput, 1, 'expected the shared search input');
       const suggestions = await page.locator('#forms-gallery .design-example').nth(3).locator('.design-suggestion').count();
       assert.strictEqual(suggestions, 3, 'expected the three autocomplete suggestion rows');
 

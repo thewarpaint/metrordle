@@ -1187,10 +1187,12 @@
 
         function renderReveal() {
           var won = state.won;
-          var banner = $('reveal-banner');
-          banner.className = 'notice ' + (won ? 'notice--success' : 'notice--error');
-          banner.textContent = (won ? '¡Buena memoria!' : 'Se acabó el tiempo') + ' 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
+          MetroShared.renderNoticeBanner(
+            $('reveal-banner'),
+            won ? 'notice--success' : 'notice--error',
+            won ? '¡Buena memoria!' : 'Se acabó el tiempo',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+          );
 
           $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
 

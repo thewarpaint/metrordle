@@ -1029,8 +1029,12 @@
         }
 
         function renderReveal() {
-          els.revealBanner.textContent = '¡Tiempo! 🔥 ' +
-            MetroShared.formatStreak(state.streak) + maxStreakLine(', ');
+          MetroShared.renderNoticeBanner(
+            els.revealBanner,
+            'notice--info',
+            '¡Tiempo!',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+          );
           els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
             (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
 

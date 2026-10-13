@@ -434,6 +434,25 @@ function formatMaxStreak(count) {
   return 'máxima: ' + count + (count === 1 ? ' día' : ' días');
 }
 
+// Every reveal-screen .notice banner (Metrordle/Laberinto/Memoria/Metro
+// Crush/Clasificador) is a win/lose/round-over headline plus the day's
+// streak line underneath - identical two-part shape, one shared
+// renderer instead of five copies of the same textContent assignment.
+function renderNoticeBanner(el, variantClass, title, bodyText) {
+  el.className = 'notice ' + variantClass;
+  el.textContent = '';
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'notice__title';
+  titleEl.textContent = title;
+  el.appendChild(titleEl);
+
+  var textEl = document.createElement('div');
+  textEl.className = 'notice__text';
+  textEl.textContent = bodyText;
+  el.appendChild(textEl);
+}
+
 // The "🔥 × N" streak badge every leaderboard row that tracks a streak
 // uses (Metrordle/Laberinto/Memoria's own leaderboards, and /admin/'s
 // matching column for those same three collections) - a streak of 0 or
@@ -1128,6 +1147,7 @@ window.MetroShared = {
   formatStreak: formatStreak,
   formatMaxStreak: formatMaxStreak,
   buildStreakBadge: buildStreakBadge,
+  renderNoticeBanner: renderNoticeBanner,
   normalizeAlias: normalizeAlias,
   aliasDocId: aliasDocId,
   getAlias: getAlias,

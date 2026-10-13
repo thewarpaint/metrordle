@@ -471,6 +471,13 @@ h1 {
   color: var(--info-ink);
 }
 
+/* .notice__title (optional) inherits .notice's own size/weight - only .notice__text needs its own rule. */
+.notice__text {
+  font-size: 0.85rem;
+  font-weight: 400;
+  margin-top: 0.2rem;
+}
+
 .credit {
   color: var(--ink-soft);
   font-size: 0.72rem;

@@ -394,20 +394,29 @@ about `//`/`/* */` comments in the actual game/test code.)
   helper at all - they're a single line with no title/body split, so
   they still just set `.notice`'s own `textContent` directly.
 
-  Two patterns stay outside this consolidation, genuinely different
-  shapes rather than more copies of the same card: Metroguessr's own
-  `.reveal__line`/`.reveal__banner`/`.reveal__station` (no card at all -
-  just bold win/lose-colored text sitting inline with the station name,
-  one line - `.reveal__banner` here is the exact same class *name* as
-  the consolidated one above, but page-local CSS with none of its
-  shape, so renaming would mean giving it the card look it was
-  deliberately built without) and Metrordle's own
+  Metroguessr's own `.reveal__line`/`.reveal__banner`/`.reveal__station`
+  (no card at all - just bold win/lose-colored text sitting inline with
+  the station name) joined this consolidation too: it's the shared
+  `.notice` now, same as the other five. `#reveal-station` is gone - on
+  a **loss**, its station name is folded into `.notice__text` right
+  after the streak line ("🔥 Racha: N días. La estación era: X."); on a
+  **win** that line is dropped entirely (`showReveal()`'s own comment) -
+  the player just guessed the station themselves, so naming it back is
+  redundant. `tests/lib/metroguessr-helpers.js`'s own `revealedTarget()`
+  no longer reads the banner at all (a win's text doesn't carry the
+  station name to read) - it derives the target from the reveal's own
+  station-icon badge instead (`window.__mgIconMarkerEl`, set by the
+  Leaflet test stub), reverse-looking-up `MetroShared.STATION_ICON_SLUGS`
+  from the badge's `<use>` href - a source of truth independent of win/
+  loss, and of the banner's own wording either way.
+
+  One pattern stays outside this consolidation, a genuinely different
+  shape rather than another copy of the same card: Metrordle's own
   `.status-bar__text[data-tone]` (the compact status line above the
   board, not the end-of-round reveal screen - also turns win/lose-
   colored once the round ends, but reports the attempt count, not the
-  streak, and no other game has an equivalent). Both still backed by
-  `.design-` stand-ins (`.design-notice-line`/`__banner`/`__station`,
-  `.design-notice-status`), built with real sample streak data via
+  streak, and no other game has an equivalent) - still backed by its
+  own `.design-notice-status` stand-in, built with real sample data via
   `MetroShared.formatStreak()`/`formatMaxStreak()` so the text reads
   exactly like a real reveal screen's own.
 

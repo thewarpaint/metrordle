@@ -102,14 +102,18 @@ async function main() {
 
       await guess(page, target);
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'guessing the real target should end the round');
-      const bannerText = await page.locator('#reveal-banner').textContent();
+      const bannerTitle = await page.locator('#reveal-banner .notice__title').textContent();
+      assert.strictEqual(bannerTitle, '¡Correcto!');
+      const bannerText = await page.locator('#reveal-banner .notice__text').textContent();
       // A first-ever win on a fresh streak key always lands on 1,
       // regardless of the throwaway session's own earlier loss above -
       // updateStreakForResult() only extends a streak when the new
       // result's date immediately follows the last one it recorded,
       // and this page's own win is dated the same day as that loss,
       // not the day after it.
-      assert.strictEqual(bannerText, '¡Correcto! 🔥 Racha: 1 día');
+      // A win doesn't repeat the station name back - the player just
+      // guessed it themselves.
+      assert.strictEqual(bannerText, '🔥 Racha: 1 día.');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {
@@ -117,7 +121,7 @@ async function main() {
     }
   });
 
-  test('five wrong guesses end the round as a loss, with a single-line reveal and the history chips hidden', async () => {
+  test('five wrong guesses end the round as a loss, with the station name in the shared .notice banner and the history chips hidden', async () => {
     const DATE = '2026-09-22';
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
     const page = await context.newPage();
@@ -133,10 +137,11 @@ async function main() {
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the round should be over');
       assert.strictEqual(await page.locator('.pip--used, .pip--win').count() >= 1, true, 'expects at least one used pip');
 
-      // Single line: banner + station text live in one <p>, not two.
-      assert.strictEqual(await page.locator('p.reveal__line').count(), 1, 'expected exactly one .reveal__line paragraph');
-      const lineText = await page.locator('.reveal__line').textContent();
-      assert.ok(lineText.includes('La estación era:'), 'expected the station name in the reveal line, got: ' + lineText);
+      // The station name lives in .notice__text, alongside the streak -
+      // not its own separate element.
+      assert.strictEqual(await page.locator('#reveal-banner').count(), 1, 'expected exactly one .notice banner');
+      const bodyText = await page.locator('#reveal-banner .notice__text').textContent();
+      assert.ok(bodyText.includes('La estación era:'), 'expected the station name in the notice text, got: ' + bodyText);
 
       // The distance/direction history chips have nothing left to add
       // once the round ends - the wrapper hides, freeing space for the
@@ -598,7 +603,8 @@ async function main() {
       await page.waitForTimeout(80);
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the fifth burned attempt (via hint) should end the round');
-      assert.strictEqual(await page.locator('#reveal-banner').textContent(), 'Se acabaron los intentos 🔥 Racha: 0 días');
+      assert.strictEqual(await page.locator('#reveal-banner .notice__title').textContent(), 'Se acabaron los intentos');
+      assert.strictEqual(await page.locator('#reveal-banner .notice__text').textContent(), '🔥 Racha: 0 días. La estación era: ' + target + '.');
 
       // The line hint's own badge marker should be cleaned up once the
       // round ends, same as the plain live marker it was pinned on top

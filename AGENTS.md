@@ -112,7 +112,7 @@ about `//`/`/* */` comments in the actual game/test code.)
   normal mode leaves it free throughout. Either way the map unlocks and
   swaps in the target's real station-icon badge (Metro Crush's
   pictogram style, colored by line) once the round ends. Once the first
-  guess is in, a hint button (`🪄`, same `.guess-btn` styling as
+  guess is in, a hint button (`🪄`, same `.btn-primary--sm` styling as
   "Adivinar") unlocks - up to two sequential hints, each burning one
   of the round's 5 attempts like a wrong guess would: the first
   recolors the live marker to the target's real line color AND pins a
@@ -447,10 +447,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   because nothing elsewhere in this file had cataloged the overlap
   before. A second-pass audit added the form controls the first pass
   missed, chiefly Metroguessr's own, which has a whole input system of
-  its own distinct from the shared buttons/fields: `.guess-btn`/
-  `.hint-btn` (its "Adivinar"/hint submit button - smaller, borderless,
-  and carrying the Metro-corner `0 0.7rem 0 0.7rem` shape the generic
-  `.btn-primary` doesn't; `.design-guess-btn` stands in), its search
+  its own distinct from the shared buttons/fields: `.btn-primary--sm`
+  (the shared small button variant Metroguessr's "Adivinar"/hint
+  buttons now use - was a bespoke page-local `.guess-btn` with its own
+  asymmetric Metro corner, consolidated into a real `.btn-primary`
+  size modifier: shorter, smaller text, but the same all-4 rounded
+  corners; shown ✅ consolidado, no stand-in), its search
   field (`input[type="text"]` + `.search-box`/`.suggestions`/
   `.suggestion` type-ahead - a larger Metro-corner text input distinct
   from the small `.leaderboard__alias input`, with its own autocomplete
@@ -549,7 +551,11 @@ are impossible without a debug override.
   the whole file), and cross-game primitives (`.wrap`, `.brand`,
   `.sign`, `.date-debug`/`.chev` date-nav, `.debug-mode-toggle`,
   `.mode-modal`/`.mode-option*` pre-game normal/hard choice,
-  `.btn-primary`/`.btn-secondary`, `.leaderboard*` including the
+  `.btn-primary`/`.btn-secondary` (sharing one box-geometry rule so the
+  two stand the same height side by side; they differ only in fill/
+  weight/spacing) plus `.btn-primary--sm` (a shorter, smaller-text size
+  modifier with the same all-4 rounded corners, used by Metroguessr's
+  "Adivinar"/hint buttons), `.leaderboard*` including the
   `.leaderboard__score-badge` hard-mode 🧠 flag, `.line-badge` - a line
   indicator, colored by line via `--badge-bg`/`--badge-ink` falling
   back to the site-wide `--line`/`--line-ink` tokens, used by

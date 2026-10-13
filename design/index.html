@@ -592,16 +592,16 @@
           guessBtnWrap.style.width = '100%';
           var guessBtn = document.createElement('button');
           guessBtn.type = 'button';
-          guessBtn.className = 'design-guess-btn';
+          guessBtn.className = 'btn-primary btn-primary--sm';
           guessBtn.textContent = 'Adivinar';
           guessBtnWrap.appendChild(guessBtn);
           var hintBtn = document.createElement('button');
           hintBtn.type = 'button';
-          hintBtn.className = 'design-guess-btn';
+          hintBtn.className = 'btn-primary btn-primary--sm';
           hintBtn.style.marginTop = '0.5rem';
           hintBtn.textContent = '🪄 Revelar línea (-1 intento)';
           guessBtnWrap.appendChild(hintBtn);
-          gallery.appendChild(buildExample(guessBtnWrap, '<code>.guess-btn</code>/<code>.hint-btn</code> · exploración, no consolidado todavía - Metroguessr, botón de "Adivinar" y de pista. Más chico y sin borde que <code>.btn-primary</code>, con la esquina de Metro (<code>0 0.7rem 0 0.7rem</code>) que el botón compartido no lleva.'));
+          gallery.appendChild(buildExample(guessBtnWrap, '<code>.btn-primary--sm</code> · ✅ consolidado - variante chica del botón primario: texto más chico y algo más baja que la base, mismas 4 esquinas redondeadas. Metroguessr la usa para "Adivinar" y la pista (antes era <code>.guess-btn</code>, con una esquina de Metro asimétrica propia).'));
 
           var aliasRow = document.createElement('div');
           aliasRow.className = 'leaderboard__alias';

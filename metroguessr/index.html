@@ -378,24 +378,9 @@
 
       .search-box { position: relative; flex: none; }
 
-      input[type="text"] {
-        width: 100%;
-        font-family: inherit;
-        font-size: 0.95rem;
-        font-weight: 500;
-        color: var(--ink);
-        background: var(--paper);
-        border: 1.5px solid var(--rule);
-        border-radius: 0 0.7rem 0 0.7rem;
-        padding: 0.6rem 0.8rem;
-      }
-
-      input[type="text"]:focus-visible {
-        outline: 2px solid var(--focus);
-        outline-offset: 1px;
-      }
-
-      input[type="text"]:disabled { opacity: 0.5; }
+      /* Visuals come from the shared input[type="text"] in shared.css;
+         this is just the full-width sizing for the search box. */
+      .search-box input { width: 100%; }
 
       .suggestions {
         position: absolute;
@@ -437,12 +422,12 @@
         margin: 0;
       }
 
-      /* Just the standalone top spacing .guess-form's own flex gap would
-         otherwise have provided (the hint button sits outside that
-         form). The shared .btn-primary--sm gives it the same look as
-         "Adivinar"; .btn-primary[hidden] in shared.css is what lets the
-         hidden-property toggle (renderHintButton()) still hide it despite
-         .btn-primary's own display:block. */
+      /* The hint button is the secondary small variant (.btn-secondary
+         btn-secondary--sm). This overrides .btn-secondary's own default
+         1.1rem top margin with the tighter standalone spacing it needs
+         sitting outside the guess form; .btn-secondary[hidden] in
+         shared.css is what lets its hidden-property toggle
+         (renderHintButton()) still hide it despite display:block. */
       .hint-btn {
         flex: none;
         margin-top: 0.5rem;
@@ -621,7 +606,7 @@
 
         <p class="status-line" id="status-line"></p>
 
-        <button type="button" class="btn-primary btn-primary--sm hint-btn" id="hint-btn" hidden></button>
+        <button type="button" class="btn-secondary btn-secondary--sm hint-btn" id="hint-btn" hidden></button>
 
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>

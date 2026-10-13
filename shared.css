@@ -454,11 +454,36 @@ h1 {
 }
 
 /* Smaller size modifier - shorter and smaller text than the base, but
-   the same all-4 rounded corners (0.5rem). Metroguessr's "Adivinar"/
-   hint buttons use it. */
-.btn-primary--sm {
+   the same all-4 rounded corners (0.5rem). Metroguessr uses the primary
+   variant for "Adivinar" and the secondary variant for the hint button. */
+.btn-primary--sm,
+.btn-secondary--sm {
   font-size: 0.82rem;
   padding: 0.6rem 0.9rem;
+}
+
+/* Every text input shares one look site-wide - the buttons' own 0.5rem
+   corner radius (not the old asymmetric Metro corner Metroguessr's
+   search field had) and a slightly bigger text, so fields and buttons
+   read as one system. Width/flex sizing stays per-context (the compact
+   alias row vs. the full-width search box). */
+input[type="text"] {
+  background: var(--paper);
+  border: 1.5px solid var(--rule);
+  border-radius: 0.5rem;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 0.8rem;
+}
+
+input[type="text"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+input[type="text"]:disabled {
+  opacity: 0.5;
 }
 
 /* Shared end-of-round banner; Metroguessr's own .reveal__banner is a different, page-local shape (inline text, no card). */
@@ -625,15 +650,11 @@ h1 {
   margin-bottom: 0.6rem;
 }
 
+/* Visuals come from the shared input[type="text"] rule above; this just
+   sets the flex sizing for the inline alias+button row. */
 .leaderboard__alias input {
-  background: var(--paper-well);
-  border: 1px solid var(--rule);
-  border-radius: 0.35rem;
-  color: var(--ink);
   flex: 1 1 8rem;
-  font: inherit;
   min-width: 0;
-  padding: 0.35rem 0.5rem;
 }
 
 .leaderboard__list {
@@ -1189,28 +1210,10 @@ h1 {
   box-shadow: 0 0 0 2px var(--line) inset;
 }
 
-/* Metroguessr's own search field (input[type="text"] + .search-box/
-   .suggestions/.suggestion autocomplete) - a larger, Metro-corner text
-   input distinct from the small .leaderboard__alias input, with its own
-   type-ahead dropdown. .design-suggestions is static here rather than
-   the live version's position:absolute pop-over. */
-.design-search-input {
-  width: 100%;
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--ink);
-  background: var(--paper);
-  border: 1.5px solid var(--rule);
-  border-radius: 0 0.7rem 0 0.7rem;
-  padding: 0.6rem 0.8rem;
-}
-
-.design-search-input:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
-}
-
+/* Metroguessr's own autocomplete dropdown (.suggestions/.suggestion),
+   still page-local - the input above it is the shared input[type="text"]
+   now. .design-suggestions is static here rather than the live
+   version's position:absolute pop-over. */
 .design-suggestions {
   background: var(--paper-raised);
   border: 1px solid var(--rule);

@@ -445,7 +445,30 @@ about `//`/`/* */` comments in the actual game/test code.)
   picker that stays showing the current choice) that happen to share
   `.mode-option` as their base button, surfaced here specifically
   because nothing elsewhere in this file had cataloged the overlap
-  before.
+  before. A second-pass audit added the form controls the first pass
+  missed, chiefly Metroguessr's own, which has a whole input system of
+  its own distinct from the shared buttons/fields: `.guess-btn`/
+  `.hint-btn` (its "Adivinar"/hint submit button - smaller, borderless,
+  and carrying the Metro-corner `0 0.7rem 0 0.7rem` shape the generic
+  `.btn-primary` doesn't; `.design-guess-btn` stands in), its search
+  field (`input[type="text"]` + `.search-box`/`.suggestions`/
+  `.suggestion` type-ahead - a larger Metro-corner text input distinct
+  from the small `.leaderboard__alias input`, with its own autocomplete
+  dropdown; `.design-search-input`/`.design-suggestions`/
+  `.design-suggestion` stand in, the dropdown shown static rather than
+  the live `position: absolute` pop-over), and `.map-maximize-btn` (its
+  round map-maximize icon button, `position: fixed` on the live page;
+  `.design-map-maximize-btn` stands in). Two shared.css primitives the
+  first pass also skipped are shown directly (✅ consolidado, no
+  stand-in): `.chev`/`.chev--compact` (the `?debug=true` date-nav
+  chevrons every game and `/admin/` use) and `.debug-mode-toggle` (the
+  small normal/hard toggle on that same debug row). `.chev` gets a
+  second example too, for Metrordle's own per-row station-reorder
+  controls, which reuse it: a ▲▼ pair (full-size `.chev`, in
+  `.platform__buttons`) to move a station up/down in normal mode, and a
+  ◀▶ pair (`.chev--compact`, in `.platform-icon-col__nav`) to move it
+  left/right in hard mode - the button is the shared class, only the
+  flex wrappers are page-local.
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references

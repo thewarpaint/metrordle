@@ -118,31 +118,64 @@ async function main() {
       assert.strictEqual(statusText.indexOf('Racha') !== -1, false, 'the status-bar notice reports attempts, not a streak: ' + statusText);
 
       const formExamples = await page.locator('#forms-gallery .design-example').count();
-      assert.strictEqual(formExamples, 5, 'expected 5 form examples (buttons, alias field, mode modal, overlay modes, persistent picker)');
+      assert.strictEqual(formExamples, 11, 'expected 11 form examples (buttons, guess button, alias field, search field, mode modal, overlay modes, persistent picker, date-nav chevrons, reorder chevrons, debug mode toggle, map maximize button)');
 
-      // First and second examples are already-consolidated shared.css
-      // classes (.btn-primary/.btn-secondary, .leaderboard__alias),
-      // same "no .design- stand-in needed" convention as the other
-      // boards' own ✅ consolidado examples.
+      // nth(0) and nth(2) are already-consolidated shared.css classes
+      // (.btn-primary/.btn-secondary, .leaderboard__alias), same "no
+      // .design- stand-in needed" convention as the other boards' own
+      // ✅ consolidado examples.
       const buttons = await page.locator('#forms-gallery .design-example').nth(0).locator('.btn-primary, .btn-secondary').count();
       assert.strictEqual(buttons, 2, 'expected one primary and one secondary button');
 
-      const aliasField = await page.locator('#forms-gallery .design-example').nth(1).locator('.leaderboard__alias input').count();
+      // nth(1): Metroguessr's own .guess-btn, page-local - backed by the
+      // .design-guess-btn stand-in (two instances: "Adivinar" + hint).
+      const guessButtons = await page.locator('#forms-gallery .design-example').nth(1).locator('.design-guess-btn').count();
+      assert.strictEqual(guessButtons, 2, 'expected the guess button and its hint variant');
+
+      const aliasField = await page.locator('#forms-gallery .design-example').nth(2).locator('.leaderboard__alias input').count();
       assert.strictEqual(aliasField, 1, 'expected the shared alias input');
 
-      const modalOptions = await page.locator('#forms-gallery .design-example').nth(2).locator('.mode-option').count();
+      // nth(3): Metroguessr's own search field, page-local - backed by
+      // the .design-search-input + .design-suggestions stand-ins.
+      const searchInput = await page.locator('#forms-gallery .design-example').nth(3).locator('.design-search-input').count();
+      assert.strictEqual(searchInput, 1, 'expected the search input');
+      const suggestions = await page.locator('#forms-gallery .design-example').nth(3).locator('.design-suggestion').count();
+      assert.strictEqual(suggestions, 3, 'expected the three autocomplete suggestion rows');
+
+      const modalOptions = await page.locator('#forms-gallery .design-example').nth(4).locator('.mode-option').count();
       assert.strictEqual(modalOptions, 2, 'expected the mode modal\'s own two options (normal/hard)');
 
-      // Fourth and fifth examples are undecided/page-local patterns,
-      // backed by .design- prefixed stand-ins in shared.css (same
-      // convention as every other still-undecided example on this page).
-      const overlayButtons = await page.locator('#forms-gallery .design-example').nth(3).locator('.design-overlay-modes .btn-primary, .design-overlay-modes .btn-secondary').count();
+      // nth(5) and nth(6) are undecided/page-local patterns, backed by
+      // .design- prefixed stand-ins in shared.css (same convention as
+      // every other still-undecided example on this page).
+      const overlayButtons = await page.locator('#forms-gallery .design-example').nth(5).locator('.design-overlay-modes .btn-primary, .design-overlay-modes .btn-secondary').count();
       assert.strictEqual(overlayButtons, 2, 'expected the overlay mode group\'s own two buttons');
 
-      const pickerOptions = await page.locator('#forms-gallery .design-example').nth(4).locator('.mode-option').count();
+      const pickerOptions = await page.locator('#forms-gallery .design-example').nth(6).locator('.mode-option').count();
       assert.strictEqual(pickerOptions, 3, 'expected the persistent picker\'s three options (claro/oscuro/sistema)');
-      const pressedOption = await page.locator('#forms-gallery .design-example').nth(4).locator('.design-option-pressed').count();
+      const pressedOption = await page.locator('#forms-gallery .design-example').nth(6).locator('.design-option-pressed').count();
       assert.strictEqual(pressedOption, 1, 'expected exactly one option shown as the current choice');
+
+      // nth(7): shared .chev date-nav chevrons shown directly.
+      const chevrons = await page.locator('#forms-gallery .design-example').nth(7).locator('.chev').count();
+      assert.strictEqual(chevrons, 2, 'expected the two date-nav chevrons');
+
+      // nth(8): Metrordle's station-reorder controls - the same shared
+      // .chev (▲▼, normal mode) and .chev--compact (◀▶, hard mode), four
+      // buttons total.
+      const reorderChevrons = await page.locator('#forms-gallery .design-example').nth(8).locator('.chev').count();
+      assert.strictEqual(reorderChevrons, 4, 'expected the two up/down and two left/right reorder chevrons');
+      const compactReorder = await page.locator('#forms-gallery .design-example').nth(8).locator('.chev--compact').count();
+      assert.strictEqual(compactReorder, 2, 'expected the hard-mode left/right chevrons to be the compact variant');
+
+      // nth(9): the shared .debug-mode-toggle, a real class shown directly.
+      const toggleButtons = await page.locator('#forms-gallery .design-example').nth(9).locator('.debug-mode-toggle__btn').count();
+      assert.strictEqual(toggleButtons, 2, 'expected the debug mode toggle\'s two buttons');
+
+      // nth(10): Metroguessr's own .map-maximize-btn, page-local - backed
+      // by the .design-map-maximize-btn stand-in.
+      const maximizeBtn = await page.locator('#forms-gallery .design-example').nth(10).locator('.design-map-maximize-btn').count();
+      assert.strictEqual(maximizeBtn, 1, 'expected the map maximize button');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

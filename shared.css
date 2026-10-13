@@ -1175,6 +1175,90 @@ h1 {
   box-shadow: 0 0 0 2px var(--line) inset;
 }
 
+/* Metroguessr's own .guess-btn ("Adivinar"/hint) - a submit button
+   distinct from the generic rounded .btn-primary: smaller, borderless,
+   and carrying the Metro-corner shape (0 0.7rem 0 0.7rem) the shared
+   button doesn't. Same --ink/--paper monochrome fill as .btn-primary
+   otherwise. */
+.design-guess-btn {
+  width: 100%;
+  font-family: 'Overpass', sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--ink);
+  border: none;
+  border-radius: 0 0.7rem 0 0.7rem;
+  padding: 0.62rem;
+  cursor: pointer;
+}
+
+/* Metroguessr's own search field (input[type="text"] + .search-box/
+   .suggestions/.suggestion autocomplete) - a larger, Metro-corner text
+   input distinct from the small .leaderboard__alias input, with its own
+   type-ahead dropdown. .design-suggestions is static here rather than
+   the live version's position:absolute pop-over. */
+.design-search-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--rule);
+  border-radius: 0 0.7rem 0 0.7rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.design-search-input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.design-suggestions {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 14px var(--shadow);
+  margin-top: 0.3rem;
+  overflow: hidden;
+}
+
+.design-suggestion {
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.8rem;
+}
+
+.design-suggestion:not(:last-child) {
+  border-bottom: 1px solid var(--rule);
+}
+
+.design-suggestion--active {
+  background: var(--paper-well);
+}
+
+/* Metroguessr's own .map-maximize-btn - a round icon button floating
+   over the map (position:fixed on the live page, static here). */
+.design-map-maximize-btn {
+  align-items: center;
+  background: var(--paper-well);
+  border: 1.5px solid var(--rule);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px var(--shadow);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font-size: 1.15rem;
+  height: 2.4rem;
+  justify-content: center;
+  line-height: 1;
+  width: 2.4rem;
+}
+
 .design-example {
   margin-bottom: 1.3rem;
 }

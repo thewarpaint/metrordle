@@ -588,6 +588,21 @@
           buttonsRow.appendChild(secondaryBtn);
           gallery.appendChild(buildExample(buttonsRow, '<code>.btn-primary</code>/<code>.btn-secondary</code> · ✅ consolidado - el par de botones que usa cada juego (comenzar, guardar, compartir…), en todas partes.'));
 
+          var guessBtnWrap = document.createElement('div');
+          guessBtnWrap.style.width = '100%';
+          var guessBtn = document.createElement('button');
+          guessBtn.type = 'button';
+          guessBtn.className = 'design-guess-btn';
+          guessBtn.textContent = 'Adivinar';
+          guessBtnWrap.appendChild(guessBtn);
+          var hintBtn = document.createElement('button');
+          hintBtn.type = 'button';
+          hintBtn.className = 'design-guess-btn';
+          hintBtn.style.marginTop = '0.5rem';
+          hintBtn.textContent = '🪄 Revelar línea (-1 intento)';
+          guessBtnWrap.appendChild(hintBtn);
+          gallery.appendChild(buildExample(guessBtnWrap, '<code>.guess-btn</code>/<code>.hint-btn</code> · exploración, no consolidado todavía - Metroguessr, botón de "Adivinar" y de pista. Más chico y sin borde que <code>.btn-primary</code>, con la esquina de Metro (<code>0 0.7rem 0 0.7rem</code>) que el botón compartido no lleva.'));
+
           var aliasRow = document.createElement('div');
           aliasRow.className = 'leaderboard__alias';
           aliasRow.style.width = '100%';
@@ -602,6 +617,25 @@
           aliasBtn.textContent = 'Guardar';
           aliasRow.appendChild(aliasBtn);
           gallery.appendChild(buildExample(aliasRow, '<code>.leaderboard__alias</code> · ✅ consolidado - fila de alias de cada juego, y ahora también la de <code>/configurar/</code>.'));
+
+          var searchWrap = document.createElement('div');
+          searchWrap.style.width = '100%';
+          var searchInput = document.createElement('input');
+          searchInput.type = 'text';
+          searchInput.className = 'design-search-input';
+          searchInput.value = 'Pino';
+          searchInput.readOnly = true;
+          searchWrap.appendChild(searchInput);
+          var suggestions = document.createElement('div');
+          suggestions.className = 'design-suggestions';
+          ['Pino Suárez', 'Pinos', 'Pantitlán'].forEach(function (name, i) {
+            var item = document.createElement('div');
+            item.className = 'design-suggestion' + (i === 0 ? ' design-suggestion--active' : '');
+            item.textContent = name;
+            suggestions.appendChild(item);
+          });
+          searchWrap.appendChild(suggestions);
+          gallery.appendChild(buildExample(searchWrap, '<code>.search-box</code>/<code>.suggestions</code> · exploración, no consolidado todavía - Metroguessr, el campo donde escribes la estación. Más grande que el campo de alias y con su propio desplegable de autocompletado; misma esquina de Metro que <code>.guess-btn</code>.'));
 
           // .mode-modal itself (the full-screen backdrop) is
           // position: fixed - shown here as just its own .mode-modal__card,
@@ -681,6 +715,76 @@
             persistentPicker.appendChild(btn);
           });
           gallery.appendChild(buildExample(persistentPicker, '<code>.mode-option[aria-pressed]</code> · <code>/configurar/</code> - mismo botón que el modal de arriba, reutilizado como picker que se queda en pantalla mostrando la opción actual (borde/sombra de color propios de esta página, ya que <code>.mode-option</code> en sí no tiene estado "seleccionado" persistente).'));
+
+          // .chev + .date-debug__label + .debug-mode-toggle all live
+          // together on the ?debug=true date-nav row - shown here with
+          // real shared classes, same ✅ consolidado convention as the
+          // buttons/alias examples above.
+          var dateNavRow = buildRow();
+          dateNavRow.style.alignItems = 'center';
+          var chevPrev = document.createElement('button');
+          chevPrev.type = 'button';
+          chevPrev.className = 'chev';
+          chevPrev.textContent = '◀';
+          dateNavRow.appendChild(chevPrev);
+          var dateLabel = document.createElement('span');
+          dateLabel.className = 'date-debug__label';
+          dateLabel.textContent = '12 oct 2026';
+          dateNavRow.appendChild(dateLabel);
+          var chevNext = document.createElement('button');
+          chevNext.type = 'button';
+          chevNext.className = 'chev';
+          chevNext.textContent = '▶';
+          dateNavRow.appendChild(chevNext);
+          gallery.appendChild(buildExample(dateNavRow, '<code>.chev</code> · ✅ consolidado - las flechas de navegación de fecha del modo <code>?debug=true</code>, en cada juego y en <code>/admin/</code>. <code>.chev--compact</code> es la variante más chica de Metroguessr.'));
+
+          var reorderRow = buildRow();
+          reorderRow.style.alignItems = 'center';
+          reorderRow.style.gap = '1.4rem';
+          var upDown = document.createElement('div');
+          upDown.style.display = 'flex';
+          upDown.style.gap = '0.28rem';
+          ['▲', '▼'].forEach(function (g) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'chev';
+            b.textContent = g;
+            upDown.appendChild(b);
+          });
+          reorderRow.appendChild(upDown);
+          var leftRight = document.createElement('div');
+          leftRight.style.display = 'flex';
+          leftRight.style.gap = '0.15rem';
+          ['◀', '▶'].forEach(function (g) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'chev chev--compact';
+            b.textContent = g;
+            leftRight.appendChild(b);
+          });
+          reorderRow.appendChild(leftRight);
+          gallery.appendChild(buildExample(reorderRow, '<code>.chev</code>/<code>.chev--compact</code> · ✅ consolidado (el botón) - Metrordle reutiliza las mismas flechas como control de reordenar por fila: ▲▼ de tamaño normal para subir/bajar en modo normal (en <code>.platform__buttons</code>), ◀▶ compactas para mover izquierda/derecha en modo difícil (en <code>.platform-icon-col__nav</code>) - los contenedores son propios de la página, el botón es el compartido.'));
+
+          var toggleRow = buildRow();
+          var toggle = document.createElement('div');
+          toggle.className = 'debug-mode-toggle';
+          ['Normal', 'Difícil'].forEach(function (label) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'debug-mode-toggle__btn';
+            btn.textContent = label;
+            toggle.appendChild(btn);
+          });
+          toggleRow.appendChild(toggle);
+          gallery.appendChild(buildExample(toggleRow, '<code>.debug-mode-toggle</code> · ✅ consolidado - par de botones chicos para forzar normal/difícil en el modo <code>?debug=true</code>, junto a la navegación de fecha de arriba.'));
+
+          var maxRow = buildRow();
+          var maxBtn = document.createElement('button');
+          maxBtn.type = 'button';
+          maxBtn.className = 'design-map-maximize-btn';
+          maxBtn.textContent = '⛶';
+          maxRow.appendChild(maxBtn);
+          gallery.appendChild(buildExample(maxRow, '<code>.map-maximize-btn</code> · exploración, no consolidado todavía - Metroguessr, el botón redondo que maximiza el mapa (flota fijo sobre el mapa en la página real).'));
         }
 
         renderLinesGallery();

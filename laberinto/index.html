@@ -145,53 +145,8 @@
         stroke-width: 4;
       }
 
-      /* Circular station marker filled by line (--badge-bg/--badge-ink).
-         Base size is the hub; --sm is a neighbor. */
-      .station-circle {
-        align-items: center;
-        background: var(--badge-bg, var(--line));
-        /* Border matches the fill - hides the default <button> border a
-           neighbor would otherwise show, without changing the size. */
-        border: 2px solid var(--badge-bg, var(--line));
-        border-radius: 50%;
-        color: var(--badge-ink, var(--paper));
-        display: flex;
-        height: 4.4rem;
-        justify-content: center;
-        width: 4.4rem;
-      }
-
-      .station-circle--sm {
-        height: 3.4rem;
-        width: 3.4rem;
-      }
-
-      /* Soft invert of the old neutral hub: fill the old border color,
-         icon the old background color. */
-      .station-circle--muted {
-        background: var(--rule-strong);
-        border-color: var(--rule-strong);
-        color: var(--paper-raised);
-      }
-
-      .station-circle__icon {
-        height: 2.2rem;
-        pointer-events: none;
-        width: 2.2rem;
-      }
-
-      .station-circle--sm .station-circle__icon {
-        height: 1.7rem;
-        width: 1.7rem;
-      }
-
-      .station-circle__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
-      }
-
-      /* Position only; the circle look/size comes from .station-circle. */
+      /* Position only; the circle look/size comes from the shared
+         .station-circle (.station-circle--muted on the hub). */
       .map-hub {
         left: 50%;
         position: absolute;

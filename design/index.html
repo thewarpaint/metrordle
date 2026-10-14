@@ -289,15 +289,28 @@
         function renderStationsGallery() {
           var gallery = document.getElementById('stations-gallery');
 
-          var nodeRow = buildRow();
+          var circleRow = buildRow();
+          STATION_SAMPLE.forEach(function (station) {
+            var line = lineById(station.lineId);
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var circle = document.createElement('div');
+            circle.className = 'station-circle station-circle--sm';
+            circle.style.setProperty('--badge-bg', line.color);
+            circle.style.setProperty('--badge-ink', line.textColor);
+            circle.appendChild(makeIcon('station-circle__icon', slug));
+            circleRow.appendChild(circle);
+          });
+          gallery.appendChild(buildExample(circleRow, '<code>.station-circle--sm</code> · ✅ consolidado - vecinos del mapa de trasbordos de Laberinto, coloreados por línea, sin borde visible (el borde iguala el fondo para ocultar el del <code>&lt;button&gt;</code>).'));
+
+          var circleMutedRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
-            var node = document.createElement('div');
-            node.className = 'design-station-node';
-            node.appendChild(makeIcon('design-station-node__icon', slug));
-            nodeRow.appendChild(node);
+            var circle = document.createElement('div');
+            circle.className = 'station-circle station-circle--muted';
+            circle.appendChild(makeIcon('station-circle__icon', slug));
+            circleMutedRow.appendChild(circle);
           });
-          gallery.appendChild(buildExample(nodeRow, '<code>.map-node</code> · mapa de trasbordos, Laberinto - sin color de línea ni nombre (el nombre aparece aparte, en las migas de pan).'));
+          gallery.appendChild(buildExample(circleMutedRow, '<code>.station-circle--muted</code> · ✅ consolidado - estación actual del mapa de Laberinto (tamaño normal) - invertido suave del círculo neutro anterior: fondo con el color del borde viejo (<code>--rule-strong</code>), ícono con el fondo viejo (<code>--paper-raised</code>).'));
 
           // .station-card only ever holds one child in the real game
           // (icon or name, never both) - shown together here, with

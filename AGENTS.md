@@ -304,8 +304,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
   Metroguessr's `.hint-line-badge`, plus the already-decided
   `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
-  an "Estaciones" board (Laberinto's `.map-node`, plain text, the
-  already-decided `.station-card` (Memoria's own board card), the
+  an "Estaciones" board (the already-decided `.station-circle` family -
+  Laberinto's transfer-map circles, `--sm` for a line-colored neighbor
+  and `--muted` for the soft-inverted current-station hub, promoted from
+  Laberinto's own page-local copy; plain text; the
+  already-decided `.station-card` (Memoria's own board card); the
   already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
   `.target-icon-marker` - see "Shared infrastructure" below) plus its
   own `.station--chip` size (Metro Crush's `.legend__chip`), and
@@ -637,7 +640,17 @@ are impossible without a debug override.
   card and Clasificador's own borderless, day's-line-colored flat one,
   four page-local copies of the same idea now one shared class, border
   dropped entirely - see `/design/`'s own "Avisos" bullet above for the
-  full history). Game-specific CSS
+  full history). A seventh pattern joined these: `.station-circle`
+  (Laberinto's transfer-map markers - a filled circle whose border
+  matches its own fill, so a neighbor `<button>`'s default border never
+  shows; base size is the hub, `--sm` a line-colored neighbor, and
+  `--muted` the current-station hub - a soft invert of the old neutral
+  circle, filling the old border color `--rule-strong` with the old
+  background `--paper-raised` as the icon color). Promoted from
+  Laberinto's own page-local copy into `shared.css` so it sits with the
+  rest of the station family and is cataloged in `/design/`, even though
+  Laberinto is its only consumer so far; `.map-hub`/`.map-node` stay
+  page-local for positioning/interaction. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

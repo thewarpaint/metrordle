@@ -851,9 +851,15 @@
           var stageH = els.mapStage.clientHeight || 256;
           var hubX = stageW / 2;
           var hubY = stageH / 2;
-          // 44px edge margin keeps a neighbor off the stage edge; the
-          // 84px floor keeps the fan clear of the wider hub.
-          var radius = Math.max(84, Math.min(stageW / 2 - 44, stageH / 2 - 44));
+          // Elliptical fan - fills width and height independently so cards
+          // use the wider horizontal space instead of a circle capped by
+          // the short vertical one (which crowded 5-6 cards). Each radius
+          // floors at hub + card + gap so no card overlaps the hub.
+          var remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+          var cardHalf = 1.7 * remPx;
+          var floor = 2.7 * remPx + cardHalf + 12;
+          var rx = Math.max(floor, stageW / 2 - cardHalf - 8);
+          var ry = Math.max(floor, stageH / 2 - cardHalf - 8);
 
           var svgNS = 'http://www.w3.org/2000/svg';
           els.mapSpokes.setAttribute('viewBox', '0 0 ' + stageW + ' ' + stageH);
@@ -861,16 +867,13 @@
           els.mapNodes.innerHTML = '';
 
           neighbors.forEach(function (neighbor, i) {
-            // Evenly split a full circle across however many neighbors
-            // there are (2 neighbors -> 180° apart, 6 -> 60° apart, ...),
-            // starting at 12 o'clock (-90°) and stepping clockwise so the
-            // sorted current-line entry from above always lands there.
+            // Evenly spaced around the ellipse, starting at 12 o'clock
+            // (-90°) and stepping clockwise so the sorted current-line
+            // entry from above always lands at the top.
             var angle = -90 + i * (360 / neighbors.length);
-            // Standard polar-to-Cartesian conversion to place each node
-            // relative to the hub at the stage's center.
             var rad = angle * Math.PI / 180;
-            var x = hubX + radius * Math.cos(rad);
-            var y = hubY + radius * Math.sin(rad);
+            var x = hubX + rx * Math.cos(rad);
+            var y = hubY + ry * Math.sin(rad);
 
             var path = document.createElementNS(svgNS, 'path');
             path.setAttribute('d', 'M ' + hubX + ' ' + hubY + ' L ' + x + ' ' + y);

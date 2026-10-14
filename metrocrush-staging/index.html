@@ -1108,6 +1108,9 @@
 
         function renderStatus() {
           els.statusBar.hidden = state.status === 'done';
+          // Empty on the reveal screen - drop it out of flow (like the
+          // status bar) so its reserved line doesn't gap the result.
+          els.toast.hidden = state.status === 'done';
           els.status.textContent = state.timeLeft + 's · ' + state.score +
             (state.score === 1 ? ' punto' : ' puntos');
           els.status.classList.toggle('status-bar__text--low', state.status === 'playing' && state.timeLeft <= 10);

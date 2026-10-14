@@ -289,6 +289,16 @@
         function renderStationsGallery() {
           var gallery = document.getElementById('stations-gallery');
 
+          var nodeRow = buildRow();
+          STATION_SAMPLE.forEach(function (station) {
+            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
+            var node = document.createElement('div');
+            node.className = 'design-station-node';
+            node.appendChild(makeIcon('design-station-node__icon', slug));
+            nodeRow.appendChild(node);
+          });
+          gallery.appendChild(buildExample(nodeRow, '<code>.map-node</code> · mapa de trasbordos, Laberinto - sin color de línea ni nombre (el nombre aparece aparte, en las migas de pan).'));
+
           // .station-card only ever holds one child in the real game
           // (icon or name, never both) - shown together here, with
           // flex-direction/gap/width added locally, just to compare both.
@@ -307,24 +317,7 @@
             card.appendChild(name);
             cardRow.appendChild(card);
           });
-          gallery.appendChild(buildExample(cardRow, '<code>.station-card</code> · ✅ consolidado - tablero de Memoria (antes <code>.memo-card</code>), con ícono y nombre (esquina superior derecha redondeada, mismo patrón que <code>.line-badge</code>, pero sin color de línea).'));
-
-          var invertedCardRow = buildRow();
-          STATION_SAMPLE.forEach(function (station) {
-            var slug = MetroShared.STATION_ICON_SLUGS[station.name];
-            var card = document.createElement('div');
-            card.className = 'station-card station-card--inverted';
-            card.style.flexDirection = 'column';
-            card.style.gap = '0.25rem';
-            card.style.width = '4.6rem';
-            card.appendChild(makeIcon('station-card__icon', slug));
-            var name = document.createElement('span');
-            name.className = 'station-card__name';
-            name.textContent = station.name;
-            card.appendChild(name);
-            invertedCardRow.appendChild(card);
-          });
-          gallery.appendChild(buildExample(invertedCardRow, '<code>.station-card--inverted</code> · ✅ consolidado - estación actual del mapa de trasbordos de Laberinto - mismo card, con el fondo y el texto/ícono intercambiados (relleno <code>--ink</code>, texto <code>--paper</code>) para que no se pierda contra la página; se invierte solo en modo oscuro.'));
+          gallery.appendChild(buildExample(cardRow, '<code>.station-card</code> · ✅ consolidado - tablero de Memoria, antes <code>.memo-card</code> (esquina superior derecha redondeada, mismo patrón que <code>.line-badge</code>, pero sin color de línea).'));
 
           var badgeRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {
@@ -338,7 +331,7 @@
             badge.appendChild(makeIcon('station__icon', slug));
             badgeRow.appendChild(badge);
           });
-          gallery.appendChild(buildExample(badgeRow, '<code>.station</code> · ✅ consolidado - ficha de Metro Crush, marcador de revelación de Metroguessr y vecinos del mapa de trasbordos de Laberinto, los tres coloreados por línea.'));
+          gallery.appendChild(buildExample(badgeRow, '<code>.station</code> · ✅ consolidado - ficha de Metro Crush y marcador de revelación de Metroguessr, ambos ahora iguales.'));
 
           var chipRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {

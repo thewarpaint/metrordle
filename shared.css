@@ -789,6 +789,17 @@ input[type="text"]:disabled {
   text-align: center;
 }
 
+/* Swaps the card's fill and ink for a solid, high-contrast block that
+   doesn't get lost against the page; inverts for free in dark mode. */
+.station-card--inverted {
+  background: var(--ink);
+}
+
+.station-card--inverted .station-card__icon,
+.station-card--inverted .station-card__name {
+  color: var(--paper);
+}
+
 /* Square with a rounded top-right corner, filled with --badge-bg (same
    convention as .line-badge), icon tinted via --badge-ink. Coalesces 4
    near-identical copies - Metro Crush's .tile and .legend__chip,

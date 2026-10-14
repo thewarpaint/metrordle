@@ -145,13 +145,8 @@
         stroke-width: 4;
       }
 
-      /* Positioning + size, plus stacking the hub's icon over its name
-         (the shared .station-card centers a single child; here it holds
-         both). The rest of the card look - well background, metro
-         corner - comes from the shared .station-card the hub also
-         carries. Wider than a neighbor since it shows the current
-         station's name too, not just an icon; aspect-ratio from
-         .station-card keeps it square. */
+      /* Position/size + column stack (icon over name); the card look
+         comes from the shared .station-card. Wide enough for the name. */
       .map-hub {
         flex-direction: column;
         gap: 0.2rem;
@@ -162,10 +157,8 @@
         width: 5.4rem;
       }
 
-      /* Positioning + size + interaction only; the badge look (line
-         color via --badge-bg/--badge-ink, metro corner, icon centering)
-         comes from the shared .station the node also carries -
-         aspect-ratio from .station keeps it square. */
+      /* Position/size/interaction only; the line-colored badge look
+         comes from the shared .station. */
       .map-node {
         cursor: pointer;
         padding: 0;
@@ -349,7 +342,7 @@
 
         <div class="map-stage" id="map-stage">
           <svg class="map-spokes" id="map-spokes" aria-hidden="true"></svg>
-          <div class="station-card map-hub" id="map-hub">
+          <div class="station-card station-card--inverted map-hub" id="map-hub">
             <span class="station-card__name" id="map-hub-name"></span>
           </div>
           <div id="map-nodes"></div>
@@ -827,17 +820,12 @@
           });
         }
 
-        // The neighbors carry no text - each is read by its real Metro
-        // pictogram and line color, the same way riders navigate the
-        // actual system; only the central hub (the current station) also
-        // spells out its name under its pictogram, since that's the one
-        // stop you most need to be sure of. Breadcrumb below still spells
-        // out the whole trail in words, and each neighbor keeps a
-        // title/aria-label for anyone who wants to confirm before
-        // clicking or is using a screen reader.
+        // Neighbors are pictogram + line color only (read like the real
+        // system); only the hub also names its station. Each neighbor
+        // keeps a title/aria-label for hover/screen readers.
         function renderMap() {
-          // Rebuild the hub's icon each render (it changes with the
-          // current station), stacked above its always-present name span.
+          // Icon changes with the current station, so rebuild it each
+          // render, above the always-present name span.
           var oldHubIcon = els.mapHub.querySelector('.station-card__icon');
           if (oldHubIcon) oldHubIcon.remove();
           els.mapHub.insertBefore(makeIcon(state.currentStation, 'station-card__icon'), els.mapHubName);
@@ -863,12 +851,8 @@
           var stageH = els.mapStage.clientHeight || 256;
           var hubX = stageW / 2;
           var hubY = stageH / 2;
-          // Radius is capped by whichever dimension is tighter (a wide but
-          // short card, or vice versa) minus a 44px margin, so a neighbor
-          // (now a ~3.4rem .station square, half ~27px) never spills past
-          // the stage edge. The 84px floor keeps the fan clear of the
-          // bigger .station-card hub (~5.4rem, half ~43px) even on a small
-          // stage - below it the neighbors would start overlapping the hub.
+          // 44px edge margin keeps a neighbor off the stage edge; the
+          // 84px floor keeps the fan clear of the wider hub.
           var radius = Math.max(84, Math.min(stageW / 2 - 44, stageH / 2 - 44));
 
           var svgNS = 'http://www.w3.org/2000/svg';

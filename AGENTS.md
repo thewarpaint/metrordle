@@ -305,9 +305,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   Metroguessr's `.hint-line-badge`, plus the already-decided
   `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
   an "Estaciones" board (plain text, the
-  already-decided `.station-card` (Memoria's own board card, and
-  Laberinto's own current-station hub, which stacks the station's icon
-  over its name),
+  already-decided `.station-card` (Memoria's own board card) and its
+  `.station-card--inverted` modifier (Laberinto's own current-station
+  hub, which stacks the station's icon over its name on an ink-filled
+  card so it doesn't get lost against the page),
   the already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
   `.target-icon-marker`/Laberinto's own transfer-map neighbors, all
   colored by line - see "Shared infrastructure" below) plus its
@@ -588,7 +589,12 @@ are impossible without a debug override.
   icon over its name - the one `.station-card` that holds both children
   at once, via a page-local `.map-hub` adding `flex-direction: column`
   plus positioning/size - replacing its own former neutral
-  bordered-circle hub); `.station` -
+  bordered-circle hub; it carries the `.station-card--inverted` modifier
+  too - a shared swap of the card's pale `--paper-well` fill and `--ink`
+  foreground for an `--ink` fill with `--paper` text/icon, the same
+  monochrome-invert `.btn-primary` uses so it flips for free in dark
+  mode, added so the hub reads as a solid block instead of getting lost
+  against the page); `.station` -
   same square-with-rounded-top-right-corner shape, filled with
   `--badge-bg`/tinted via `--badge-ink` (falling back to a solid `--ink`
   background with `--paper` icon) - the third settled pattern, coalescing

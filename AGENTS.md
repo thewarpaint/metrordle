@@ -528,6 +528,18 @@ about `//`/`/* */` comments in the actual game/test code.)
   the service worker, then redirects home. Deliberately self-contained
   (no `/shared.js`/`/shared.css` dependency), since it exists to recover
   from a *broken* cache.
+- **`/map/`** - an internal diagnostic page (not linked from any game's
+  nav, `noindex`, not precached - same as `/admin/`/`/design/`; English
+  copy like `/status/`). Plots every `MetroShared.STATION_COORDS` station
+  on the same OpenFreeMap/Leaflet map Metroguessr uses, draws each
+  `MetroShared.LINES` line as a polyline through its stations in the
+  line's color (so a bad coordinate visibly spikes off its line), and a
+  side panel auto-flags station pairs under 200m apart (the San Cosme/
+  Revolución class of bug - two distinct stations on the same point) and
+  any line whose stations are missing coordinates (currently Línea 12).
+  Built to catch exactly the kind of data error reported for Metroguessr
+  #29. Fully interactive (pan/zoom/search), unlike Metroguessr's locked
+  game map.
 
 Each game is deterministic per calendar day: a seeded RNG
 (`MetroShared.createSeededRandom('<salt>-' + dateKey)`) derives that
@@ -549,7 +561,12 @@ are impossible without a debug override.
   variantClass, title, bodyText)` for every game's own end-of-round
   `.notice` banner (see `/design/`'s own "Avisos" bullet above), and
   the site-wide config object (`loadConfig`/`saveConfig`/`getThemeMode`/
-  `applyThemeMode`/`setThemeMode` - see "Site config" below).
+  `applyThemeMode`/`setThemeMode` - see "Site config" below). The shared
+  data tables also live here: `LINES` (per-line station order + colors),
+  `STATION_ICON_SLUGS` (station -> pictogram), and `STATION_COORDS`
+  (`[name, lat, lng]` for Metroguessr's map and `/map/` - moved out of
+  `metroguessr/index.html` so both read the exact same recorded data;
+  Línea 12 isn't in the source dataset yet).
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <!-- Internal diagnostic page: plots every recorded station coordinate
+         so bad data (a station off its line, or two stations on top of
+         each other) is visible at a glance. Not a game, not linked from
+         any nav, noindex, and left out of sw.js's PRECACHE_URLS - same
+         as /admin/ and /design/. English copy, same as /status/. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https://tiles.openfreemap.org; font-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Station map · Metrordle (diagnostics)</title>
+
+    <link rel="icon" href="/favicon.png">
+    <link rel="stylesheet" href="/shared.css">
+
+    <!-- Applies a saved theme override before first paint; mirrors
+         shared.js's loadConfig()/applyThemeMode() (not loaded yet here). -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.css">
+
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--paper-well); color: var(--ink); font-family: 'Overpass', sans-serif; }
+
+      #map { position: fixed; inset: 0; background: var(--paper-well); }
+
+      /* Diagnostics panel over the map */
+      .panel {
+        position: fixed;
+        top: 0.8rem;
+        left: 0.8rem;
+        z-index: 1000;
+        width: 20rem;
+        max-width: calc(100vw - 1.6rem);
+        max-height: calc(100vh - 1.6rem);
+        display: flex;
+        flex-direction: column;
+        background: color-mix(in srgb, var(--paper) 92%, transparent);
+        border: 1px solid var(--rule);
+        border-radius: 0.6rem;
+        box-shadow: 0 6px 24px var(--shadow);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        overflow: hidden;
+      }
+
+      .panel__head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: space-between;
+        padding: 0.7rem 0.85rem 0.5rem;
+      }
+      .panel__title { font-size: 0.95rem; font-weight: 800; margin: 0; }
+      .panel__count { color: var(--ink-soft); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+
+      .panel__body { overflow-y: auto; padding: 0 0.85rem 0.85rem; }
+
+      .search { width: 100%; }
+
+      .section__label {
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin: 0.9rem 0 0.35rem;
+        text-transform: uppercase;
+      }
+      .section__label--warn { color: var(--danger); }
+
+      .hits { list-style: none; margin: 0; padding: 0; }
+      .hit {
+        align-items: center;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        display: flex;
+        font-size: 0.8rem;
+        gap: 0.5rem;
+        justify-content: space-between;
+        padding: 0.35rem 0.45rem;
+      }
+      .hit:hover { background: var(--paper-well); }
+      .hit__dist { color: var(--danger); font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+      .hit__names { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .hit--ok { color: var(--ink-soft); cursor: default; }
+      .hit--ok:hover { background: none; }
+
+      .muted { color: var(--ink-soft); font-size: 0.8rem; }
+
+      /* Station tooltip/popup content */
+      .pin-pop { font-family: 'Overpass', sans-serif; }
+      .pin-pop__name { font-weight: 800; }
+      .pin-pop__coord { color: #555; font-family: ui-monospace, monospace; font-size: 0.82rem; }
+      .pin-pop__lines { margin-top: 0.2rem; }
+      .leaflet-popup-content { margin: 0.55rem 0.7rem; }
+
+      /* Keep Leaflet's own controls clear of the panel on wide screens */
+      .leaflet-top.leaflet-left { margin-left: 21rem; }
+      @media (max-width: 640px) {
+        .leaflet-top.leaflet-left { margin-left: 0; }
+        .panel { width: calc(100vw - 1.6rem); max-height: 45vh; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <div class="panel" id="panel">
+      <div class="panel__head">
+        <h1 class="panel__title">Station map</h1>
+        <span class="panel__count" id="count"></span>
+      </div>
+      <div class="panel__body">
+        <input type="text" class="search" id="search" placeholder="Jump to a station&hellip;" autocomplete="off" aria-label="Jump to a station">
+        <div id="search-hits"></div>
+
+        <p class="section__label section__label--warn">Suspiciously close pairs (&lt; 200 m)</p>
+        <ul class="hits" id="pairs"></ul>
+
+        <p class="section__label">Lines missing coordinates</p>
+        <div id="missing"></div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.3/leaflet-maplibre-gl.js"></script>
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var $ = function (id) { return document.getElementById(id); };
+
+        // OpenFreeMap vector styles, same as Metroguessr's map. Keep labels
+        // on here - place names help orient while checking positions.
+        var MAPLIBRE_STYLES = {
+          light: 'https://tiles.openfreemap.org/styles/positron',
+          dark: 'https://tiles.openfreemap.org/styles/dark',
+        };
+        var TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, tiles by <a href="https://openfreemap.org">OpenFreeMap</a>';
+
+        function prefersDark() {
+          var mode = MetroShared.getThemeMode();
+          if (mode === 'dark') return true;
+          if (mode === 'light') return false;
+          return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+
+        // The single source of truth, shared with Metroguessr.
+        var COORDS = MetroShared.STATION_COORDS;          // [[name, lat, lng], ...]
+        var byName = {};
+        COORDS.forEach(function (s) { byName[s[0]] = { lat: s[1], lng: s[2] }; });
+
+        // name -> [line ids] (a transfer station is on several).
+        var linesByStation = {};
+        MetroShared.LINES.forEach(function (line) {
+          line.stations.forEach(function (name) {
+            (linesByStation[name] = linesByStation[name] || []).push(line.id);
+          });
+        });
+
+        function haversineM(a, b) {
+          var R = 6371000;
+          var dLat = (b.lat - a.lat) * Math.PI / 180;
+          var dLng = (b.lng - a.lng) * Math.PI / 180;
+          var l1 = a.lat * Math.PI / 180, l2 = b.lat * Math.PI / 180;
+          var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(l1) * Math.cos(l2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+          return 2 * R * Math.asin(Math.sqrt(h));
+        }
+
+        var map = L.map('map', { attributionControl: false, zoomControl: true }).setView([19.4326, -99.1332], 12);
+        L.control.attribution({ prefix: false, position: 'bottomright' }).addAttribution(TILE_ATTRIBUTION).addTo(map);
+
+        var glLayer = null;
+        function setTileLayer() {
+          if (glLayer) map.removeLayer(glLayer);
+          glLayer = L.maplibreGL({ style: MAPLIBRE_STYLES[prefersDark() ? 'dark' : 'light'], attributionControl: false }).addTo(map);
+        }
+        setTileLayer();
+        if (window.matchMedia) {
+          var mq = window.matchMedia('(prefers-color-scheme: dark)');
+          var onScheme = function () { if (MetroShared.getThemeMode() === 'system') setTileLayer(); };
+          if (mq.addEventListener) mq.addEventListener('change', onScheme); else if (mq.addListener) mq.addListener(onScheme);
+        }
+
+        // --- Draw each line as a polyline through its stations, in the
+        //     line's color. A bad coordinate makes the line visibly spike. ---
+        var missingByLine = {};
+        MetroShared.LINES.forEach(function (line) {
+          var pts = [];
+          line.stations.forEach(function (name) {
+            if (byName[name]) {
+              pts.push([byName[name].lat, byName[name].lng]);
+            } else {
+              (missingByLine[line.name] = missingByLine[line.name] || []).push(name);
+            }
+          });
+          if (pts.length >= 2) {
+            L.polyline(pts, { color: line.color, weight: 3.5, opacity: 0.65 }).addTo(map);
+          }
+        });
+
+        // --- Precompute suspiciously-close pairs (the San Cosme/Revolución
+        //     class of bug: two distinct stations at nearly the same point). ---
+        var CLOSE_M = 200;
+        var closePairs = [];
+        for (var i = 0; i < COORDS.length; i++) {
+          for (var j = i + 1; j < COORDS.length; j++) {
+            var d = haversineM({ lat: COORDS[i][1], lng: COORDS[i][2] }, { lat: COORDS[j][1], lng: COORDS[j][2] });
+            if (d < CLOSE_M) closePairs.push({ a: COORDS[i][0], b: COORDS[j][0], d: d });
+          }
+        }
+        closePairs.sort(function (x, y) { return x.d - y.d; });
+        var flagged = {};
+        closePairs.forEach(function (p) { flagged[p.a] = flagged[p.b] = true; });
+
+        // --- Station markers ---
+        var markerByName = {};
+        var styleFor = getComputedStyle(document.documentElement);
+        var inkColor = styleFor.getPropertyValue('--ink').trim() || '#111';
+        var paperColor = styleFor.getPropertyValue('--paper').trim() || '#fff';
+        var dangerColor = styleFor.getPropertyValue('--danger').trim() || '#c0392b';
+
+        COORDS.forEach(function (s) {
+          var name = s[0], lat = s[1], lng = s[2];
+          var isFlagged = !!flagged[name];
+          var ids = linesByStation[name] || [];
+          var marker = L.circleMarker([lat, lng], {
+            radius: isFlagged ? 7 : 5,
+            color: isFlagged ? dangerColor : inkColor,
+            weight: isFlagged ? 3 : 1.5,
+            fillColor: paperColor,
+            fillOpacity: 1,
+          }).addTo(map);
+          marker.bindTooltip(name, { direction: 'top' });
+          marker.bindPopup(
+            '<div class="pin-pop"><div class="pin-pop__name">' + escapeHtml(name) + '</div>' +
+            '<div class="pin-pop__coord">' + lat + ', ' + lng + '</div>' +
+            '<div class="pin-pop__lines muted">' + (ids.length ? 'Lines: ' + ids.join(', ') : 'On no line') + '</div></div>'
+          );
+          markerByName[name] = marker;
+        });
+
+        function escapeHtml(s) {
+          return String(s).replace(/[&<>"]/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+          });
+        }
+
+        // Fit the view to every plotted station.
+        map.fitBounds(COORDS.map(function (s) { return [s[1], s[2]]; }), { padding: [40, 40] });
+
+        function focus(name) {
+          var p = byName[name];
+          if (!p) return;
+          map.setView([p.lat, p.lng], 16, { animate: true });
+          var m = markerByName[name];
+          if (m) m.openPopup();
+        }
+
+        // --- Panel: counts, pairs, missing, search ---
+        $('count').textContent = COORDS.length + ' stations';
+
+        var pairsEl = $('pairs');
+        if (!closePairs.length) {
+          pairsEl.innerHTML = '<li class="hit hit--ok">None — every station is &ge; 200 m from the rest.</li>';
+        } else {
+          closePairs.forEach(function (p) {
+            var li = document.createElement('li');
+            li.className = 'hit';
+            li.innerHTML = '<span class="hit__names"></span><span class="hit__dist">' + Math.round(p.d) + ' m</span>';
+            li.querySelector('.hit__names').textContent = p.a + ' ↔ ' + p.b;
+            li.addEventListener('click', function () {
+              map.fitBounds([[byName[p.a].lat, byName[p.a].lng], [byName[p.b].lat, byName[p.b].lng]], { padding: [120, 120], maxZoom: 17 });
+            });
+            pairsEl.appendChild(li);
+          });
+        }
+
+        var missEl = $('missing');
+        var missNames = Object.keys(missingByLine);
+        if (!missNames.length) {
+          missEl.innerHTML = '<p class="muted">None — every line\'s stations have coordinates.</p>';
+        } else {
+          missNames.forEach(function (lineName) {
+            var p = document.createElement('p');
+            p.className = 'muted';
+            p.style.margin = '0.15rem 0';
+            p.textContent = lineName + ': ' + missingByLine[lineName].length + ' missing (' + missingByLine[lineName].join(', ') + ')';
+            missEl.appendChild(p);
+          });
+        }
+
+        var searchEl = $('search');
+        var hitsEl = $('search-hits');
+        searchEl.addEventListener('input', function () {
+          var q = searchEl.value.trim().toLowerCase();
+          hitsEl.innerHTML = '';
+          if (!q) return;
+          var matches = COORDS.filter(function (s) { return s[0].toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+          var ul = document.createElement('ul');
+          ul.className = 'hits';
+          matches.forEach(function (s) {
+            var li = document.createElement('li');
+            li.className = 'hit';
+            li.textContent = s[0];
+            li.addEventListener('click', function () { focus(s[0]); });
+            ul.appendChild(li);
+          });
+          hitsEl.appendChild(ul);
+        });
+      })();
+    </script>
+  </body>
+</html>

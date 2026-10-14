@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html
+  lang="es-MX"
+>
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Defense-in-depth against XSS, in addition to (not instead of) the
+      app's actual mitigation: every place Firestore-sourced leaderboard
+      data (aliases) gets rendered uses textContent, never innerHTML -
+      see renderLeaderboard() below. 'unsafe-inline' is needed for
+      script-src/style-src because this site has no build step to
+      generate per-script hashes/nonces for its inline <script>/<style>
+      blocks, so this policy does NOT block an injected inline <script>
+      or onerror= handler - but it does block loading a remote script
+      from any host but this site and Firebase's, block plugin/object
+      embeds, lock down <base>/form targets, and (via connect-src) keep
+      an injected script from exfiltrating data anywhere but Firebase.
+      gstatic.com is in connect-src too, not just script-src - with
+      DevTools' source maps enabled, the browser fetches the Firebase
+      SDK's own *.js.map files from that same already-trusted host as a
+      plain connect-src load.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Staging clone of /metrocrush/ for perf-testing the in-place board
+         renderer before shipping it. Not a player-facing route: noindex,
+         unlinked, and kept out of sw.js's PRECACHE_URLS. -->
+    <meta name="robots" content="noindex">
+    <meta name="title" content="🍬 Metro Crush (staging) · Metrordle">
+    <meta
+      name="description"
+      content="Intercambia estaciones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo."
+    >
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://metrordle.com/metrocrush/">
+    <meta property="og:title" content="🍬 Metro Crush · Metrordle">
+    <meta property="og:description" content="Intercambia estaciones para formar filas de 3 o más de la misma línea del Metro de CDMX antes de que se acabe el tiempo.">
+    <meta property="og:image" content="https://metrordle.com/images/og-image--1200-715.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="715">
+    <meta property="og:image:alt" content="Un tablero estilo Wordle deletrea METRORDLE, con el logo del Metro de la Ciudad de México y la silueta de la ciudad en dos de las casillas.">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Metro Crush">
+
+    <title>🍬 Metro Crush (staging) · Metrordle</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!--
+      Applies a saved theme override (see /configurar/) before first
+      paint, so a light/dark choice doesn't flash the OS default for a
+      frame - shared.js (loaded at the end of <body>) runs too late for
+      that. Self-contained on purpose: mirrors shared.js's own
+      loadConfig()/applyThemeMode(), but shared.js hasn't loaded yet at
+      this point in <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .sr-only {
+        border: 0;
+        clip: rect(0 0 0 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        width: 1px;
+      }
+
+      .legend {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: center;
+        padding: 0 1.1rem 1rem;
+      }
+
+      .status-bar {
+        align-items: center;
+        background: var(--paper-well);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 1.1rem;
+      }
+
+      .status-bar[hidden] { display: none; }
+
+      .status-bar__text {
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .status-bar__text--low { color: var(--danger); font-weight: 700; }
+
+      .timer-track {
+        background: var(--paper-well);
+        border-bottom: 1px solid var(--rule);
+        height: 0.35rem;
+        overflow: hidden;
+      }
+
+      .timer-track[hidden] { display: none; }
+
+      .timer-bar {
+        background: var(--line);
+        height: 100%;
+        transition: width 1s linear;
+        width: 100%;
+      }
+
+      .board-wrap {
+        padding: 1rem 1.1rem;
+        position: relative;
+        transition: height 1s ease, padding-top 1s ease, padding-bottom 1s ease;
+      }
+
+      /* Only set once the round is over and the board is being (or
+         already is) collapsed down to make room for the reveal below -
+         never during live play, where a rising .score-popup (see its own
+         scorePopupRise keyframes, up to translate(-50%, -160%) above a
+         top-row match) or the idle-hint bounce can legitimately extend
+         past the wrap's own edges and must not be clipped. */
+      .board-wrap--collapsed { overflow: hidden; }
+
+      .board {
+        display: grid;
+        gap: 0.32rem;
+        grid-template-columns: repeat(var(--cols), 1fr);
+        margin: 0 auto;
+        max-width: 24rem;
+        touch-action: manipulation;
+      }
+
+      /* Shape/background now live in shared.css's own .station - only
+         the interactive/animation states below stay page-local. */
+      .tile {
+        cursor: pointer;
+        position: relative;
+        touch-action: manipulation;
+        transition: transform 0.12s ease, box-shadow 0.15s ease;
+      }
+
+      .tile:disabled { cursor: default; }
+
+      .tile--selected {
+        box-shadow: 0 0 0 3px var(--paper-raised), 0 0 0 5px var(--focus);
+        transform: scale(1.06);
+      }
+
+      .tile--empty { background: transparent; visibility: hidden; }
+
+      .tile--shake { animation: tileShake 0.32s ease; }
+
+      /* --pop-scale lets a chained combo's pop hit visibly harder than
+         a lone match - set inline per tile by render() from the
+         cascade step in play, defaulting here to the original,
+         no-combo intensity when it isn't. */
+      .tile--pop { animation: tilePop 0.22s ease forwards; }
+
+      .tile--drop { animation: tileDrop 0.26s ease; }
+
+      .tile--hint { animation: tileHint 0.9s ease-in-out infinite; }
+
+      /* Slides a tile in from wherever the OTHER half of a swap used to
+         sit, instead of the two just teleporting into their new slots -
+         --swap-dx/--swap-dy are set inline per tile by animateSwapIn()
+         from that tile's own pre-swap bounding rect. */
+      .tile--swap-in { animation: tileSwapIn 0.16s ease; }
+
+      @keyframes tileHint {
+        0%, 100% { transform: none; }
+        50% { transform: translateY(-12%); }
+      }
+
+      @keyframes tileShake {
+        10%, 90% { transform: translateX(-3px); }
+        20%, 80% { transform: translateX(4px); }
+        30%, 50%, 70% { transform: translateX(-6px); }
+        40%, 60% { transform: translateX(6px); }
+      }
+
+      @keyframes tilePop { to { transform: scale(var(--pop-scale, 1.3)); opacity: 0; } }
+
+      @keyframes tileDrop {
+        from { transform: translateY(-135%); opacity: 0.3; }
+        to { transform: none; opacity: 1; }
+      }
+
+      @keyframes tileSwapIn {
+        from { transform: translate(var(--swap-dx, 0), var(--swap-dy, 0)); }
+        to { transform: none; }
+      }
+
+      /* A brief punch-in on the whole board for a 3+ chained combo, on
+         top of each tile's own (bigger) pop - see triggerBoardImpact().
+         A scale pulse rather than reusing .tile--shake's motion, since
+         shake already reads as "invalid move" (flashInvalid()) and a
+         big combo is the opposite of that. */
+      .board--impact { animation: boardImpact 0.25s ease; }
+
+      @keyframes boardImpact {
+        0%, 100% { transform: scale(1); }
+        30% { transform: scale(1.015); }
+      }
+
+      /* A "+N" that rises and fades over a match, positioned by
+         showScorePopup() from the matched group's own on-screen
+         centroid - absolute against .board-wrap (position: relative
+         above), which is also why it's excluded from .board's own
+         full-teardown render() (a sibling, not a board child). */
+      .score-popup {
+        position: absolute;
+        pointer-events: none;
+        font-weight: 800;
+        font-size: 1.05rem;
+        color: var(--ok);
+        text-shadow: 0 1px 3px var(--shadow);
+        transform: translate(-50%, -50%);
+        animation: scorePopupRise 0.7s ease forwards;
+        z-index: 10;
+      }
+
+      @keyframes scorePopupRise {
+        0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        15% { transform: translate(-50%, -60%) scale(1.05); opacity: 1; }
+        100% { transform: translate(-50%, -160%) scale(1); opacity: 0; }
+      }
+
+      .toast {
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        font-weight: 700;
+        height: 1.2rem;
+        margin: 0 0 0.2rem;
+        text-align: center;
+      }
+
+      .start-overlay {
+        align-items: center;
+        background: var(--paper-well);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1.1rem;
+        position: absolute;
+      }
+
+      .start-overlay[hidden] { display: none; }
+
+      .start-overlay__panel {
+        max-width: 17rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      .start-overlay__text {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+      }
+
+      .start-overlay__text strong { color: var(--ink); }
+
+      .start-overlay__modes {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .board--done .tile:not(.tile--empty) { opacity: 0.5; }
+
+      /* Explicit background, not just a border/color override - .station's
+         own fallback (no --badge-bg set) is a dark --ink fill, not this
+         light neutral look, so this can't rely on that fallback alone. */
+      .tile--neutral {
+        background: var(--paper-well);
+        border: 2px solid var(--ink-soft);
+        color: var(--ink);
+      }
+
+      .reveal { padding: 1.1rem; text-align: center; }
+
+      .reveal[hidden] { display: none; }
+
+      .reveal__score {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 2.4rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.2rem;
+      }
+
+      .reveal__score-label {
+        color: var(--ink-soft);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+      }
+
+      /* Per-line tile-match breakdown on the reveal screen, below the
+         .stat-grid above - reuses .legend__chip as-is (same colored
+         pictogram every active line already gets in the pre-round
+         legend) rather than inventing a second icon style for the same
+         thing. */
+      .match-summary { margin-bottom: 1.1rem; }
+
+      .match-summary[hidden] { display: none; }
+
+      .match-summary__title {
+        color: var(--ink-soft);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .match-summary__list {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        justify-content: center;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .match-summary__item {
+        align-items: center;
+        display: flex;
+        gap: 0.3rem;
+      }
+
+      .match-summary__count {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      /* Metro Crush-only leaderboard styling: everything else
+         (.leaderboard__title, .leaderboard__row, etc., including
+         .leaderboard__score-badge - identical across every game with a
+         hard-mode badge) lives in shared.css. The number itself gets a
+         min-width + right-align rather than a fixed width - unlike
+         Metrordle/Metroguessr's always-one-digit attempts count, a
+         Metro Crush score can run to several digits, so a fixed width
+         would clip a big one, but with no width at all a short vs.
+         long score shifts the 🧠 badge's own column instead of just
+         the number. min-width covers up to firestore.rules' own 20000
+         ceiling for this collection (5 digits) before it has to grow
+         past that and shift the badge anyway. */
+      .leaderboard {
+        /* .reveal (this section's own parent, above) centers
+           everything by default - left-aligned here instead, same
+           fix Metroguessr's own leaderboard already needed for the
+           same reason (Memoria's own .reveal never centers to begin
+           with, so it never needed this), so alias names read like a
+           list rather than each floating in the middle of its row. */
+        text-align: left;
+      }
+
+      .leaderboard__score {
+        align-items: center;
+        display: flex;
+        gap: 0.35rem;
+      }
+
+      .leaderboard__score-number {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        min-width: 2.7rem;
+        text-align: right;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 18 L12 6 L20 18" stroke="var(--ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="4" cy="18" r="2.4" fill="var(--ink)"/>
+          <circle cx="12" cy="6" r="2.4" fill="var(--ink)"/>
+          <circle cx="20" cy="18" r="2.4" fill="var(--ink)"/>
+        </svg>
+        <span class="brand__text">Metrordle: Metro Crush · Minijuego del Metro CDMX</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      </div>
+
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1 id="game-title">Metrordle: Metro Crush</h1>
+          <p class="dek">
+            Intercambia dos estaciones adyacentes para formar filas de 3 o más
+            de la misma línea. Filas más largas valen más puntos, y si
+            encadenas varias seguidas, todavía más. Forma los que puedas
+            en 60 segundos.
+          </p>
+        </div>
+
+        <div class="legend" id="legend"></div>
+        <p class="sr-only" id="legend-sr"></p>
+
+        <div class="status-bar" id="status-bar">
+          <span class="status-bar__text" id="status"></span>
+        </div>
+
+        <div class="timer-track" id="timer-track" hidden>
+          <div class="timer-bar" id="timer-bar"></div>
+        </div>
+
+        <p class="toast" id="toast" aria-live="polite"></p>
+
+        <div class="board-wrap" id="board-wrap">
+          <div class="board" id="board" style="--cols: 7;"></div>
+
+          <div class="start-overlay" id="start-overlay">
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text">
+                <strong>Modo difícil:</strong> las estaciones no muestran su
+                línea — solo se revelan un instante al formar un grupo.
+              </p>
+              <div class="start-overlay__modes">
+                <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
+                <button type="button" class="btn-secondary" id="start-hard-btn">Jugar modo difícil</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal" id="reveal" hidden>
+          <div class="notice notice--success" id="reveal-banner"></div>
+          <div class="reveal__score" id="reveal-score">0</div>
+          <div class="reveal__score-label">puntos</div>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-groups">0</div>
+              <div class="stat-box__label">Grupos</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-combo">×1</div>
+              <div class="stat-box__label">Mejor combo</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-run">3</div>
+              <div class="stat-box__label">Fila más larga</div>
+            </div>
+          </div>
+
+          <div class="match-summary" id="match-summary" hidden>
+            <p class="match-summary__title">Coincidencias por línea</p>
+            <ul class="match-summary__list" id="match-summary-list"></ul>
+          </div>
+
+          <div class="leaderboard" id="leaderboard">
+            <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+            <p class="leaderboard__record" id="leaderboard-record" hidden></p>
+            <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+            <ol class="leaderboard__list" id="leaderboard-list"></ol>
+            <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+          </div>
+
+          <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+
+          <div id="game-promo-slot"></div>
+        </div>
+      </div>
+
+      <p class="credit">
+        Basado en el trazado real de las líneas del Metro de la Ciudad de México.
+      </p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var ALL_LINES = MetroShared.LINES.map(function (line) {
+          return {
+            id: line.id,
+            name: line.name,
+            color: line.color,
+            textColor: line.textColor,
+            stations: line.stations,
+          };
+        });
+
+        var START_DATE_KEY = '2026-09-12';
+        var ROWS = 8;
+        var COLS = 7;
+        var KIND_COUNT = 6;
+        var ROUND_SECONDS = 60;
+        var POP_MS = 220;
+        var DROP_MS = 260;
+        // Slightly longer than .tile--swap-in's own 0.16s animation so
+        // resolveStep() never cuts the slide short.
+        var SWAP_MS = 180;
+        var HINT_IDLE_MS = 5000;
+        var HARD_MODE_MULTIPLIER = 2;
+        var SHARE_URL = 'https://metrordle.com/metrocrush/';
+        var LEADERBOARD_COLLECTION = 'metrocrush-leaderboard';
+        var LEADERBOARD_SIZE = 5;
+        // Metro Crush has no daily win/loss outcome the way the other
+        // four games do (its rounds are scored, not "won"), so a streak
+        // here means something different: extended by any round that
+        // ends with a non-zero score, reset to 0 only by a genuine
+        // 0-point round - see endRound()'s own updateStreakForResult()
+        // call.
+        var STREAK_STORAGE_KEY = 'metrocrush:streak';
+
+        var delay = MetroShared.prefersReducedMotion()
+          ? function () { return 0; }
+          : function (ms) { return ms; };
+
+        function $(id) { return document.getElementById(id); }
+
+        function shuffle(array, rand) {
+          var copy = array.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        // Each line needs one station pictogram to stand in for its "kind"
+        // on the board. Picking it fresh per day (seeded off dateKey)
+        // instead of a single fixed station per line means a returning
+        // line doesn't always show the same icon. Some stations transfer
+        // between lines, so slugs are de-duplicated across today's picks -
+        // two active lines showing the same pictogram would make hard
+        // mode's icon-only board ambiguous.
+        function pickStationIcons(lines, dateKey) {
+          var iconRand = MetroShared.createSeededRandom('metrordle-metrocrush-icons-' + dateKey);
+          var usedSlugs = {};
+          return lines.map(function (line) {
+            var candidates = shuffle(line.stations, iconRand);
+            var slug = null;
+            for (var i = 0; i < candidates.length; i++) {
+              var candidateSlug = MetroShared.STATION_ICON_SLUGS[candidates[i]];
+              if (candidateSlug && !usedSlugs[candidateSlug]) {
+                slug = candidateSlug;
+                break;
+              }
+            }
+            if (!slug) slug = MetroShared.STATION_ICON_SLUGS[candidates[0]];
+            usedSlugs[slug] = true;
+            return {
+              id: line.id,
+              name: line.name,
+              color: line.color,
+              textColor: line.textColor,
+              icon: slug,
+            };
+          });
+        }
+
+        function pickActiveLines(rand, dateKey) {
+          var chosen = shuffle(ALL_LINES, rand).slice(0, KIND_COUNT);
+          return pickStationIcons(chosen, dateKey);
+        }
+
+        function key(r, c) { return r + ',' + c; }
+
+        function storageKeyFor(dateKey) {
+          return 'metrocrush:' + dateKey;
+        }
+
+        function loadSavedResult(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed.score !== 'number') return null;
+            return {
+              score: parsed.score,
+              mode: parsed.mode === 'hard' ? 'hard' : 'normal',
+              groupsFormed: typeof parsed.groupsFormed === 'number' ? parsed.groupsFormed : 0,
+              maxCombo: typeof parsed.maxCombo === 'number' ? parsed.maxCombo : 1,
+              maxRunSeen: typeof parsed.maxRunSeen === 'number' ? parsed.maxRunSeen : 3,
+              // A day predating this field (or a corrupt/non-object value)
+              // falls back to {} - the reveal's own match-summary section
+              // just renders nothing for it, same "missing => nothing
+              // shown" convention as a pre-streak-field leaderboard entry.
+              matchCountsByLine: (parsed.matchCountsByLine && typeof parsed.matchCountsByLine === 'object') ? parsed.matchCountsByLine : {},
+              leaderboardSubmitted: !!parsed.leaderboardSubmitted,
+            };
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function persistResult(dateKey, score, mode, groupsFormed, maxCombo, maxRunSeen, matchCountsByLine, leaderboardSubmitted) {
+          try {
+            localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
+              score: score,
+              mode: mode,
+              groupsFormed: groupsFormed,
+              maxCombo: maxCombo,
+              maxRunSeen: maxRunSeen,
+              matchCountsByLine: matchCountsByLine,
+              leaderboardSubmitted: !!leaderboardSubmitted,
+            }));
+          } catch (e) {
+            // localStorage unavailable (private mode, quota, etc.) - the
+            // result just won't be there to reload, same as the other games.
+          }
+        }
+
+        var els = {};
+        var state = null;
+        var debugDate = null;
+
+        // Shared by every .station consumer here (.tile and .legend__chip
+        // alike) - relies entirely on shared.css's own .station__icon
+        // sizing, no page-local svg-sizing override on top of it (that
+        // used to double up with .legend__chip's own, shrinking its icon).
+        var SVG_NS = 'http://www.w3.org/2000/svg';
+        var XLINK_NS = 'http://www.w3.org/1999/xlink';
+
+        function makeStationIcon(slug) {
+          var wrap = document.createElement('span');
+          wrap.className = 'station__icon';
+          if (!slug) return wrap;
+          var svg = document.createElementNS(SVG_NS, 'svg');
+          svg.setAttribute('aria-hidden', 'true');
+          var use = document.createElementNS(SVG_NS, 'use');
+          use.setAttributeNS(XLINK_NS, 'href', '/station-icons.svg#' + slug);
+          use.setAttribute('href', '/station-icons.svg#' + slug);
+          svg.appendChild(use);
+          wrap.appendChild(svg);
+          return wrap;
+        }
+
+        // Staging-only: the board DOM is built once (buildBoardOnce) and
+        // then mutated in place by updateBoard, rather than torn down and
+        // rebuilt on every render. These track that one-time build and,
+        // per cell index, the line id currently painted there (so a tile's
+        // <use> icon + aria-label are only rewritten when its kind really
+        // changed). See render() below.
+        var boardBuilt = false;
+        var renderedId = [];
+
+        function randomLine(rand) {
+          return state.activeLines[Math.floor(rand() * state.activeLines.length)];
+        }
+
+        function lineById(id) {
+          for (var i = 0; i < state.activeLines.length; i++) {
+            if (state.activeLines[i].id === id) return state.activeLines[i];
+          }
+          return null;
+        }
+
+        function wouldMatchAt(board, r, c, id) {
+          if (c >= 2 && board[r][c - 1] === id && board[r][c - 2] === id) return true;
+          if (r >= 2 && board[r - 1][c] === id && board[r - 2][c] === id) return true;
+          return false;
+        }
+
+        function generateBoard(rand) {
+          var board = [];
+          for (var r = 0; r < ROWS; r++) board.push(new Array(COLS).fill(null));
+
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              var candidate = randomLine(rand).id;
+              var attempts = 0;
+              while (wouldMatchAt(board, r, c, candidate) && attempts < 20) {
+                candidate = randomLine(rand).id;
+                attempts++;
+              }
+              board[r][c] = candidate;
+            }
+          }
+
+          if (!hasAnyValidMove(board)) return generateBoard(rand);
+          return board;
+        }
+
+        function findMatches(board) {
+          var matched = new Set();
+          var maxRun = 0;
+
+          for (var r = 0; r < ROWS; r++) {
+            var c = 0;
+            while (c < COLS) {
+              var val = board[r][c];
+              var runEnd = c;
+              while (runEnd + 1 < COLS && board[r][runEnd + 1] === val) runEnd++;
+              var runLen = runEnd - c + 1;
+              if (runLen >= 3) {
+                for (var k = c; k <= runEnd; k++) matched.add(key(r, k));
+                maxRun = Math.max(maxRun, runLen);
+              }
+              c = runEnd + 1;
+            }
+          }
+
+          for (var c2 = 0; c2 < COLS; c2++) {
+            var r2 = 0;
+            while (r2 < ROWS) {
+              var val2 = board[r2][c2];
+              var runEnd2 = r2;
+              while (runEnd2 + 1 < ROWS && board[runEnd2 + 1][c2] === val2) runEnd2++;
+              var runLen2 = runEnd2 - r2 + 1;
+              if (runLen2 >= 3) {
+                for (var k2 = r2; k2 <= runEnd2; k2++) matched.add(key(k2, c2));
+                maxRun = Math.max(maxRun, runLen2);
+              }
+              r2 = runEnd2 + 1;
+            }
+          }
+
+          return { matched: matched, maxRun: maxRun };
+        }
+
+        function swapCells(board, a, b) {
+          var tmp = board[a[0]][a[1]];
+          board[a[0]][a[1]] = board[b[0]][b[1]];
+          board[b[0]][b[1]] = tmp;
+        }
+
+        function findValidMove(board) {
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              if (c + 1 < COLS) {
+                swapCells(board, [r, c], [r, c + 1]);
+                var right = findMatches(board).matched.size > 0;
+                swapCells(board, [r, c], [r, c + 1]);
+                if (right) return { a: [r, c], b: [r, c + 1] };
+              }
+              if (r + 1 < ROWS) {
+                swapCells(board, [r, c], [r + 1, c]);
+                var down = findMatches(board).matched.size > 0;
+                swapCells(board, [r, c], [r + 1, c]);
+                if (down) return { a: [r, c], b: [r + 1, c] };
+              }
+            }
+          }
+          return null;
+        }
+
+        function hasAnyValidMove(board) {
+          return findValidMove(board) !== null;
+        }
+
+        function applyGravity(board, rand) {
+          var newCounts = new Array(COLS).fill(0);
+          for (var c = 0; c < COLS; c++) {
+            var stack = [];
+            for (var r = 0; r < ROWS; r++) {
+              if (board[r][c] !== null) stack.push(board[r][c]);
+            }
+            var missing = ROWS - stack.length;
+            newCounts[c] = missing;
+            var column = [];
+            for (var i = 0; i < missing; i++) column.push(randomLine(rand).id);
+            column = column.concat(stack);
+            for (var r2 = 0; r2 < ROWS; r2++) board[r2][c] = column[r2];
+          }
+          return newCounts;
+        }
+
+        function isAdjacent(a, b) {
+          var dr = Math.abs(a[0] - b[0]);
+          var dc = Math.abs(a[1] - b[1]);
+          return (dr + dc) === 1;
+        }
+
+        function startNewGame() {
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          var rand = MetroShared.createSeededRandom('metrordle-metrocrush-' + dateKey);
+          var activeLines = pickActiveLines(rand, dateKey);
+
+          if (state && state.timerId) clearInterval(state.timerId);
+          if (state && state.idleTimer) clearTimeout(state.idleTimer);
+
+          var saved = loadSavedResult(dateKey);
+
+          if (saved) {
+            // Same as every other game's own streak - read fresh from its
+            // own separate storage key on every load, not persisted as
+            // part of this day's own saved result (see persistResult()).
+            var savedStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY);
+            // The exact end-of-round board isn't persisted (only the
+            // score/stats needed for the reveal and leaderboard are) -
+            // this regenerates the same deterministic starting board
+            // everyone saw that day, which is all the dimmed board
+            // behind the reveal needs to show.
+            state = {
+              dateKey: dateKey,
+              gameNumber: gameNumber,
+              rand: rand,
+              activeLines: activeLines,
+              board: null,
+              selected: null,
+              mode: saved.mode,
+              score: saved.score,
+              groupsFormed: saved.groupsFormed,
+              maxCombo: saved.maxCombo,
+              maxRunSeen: saved.maxRunSeen,
+              matchCountsByLine: saved.matchCountsByLine,
+              streak: savedStreak.count,
+              maxStreak: savedStreak.max,
+              leaderboardSubmitted: saved.leaderboardSubmitted,
+              timeLeft: 0,
+              timerId: null,
+              idleTimer: null,
+              hintCell: null,
+              cascadeStep: 0,
+              busy: false,
+              status: 'done',
+              flagged: {},
+            };
+            state.board = generateBoard(rand);
+
+            $('game-title').textContent = 'Metrordle: Metro Crush #' + state.gameNumber;
+            renderLegend();
+            renderRevealStats();
+            els.reveal.hidden = false;
+            collapseBoard(false);
+            // submitScore() itself checks state.leaderboardSubmitted and
+            // no-ops if it's already true, so this is only ever a real
+            // retry when an earlier attempt is known to have failed (or
+            // never ran) - not a pointless resubmit on every normal
+            // reload of an already-submitted day.
+            submitScore();
+            render();
+            return;
+          }
+
+          state = {
+            dateKey: dateKey,
+            gameNumber: gameNumber,
+            rand: rand,
+            activeLines: activeLines,
+            board: null,
+            selected: null,
+            mode: 'normal',
+            score: 0,
+            groupsFormed: 0,
+            matchCountsByLine: {},
+            timeLeft: ROUND_SECONDS,
+            timerId: null,
+            idleTimer: null,
+            hintCell: null,
+            cascadeStep: 0,
+            maxCombo: 1,
+            maxRunSeen: 3,
+            streak: 0,
+            maxStreak: 0,
+            leaderboardSubmitted: false,
+            busy: false,
+            status: 'ready',
+            flagged: {},
+          };
+          state.board = generateBoard(rand);
+
+          $('game-title').textContent = 'Metrordle: Metro Crush #' + state.gameNumber;
+          renderLegend();
+          els.reveal.hidden = true;
+          expandBoard();
+          render();
+        }
+
+        // Shrinks the now-disabled board out of the way once the round is
+        // over, so the stats/leaderboard below don't need a long scroll
+        // past a board nobody can interact with anymore. A CSS transition
+        // can't animate to/from height: auto, so animating requires first
+        // freezing the wrap's own current rendered height (and padding,
+        // which would otherwise stay visible even at height: 0) as
+        // explicit inline values, forcing a reflow, and only then setting
+        // the real target - that's what gives the browser two different
+        // explicit values to interpolate between instead of jumping
+        // straight to the end state.
+        //
+        // animate is false right after a page load restores an
+        // already-finished day (see startNewGame()'s saved-result
+        // branch) - nothing just happened live on THIS load, so it
+        // should already be shown collapsed, not visibly animate into
+        // that state on every reload. Also downgrades to instant under
+        // prefers-reduced-motion, same as every other animation in this
+        // file (see the delay() helper up top).
+        function collapseBoard(animate) {
+          var wrap = els.boardWrap;
+          wrap.classList.add('board-wrap--collapsed');
+          if (!animate || MetroShared.prefersReducedMotion()) {
+            wrap.style.transition = 'none';
+            wrap.style.height = '0px';
+            wrap.style.paddingTop = '0px';
+            wrap.style.paddingBottom = '0px';
+            void wrap.offsetHeight;
+            wrap.style.transition = '';
+            return;
+          }
+          var startHeight = wrap.getBoundingClientRect().height;
+          wrap.style.height = startHeight + 'px';
+          wrap.style.paddingTop = getComputedStyle(wrap).paddingTop;
+          wrap.style.paddingBottom = getComputedStyle(wrap).paddingBottom;
+          void wrap.offsetHeight;
+          wrap.style.height = '0px';
+          wrap.style.paddingTop = '0px';
+          wrap.style.paddingBottom = '0px';
+        }
+
+        // Restores the board to its natural height - needed when debug
+        // date-nav (the only way to revisit a day after today) moves from
+        // an already-finished day (left collapsed) to one not yet played.
+        function expandBoard() {
+          var wrap = els.boardWrap;
+          wrap.classList.remove('board-wrap--collapsed');
+          wrap.style.transition = 'none';
+          wrap.style.height = '';
+          wrap.style.paddingTop = '';
+          wrap.style.paddingBottom = '';
+          void wrap.offsetHeight;
+          wrap.style.transition = '';
+        }
+
+        function renderLegend() {
+          els.legend.innerHTML = '';
+          var names = [];
+          state.activeLines.forEach(function (line) {
+            var chip = document.createElement('span');
+            chip.className = 'station station--chip legend__chip';
+            chip.style.setProperty('--badge-bg', line.color);
+            chip.style.setProperty('--badge-ink', line.textColor);
+            chip.appendChild(makeStationIcon(line.icon));
+            els.legend.appendChild(chip);
+            names.push(line.name);
+          });
+          els.legendSr.textContent = 'Líneas de hoy: ' + names.join(', ');
+        }
+
+        function setToast(text) { els.toast.textContent = text; }
+
+        function tileElementAt(r, c) {
+          return els.board.children[r * COLS + c];
+        }
+
+        // Slides a just-rendered tile in from where the OTHER half of
+        // its swap used to sit (fromRect), relative to this tile's own
+        // new position (toRect) - both real bounding rects captured
+        // before the swap, so the distance is exact regardless of
+        // viewport size/grid gap, no hardcoded measurements needed.
+        // Mirrors flashInvalid()'s trick below of poking the
+        // just-rendered DOM directly by position rather than routing
+        // this one-shot cue through state/render().
+        function animateSwapIn(cell, fromRect, toRect) {
+          var el = tileElementAt(cell[0], cell[1]);
+          if (!el) return;
+          el.style.setProperty('--swap-dx', (fromRect.left - toRect.left) + 'px');
+          el.style.setProperty('--swap-dy', (fromRect.top - toRect.top) + 'px');
+          el.classList.add('tile--swap-in');
+        }
+
+        // Scales a match's pop-out further for each additional step
+        // already resolved in the same cascade (comboStep is 1 for a
+        // standalone match), so a long chain visibly hits harder than
+        // the first pop in it - capped so an extreme cascade doesn't
+        // balloon into something silly-looking.
+        function popScaleForCombo(comboStep) {
+          return 1.3 + Math.min(comboStep - 1, 3) * 0.15;
+        }
+
+        var boardImpactTimer = null;
+
+        // A brief whole-board punch-in for a 3+ chained combo, layered
+        // on top of each matched tile's own (bigger, see
+        // popScaleForCombo()) pop. classList.remove() + a forced reflow
+        // before re-adding lets this restart mid-animation if combos
+        // keep chaining faster than .board--impact's own 0.25s.
+        function triggerBoardImpact() {
+          els.board.classList.remove('board--impact');
+          void els.board.offsetWidth;
+          els.board.classList.add('board--impact');
+          if (boardImpactTimer) clearTimeout(boardImpactTimer);
+          boardImpactTimer = setTimeout(function () {
+            els.board.classList.remove('board--impact');
+          }, delay(280));
+        }
+
+        // Average on-screen center (relative to .board-wrap, the
+        // positioned ancestor a score popup is placed against) of every
+        // matched cell, read from the just-rendered pop-phase DOM
+        // rather than computed from grid math - exact regardless of
+        // viewport size/gap. Returns null if none of the matched tiles
+        // could be found (shouldn't happen, but a missing popup is a
+        // much smaller problem than a crash on a would-be edge case).
+        function matchCentroid(matchedKeys) {
+          var wrapRect = els.boardWrap.getBoundingClientRect();
+          var sumX = 0, sumY = 0, count = 0;
+          matchedKeys.forEach(function (k) {
+            var parts = k.split(',');
+            var el = tileElementAt(+parts[0], +parts[1]);
+            if (!el) return;
+            var rect = el.getBoundingClientRect();
+            sumX += rect.left + rect.width / 2;
+            sumY += rect.top + rect.height / 2;
+            count++;
+          });
+          if (count === 0) return null;
+          return { x: sumX / count - wrapRect.left, y: sumY / count - wrapRect.top };
+        }
+
+        // A "+N" (or "×comboStep +N" mid-cascade) that rises and fades
+        // over where a match just popped - purely decorative, appended
+        // straight to .board-wrap (a sibling of .board, so it survives
+        // .board's own innerHTML teardown on the very next render()) and
+        // removed on its own timer once the rise animation finishes.
+        function showScorePopup(origin, points, comboStep) {
+          var el = document.createElement('div');
+          el.className = 'score-popup';
+          el.style.left = origin.x + 'px';
+          el.style.top = origin.y + 'px';
+          el.textContent = (comboStep > 1 ? '×' + comboStep + ' ' : '') + '+' + points;
+          els.boardWrap.appendChild(el);
+          setTimeout(function () { el.remove(); }, delay(700));
+        }
+
+        // Nudges a stuck or thinking player: if 5s pass with no swap
+        // attempt, one tile from a real valid move starts bouncing until
+        // the next interaction clears it (see every call site below -
+        // this fires whenever the player could plausibly act next).
+        //
+        // Toggles the class directly on the existing tile element rather
+        // than going through render() - a full render() tears down and
+        // rebuilds all 56 tiles (including recreating every <use> icon),
+        // which is wasted work for a one-class change and was visibly
+        // flickering right as the bounce should start.
+        function resetIdleTimer() {
+          if (state.idleTimer) clearTimeout(state.idleTimer);
+          if (state.hintCell) {
+            var prev = tileElementAt(state.hintCell[0], state.hintCell[1]);
+            if (prev) prev.classList.remove('tile--hint');
+          }
+          state.hintCell = null;
+          if (state.status === 'playing') {
+            state.idleTimer = setTimeout(showHint, HINT_IDLE_MS);
+          }
+        }
+
+        function showHint() {
+          if (!state || state.status !== 'playing' || state.busy) return;
+          var move = findValidMove(state.board);
+          if (!move) return;
+          state.hintCell = move.a;
+          var el = tileElementAt(move.a[0], move.a[1]);
+          if (el) el.classList.add('tile--hint');
+        }
+
+        function beginRound(mode) {
+          if (!state || state.status !== 'ready') return;
+          state.mode = mode;
+          state.status = 'playing';
+          render();
+          resetIdleTimer();
+          state.timerId = setInterval(tick, 1000);
+        }
+
+        function tick() {
+          state.timeLeft = Math.max(0, state.timeLeft - 1);
+          renderStatus();
+          if (state.timeLeft <= 0) endRound();
+        }
+
+        function renderStatus() {
+          els.statusBar.hidden = state.status === 'done';
+          els.status.textContent = state.timeLeft + 's · ' + state.score +
+            (state.score === 1 ? ' punto' : ' puntos');
+          els.status.classList.toggle('status-bar__text--low', state.status === 'playing' && state.timeLeft <= 10);
+          els.timerTrack.hidden = state.status !== 'playing';
+          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        // A plain selection change (selecting a tile, deselecting it,
+        // or swapping which one is selected without attempting a move -
+        // see onTileClick()'s own first three branches) only ever
+        // toggles which single tile has .tile--selected - it never
+        // touches the board data itself. Routing it through render()'s
+        // full teardown/rebuild of every ROWS*COLS tile instead used to
+        // destroy and recreate every tile's own station-icon SVG (see
+        // makeStationIcon()) just to flip one tile's own class, which
+        // was visibly slow enough to read as the whole board flickering
+        // on every single tap. Same fix as Memoria's own
+        // updateSelectionClasses() for the exact same bug class (see
+        // AGENTS.md's Memoria bullet) - loops every existing tile
+        // rather than tracking which one to untoggle, same simplicity
+        // trade-off Memoria's own version makes; still vastly cheaper
+        // than render()'s own rebuild, since nothing here touches the
+        // DOM tree shape, just an existing node's own class/attribute.
+        function updateSelectedTileClasses() {
+          Array.prototype.forEach.call(els.board.children, function (btn, index) {
+            var r = Math.floor(index / COLS);
+            var c = index % COLS;
+            var isSelected = !!(state.selected && state.selected[0] === r && state.selected[1] === c);
+            btn.classList.toggle('tile--selected', isSelected);
+            if (isSelected) {
+              btn.setAttribute('aria-pressed', 'true');
+            } else {
+              btn.removeAttribute('aria-pressed');
+            }
+          });
+        }
+
+        // Builds the 56 tile buttons once and wires a single delegated
+        // click listener on the board (opt #2). Each button keeps a
+        // persistent .station__icon > svg > use (cached on btn._use) whose
+        // href updateBoard rewrites only when the tile's kind changes.
+        function buildBoardOnce() {
+          if (boardBuilt) return;
+          els.board.innerHTML = '';
+          renderedId = [];
+          for (var i = 0; i < ROWS * COLS; i++) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'station tile';
+            btn.dataset.idx = i;
+            var wrap = document.createElement('span');
+            wrap.className = 'station__icon';
+            var svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('aria-hidden', 'true');
+            var use = document.createElementNS(SVG_NS, 'use');
+            svg.appendChild(use);
+            wrap.appendChild(svg);
+            btn.appendChild(wrap);
+            btn._use = use;
+            els.board.appendChild(btn);
+            renderedId.push(undefined);
+          }
+          els.board.addEventListener('click', onBoardClick);
+          boardBuilt = true;
+        }
+
+        // Delegated board click (opt #2): a disabled tile never fires a
+        // click, and onTileClick keeps its own busy/status guards.
+        function onBoardClick(e) {
+          var btn = e.target.closest ? e.target.closest('button.tile') : null;
+          if (!btn || btn.disabled) return;
+          var idx = +btn.dataset.idx;
+          onTileClick(Math.floor(idx / COLS), idx % COLS);
+        }
+
+        // Rewrites a tile's persistent <use> href + aria-label only when
+        // the line id painted there actually changed - during a cascade
+        // most cells get re-touched with the same id.
+        function setTileContentIcon(btn, index, id, line) {
+          if (renderedId[index] === id) return;
+          renderedId[index] = id;
+          if (id === null) {
+            btn._use.removeAttribute('href');
+            btn._use.removeAttributeNS(XLINK_NS, 'href');
+            btn.removeAttribute('aria-label');
+            return;
+          }
+          var href = '/station-icons.svg#' + line.icon;
+          btn._use.setAttribute('href', href);
+          btn._use.setAttributeNS(XLINK_NS, 'href', href);
+          var r = Math.floor(index / COLS);
+          var c = index % COLS;
+          btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
+        }
+
+        // In-place twin of the old render() board loop (opt #1): mutates
+        // the 56 existing buttons instead of recreating them. Transient
+        // animation classes (pop/drop/swap-in/shake) are stripped up front
+        // and the pop/drop ones re-applied after a single board reflow, so
+        // a reused node still restarts its animation the way a freshly
+        // created one used to.
+        function updateBoard() {
+          var playing = state.status === 'playing';
+          var children = els.board.children;
+          var pending = [];
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              var index = r * COLS + c;
+              var btn = children[index];
+              var id = state.board[r][c];
+
+              btn.classList.remove('tile--pop', 'tile--drop', 'tile--swap-in', 'tile--shake');
+
+              if (id === null) {
+                btn.classList.add('tile--empty');
+                btn.classList.remove('tile--neutral', 'tile--selected', 'tile--hint');
+                btn.removeAttribute('aria-pressed');
+                btn.disabled = true;
+                setTileContentIcon(btn, index, null, null);
+                continue;
+              }
+              btn.classList.remove('tile--empty');
+
+              var line = lineById(id);
+              var flag = state.flagged[key(r, c)];
+
+              // Hard mode hides only the line's color (the actual
+              // "answer") until a tile is either mid-pop (part of a
+              // just-formed group) or the round is over - the station
+              // icon itself always stays visible, since that's what a
+              // player actually reads the board by. Colors also stay
+              // neutral during the pre-game preview regardless of mode,
+              // since the mode choice isn't made yet and revealing them
+              // then would let a player memorize the board before
+              // picking "difícil".
+              var neutralColor = state.status === 'ready' ||
+                (state.mode === 'hard' && playing && flag !== 'pop');
+
+              btn.classList.toggle('tile--neutral', neutralColor);
+              if (neutralColor) {
+                btn.style.removeProperty('--badge-bg');
+                btn.style.removeProperty('--badge-ink');
+              } else {
+                btn.style.setProperty('--badge-bg', line.color);
+                btn.style.setProperty('--badge-ink', line.textColor);
+              }
+
+              setTileContentIcon(btn, index, id, line);
+
+              var isSelected = !!(state.selected && state.selected[0] === r && state.selected[1] === c);
+              btn.classList.toggle('tile--selected', isSelected);
+              if (isSelected) btn.setAttribute('aria-pressed', 'true');
+              else btn.removeAttribute('aria-pressed');
+
+              var isHint = !!(state.hintCell && state.hintCell[0] === r && state.hintCell[1] === c);
+              btn.classList.toggle('tile--hint', isHint);
+
+              btn.disabled = !playing || state.busy;
+
+              // cascadeStep still holds the count of matches already
+              // resolved BEFORE this one at pop time (see resolveStep()),
+              // so + 1 is this match's own combo step.
+              if (flag === 'pop') pending.push({ btn: btn, cls: 'tile--pop', scale: popScaleForCombo(state.cascadeStep + 1) });
+              else if (flag === 'drop') pending.push({ btn: btn, cls: 'tile--drop', scale: null });
+            }
+          }
+
+          if (pending.length) {
+            void els.board.offsetWidth; // one reflow so reused nodes restart the pop/drop animation
+            pending.forEach(function (p) {
+              if (p.scale !== null) p.btn.style.setProperty('--pop-scale', String(p.scale));
+              p.btn.classList.add(p.cls);
+            });
+          }
+        }
+
+        function render() {
+          renderStatus();
+
+          els.startOverlay.hidden = state.status !== 'ready';
+          els.board.classList.toggle('board--done', state.status === 'done');
+
+          buildBoardOnce();
+          updateBoard();
+
+          if (state.status === 'done') {
+            renderAliasRow();
+            renderLeaderboard();
+          }
+        }
+
+        function onTileClick(r, c) {
+          if (state.status !== 'playing' || state.busy) return;
+
+          resetIdleTimer();
+
+          if (!state.selected) {
+            state.selected = [r, c];
+            updateSelectedTileClasses();
+            return;
+          }
+
+          if (state.selected[0] === r && state.selected[1] === c) {
+            state.selected = null;
+            updateSelectedTileClasses();
+            return;
+          }
+
+          if (!isAdjacent(state.selected, [r, c])) {
+            state.selected = [r, c];
+            updateSelectedTileClasses();
+            return;
+          }
+
+          var a = state.selected;
+          var b = [r, c];
+          // Captured before the swap (and well before the next
+          // render() tears these exact elements down) so a valid swap
+          // can slide each tile in from the other's real on-screen spot.
+          var rectA = tileElementAt(a[0], a[1]).getBoundingClientRect();
+          var rectB = tileElementAt(b[0], b[1]).getBoundingClientRect();
+          swapCells(state.board, a, b);
+          var wouldMatch = findMatches(state.board).matched.size > 0;
+
+          if (!wouldMatch) {
+            swapCells(state.board, a, b);
+            state.selected = null;
+            state.busy = true;
+            render();
+            flashInvalid(a, b);
+            return;
+          }
+
+          state.selected = null;
+          state.busy = true;
+          state.cascadeStep = 0;
+          render();
+          animateSwapIn(a, rectB, rectA);
+          animateSwapIn(b, rectA, rectB);
+
+          setTimeout(function () { resolveStep(); }, delay(SWAP_MS));
+        }
+
+        function flashInvalid(a, b) {
+          var cells = els.board.children;
+          var idxA = a[0] * COLS + a[1];
+          var idxB = b[0] * COLS + b[1];
+          [idxA, idxB].forEach(function (idx) {
+            var el = cells[idx];
+            if (el) el.classList.add('tile--shake');
+          });
+          setTimeout(function () {
+            state.busy = false;
+            render();
+            resetIdleTimer();
+          }, delay(320));
+        }
+
+        // A swap made in the last instant before time runs out can still
+        // have this whole chain of setTimeouts in flight when endRound()
+        // fires (it doesn't - and can't easily - cancel them). Without
+        // this guard, a trailing cascade would keep adding to
+        // state.score and re-rendering the status bar with a live total
+        // after the reveal screen already froze an earlier score into
+        // reveal-score, which is exactly why the two used to disagree.
+        function resolveStep() {
+          if (state.status !== 'playing') return;
+
+          var result = findMatches(state.board);
+
+          if (result.matched.size === 0) {
+            finishMove();
+            return;
+          }
+
+          state.flagged = {};
+          result.matched.forEach(function (k) { state.flagged[k] = 'pop'; });
+          render();
+
+          // comboStep here is this match's own step in the chain (see
+          // popScaleForCombo()'s comment) - both the board-wide impact
+          // and the popup's "×N" prefix want that same number, computed
+          // once before cascadeStep itself increments below.
+          var comboStep = state.cascadeStep + 1;
+          if (comboStep >= 3) triggerBoardImpact();
+          var popupOrigin = matchCentroid(result.matched);
+
+          setTimeout(function () {
+            if (state.status !== 'playing') return;
+
+            state.cascadeStep++;
+            state.groupsFormed++;
+            var basePoints = result.matched.size * 10 + Math.max(0, result.maxRun - 3) * 15;
+            var hardModeMultiplier = state.mode === 'hard' ? HARD_MODE_MULTIPLIER : 1;
+            var stepPoints = basePoints * hardModeMultiplier * state.cascadeStep;
+            state.score += stepPoints;
+            state.maxCombo = Math.max(state.maxCombo, state.cascadeStep);
+            state.maxRunSeen = Math.max(state.maxRunSeen, result.maxRun);
+
+            if (popupOrigin) showScorePopup(popupOrigin, stepPoints, comboStep);
+
+            result.matched.forEach(function (k) {
+              var parts = k.split(',');
+              var lineId = state.board[+parts[0]][+parts[1]];
+              // Tallied per matched cell, not per group - a single
+              // resolveStep() can clear several same-instant runs of
+              // DIFFERENT lines at once (see findMatches()'s own two
+              // full-board scans above), which is why this can't just be
+              // "result.matched.size credited to one line".
+              state.matchCountsByLine[lineId] = (state.matchCountsByLine[lineId] || 0) + 1;
+              state.board[+parts[0]][+parts[1]] = null;
+            });
+
+            var newCounts = applyGravity(state.board, state.rand);
+            state.flagged = {};
+            for (var c = 0; c < COLS; c++) {
+              for (var r = 0; r < newCounts[c]; r++) state.flagged[key(r, c)] = 'drop';
+            }
+
+            render();
+
+            if (state.cascadeStep > 1) {
+              setToast('¡Combo ×' + state.cascadeStep + '! +' + stepPoints + ' pts');
+            } else if (result.maxRun >= 5) {
+              setToast('¡Línea completa de ' + result.maxRun + '! +' + stepPoints + ' pts');
+            } else {
+              setToast('+' + stepPoints + ' pts');
+            }
+
+            setTimeout(function () { resolveStep(); }, delay(DROP_MS));
+          }, delay(POP_MS));
+        }
+
+        function finishMove() {
+          state.flagged = {};
+
+          if (state.status === 'playing' && !hasAnyValidMove(state.board)) {
+            state.board = generateBoard(state.rand);
+            setToast('Sin movimientos posibles — tablero revuelto.');
+          }
+
+          state.busy = false;
+          render();
+          resetIdleTimer();
+        }
+
+        // Open scale, no "complete" state to measure against - same
+        // shape as Memoria's own getRating, tuned to Metro Crush's scoring.
+        function getRating(score) {
+          if (score === 0) return { label: 'Mala', square: '🟥' };
+          if (score <= 150) return { label: 'Regular', square: '🟧' };
+          if (score <= 400) return { label: 'Buena', square: '🟨' };
+          if (score <= 800) return { label: 'Muy buena', square: '🟩' };
+          if (score <= 1400) return { label: 'Excelente', square: '🟦' };
+          return { label: 'Sobresaliente', square: '🟪' };
+        }
+
+        // Only worth mentioning when it's actually ahead of today's
+        // streak - if today's result just set the record, it's already
+        // the number shown right before this, and repeating it back
+        // reads as redundant rather than as new information.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
+        function buildShareText() {
+          var rating = getRating(state.score);
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
+
+          return 'Metrordle: Metro Crush #' + state.gameNumber + '\n' + hardModeLine + '\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Puntaje: ' + state.score + '\n' +
+            'Grupos: ' + state.groupsFormed + ' · Combo máximo: ×' + state.maxCombo + '\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
+        }
+
+        function renderRevealStats() {
+          MetroShared.renderNoticeBanner(
+            els.revealBanner,
+            'notice--success',
+            '¡Se acabó el tiempo!',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
+          );
+          els.revealScore.textContent = String(state.score);
+          els.revealGroups.textContent = String(state.groupsFormed);
+          els.revealCombo.textContent = '×' + state.maxCombo;
+          els.revealRun.textContent = String(state.maxRunSeen);
+          renderMatchSummary();
+          renderGamePromo('metrocrush');
+        }
+
+        // The reveal's per-line tile-match breakdown, below the stat-grid
+        // above - sorted most-matched-first, since "what did I clear the
+        // most of" is the interesting read, not today's arbitrary legend
+        // order. A line nobody ever matched (count 0, or simply never
+        // added to matchCountsByLine) is left out entirely rather than
+        // shown as "× 0" - same "nothing to show, show nothing" instinct
+        // as buildStreakBadge()'s own N > 1 threshold in shared.js.
+        function renderMatchSummary() {
+          els.matchSummaryList.innerHTML = '';
+          var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
+            return state.matchCountsByLine[id] > 0;
+          });
+          lineIds.sort(function (a, b) { return state.matchCountsByLine[b] - state.matchCountsByLine[a]; });
+
+          lineIds.forEach(function (id) {
+            var line = lineById(id);
+            if (!line) return;
+
+            var li = document.createElement('li');
+            li.className = 'match-summary__item';
+
+            var chip = document.createElement('span');
+            chip.className = 'station station--chip legend__chip';
+            chip.style.setProperty('--badge-bg', line.color);
+            chip.style.setProperty('--badge-ink', line.textColor);
+            chip.appendChild(makeStationIcon(line.icon));
+            li.appendChild(chip);
+
+            var count = document.createElement('span');
+            count.className = 'match-summary__count';
+            count.textContent = '× ' + state.matchCountsByLine[id];
+            li.appendChild(count);
+
+            els.matchSummaryList.appendChild(li);
+          });
+
+          els.matchSummary.hidden = lineIds.length === 0;
+        }
+
+        // Mounts the end screen's "sigue jugando hoy" component into this
+        // page's own slot - shared.js only builds the component itself
+        // (MetroShared.buildGamePromo), it never reaches into this
+        // page's DOM. Uses the real calendar day, not this page's own
+        // (possibly debug-simulated) dateKey - suggestions reflect
+        // actual daily activity, not whatever day is being previewed.
+        function renderGamePromo(currentGameKey) {
+          var slot = $('game-promo-slot');
+          if (!slot) return;
+          var todayKey = MetroShared.getDateKey(new Date());
+          var promo = MetroShared.buildGamePromo(currentGameKey, todayKey);
+          slot.innerHTML = '';
+          if (promo) slot.appendChild(promo);
+        }
+
+        function endRound() {
+          if (state.timerId) clearInterval(state.timerId);
+          if (state.idleTimer) clearTimeout(state.idleTimer);
+          state.hintCell = null;
+          state.status = 'done';
+          state.leaderboardSubmitted = false;
+          setToast('');
+          // "Won" here means a non-zero score - there's no puzzle to
+          // actually win or lose, see STREAK_STORAGE_KEY's own comment.
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+          persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, false);
+          renderRevealStats();
+          els.reveal.hidden = false;
+          submitScore();
+          render();
+          collapseBoard(true);
+        }
+
+        // Submits the current result to today's leaderboard, if an alias
+        // is already set. Also called again once the player sets an
+        // alias from the reveal screen, in case a round already
+        // finished before they had one. Skips entirely under
+        // ?debug=true - date-nav testing plays through arbitrary past/
+        // future days and shouldn't pollute the real leaderboard.
+        function submitScore() {
+          if (!state || state.status !== 'done') return;
+          if (state.leaderboardSubmitted) return;
+          if (MetroShared.isDebugMode()) return;
+
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          // streak is submitted purely for display (see /admin/'s own
+          // 🔥 badge) - never part of orderBySpecs, so a query's
+          // ranking/results are identical whether or not a given entry
+          // (old or new) happens to have it. Can legitimately be 0 (a
+          // 0-point round still submits and resets it), same bound as
+          // Memoria's own leaderboard rule.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard', streak: state.streak }, {})
+            .then(function () {
+              state.leaderboardSubmitted = true;
+              persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, true);
+              renderLeaderboard();
+              // Best-effort, same as the leaderboard submission above -
+              // never rejects, so this can't turn an otherwise-successful
+              // submission into a visible error. See
+              // updateHighScoreRecord()'s own comment in shared.js.
+              MetroShared.updateHighScoreRecord('metrocrush', state.score, alias, state.dateKey, state.gameNumber);
+            })
+            .catch(function (err) {
+              // Best-effort - the player's own result is already saved
+              // locally either way, so a failed submission isn't shown
+              // as an error in the UI; it's silently retried the next
+              // time submitScore() runs (e.g. the next reload).
+              console.error('[Leaderboard] submitScore() failed:', err);
+            });
+        }
+
+        function renderAliasRow() {
+          var alias = MetroShared.getAlias();
+          if (alias) {
+            showAliasDisplay(alias);
+          } else {
+            showAliasInput();
+          }
+        }
+
+        function showAliasDisplay(alias) {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var label = document.createElement('span');
+          label.textContent = 'Jugando como: ';
+          var strong = document.createElement('strong');
+          strong.textContent = alias;
+          label.appendChild(strong);
+
+          el.appendChild(label);
+        }
+
+        function showAliasInput() {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            showAliasDisplay(normalized);
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') save();
+          });
+
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+        }
+
+        // Can legitimately be called twice in close succession - once
+        // from render() showing the current state, and again from
+        // submitScore()'s success callback refreshing it with the
+        // just-submitted entry - and both are async. Bumped on every
+        // call; a response only renders if it's still the latest.
+        var leaderboardRequestId = 0;
+
+        // Ranked purely by score, descending - unlike Metrordle's combined
+        // leaderboard, hardMode isn't part of orderBySpecs here (there's
+        // no tie to break on it): hard mode already doubles every point
+        // scored (see HARD_MODE_MULTIPLIER in resolveStep()), so its
+        // effect is already priced into the score itself. hardMode is
+        // only submitted/rendered for the 🧠 badge below - which means,
+        // unlike Metrordle/Metroguessr where hardMode rides along for
+        // free as an orderBySpecs field, it has to be requested via
+        // extraFields here or getTopLeaderboardScores() never copies it
+        // onto the entry at all. This is exactly the bug that shipped for
+        // Metroguessr's own hintsUsed field once already: the badge below
+        // looked correctly wired (submitted, read via entry.hardMode) but
+        // silently stayed empty for every real entry until extraFields
+        // actually asked for it. streak is submitted for this collection
+        // too (see endRound()'s own updateStreakForResult() call) and was
+        // already shown on /admin/'s own cross-game view, but - until
+        // now - never on this page's own leaderboard, unlike Metrordle/
+        // Laberinto/Memoria; also needs extraFields, same reasoning as
+        // hardMode above.
+        // Metro Crush's own all-time high score (see MetroShared.
+        // getHighScoreRecord() in shared.js) - unlike renderLeaderboard()
+        // below, not scoped to state.dateKey at all (records/metrocrush
+        // has no date dimension), so this only ever needs to load once,
+        // from init(), not on every debug date-nav shiftDebugDate().
+        function renderHighScoreRecord() {
+          MetroShared.getHighScoreRecord('metrocrush').then(function (record) {
+            if (!record) {
+              els.leaderboardRecord.hidden = true;
+              return;
+            }
+            els.leaderboardRecord.textContent = MetroShared.formatHighScoreRecord(record);
+            els.leaderboardRecord.hidden = false;
+          });
+        }
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+          // myAliasId guarantees the player's own row is somewhere in the
+          // result even if it's ranked below the top LEADERBOARD_SIZE
+          // (see getTopLeaderboardScores()'s own comment).
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId, extraFields: ['hardMode', 'streak'] })
+            .then(function (entries) {
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              els.leaderboardList.innerHTML = '';
+
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+
+              els.leaderboardStatus.hidden = true;
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + MetroShared.formatRank(entry, index);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score';
+
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                // Matches the share text's own "🧠 Modo difícil" wording.
+                // Always rendered (empty when not hard mode) with a fixed
+                // width so the number after it lines up the same way
+                // across every row, hard-mode or not.
+                if (entry.hardMode) badge.textContent = '🧠';
+
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number';
+                number.textContent = entry.score;
+
+                score.appendChild(badge);
+                score.appendChild(number);
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
+                els.leaderboardList.appendChild(li);
+              });
+            });
+        }
+
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+          startNewGame();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!els.dateDebugLabel) return;
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dateKey === MetroShared.getDateKey(new Date());
+          els.dateDebugLabel.textContent = dateKey + (isRealToday ? ' (hoy)' : '');
+        }
+
+        function init() {
+          els = {
+            legend: $('legend'),
+            legendSr: $('legend-sr'),
+            statusBar: $('status-bar'),
+            status: $('status'),
+            timerTrack: $('timer-track'),
+            timerBar: $('timer-bar'),
+            toast: $('toast'),
+            boardWrap: $('board-wrap'),
+            board: $('board'),
+            startOverlay: $('start-overlay'),
+            startNormalBtn: $('start-normal-btn'),
+            startHardBtn: $('start-hard-btn'),
+            reveal: $('reveal'),
+            revealBanner: $('reveal-banner'),
+            revealScore: $('reveal-score'),
+            revealGroups: $('reveal-groups'),
+            revealCombo: $('reveal-combo'),
+            revealRun: $('reveal-run'),
+            matchSummary: $('match-summary'),
+            matchSummaryList: $('match-summary-list'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardRecord: $('leaderboard-record'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
+            shareBtn: $('share-btn'),
+            dateDebug: $('date-debug'),
+            datePrevBtn: $('date-prev'),
+            dateNextBtn: $('date-next'),
+            dateDebugLabel: $('date-debug-label'),
+          };
+
+          els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
+          els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
+          els.shareBtn.addEventListener('click', shareResult);
+
+          if (MetroShared.isDebugMode()) {
+            els.dateDebug.hidden = false;
+            els.datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+            els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+          }
+
+          startNewGame();
+          renderDateDebugLabel();
+          renderHighScoreRecord();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+      })();
+    </script>
+  </body>
+</html>

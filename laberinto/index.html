@@ -119,7 +119,7 @@
       }
 
       .map-stage {
-        height: 15rem;
+        height: 16rem;
         margin: 0.9rem auto 0;
         max-width: 20rem;
         position: relative;
@@ -145,43 +145,29 @@
         stroke-width: 4;
       }
 
+      /* Positioning + size, plus stacking the hub's icon over its name
+         (the shared .station-card centers a single child; here it holds
+         both). The rest of the card look - well background, metro
+         corner - comes from the shared .station-card the hub also
+         carries. Wider than a neighbor since it shows the current
+         station's name too, not just an icon; aspect-ratio from
+         .station-card keeps it square. */
       .map-hub {
-        align-items: center;
-        background: var(--paper-raised);
-        border: 3px solid var(--rule-strong);
-        border-radius: 50%;
-        display: flex;
-        height: 4.4rem;
-        justify-content: center;
+        flex-direction: column;
+        gap: 0.2rem;
         left: 50%;
         position: absolute;
         top: 50%;
         transform: translate(-50%, -50%);
-        width: 4.4rem;
+        width: 5.4rem;
       }
 
-      .map-hub__icon {
-        color: var(--ink);
-        height: 2.2rem;
-        width: 2.2rem;
-      }
-
-      .map-hub__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
-      }
-
+      /* Positioning + size + interaction only; the badge look (line
+         color via --badge-bg/--badge-ink, metro corner, icon centering)
+         comes from the shared .station the node also carries -
+         aspect-ratio from .station keeps it square. */
       .map-node {
-        align-items: center;
-        background: var(--paper-raised);
-        border-radius: 50%;
-        border-style: solid;
-        border-width: 3px;
         cursor: pointer;
-        display: flex;
-        height: 3.4rem;
-        justify-content: center;
         padding: 0;
         position: absolute;
         transform: translate(-50%, -50%);
@@ -205,19 +191,6 @@
 
       .map-node--destination {
         animation: map-node-pulse 1.8s ease-in-out infinite;
-      }
-
-      .map-node__icon {
-        color: var(--ink);
-        height: 1.7rem;
-        pointer-events: none;
-        width: 1.7rem;
-      }
-
-      .map-node__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
       }
 
       @keyframes map-node-pulse {
@@ -376,8 +349,8 @@
 
         <div class="map-stage" id="map-stage">
           <svg class="map-spokes" id="map-spokes" aria-hidden="true"></svg>
-          <div class="map-hub" id="map-hub">
-            <span class="map-hub__icon" id="map-hub-icon"></span>
+          <div class="station-card map-hub" id="map-hub">
+            <span class="station-card__name" id="map-hub-name"></span>
           </div>
           <div id="map-nodes"></div>
         </div>
@@ -854,14 +827,21 @@
           });
         }
 
-        // No text on the map by design - stations are read by their real
-        // Metro pictogram and line color, the same way riders navigate the
-        // actual system. Breadcrumb below still spells out the trail in
-        // words, and each node keeps a title/aria-label for anyone who
-        // wants to confirm before clicking or is using a screen reader.
+        // The neighbors carry no text - each is read by its real Metro
+        // pictogram and line color, the same way riders navigate the
+        // actual system; only the central hub (the current station) also
+        // spells out its name under its pictogram, since that's the one
+        // stop you most need to be sure of. Breadcrumb below still spells
+        // out the whole trail in words, and each neighbor keeps a
+        // title/aria-label for anyone who wants to confirm before
+        // clicking or is using a screen reader.
         function renderMap() {
-          els.mapHubIcon.innerHTML = '';
-          els.mapHubIcon.appendChild(makeIcon(state.currentStation, 'map-hub__icon'));
+          // Rebuild the hub's icon each render (it changes with the
+          // current station), stacked above its always-present name span.
+          var oldHubIcon = els.mapHub.querySelector('.station-card__icon');
+          if (oldHubIcon) oldHubIcon.remove();
+          els.mapHub.insertBefore(makeIcon(state.currentStation, 'station-card__icon'), els.mapHubName);
+          els.mapHubName.textContent = state.currentStation;
 
           // Neighbors reachable by continuing on the line you're already
           // riding land first (12 o'clock, going clockwise), so staying on
@@ -877,17 +857,19 @@
           // Measure the actual rendered box rather than hardcoding it, so
           // the layout still centers correctly if the card's width changes
           // (viewport resize, different font metrics, etc.) - the || 320 /
-          // || 240 fallbacks only matter before first layout, when
+          // || 256 fallbacks only matter before first layout, when
           // clientWidth/clientHeight can briefly read 0.
           var stageW = els.mapStage.clientWidth || 320;
-          var stageH = els.mapStage.clientHeight || 240;
+          var stageH = els.mapStage.clientHeight || 256;
           var hubX = stageW / 2;
           var hubY = stageH / 2;
           // Radius is capped by whichever dimension is tighter (a wide but
-          // short card, or vice versa) minus a 40px margin, so neighbor
-          // circles never spill past the stage edge; 70px is just a floor
-          // so a very small stage doesn't collapse the fan to nothing.
-          var radius = Math.max(70, Math.min(stageW / 2 - 40, stageH / 2 - 40));
+          // short card, or vice versa) minus a 44px margin, so a neighbor
+          // (now a ~3.4rem .station square, half ~27px) never spills past
+          // the stage edge. The 84px floor keeps the fan clear of the
+          // bigger .station-card hub (~5.4rem, half ~43px) even on a small
+          // stage - below it the neighbors would start overlapping the hub.
+          var radius = Math.max(84, Math.min(stageW / 2 - 44, stageH / 2 - 44));
 
           var svgNS = 'http://www.w3.org/2000/svg';
           els.mapSpokes.setAttribute('viewBox', '0 0 ' + stageW + ' ' + stageH);
@@ -913,13 +895,14 @@
 
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'map-node' + (neighbor.station === state.destination ? ' map-node--destination' : '');
+            btn.className = 'station map-node' + (neighbor.station === state.destination ? ' map-node--destination' : '');
             btn.style.left = x + 'px';
             btn.style.top = y + 'px';
-            btn.style.borderColor = neighbor.line.color;
+            btn.style.setProperty('--badge-bg', neighbor.line.color);
+            btn.style.setProperty('--badge-ink', neighbor.line.textColor);
             btn.title = neighbor.station;
             btn.setAttribute('aria-label', neighbor.station + ', ' + neighbor.line.name);
-            btn.appendChild(makeIcon(neighbor.station, 'map-node__icon'));
+            btn.appendChild(makeIcon(neighbor.station, 'station__icon'));
 
             btn.addEventListener('click', function () {
               chooseNeighbor(neighbor.station, neighbor.line.id);
@@ -1191,7 +1174,8 @@
           els = {
             mapStage: $('map-stage'),
             mapSpokes: $('map-spokes'),
-            mapHubIcon: $('map-hub-icon'),
+            mapHub: $('map-hub'),
+            mapHubName: $('map-hub-name'),
             mapNodes: $('map-nodes'),
             breadcrumb: $('breadcrumb'),
             giveupRow: $('giveup-row'),

@@ -904,31 +904,6 @@ input[type="text"]:disabled {
   border: 1px solid var(--rule);
 }
 
-/* Laberinto's .map-node/.map-hub - neutral circle, icon only, no line
-   color, no name (shown separately in the breadcrumb). */
-.design-station-node {
-  align-items: center;
-  background: var(--paper-raised);
-  border: 3px solid var(--rule-strong);
-  border-radius: 50%;
-  display: flex;
-  height: 3.4rem;
-  justify-content: center;
-  width: 3.4rem;
-}
-
-.design-station-node__icon {
-  color: var(--ink);
-  height: 1.7rem;
-  width: 1.7rem;
-}
-
-.design-station-node__icon svg {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 /* Layout only - the cells themselves are the real, consolidated
    .station now (see shared.css's own comment on .station). Lives here,
    not on "Listas de estaciones", since it's a single-station widget

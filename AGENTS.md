@@ -304,10 +304,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
   Metroguessr's `.hint-line-badge`, plus the already-decided
   `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
-  an "Estaciones" board (Laberinto's `.map-node`, plain text, the
-  already-decided `.station-card` (Memoria's own board card), the
-  already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
-  `.target-icon-marker` - see "Shared infrastructure" below) plus its
+  an "Estaciones" board (plain text, the
+  already-decided `.station-card` (Memoria's own board card, and
+  Laberinto's own current-station hub, which stacks the station's icon
+  over its name),
+  the already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
+  `.target-icon-marker`/Laberinto's own transfer-map neighbors, all
+  colored by line - see "Shared infrastructure" below) plus its
   own `.station--chip` size (Metro Crush's `.legend__chip`), and
   Memoria's own `.reveal__icons` - 18 stations across 3 rows of 6,
   mimicking the real end-of-round grid's own size (not just a handful
@@ -580,7 +583,12 @@ are impossible without a debug override.
   station-related ones. Memoria still owns every interaction state
   layered on top (hover/selected/entering/match-flash/match-ghost/
   empty, cursor/transition) in its own `<style>` block, same split as
-  `.line-badge`'s own page-local states in Clasificador; `.station` -
+  `.line-badge`'s own page-local states in Clasificador (and Laberinto's
+  own current-station hub consumes it too now, stacking the station's
+  icon over its name - the one `.station-card` that holds both children
+  at once, via a page-local `.map-hub` adding `flex-direction: column`
+  plus positioning/size - replacing its own former neutral
+  bordered-circle hub); `.station` -
   same square-with-rounded-top-right-corner shape, filled with
   `--badge-bg`/tinted via `--badge-ink` (falling back to a solid `--ink`
   background with `--paper` icon) - the third settled pattern, coalescing
@@ -589,7 +597,11 @@ are impossible without a debug override.
   properties all renamed to the shared `--badge-bg`/`--badge-ink` to
   match), Metroguessr's own `.target-icon-marker`, and Memoria's own
   `.reveal__icon-cell` (was a neutral cell with just a colored border,
-  now filled like the others). Each keeps its own class as a page-local
+  now filled like the others). Laberinto's own transfer-map neighbors
+  joined later too (a page-local `.map-node` carrying only absolute
+  positioning/size/hover/the destination pulse over the shared badge),
+  replacing its own former neutral bordered-circle nodes. Each keeps its
+  own class as a page-local
   modifier for its own states/animations (Metro Crush's many `.tile--*`
   interaction/animation modifiers in particular, its `.tile--neutral`
   hard-mode/preview state now setting its own explicit `--paper-well`

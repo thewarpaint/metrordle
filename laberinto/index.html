@@ -145,48 +145,23 @@
         stroke-width: 4;
       }
 
+      /* Position only; the circle look/size comes from the shared
+         .station-circle (.station-circle--muted on the hub). */
       .map-hub {
-        align-items: center;
-        background: var(--paper-raised);
-        border: 3px solid var(--rule-strong);
-        border-radius: 50%;
-        display: flex;
-        height: 4.4rem;
-        justify-content: center;
         left: 50%;
         position: absolute;
         top: 50%;
         transform: translate(-50%, -50%);
-        width: 4.4rem;
       }
 
-      .map-hub__icon {
-        color: var(--ink);
-        height: 2.2rem;
-        width: 2.2rem;
-      }
-
-      .map-hub__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
-      }
-
+      /* Position/interaction only; the circle look/size comes from
+         .station-circle. */
       .map-node {
-        align-items: center;
-        background: var(--paper-raised);
-        border-radius: 50%;
-        border-style: solid;
-        border-width: 3px;
         cursor: pointer;
-        display: flex;
-        height: 3.4rem;
-        justify-content: center;
         padding: 0;
         position: absolute;
         transform: translate(-50%, -50%);
         transition: transform 0.15s ease, box-shadow 0.15s ease;
-        width: 3.4rem;
       }
 
       .map-node:hover {
@@ -205,19 +180,6 @@
 
       .map-node--destination {
         animation: map-node-pulse 1.8s ease-in-out infinite;
-      }
-
-      .map-node__icon {
-        color: var(--ink);
-        height: 1.7rem;
-        pointer-events: none;
-        width: 1.7rem;
-      }
-
-      .map-node__icon svg {
-        display: block;
-        height: 100%;
-        width: 100%;
       }
 
       @keyframes map-node-pulse {
@@ -376,9 +338,7 @@
 
         <div class="map-stage" id="map-stage">
           <svg class="map-spokes" id="map-spokes" aria-hidden="true"></svg>
-          <div class="map-hub" id="map-hub">
-            <span class="map-hub__icon" id="map-hub-icon"></span>
-          </div>
+          <div class="station-circle station-circle--muted map-hub" id="map-hub"></div>
           <div id="map-nodes"></div>
         </div>
 
@@ -860,8 +820,8 @@
         // words, and each node keeps a title/aria-label for anyone who
         // wants to confirm before clicking or is using a screen reader.
         function renderMap() {
-          els.mapHubIcon.innerHTML = '';
-          els.mapHubIcon.appendChild(makeIcon(state.currentStation, 'map-hub__icon'));
+          els.mapHub.innerHTML = '';
+          els.mapHub.appendChild(makeIcon(state.currentStation, 'station-circle__icon'));
 
           // Neighbors reachable by continuing on the line you're already
           // riding land first (12 o'clock, going clockwise), so staying on
@@ -913,13 +873,14 @@
 
             var btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'map-node' + (neighbor.station === state.destination ? ' map-node--destination' : '');
+            btn.className = 'station-circle station-circle--sm map-node' + (neighbor.station === state.destination ? ' map-node--destination' : '');
             btn.style.left = x + 'px';
             btn.style.top = y + 'px';
-            btn.style.borderColor = neighbor.line.color;
+            btn.style.setProperty('--badge-bg', neighbor.line.color);
+            btn.style.setProperty('--badge-ink', neighbor.line.textColor);
             btn.title = neighbor.station;
             btn.setAttribute('aria-label', neighbor.station + ', ' + neighbor.line.name);
-            btn.appendChild(makeIcon(neighbor.station, 'map-node__icon'));
+            btn.appendChild(makeIcon(neighbor.station, 'station-circle__icon'));
 
             btn.addEventListener('click', function () {
               chooseNeighbor(neighbor.station, neighbor.line.id);
@@ -1191,7 +1152,7 @@
           els = {
             mapStage: $('map-stage'),
             mapSpokes: $('map-spokes'),
-            mapHubIcon: $('map-hub-icon'),
+            mapHub: $('map-hub'),
             mapNodes: $('map-nodes'),
             breadcrumb: $('breadcrumb'),
             giveupRow: $('giveup-row'),

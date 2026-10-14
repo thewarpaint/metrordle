@@ -29,7 +29,7 @@ async function main() {
       assert.strictEqual(lineExamples, 4, 'expected 4 line-indicator examples (line-badge, compact, circle, dot)');
 
       const stationExamples = await page.locator('#stations-gallery .design-example').count();
-      assert.strictEqual(stationExamples, 6, 'expected 6 station-display examples (card, inverted card, badge, chip, plain text, reveal grid)');
+      assert.strictEqual(stationExamples, 6, 'expected 6 station-display examples (node, card, badge, chip, plain text, reveal grid)');
 
       const stationListExamples = await page.locator('#station-lists-gallery .design-example').count();
       assert.strictEqual(stationListExamples, 5, 'expected 5 station-list examples (platform, platform hard mode, queue, breadcrumb, optimal path)');
@@ -46,18 +46,12 @@ async function main() {
       const lineDots = await page.locator('#lines-gallery .design-example').nth(3).locator('.route-dot').count();
       assert.strictEqual(lineDots, 5, 'expected one .route-dot per sampled line');
 
-      // The first four "Estaciones" examples are all already-consolidated
-      // patterns (shared.css's own real .station-card, its
-      // --inverted modifier, .station, and .station--chip - not .design-
-      // prefixed stand-ins - see shared.css's own comments on them).
-      // Laberinto's own former .map-node stand-in was dropped once its
-      // map consolidated onto .station (neighbors)/.station-card (the
-      // hub, now the --inverted variant).
-      const stationCards = await page.locator('#stations-gallery .design-example').nth(0).locator('.station-card').count();
+      // The second, third, and fourth "Estaciones" examples are the other
+      // already-consolidated patterns (shared.css's own real
+      // .station-card/.station/.station--chip, not .design- prefixed
+      // stand-ins - see shared.css's own comments on them).
+      const stationCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.station-card').count();
       assert.strictEqual(stationCards, 4, 'expected one station card per sampled station');
-
-      const invertedCards = await page.locator('#stations-gallery .design-example').nth(1).locator('.station-card--inverted').count();
-      assert.strictEqual(invertedCards, 4, 'expected one inverted station card per sampled station');
 
       const stationBadges = await page.locator('#stations-gallery .design-example').nth(2).locator('.station').count();
       assert.strictEqual(stationBadges, 4, 'expected one .station badge per sampled station');

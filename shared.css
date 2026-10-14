@@ -789,17 +789,6 @@ input[type="text"]:disabled {
   text-align: center;
 }
 
-/* Swaps the card's fill and ink for a solid, high-contrast block that
-   doesn't get lost against the page; inverts for free in dark mode. */
-.station-card--inverted {
-  background: var(--ink);
-}
-
-.station-card--inverted .station-card__icon,
-.station-card--inverted .station-card__name {
-  color: var(--paper);
-}
-
 /* Square with a rounded top-right corner, filled with --badge-bg (same
    convention as .line-badge), icon tinted via --badge-ink. Coalesces 4
    near-identical copies - Metro Crush's .tile and .legend__chip,
@@ -913,6 +902,31 @@ input[type="text"]:disabled {
 .route-dot--muted {
   background: var(--paper-well);
   border: 1px solid var(--rule);
+}
+
+/* Laberinto's .map-node/.map-hub - neutral circle, icon only, no line
+   color, no name (shown separately in the breadcrumb). */
+.design-station-node {
+  align-items: center;
+  background: var(--paper-raised);
+  border: 3px solid var(--rule-strong);
+  border-radius: 50%;
+  display: flex;
+  height: 3.4rem;
+  justify-content: center;
+  width: 3.4rem;
+}
+
+.design-station-node__icon {
+  color: var(--ink);
+  height: 1.7rem;
+  width: 1.7rem;
+}
+
+.design-station-node__icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 /* Layout only - the cells themselves are the real, consolidated

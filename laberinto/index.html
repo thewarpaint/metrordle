@@ -150,6 +150,9 @@
       .station-circle {
         align-items: center;
         background: var(--badge-bg, var(--line));
+        /* Border matches the fill - hides the default <button> border a
+           neighbor would otherwise show, without changing the size. */
+        border: 2px solid var(--badge-bg, var(--line));
         border-radius: 50%;
         color: var(--badge-ink, var(--paper));
         display: flex;
@@ -167,6 +170,7 @@
          icon the old background color. */
       .station-circle--muted {
         background: var(--rule-strong);
+        border-color: var(--rule-strong);
         color: var(--paper-raised);
       }
 

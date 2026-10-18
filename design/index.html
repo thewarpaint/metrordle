@@ -447,12 +447,12 @@
             var leftBtn = document.createElement('button');
             leftBtn.type = 'button';
             leftBtn.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
-            leftBtn.textContent = '◀';
+            leftBtn.setAttribute('data-chev', 'left');
             leftBtn.disabled = index === 0;
             var rightBtn = document.createElement('button');
             rightBtn.type = 'button';
             rightBtn.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
-            rightBtn.textContent = '▶';
+            rightBtn.setAttribute('data-chev', 'right');
             rightBtn.disabled = index === PLATFORM_SAMPLE.length - 1;
             nav.appendChild(leftBtn);
             nav.appendChild(rightBtn);
@@ -737,7 +737,7 @@
           var chevPrev = document.createElement('button');
           chevPrev.type = 'button';
           chevPrev.className = 'btn-secondary btn-secondary--chev';
-          chevPrev.textContent = '◀';
+          chevPrev.setAttribute('data-chev', 'left');
           dateNavRow.appendChild(chevPrev);
           var dateLabel = document.createElement('span');
           dateLabel.className = 'date-debug__label';
@@ -746,7 +746,7 @@
           var chevNext = document.createElement('button');
           chevNext.type = 'button';
           chevNext.className = 'btn-secondary btn-secondary--chev';
-          chevNext.textContent = '▶';
+          chevNext.setAttribute('data-chev', 'right');
           dateNavRow.appendChild(chevNext);
           gallery.appendChild(buildExample(dateNavRow, '<code>.btn-secondary--chev</code> · ✅ consolidado - variante cuadrada de <code>.btn-secondary</code> para las flechas de navegación de fecha del modo <code>?debug=true</code>, en cada juego y en <code>/admin/</code>. <code>.btn-secondary--chev-sm</code> es la variante más chica de Metroguessr.'));
 
@@ -756,22 +756,22 @@
           var upDown = document.createElement('div');
           upDown.style.display = 'flex';
           upDown.style.gap = '0.28rem';
-          ['▲', '▼'].forEach(function (g) {
+          ['up', 'down'].forEach(function (dir) {
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'btn-secondary btn-secondary--chev';
-            b.textContent = g;
+            b.setAttribute('data-chev', dir);
             upDown.appendChild(b);
           });
           reorderRow.appendChild(upDown);
           var leftRight = document.createElement('div');
           leftRight.style.display = 'flex';
           leftRight.style.gap = '0.15rem';
-          ['◀', '▶'].forEach(function (g) {
+          ['left', 'right'].forEach(function (dir) {
             var b = document.createElement('button');
             b.type = 'button';
             b.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
-            b.textContent = g;
+            b.setAttribute('data-chev', dir);
             leftRight.appendChild(b);
           });
           reorderRow.appendChild(leftRight);

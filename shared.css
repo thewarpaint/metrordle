@@ -467,25 +467,55 @@ h1 {
   padding: 0.6rem 0.9rem;
 }
 
-/* Square icon variant of .btn-secondary (date-nav + reorder arrows):
-   aspect-ratio keeps it square off the height, flex centers the glyph.
-   --chev-sm is the compact size. */
+/* Square icon variant of .btn-secondary - the date-nav and reorder
+   arrows. aspect-ratio keeps it square off the height; the arrow is a CSS
+   triangle (::before + clip-path, so there's no ◀/▶ glyph that some
+   platforms render as a color emoji) sized to 66% of the button and
+   centered by the button's own flex, pointed per data-chev. --chev-sm is
+   the compact size. */
 .btn-secondary--chev {
   align-items: center;
   aspect-ratio: 1 / 1;
   display: flex;
-  font-size: 0.8rem;
   height: 1.95rem;
   justify-content: center;
-  letter-spacing: 0;
-  line-height: 1;
   margin-top: 0;
   padding: 0;
   width: auto;
 }
 
+/* The ::before fills a box the clip-path turns into the triangle. 50%
+   wide; the height is set per orientation so the triangle is equilateral
+   (height = side·√3/2): the apex-sideways left/right arrows need a taller
+   box (50%·2/√3 ≈ 57.7%), the up/down ones a shorter one (50%·√3/2 ≈
+   43.3%). */
+.btn-secondary--chev::before {
+  background: currentColor;
+  content: "";
+  width: 50%;
+}
+
+.btn-secondary--chev[data-chev="left"]::before {
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  height: 57.7%;
+}
+
+.btn-secondary--chev[data-chev="right"]::before {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  height: 57.7%;
+}
+
+.btn-secondary--chev[data-chev="up"]::before {
+  clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  height: 43.3%;
+}
+
+.btn-secondary--chev[data-chev="down"]::before {
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  height: 43.3%;
+}
+
 .btn-secondary--chev-sm {
-  font-size: 0.62rem;
   height: 1.5rem;
 }
 

@@ -427,12 +427,9 @@ h1 {
   padding: 0.6rem 0.9rem;
 }
 
-/* Square icon variant of .btn-secondary - the ?debug=true date-nav
-   arrows (every game + /admin/) and Metrordle's per-row reorder ▲▼/◀▶.
-   Drops the base's block width, top margin, and letter-spacing;
-   aspect-ratio keeps it square (height drives width) and flex centers
-   the lone glyph both ways. --chev-sm is the compact size (Metroguessr's
-   date nav, hard-mode reorder). */
+/* Square icon variant of .btn-secondary (date-nav + reorder arrows):
+   aspect-ratio keeps it square off the height, flex centers the glyph.
+   --chev-sm is the compact size. */
 .btn-secondary--chev {
   align-items: center;
   aspect-ratio: 1 / 1;

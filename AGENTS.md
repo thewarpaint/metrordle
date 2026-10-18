@@ -23,7 +23,14 @@ about `//`/`/* */` comments in the actual game/test code.)
 
 - **`/` (`index.html`)** - Metrordle: order 5 stations of one Metro line
   correctly in 5 attempts. Has a "normal"/"hard" mode toggle
-  (`state.mode`), chosen via a modal on a fresh day.
+  (`state.mode`), chosen on a fresh day via an inline `.start-overlay`
+  over the board (Metro Crush's own pattern - `beginRound(mode)`), not a
+  full-screen modal. Until a mode is picked, `state.mode` is `null` and
+  `state.started` is `false`: the common chrome (title, line badge,
+  headsign, status) and the default-layout board render behind the
+  opaque overlay, so the page is whole before the choice. A saved or
+  `?debug=true` game skips the overlay (starts `started: true` in its
+  own mode), same as the old modal was skipped under debug.
 - **`/laberinto/`** - Metrordle: Laberinto: navigate from an origin to a
   destination station, picking neighbors/lines at each hop.
 - **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
@@ -430,16 +437,21 @@ about `//`/`/* */` comments in the actual game/test code.)
   `.btn-primary`/`.btn-secondary` (every game's own start/save/share
   button), `.leaderboard__alias` (the alias input+button row every
   leaderboard uses, now also `/configurar/`'s own Alias section), and
-  `.mode-modal`/`.mode-option` (Metrordle's/Metroguessr's full-screen
-  pre-game normal/hard choice, shown here as just `.mode-modal__card`
+  `.mode-modal`/`.mode-option` (Metroguessr's full-screen
+  pre-game normal/hard choice - Metrordle used to share it too but now
+  uses its own inline `.start-overlay` instead, see its bullet above;
+  shown here as just `.mode-modal__card`
   inline - `.mode-modal` itself is `position: fixed`, which would break
   out of the gallery's own layout the way every other example on this
   page stays inline) are all real, already-shared classes. Two more are
   genuinely scattered, not consolidated: `.start-overlay__modes` (Metro
-  Crush's and Clasificador's own two-button pre-round choice, identical
-  CSS copy-pasted into each page's own `<style>` block rather than
-  shared - `.design-overlay-modes` stands in for it here, since neither
-  game's own page-local class is loaded on `/design/` to begin with) and
+  Crush's, Clasificador's, and now Metrordle's own two-button pre-round
+  choice, near-identical CSS copy-pasted into each page's own `<style>`
+  block rather than shared - a third copy as of Metrordle's modal→inline
+  move, which strengthens the case to promote this into shared.css, left
+  for a focused follow-up; `.design-overlay-modes` stands in for it
+  here, since none of the three pages' own page-local class is loaded on
+  `/design/` to begin with) and
   `.mode-option[aria-pressed="true"]` (`/configurar/`'s own persistent-
   selection override on the same `.mode-option` the modal above uses -
   `.design-option-pressed` stands in for it, same reasoning). Unlike the

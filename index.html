@@ -343,6 +343,48 @@
         padding: 0.2rem 1.1rem 0.9rem;
       }
 
+      .board-wrap {
+        position: relative;
+      }
+
+      /* Inline pre-game mode picker over the board (Metro Crush's own
+         .start-overlay pattern), replacing the old full-screen
+         .mode-modal. Opaque --paper-raised so the default-layout board
+         rendered behind it stays hidden until a mode is chosen. */
+      .start-overlay {
+        align-items: center;
+        background: var(--paper-raised);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 1.1rem;
+        position: absolute;
+        z-index: 2;
+      }
+
+      .start-overlay[hidden] { display: none; }
+
+      .start-overlay__panel {
+        max-width: 18rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      .start-overlay__text {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        line-height: 1.4;
+        margin: 0 0 1rem;
+      }
+
+      .start-overlay__text strong { color: var(--ink); }
+
+      .start-overlay__modes {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
       .reveal {
         padding: 1.1rem;
       }
@@ -503,24 +545,6 @@
   </head>
 
   <body>
-    <div class="mode-modal" id="mode-modal" hidden>
-      <div class="mode-modal__backdrop"></div>
-      <div class="mode-modal__card" role="dialog" aria-modal="true" aria-labelledby="mode-modal-title">
-        <h2 id="mode-modal-title">Elige tu modo</h2>
-        <p class="mode-modal__dek">¿Cómo quieres jugar el Metrordle de hoy?</p>
-        <div class="mode-modal__options">
-          <button type="button" class="mode-option" id="mode-normal-btn">
-            <span class="mode-option__title">Normal</span>
-            <span class="mode-option__desc">Nombre y símbolo de cada estación</span>
-          </button>
-          <button type="button" class="mode-option" id="mode-hard-btn">
-            <span class="mode-option__title">Difícil</span>
-            <span class="mode-option__desc">Solo símbolos, sin nombres</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div class="wrap">
       <div class="brand">
         <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -573,10 +597,25 @@
           <span class="attempt-chips" id="attempt-chips" aria-hidden="true"></span>
         </div>
 
-        <ol class="platform" id="platform"></ol>
+        <div class="board-wrap" id="board-wrap">
+          <ol class="platform" id="platform"></ol>
 
-        <div class="actions">
-          <button type="button" class="btn-primary" id="check-btn">Verificar</button>
+          <div class="actions">
+            <button type="button" class="btn-primary" id="check-btn">Verificar</button>
+          </div>
+
+          <div class="start-overlay" id="start-overlay" hidden>
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text">
+                <strong>Modo difícil:</strong> las estaciones solo muestran su
+                símbolo, sin el nombre.
+              </p>
+              <div class="start-overlay__modes">
+                <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
+                <button type="button" class="btn-secondary" id="start-hard-btn">Jugar modo difícil</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="reveal" id="reveal" hidden>
@@ -631,8 +670,9 @@
         var els = {};
         var rowRects = {};
         var pendingGameSetup = null;
-        // Remembered across mode-modal choices this session (and used to
-        // skip the modal entirely in ?debug=true - see startNewGame).
+        // Remembered across the inline mode choices this session (and used
+        // to skip the start overlay entirely in ?debug=true - see
+        // startNewGame).
         var lastPickedMode = 'normal';
 
         // Drag-and-drop reordering. Set only while a press/drag is being
@@ -953,25 +993,35 @@
           if (saved) {
             // Already playing/played today (in whichever mode that was) -
             // resume as-is, no choice to make.
-            finishStartingGame(saved.mode === 'hard' ? 'hard' : 'normal');
+            finishStartingGame(saved.mode === 'hard' ? 'hard' : 'normal', true);
           } else if (MetroShared.isDebugMode()) {
             // The date-nav buttons call startNewGame() on every click; showing
-            // the modal for each fake "fresh day" would make date-browsing
-            // unusable, so debug mode skips it and reuses whatever mode was
-            // last picked (via the modal or the debug mode-toggle buttons).
-            finishStartingGame(lastPickedMode);
+            // the start overlay for each fake "fresh day" would make
+            // date-browsing unusable, so debug mode skips it and reuses
+            // whatever mode was last picked (via the overlay or the debug
+            // mode-toggle buttons).
+            finishStartingGame(lastPickedMode, true);
           } else {
-            els.modeModal.hidden = false;
+            // Fresh day: build the board behind the inline start overlay and
+            // let the player pick a mode there. mode stays null until they
+            // do - render() falls back to the normal layout, which the
+            // opaque overlay covers anyway.
+            finishStartingGame(null, false);
           }
         }
 
-        function resolveModeChoice(mode) {
+        // The inline start overlay's mode choice (fresh day only). Keeps the
+        // state built by finishStartingGame(null, false) and just fills in
+        // the chosen mode, same as the old modal did before it went inline.
+        function beginRound(mode) {
+          if (!state || state.started) return;
           lastPickedMode = mode;
-          els.modeModal.hidden = true;
-          finishStartingGame(mode);
+          state.mode = mode;
+          state.started = true;
+          render(false);
         }
 
-        function finishStartingGame(mode) {
+        function finishStartingGame(mode, started) {
           var dateKey = pendingGameSetup.dateKey;
           var gameNumber = pendingGameSetup.gameNumber;
           var puzzle = pendingGameSetup.puzzle;
@@ -1007,7 +1057,12 @@
             won: saved ? !!saved.won : false,
             streak: savedStreak ? savedStreak.count : 0,
             maxStreak: savedStreak ? savedStreak.max : 0,
+            // null until the player picks a mode via the inline start
+            // overlay; renderPlatform() treats null like 'normal'.
             mode: mode,
+            // false only while the start overlay is up (a fresh, unstarted
+            // day); a saved or debug game is started from the first render.
+            started: started,
             // Missing on a save from before this field existed defaults to
             // false, same as everywhere else this flag is used - one
             // harmless retry-submit, same as a genuine earlier failure.
@@ -1079,7 +1134,7 @@
         }
 
         function moveStation(index, direction) {
-          if (state.gameOver) return;
+          if (!state.started || state.gameOver) return;
           var target = index + direction;
           if (target < 0 || target >= state.currentOrder.length) return;
           var tmp = state.currentOrder[index];
@@ -1102,7 +1157,7 @@
         // is the same mechanism behind reorderable lists in iOS/Android.
 
         function onRowPointerDown(li, name, event) {
-          if (state.gameOver) return;
+          if (!state.started || state.gameOver) return;
           if (dragState) return; // a press/drag is already being tracked
           if (event.target.closest('.btn-secondary--chev')) return; // let button taps stay instant
           if (event.isPrimary === false) return;
@@ -1346,7 +1401,7 @@
         }
 
         function checkOrder() {
-          if (state.gameOver) return;
+          if (!state.started || state.gameOver) return;
           var correctCount = 0;
           for (var i = 0; i < state.currentOrder.length; i++) {
             if (state.currentOrder[i] === state.correctOrder[i]) correctCount++;
@@ -1420,7 +1475,10 @@
           renderPlatform();
           renderReveal();
 
-          els.checkBtn.disabled = state.gameOver;
+          // Up only while awaiting the mode choice on a fresh day; a saved
+          // or debug game is already started, so it never shows there.
+          els.startOverlay.hidden = state.started;
+          els.checkBtn.disabled = !state.started || state.gameOver;
 
           if (animate) flipAnimate();
         }
@@ -1905,9 +1963,9 @@
             debugStations: $('debug-stations'),
             debugStationsTitle: $('debug-stations-title'),
             debugStationsGrid: $('debug-stations-grid'),
-            modeModal: $('mode-modal'),
-            modeNormalBtn: $('mode-normal-btn'),
-            modeHardBtn: $('mode-hard-btn'),
+            startOverlay: $('start-overlay'),
+            startNormalBtn: $('start-normal-btn'),
+            startHardBtn: $('start-hard-btn'),
             debugModeNormalBtn: $('debug-mode-normal'),
             debugModeHardBtn: $('debug-mode-hard'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
@@ -1917,8 +1975,8 @@
 
           els.checkBtn.addEventListener('click', checkOrder);
           els.shareBtn.addEventListener('click', shareResult);
-          els.modeNormalBtn.addEventListener('click', function () { resolveModeChoice('normal'); });
-          els.modeHardBtn.addEventListener('click', function () { resolveModeChoice('hard'); });
+          els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
+          els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
 
           // Drag-and-drop: pointerdown is attached per-row in
           // renderPlatformNormal/renderPlatformHard; move/up/cancel are
@@ -1938,11 +1996,11 @@
             // they re-render the *current* effective day, no date change.
             els.debugModeNormalBtn.addEventListener('click', function () {
               lastPickedMode = 'normal';
-              finishStartingGame('normal');
+              finishStartingGame('normal', true);
             });
             els.debugModeHardBtn.addEventListener('click', function () {
               lastPickedMode = 'hard';
-              finishStartingGame('hard');
+              finishStartingGame('hard', true);
             });
 
             els.debugStations.hidden = false;

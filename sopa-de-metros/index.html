@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Same defense-in-depth CSP as every other page (see clasificador's
+      own comment). This prototype loads no Firebase, but keeping the
+      shared policy avoids a per-page exception to maintain.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="🔤 Sopa de metros · Metrordle">
+    <meta name="description" content="Encuentra 10 palabras del Metro escondidas en la cuadrícula de letras.">
+    <meta name="robots" content="noindex">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Sopa de metros">
+
+    <title>🔤 Sopa de metros · Metrordle</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!-- Applies a saved theme before first paint - see every other page's head. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .sign__head {
+        padding: 1.1rem 1.1rem 0.4rem;
+      }
+
+      .counter {
+        align-items: baseline;
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.6rem;
+      }
+
+      .counter__num {
+        color: var(--line);
+        font-size: 1.5rem;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+
+      .counter__label {
+        color: var(--ink-soft);
+        font-size: 0.85rem;
+      }
+
+      /* The letter grid. 13 equal columns; cells stay square via
+         aspect-ratio and their glyph scales with the viewport so the
+         whole board fits a phone without horizontal scroll. */
+      .board {
+        padding: 0.5rem 0.7rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 0.16rem;
+        grid-template-columns: repeat(13, 1fr);
+        margin: 0 auto;
+        touch-action: manipulation;
+      }
+
+      .cell {
+        align-items: center;
+        aspect-ratio: 1 / 1;
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-radius: 0.2rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: flex;
+        font-size: clamp(0.62rem, 2.7vw, 0.95rem);
+        font-weight: 700;
+        justify-content: center;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.08s ease, border-color 0.08s ease;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      /* Active (in-progress) selection rides the day's Metro blue; a found
+         word locks to green. On-color text is a fixed white so it reads on
+         either fill in both light and dark. */
+      .cell--sel {
+        background: var(--line);
+        border-color: var(--line);
+        color: var(--line-ink);
+      }
+
+      .cell--found {
+        background: var(--ok);
+        border-color: var(--ok);
+        color: #fff;
+      }
+
+      .cell--found.cell--sel {
+        background: var(--line);
+        border-color: var(--line);
+      }
+
+      .words {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: center;
+        padding: 0.4rem 1.1rem 0.2rem;
+      }
+
+      .word-chip {
+        background: var(--paper-well);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.25rem 0.55rem;
+      }
+
+      .word-chip--found {
+        background: var(--ok);
+        border-color: var(--ok);
+        color: #fff;
+        text-decoration: line-through;
+      }
+
+      .actions {
+        padding: 0.6rem 1.1rem 1rem;
+      }
+
+      #win-notice {
+        margin: 0 1.1rem 1rem;
+      }
+
+      #win-notice[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="1" y="6" width="22" height="12" rx="3" stroke="var(--ink)" stroke-width="2"/>
+          <circle cx="7" cy="20" r="2" fill="var(--ink)"/>
+          <circle cx="17" cy="20" r="2" fill="var(--ink)"/>
+          <line x1="1" y1="11" x2="23" y2="11" stroke="var(--ink)" stroke-width="1.5"/>
+        </svg>
+        <span class="brand__text">Metrordle · Sopa de metros</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1>Sopa de metros</h1>
+          <p class="dek">Encuentra las 10 palabras del Metro. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
+          <div class="counter">
+            <span class="counter__num" id="counter-num">0</span>
+            <span class="counter__label" id="counter-label">de 10 palabras encontradas</span>
+          </div>
+        </div>
+
+        <div class="board">
+          <div class="grid" id="grid" aria-label="Cuadrícula de letras"></div>
+        </div>
+
+        <div class="words" id="words"></div>
+
+        <div id="win-notice" hidden></div>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
+        </div>
+      </div>
+
+      <p class="credit">
+        Prototipo. Las palabras están ocultas en horizontal, vertical o diagonal, en cualquier sentido.
+      </p>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var GRID = 13;
+        var WORD_COUNT = 10;
+        // Metro-themed Spanish words, uppercase and accent-free so each
+        // maps to one grid cell. 10 are drawn from this pool per board.
+        var WORD_POOL = [
+          'METRO', 'TREN', 'ANDEN', 'LINEA', 'VAGON', 'BOLETO', 'ESTACION',
+          'PASAJERO', 'TORNIQUETE', 'TRANSBORDO', 'TARJETA', 'SALIDA',
+          'ENTRADA', 'RIELES', 'PARADA', 'DESTINO', 'CONVOY', 'TUNEL',
+          'ESCALERA', 'TAQUILLA',
+        ];
+        // Spanish-ish fill alphabet (no Ñ, no rare K/W).
+        var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
+        var DIRS = [[0, 1], [1, 0], [1, 1], [1, -1], [0, -1], [-1, 0], [-1, -1], [-1, 1]];
+
+        var state = null;
+        var els = {};
+        var cellEls = [];
+
+        function $(id) { return document.getElementById(id); }
+        function keyOf(r, c) { return r + ',' + c; }
+        function reverse(s) { return s.split('').reverse().join(''); }
+
+        function shuffle(arr, rand) {
+          for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+          }
+          return arr;
+        }
+
+        // --- Board generation --------------------------------------------
+        // Deterministic from a salt. A given salt's placement can fail (a
+        // word that won't fit the partial board), so retry with a bumped
+        // counter until one works - still a pure function of the salt.
+        function buildBoard(salt) {
+          for (var attempt = 0; attempt < 80; attempt++) {
+            var rand = MetroShared.createSeededRandom(salt + '-' + attempt);
+            var built = tryBuild(rand);
+            if (built) return built;
+          }
+          return null;
+        }
+
+        function tryBuild(rand) {
+          var words = shuffle(WORD_POOL.slice(), rand).slice(0, WORD_COUNT);
+          var grid = [];
+          for (var r = 0; r < GRID; r++) {
+            grid.push([]);
+            for (var c = 0; c < GRID; c++) grid[r].push(null);
+          }
+          for (var i = 0; i < words.length; i++) {
+            if (!placeWord(grid, words[i], rand)) return null;
+          }
+          for (var r2 = 0; r2 < GRID; r2++) {
+            for (var c2 = 0; c2 < GRID; c2++) {
+              if (grid[r2][c2] === null) grid[r2][c2] = FILL.charAt(Math.floor(rand() * FILL.length));
+            }
+          }
+          return { grid: grid, words: words };
+        }
+
+        function placeWord(grid, word, rand) {
+          for (var t = 0; t < 300; t++) {
+            var dir = DIRS[Math.floor(rand() * DIRS.length)];
+            var dr = dir[0], dc = dir[1], len = word.length;
+            var r0 = Math.floor(rand() * GRID), c0 = Math.floor(rand() * GRID);
+            var rEnd = r0 + dr * (len - 1), cEnd = c0 + dc * (len - 1);
+            if (rEnd < 0 || rEnd >= GRID || cEnd < 0 || cEnd >= GRID) continue;
+            var fits = true;
+            for (var k = 0; k < len; k++) {
+              var cur = grid[r0 + dr * k][c0 + dc * k];
+              if (cur !== null && cur !== word.charAt(k)) { fits = false; break; }
+            }
+            if (!fits) continue;
+            for (var k2 = 0; k2 < len; k2++) grid[r0 + dr * k2][c0 + dc * k2] = word.charAt(k2);
+            return true;
+          }
+          return false;
+        }
+
+        // --- Rendering ---------------------------------------------------
+        function buildGrid() {
+          els.grid.innerHTML = '';
+          cellEls = [];
+          for (var r = 0; r < GRID; r++) {
+            cellEls.push([]);
+            for (var c = 0; c < GRID; c++) {
+              var cell = document.createElement('div');
+              cell.className = 'cell';
+              cell.dataset.r = r;
+              cell.dataset.c = c;
+              cell.textContent = state.grid[r][c];
+              els.grid.appendChild(cell);
+              cellEls[r].push(cell);
+            }
+          }
+        }
+
+        function paintCells() {
+          var sel = {};
+          state.selection.forEach(function (p) { sel[keyOf(p.r, p.c)] = true; });
+          for (var r = 0; r < GRID; r++) {
+            for (var c = 0; c < GRID; c++) {
+              var cls = 'cell';
+              if (state.foundCells[keyOf(r, c)]) cls += ' cell--found';
+              if (sel[keyOf(r, c)]) cls += ' cell--sel';
+              cellEls[r][c].className = cls;
+            }
+          }
+        }
+
+        function renderWords() {
+          els.words.innerHTML = '';
+          state.words.forEach(function (word, i) {
+            var chip = document.createElement('span');
+            chip.className = 'word-chip' + (state.found[i] ? ' word-chip--found' : '');
+            chip.textContent = word;
+            els.words.appendChild(chip);
+          });
+        }
+
+        function renderCounter() {
+          var n = 0;
+          for (var i = 0; i < state.found.length; i++) if (state.found[i]) n++;
+          els.counterNum.textContent = n;
+        }
+
+        // --- Interaction -------------------------------------------------
+        function clearSelection() {
+          state.selection = [];
+          state.selDir = null;
+          paintCells();
+        }
+
+        function startAt(r, c) {
+          state.selection = [{ r: r, c: c }];
+          state.selDir = null;
+          paintCells();
+        }
+
+        function onCellTap(r, c) {
+          if (state.won) return;
+          var sel = state.selection;
+
+          // Re-tapping anywhere in the live selection cancels the attempt.
+          for (var i = 0; i < sel.length; i++) {
+            if (sel[i].r === r && sel[i].c === c) { clearSelection(); return; }
+          }
+
+          if (sel.length === 0) { startAt(r, c); return; }
+
+          if (sel.length === 1) {
+            var a = sel[0];
+            var dr = r - a.r, dc = c - a.c;
+            // 8-neighbour of the anchor sets the direction; anything else
+            // is a fresh attempt starting at the tapped cell.
+            if (Math.max(Math.abs(dr), Math.abs(dc)) === 1) {
+              state.selDir = { dr: dr, dc: dc };
+              sel.push({ r: r, c: c });
+              afterExtend();
+            } else {
+              startAt(r, c);
+            }
+            return;
+          }
+
+          // Length >= 2: only the next cell in the locked direction extends.
+          var last = sel[sel.length - 1];
+          if (r === last.r + state.selDir.dr && c === last.c + state.selDir.dc) {
+            sel.push({ r: r, c: c });
+            afterExtend();
+          } else {
+            startAt(r, c);
+          }
+        }
+
+        function afterExtend() {
+          var str = state.selection.map(function (p) { return state.grid[p.r][p.c]; }).join('');
+          var idx = matchWord(str);
+          if (idx >= 0) { markFound(idx); return; }
+          paintCells();
+        }
+
+        // Matches the current run against an unfound word, in either
+        // reading direction (words are hidden forwards or backwards).
+        function matchWord(str) {
+          for (var i = 0; i < state.words.length; i++) {
+            if (state.found[i]) continue;
+            if (str === state.words[i] || str === reverse(state.words[i])) return i;
+          }
+          return -1;
+        }
+
+        function markFound(idx) {
+          state.found[idx] = true;
+          state.selection.forEach(function (p) { state.foundCells[keyOf(p.r, p.c)] = true; });
+          state.selection = [];
+          state.selDir = null;
+          paintCells();
+          renderWords();
+          renderCounter();
+
+          var all = state.found.every(function (f) { return f; });
+          if (all) {
+            state.won = true;
+            MetroShared.renderNoticeBanner(
+              els.winNotice, 'notice--success',
+              '¡Las encontraste todas!',
+              'Completaste las 10 palabras del Metro.'
+            );
+            els.winNotice.hidden = false;
+          }
+        }
+
+        // --- Lifecycle ---------------------------------------------------
+        function newGame(salt) {
+          var built = buildBoard(salt);
+          state = {
+            grid: built.grid,
+            words: built.words,
+            found: built.words.map(function () { return false; }),
+            foundCells: {},
+            selection: [],
+            selDir: null,
+            won: false,
+          };
+          els.winNotice.hidden = true;
+          els.winNotice.textContent = '';
+          buildGrid();
+          paintCells();
+          renderWords();
+          renderCounter();
+        }
+
+        function init() {
+          els = {
+            grid: $('grid'),
+            words: $('words'),
+            counterNum: $('counter-num'),
+            winNotice: $('win-notice'),
+            restartBtn: $('restart-btn'),
+          };
+
+          els.grid.addEventListener('click', function (e) {
+            var cell = e.target.closest('.cell');
+            if (!cell) return;
+            onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
+          });
+
+          // A fresh random board, for prototyping replay.
+          els.restartBtn.addEventListener('click', function () {
+            newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2));
+          });
+
+          // Today's board is the same for everyone, same convention as
+          // every other game's single-seed-per-day.
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          newGame('metrordle-sopa-' + dateKey);
+        }
+
+        init();
+      })();
+    </script>
+  </body>
+</html>

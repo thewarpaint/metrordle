@@ -534,9 +534,9 @@
       </div>
 
       <div class="date-debug" id="date-debug" hidden>
-        <button type="button" class="chev" id="date-prev" aria-label="Día anterior">◀</button>
+        <button type="button" class="btn-secondary btn-secondary--chev" id="date-prev" aria-label="Día anterior">◀</button>
         <span class="date-debug__label" id="date-debug-label"></span>
-        <button type="button" class="chev" id="date-next" aria-label="Día siguiente">▶</button>
+        <button type="button" class="btn-secondary btn-secondary--chev" id="date-next" aria-label="Día siguiente">▶</button>
         <span class="debug-mode-toggle">
           <button type="button" class="debug-mode-toggle__btn" id="debug-mode-normal" aria-label="Ver modo normal">Normal</button>
           <button type="button" class="debug-mode-toggle__btn" id="debug-mode-hard" aria-label="Ver modo difícil">Difícil</button>
@@ -1104,7 +1104,7 @@
         function onRowPointerDown(li, name, event) {
           if (state.gameOver) return;
           if (dragState) return; // a press/drag is already being tracked
-          if (event.target.closest('.chev')) return; // let button taps stay instant
+          if (event.target.closest('.btn-secondary--chev')) return; // let button taps stay instant
           if (event.isPrimary === false) return;
 
           dragState = {
@@ -1530,7 +1530,7 @@
 
             var leftBtn = document.createElement('button');
             leftBtn.type = 'button';
-            leftBtn.className = 'chev chev--compact';
+            leftBtn.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
             leftBtn.textContent = '◀';
             leftBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la izquierda');
             leftBtn.disabled = index === 0;
@@ -1542,7 +1542,7 @@
 
             var rightBtn = document.createElement('button');
             rightBtn.type = 'button';
-            rightBtn.className = 'chev chev--compact';
+            rightBtn.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
             rightBtn.textContent = '▶';
             rightBtn.setAttribute('aria-label', 'Mover estación ' + (index + 1) + ' a la derecha');
             rightBtn.disabled = index === state.currentOrder.length - 1;
@@ -1604,7 +1604,7 @@
 
               var upBtn = document.createElement('button');
               upBtn.type = 'button';
-              upBtn.className = 'chev';
+              upBtn.className = 'btn-secondary btn-secondary--chev';
               upBtn.textContent = '▲';
               upBtn.setAttribute('aria-label', 'Subir ' + name);
               upBtn.disabled = index === 0;
@@ -1616,7 +1616,7 @@
 
               var downBtn = document.createElement('button');
               downBtn.type = 'button';
-              downBtn.className = 'chev';
+              downBtn.className = 'btn-secondary btn-secondary--chev';
               downBtn.textContent = '▼';
               downBtn.setAttribute('aria-label', 'Bajar ' + name);
               downBtn.disabled = index === state.currentOrder.length - 1;

@@ -446,12 +446,12 @@
             nav.className = 'design-platform-hard__nav';
             var leftBtn = document.createElement('button');
             leftBtn.type = 'button';
-            leftBtn.className = 'chev chev--compact';
+            leftBtn.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
             leftBtn.textContent = '◀';
             leftBtn.disabled = index === 0;
             var rightBtn = document.createElement('button');
             rightBtn.type = 'button';
-            rightBtn.className = 'chev chev--compact';
+            rightBtn.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
             rightBtn.textContent = '▶';
             rightBtn.disabled = index === PLATFORM_SAMPLE.length - 1;
             nav.appendChild(leftBtn);
@@ -729,15 +729,15 @@
           });
           gallery.appendChild(buildExample(persistentPicker, '<code>.mode-option[aria-pressed]</code> · <code>/configurar/</code> - mismo botón que el modal de arriba, reutilizado como picker que se queda en pantalla mostrando la opción actual (borde/sombra de color propios de esta página, ya que <code>.mode-option</code> en sí no tiene estado "seleccionado" persistente).'));
 
-          // .chev + .date-debug__label + .debug-mode-toggle all live
-          // together on the ?debug=true date-nav row - shown here with
+          // .btn-secondary--chev + .date-debug__label + .debug-mode-toggle
+          // all live together on the ?debug=true date-nav row - shown with
           // real shared classes, same ✅ consolidado convention as the
           // buttons/alias examples above.
           var dateNavRow = buildRow();
           dateNavRow.style.alignItems = 'center';
           var chevPrev = document.createElement('button');
           chevPrev.type = 'button';
-          chevPrev.className = 'chev';
+          chevPrev.className = 'btn-secondary btn-secondary--chev';
           chevPrev.textContent = '◀';
           dateNavRow.appendChild(chevPrev);
           var dateLabel = document.createElement('span');
@@ -746,10 +746,10 @@
           dateNavRow.appendChild(dateLabel);
           var chevNext = document.createElement('button');
           chevNext.type = 'button';
-          chevNext.className = 'chev';
+          chevNext.className = 'btn-secondary btn-secondary--chev';
           chevNext.textContent = '▶';
           dateNavRow.appendChild(chevNext);
-          gallery.appendChild(buildExample(dateNavRow, '<code>.chev</code> · ✅ consolidado - las flechas de navegación de fecha del modo <code>?debug=true</code>, en cada juego y en <code>/admin/</code>. <code>.chev--compact</code> es la variante más chica de Metroguessr.'));
+          gallery.appendChild(buildExample(dateNavRow, '<code>.btn-secondary--chev</code> · ✅ consolidado - variante cuadrada de <code>.btn-secondary</code> para las flechas de navegación de fecha del modo <code>?debug=true</code>, en cada juego y en <code>/admin/</code>. <code>.btn-secondary--chev-sm</code> es la variante más chica de Metroguessr.'));
 
           var reorderRow = buildRow();
           reorderRow.style.alignItems = 'center';
@@ -760,7 +760,7 @@
           ['▲', '▼'].forEach(function (g) {
             var b = document.createElement('button');
             b.type = 'button';
-            b.className = 'chev';
+            b.className = 'btn-secondary btn-secondary--chev';
             b.textContent = g;
             upDown.appendChild(b);
           });
@@ -771,12 +771,12 @@
           ['◀', '▶'].forEach(function (g) {
             var b = document.createElement('button');
             b.type = 'button';
-            b.className = 'chev chev--compact';
+            b.className = 'btn-secondary btn-secondary--chev btn-secondary--chev-sm';
             b.textContent = g;
             leftRight.appendChild(b);
           });
           reorderRow.appendChild(leftRight);
-          gallery.appendChild(buildExample(reorderRow, '<code>.chev</code>/<code>.chev--compact</code> · ✅ consolidado (el botón) - Metrordle reutiliza las mismas flechas como control de reordenar por fila: ▲▼ de tamaño normal para subir/bajar en modo normal (en <code>.platform__buttons</code>), ◀▶ compactas para mover izquierda/derecha en modo difícil (en <code>.platform-icon-col__nav</code>) - los contenedores son propios de la página, el botón es el compartido.'));
+          gallery.appendChild(buildExample(reorderRow, '<code>.btn-secondary--chev</code>/<code>.btn-secondary--chev-sm</code> · ✅ consolidado (el botón) - Metrordle reutiliza las mismas flechas como control de reordenar por fila: ▲▼ de tamaño normal para subir/bajar en modo normal (en <code>.platform__buttons</code>), ◀▶ compactas para mover izquierda/derecha en modo difícil (en <code>.platform-icon-col__nav</code>) - los contenedores son propios de la página, el botón es el compartido.'));
 
           var toggleRow = buildRow();
           var toggle = document.createElement('div');

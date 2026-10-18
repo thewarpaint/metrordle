@@ -166,16 +166,16 @@ async function main() {
       const pressedOption = await page.locator('#forms-gallery .design-example').nth(6).locator('.design-option-pressed').count();
       assert.strictEqual(pressedOption, 1, 'expected exactly one option shown as the current choice');
 
-      // nth(7): shared .chev date-nav chevrons shown directly.
-      const chevrons = await page.locator('#forms-gallery .design-example').nth(7).locator('.chev').count();
+      // nth(7): shared .btn-secondary--chev date-nav chevrons shown directly.
+      const chevrons = await page.locator('#forms-gallery .design-example').nth(7).locator('.btn-secondary--chev').count();
       assert.strictEqual(chevrons, 2, 'expected the two date-nav chevrons');
 
       // nth(8): Metrordle's station-reorder controls - the same shared
-      // .chev (▲▼, normal mode) and .chev--compact (◀▶, hard mode), four
-      // buttons total.
-      const reorderChevrons = await page.locator('#forms-gallery .design-example').nth(8).locator('.chev').count();
+      // .btn-secondary--chev (▲▼, normal mode) and .btn-secondary--chev-sm
+      // (◀▶, hard mode), four buttons total.
+      const reorderChevrons = await page.locator('#forms-gallery .design-example').nth(8).locator('.btn-secondary--chev').count();
       assert.strictEqual(reorderChevrons, 4, 'expected the two up/down and two left/right reorder chevrons');
-      const compactReorder = await page.locator('#forms-gallery .design-example').nth(8).locator('.chev--compact').count();
+      const compactReorder = await page.locator('#forms-gallery .design-example').nth(8).locator('.btn-secondary--chev-sm').count();
       assert.strictEqual(compactReorder, 2, 'expected the hard-mode left/right chevrons to be the compact variant');
 
       // nth(9): the shared .debug-mode-toggle, a real class shown directly.

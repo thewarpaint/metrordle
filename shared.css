@@ -359,41 +359,6 @@ h1 {
   margin-top: 0.05rem;
 }
 
-.chev {
-  background: var(--paper-well);
-  border: 1px solid var(--rule);
-  border-radius: 0.35rem;
-  color: var(--ink);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.8rem;
-  height: 1.95rem;
-  line-height: 1;
-  padding: 0;
-  width: 2.3rem;
-}
-
-.chev:hover:not(:disabled) {
-  border-color: var(--line);
-}
-
-.chev:active:not(:disabled) {
-  background: var(--line);
-  color: var(--line-ink);
-}
-
-.chev:disabled {
-  cursor: not-allowed;
-  opacity: 0.3;
-}
-
-.chev.chev--compact {
-  font-size: 0.62rem;
-  height: 1.5rem;
-  width: 1.6rem;
-}
-
-.chev:focus-visible,
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible {
   outline: 3px solid var(--focus);
@@ -460,6 +425,31 @@ h1 {
 .btn-secondary--sm {
   font-size: 0.82rem;
   padding: 0.6rem 0.9rem;
+}
+
+/* Square icon variant of .btn-secondary - the ?debug=true date-nav
+   arrows (every game + /admin/) and Metrordle's per-row reorder ▲▼/◀▶.
+   Drops the base's block width, top margin, and letter-spacing;
+   aspect-ratio keeps it square (height drives width) and flex centers
+   the lone glyph both ways. --chev-sm is the compact size (Metroguessr's
+   date nav, hard-mode reorder). */
+.btn-secondary--chev {
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  font-size: 0.8rem;
+  height: 1.95rem;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  margin-top: 0;
+  padding: 0;
+  width: auto;
+}
+
+.btn-secondary--chev-sm {
+  font-size: 0.62rem;
+  height: 1.5rem;
 }
 
 /* Every text input shares one look site-wide - the buttons' own 0.5rem
@@ -1033,7 +1023,7 @@ input[type="text"]:disabled {
    live-play layout (swapped in only while !state.gameOver; the reveal
    screen falls back to .design-platform above even in hard mode), a
    horizontal icon shelf instead of a numbered name list - no station
-   name shown at all, ◀▶ (.chev/.chev--compact, already shared) swap
+   name shown at all, ◀▶ (.btn-secondary--chev/--chev-sm, already shared) swap
    a column with its neighbor instead of up/down buttons on a row. Icon
    is the shared .station-card, sized here via an inline width. */
 .design-platform-hard {

@@ -552,6 +552,23 @@ about `//`/`/* */` comments in the actual game/test code.)
   Built to catch exactly the kind of data error reported for Metroguessr
   #29. Fully interactive (pan/zoom/search), unlike Metroguessr's locked
   game map.
+- **`/sopa/`** - **prototype**, early word-search (sopa de letras). Not
+  linked from any nav, `noindex`, not precached, no Firebase/leaderboard
+  yet - a standalone playable board, same scaffolding as the real games
+  (shared.css/shared.js, the pre-paint theme snippet, `.sign`/`.btn-*`,
+  `.notice--success` win banner). A 13×13 grid hides 10 Metro-themed
+  Spanish words (uppercase, accent-free so each maps to one cell; 10
+  drawn from a ~20-word pool), placed in any of the 8 directions
+  (forward or reversed), the rest filled with random letters -
+  deterministic per day via `createSeededRandom('metrordle-sopa-' +
+  dateKey)`, retried with a bumped counter if a word won't fit (still a
+  pure function of the day). Tap a cell to anchor; an 8-neighbour tap
+  locks a direction and extends; each further tap must be the next cell
+  in that direction. A run whose letters spell a target word (either
+  orientation) locks it green; a tap that breaks the line starts a fresh
+  attempt at that cell, and re-tapping the live selection cancels it. No
+  committed test yet (it's a prototype) - validated via a scratchpad
+  Playwright solve.
 
 Each game is deterministic per calendar day: a seeded RNG
 (`MetroShared.createSeededRandom('<salt>-' + dateKey)`) derives that

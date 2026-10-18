@@ -467,13 +467,15 @@ about `//`/`/* */` comments in the actual game/test code.)
   round map-maximize icon button, `position: fixed` on the live page;
   `.design-map-maximize-btn` stands in). Two shared.css primitives the
   first pass also skipped are shown directly (✅ consolidado, no
-  stand-in): `.chev`/`.chev--compact` (the `?debug=true` date-nav
-  chevrons every game and `/admin/` use) and `.debug-mode-toggle` (the
-  small normal/hard toggle on that same debug row). `.chev` gets a
-  second example too, for Metrordle's own per-row station-reorder
-  controls, which reuse it: a ▲▼ pair (full-size `.chev`, in
-  `.platform__buttons`) to move a station up/down in normal mode, and a
-  ◀▶ pair (`.chev--compact`, in `.platform-icon-col__nav`) to move it
+  stand-in): `.btn-secondary--chev`/`.btn-secondary--chev-sm` (the
+  `?debug=true` date-nav chevrons every game and `/admin/` use - a
+  square icon variant of `.btn-secondary`, see "Shared infrastructure"
+  below) and `.debug-mode-toggle` (the small normal/hard toggle on that
+  same debug row). `.btn-secondary--chev` gets a second example too, for
+  Metrordle's own per-row station-reorder controls, which reuse it: a
+  ▲▼ pair (full-size `.btn-secondary--chev`, in `.platform__buttons`) to
+  move a station up/down in normal mode, and a ◀▶ pair
+  (`.btn-secondary--chev-sm`, in `.platform-icon-col__nav`) to move it
   left/right in hard mode - the button is the shared class, only the
   flex wrappers are page-local.
   Still-undecided patterns are backed by a design-reference section in
@@ -571,14 +573,21 @@ are impossible without a debug override.
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
   the whole file), and cross-game primitives (`.wrap`, `.brand`,
-  `.sign`, `.date-debug`/`.chev` date-nav, `.debug-mode-toggle`,
+  `.sign`, `.date-debug` date-nav (its chevrons are
+  `.btn-secondary--chev`, below), `.debug-mode-toggle`,
   `.mode-modal`/`.mode-option*` pre-game normal/hard choice,
   `.btn-primary`/`.btn-secondary` (sharing one box-geometry rule so the
   two stand the same height side by side; they differ only in fill/
   weight/spacing) plus `.btn-primary--sm`/`.btn-secondary--sm` (one
   shorter, smaller-text size modifier for each, same all-4 rounded
   corners - Metroguessr uses the primary for "Adivinar" and the
-  secondary for its hint button), one shared `input[type="text"]` rule
+  secondary for its hint button) and `.btn-secondary--chev`/
+  `.btn-secondary--chev-sm` (a square, glyph-centered icon variant of
+  `.btn-secondary`, consolidating the old standalone `.chev`/
+  `.chev--compact` - every `?debug=true` date-nav's ◀▶ arrows and
+  Metrordle's own per-row reorder ▲▼/◀▶; `aspect-ratio: 1` keeps it
+  square off the `height` alone, flex-centering lands the lone glyph,
+  `--chev-sm` is the compact size), one shared `input[type="text"]` rule
   (every text field site-wide - the alias rows and Metroguessr's search
   box - shares it: the buttons' own 0.5rem corner radius and a slightly
   bigger text, so fields and buttons read as one system; only width/

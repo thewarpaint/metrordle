@@ -64,18 +64,19 @@
         font-size: 0.85rem;
       }
 
-      /* The letter grid. 13 equal columns; cells stay square via
-         aspect-ratio and their glyph scales with the viewport so the
-         whole board fits a phone without horizontal scroll. */
+      /* The letter grid, full-bleed to the card's side edges. 13 equal
+         columns, cells square via aspect-ratio; a 1px gap over the grid's
+         own --rule background draws uniform hairlines between letters with
+         no card-like spacing, so the glyphs run a bit bigger. */
       .board {
-        padding: 0.5rem 0.7rem;
+        padding: 0.4rem 0;
       }
 
       .grid {
+        background: var(--rule);
         display: grid;
-        gap: 0.16rem;
+        gap: 1px;
         grid-template-columns: repeat(13, 1fr);
-        margin: 0 auto;
         touch-action: manipulation;
       }
 
@@ -83,16 +84,14 @@
         align-items: center;
         aspect-ratio: 1 / 1;
         background: var(--paper-raised);
-        border: 1px solid var(--rule);
-        border-radius: 0.2rem;
         color: var(--ink);
         cursor: pointer;
         display: flex;
-        font-size: clamp(0.62rem, 2.7vw, 0.95rem);
+        font-size: clamp(0.72rem, 3.2vw, 1.1rem);
         font-weight: 700;
         justify-content: center;
         -webkit-tap-highlight-color: transparent;
-        transition: background-color 0.08s ease, border-color 0.08s ease;
+        transition: background-color 0.08s ease;
         user-select: none;
         -webkit-user-select: none;
       }
@@ -102,19 +101,16 @@
          either fill in both light and dark. */
       .cell--sel {
         background: var(--line);
-        border-color: var(--line);
         color: var(--line-ink);
       }
 
       .cell--found {
         background: var(--ok);
-        border-color: var(--ok);
         color: #fff;
       }
 
       .cell--found.cell--sel {
         background: var(--line);
-        border-color: var(--line);
       }
 
       .words {

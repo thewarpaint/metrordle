@@ -605,7 +605,7 @@ are impossible without a debug override.
   `?debug=true` date-nav's left/right arrows and Metrordle's own per-row
   reorder up/down/left/right; `aspect-ratio: 1` keeps it square off the
   `height` alone. The arrow is an equilateral CSS triangle - a `::before`
-  with a `clip-path` polygon, 66% of the button wide with its height set
+  with a `clip-path` polygon, 50% of the button wide with its height set
   per orientation so the triangle is equilateral (taller box for the
   left/right arrows, shorter for up/down), filled with `currentColor` and
   centered by the button's flex, pointed by a `data-chev` of

@@ -600,12 +600,16 @@ are impossible without a debug override.
   shorter, smaller-text size modifier for each, same all-4 rounded
   corners - Metroguessr uses the primary for "Adivinar" and the
   secondary for its hint button) and `.btn-secondary--chev`/
-  `.btn-secondary--chev-sm` (a square, glyph-centered icon variant of
-  `.btn-secondary`, consolidating the old standalone `.chev`/
-  `.chev--compact` - every `?debug=true` date-nav's ◀▶ arrows and
-  Metrordle's own per-row reorder ▲▼/◀▶; `aspect-ratio: 1` keeps it
-  square off the `height` alone, flex-centering lands the lone glyph,
-  `--chev-sm` is the compact size), one shared `input[type="text"]` rule
+  `.btn-secondary--chev-sm` (a square icon variant of `.btn-secondary`,
+  consolidating the old standalone `.chev`/`.chev--compact` - every
+  `?debug=true` date-nav's left/right arrows and Metrordle's own per-row
+  reorder up/down/left/right; `aspect-ratio: 1` keeps it square off the
+  `height` alone. The arrow is a CSS triangle - a `::before` with a
+  `clip-path` polygon at 66% of the button, filled with `currentColor`
+  and centered by the button's flex, pointed by a `data-chev` of
+  `left`/`right`/`up`/`down` - deliberately not a ◀/▶ text glyph, since
+  those have an emoji-presentation variant some platforms render in
+  color. `--chev-sm` is the compact size), one shared `input[type="text"]` rule
   (every text field site-wide - the alias rows and Metroguessr's search
   box - shares it: the buttons' own 0.5rem corner radius and a slightly
   bigger text, so fields and buttons read as one system; only width/

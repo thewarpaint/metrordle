@@ -284,6 +284,46 @@ a {
   font-weight: 400;
 }
 
+/* Inline pre-game mode picker shown over a game's board until a mode is
+   chosen (Metrordle, Metro Crush, Clasificador) - the lighter-weight
+   alternative to the full-screen .mode-modal above. The positioned
+   parent it covers (.board-wrap / .queue-wrap) stays page-local, as does
+   the opaque background where a page's board surface isn't the default
+   --paper-raised (Metro Crush overrides it to --paper-well). */
+.start-overlay {
+  align-items: center;
+  background: var(--paper-raised);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1.1rem;
+  position: absolute;
+  z-index: 10;
+}
+
+.start-overlay[hidden] { display: none; }
+
+.start-overlay__panel {
+  max-width: 18rem;
+  text-align: center;
+  width: 100%;
+}
+
+.start-overlay__text {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin: 0 0 1rem;
+}
+
+.start-overlay__text strong { color: var(--ink); }
+
+.start-overlay__modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .sign {
   background: var(--paper-raised);
   border: 3px solid var(--rule-strong);
@@ -1193,18 +1233,6 @@ input[type="text"]:disabled {
 
 .design-notice-status--lose {
   color: var(--danger);
-}
-
-/* Metro Crush's/Clasificador's own .start-overlay__modes - two stacked
-   .btn-primary/.btn-secondary buttons for a pre-round normal/hard
-   choice, page-local and identical in both (copy-pasted, not shared) -
-   unlike .mode-modal/.mode-option below, no full-screen dialog here,
-   since both games already have a "press start" step of their own to
-   attach the choice to. */
-.design-overlay-modes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 /* /configurar/'s own .mode-option[aria-pressed="true"] override - the

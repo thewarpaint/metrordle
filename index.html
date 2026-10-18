@@ -343,46 +343,10 @@
         padding: 0.2rem 1.1rem 0.9rem;
       }
 
+      /* Positioned parent for the shared .start-overlay (shared.css),
+         which the inline mode picker covers until a mode is chosen. */
       .board-wrap {
         position: relative;
-      }
-
-      /* Inline pre-game mode picker over the board (Metro Crush's own
-         .start-overlay pattern), replacing the old full-screen
-         .mode-modal. Opaque --paper-raised so the default-layout board
-         rendered behind it stays hidden until a mode is chosen. */
-      .start-overlay {
-        align-items: center;
-        background: var(--paper-raised);
-        display: flex;
-        inset: 0;
-        justify-content: center;
-        padding: 1.1rem;
-        position: absolute;
-        z-index: 2;
-      }
-
-      .start-overlay[hidden] { display: none; }
-
-      .start-overlay__panel {
-        max-width: 18rem;
-        text-align: center;
-        width: 100%;
-      }
-
-      .start-overlay__text {
-        color: var(--ink-soft);
-        font-size: 0.88rem;
-        line-height: 1.4;
-        margin: 0 0 1rem;
-      }
-
-      .start-overlay__text strong { color: var(--ink); }
-
-      .start-overlay__modes {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
       }
 
       .reveal {

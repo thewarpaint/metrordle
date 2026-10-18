@@ -40,6 +40,13 @@
     </script>
 
     <style>
+      /* The full-bleed grid runs to the card edge, so .sign's own heavy
+         3px frame around it read as odd - drop the border here (the card
+         still reads via its shadow, radius and raised background). */
+      .sign {
+        border: none;
+      }
+
       .sign__head {
         padding: 1.1rem 1.1rem 0.4rem;
       }

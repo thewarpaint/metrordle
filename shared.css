@@ -484,27 +484,35 @@ h1 {
   width: auto;
 }
 
+/* The ::before fills a box the clip-path turns into the triangle. 66%
+   wide; the height is set per orientation so the triangle is equilateral
+   (height = side·√3/2): the apex-sideways left/right arrows need a taller
+   box (66%·2/√3 ≈ 76.2%), the up/down ones a shorter one (66%·√3/2 ≈
+   57.2%). */
 .btn-secondary--chev::before {
   background: currentColor;
   content: "";
-  height: 66%;
   width: 66%;
 }
 
 .btn-secondary--chev[data-chev="left"]::before {
   clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  height: 76.2%;
 }
 
 .btn-secondary--chev[data-chev="right"]::before {
   clip-path: polygon(0 0, 100% 50%, 0 100%);
+  height: 76.2%;
 }
 
 .btn-secondary--chev[data-chev="up"]::before {
   clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  height: 57.2%;
 }
 
 .btn-secondary--chev[data-chev="down"]::before {
   clip-path: polygon(0 0, 100% 0, 50% 100%);
+  height: 57.2%;
 }
 
 .btn-secondary--chev-sm {

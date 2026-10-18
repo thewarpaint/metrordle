@@ -149,32 +149,11 @@
         display: none;
       }
 
-      .start-overlay {
-        align-items: center;
-        background: var(--paper-well);
-        display: flex;
-        inset: 0;
-        justify-content: center;
-        padding: 1.1rem;
-        position: absolute;
-      }
-
-      .start-overlay[hidden] {
-        display: none;
-      }
-
-      .start-overlay__panel {
-        max-width: 17rem;
-        text-align: center;
-        width: 100%;
-      }
-
-      .start-overlay__text {
-        color: var(--ink-soft);
-        font-size: 0.88rem;
-        line-height: 1.4;
-        margin: 0 0 1rem;
-      }
+      /* Shared .start-overlay (shared.css) with the inset --paper-well
+         shade instead of the shared --paper-raised default, same as Metro
+         Crush. Memoria has no mode toggle, so the panel holds a single
+         "Comenzar" button, not .start-overlay__modes. */
+      .start-overlay { background: var(--paper-well); }
 
       @keyframes station-card-pop-in {
         from {

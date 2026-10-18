@@ -158,7 +158,7 @@ async function main() {
       // nth(5) and nth(6) are undecided/page-local patterns, backed by
       // .design- prefixed stand-ins in shared.css (same convention as
       // every other still-undecided example on this page).
-      const overlayButtons = await page.locator('#forms-gallery .design-example').nth(5).locator('.design-overlay-modes .btn-primary, .design-overlay-modes .btn-secondary').count();
+      const overlayButtons = await page.locator('#forms-gallery .design-example').nth(5).locator('.start-overlay__modes .btn-primary, .start-overlay__modes .btn-secondary').count();
       assert.strictEqual(overlayButtons, 2, 'expected the overlay mode group\'s own two buttons');
 
       const pickerOptions = await page.locator('#forms-gallery .design-example').nth(6).locator('.mode-option').count();

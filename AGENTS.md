@@ -552,7 +552,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   Built to catch exactly the kind of data error reported for Metroguessr
   #29. Fully interactive (pan/zoom/search), unlike Metroguessr's locked
   game map.
-- **`/sopa/`** - **prototype**, early word-search (sopa de letras). Not
+- **`/sopa-de-metros/`** - **prototype**, early word-search (sopa de
+  letras - the folder's a pun on it). Not
   linked from any nav, `noindex`, not precached, no Firebase/leaderboard
   yet - a standalone playable board, same scaffolding as the real games
   (shared.css/shared.js, the pre-paint theme snippet, `.sign`/`.btn-*`,

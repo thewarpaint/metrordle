@@ -367,7 +367,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   and an "Avisos" board for how each game announces the round's own
   result once it ends - success, failure, or just "it's over" for the
   three games with no win/lose outcome to begin with - usually paired
-  with that game's own streak.
+  with that game's own streak. A "Progreso" board shows how in-round
+  advancement is surfaced - just the shared `.progress` bar (Sopa de
+  metros's "N / M palabras") so far, ✅ consolidado.
 
   The `.reveal__banner` card shape is consolidated now: Metrordle's/
   Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and
@@ -576,8 +578,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   touches/crosses, which is what lets you tell contiguous words apart; a
   tap that breaks the line starts a fresh attempt at that cell, and
   re-tapping the live selection cancels it. Progress is a rounded
-  "X / 10 palabras" bar (`.progress`) at the card's bottom, its label the
-  smallest still-legible size. No
+  "X / 10 palabras" bar (shared.css's own `.progress`) at the card's
+  bottom, its label the smallest still-legible size. No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
 
@@ -728,7 +730,12 @@ are impossible without a debug override.
   Laberinto's own page-local copy into `shared.css` so it sits with the
   rest of the station family and is cataloged in `/design/`, even though
   Laberinto is its only consumer so far; `.map-hub`/`.map-node` stay
-  page-local for positioning/interaction. Game-specific CSS
+  page-local for positioning/interaction. `.progress`/`__label`/`__count`/
+  `__track`/`__fill` (Sopa de metros's rounded "N / M palabras" bar - a
+  `--paper-well` track with an `--ok` fill, under a small label) also live
+  here now, cataloged in `/design/`'s own "Progreso" board, even though
+  Sopa is its only consumer so far; only the `.progress` wrapper's own
+  padding/placement stays page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

@@ -574,6 +574,36 @@ input[type="text"]:disabled {
   margin-top: 0.2rem;
 }
 
+/* Progress bar - a rounded track that fills as a round advances, under a
+   small "N / M …" label. Sopa de metros's own so far; each page positions
+   the .progress wrapper itself (its padding/margins stay page-local). */
+.progress__label {
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  margin-bottom: 0.35rem;
+}
+
+.progress__count {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.progress__track {
+  background: var(--paper-well);
+  border-radius: 999px;
+  height: 0.65rem;
+  overflow: hidden;
+}
+
+.progress__fill {
+  background: var(--ok);
+  border-radius: 999px;
+  height: 100%;
+  transition: width 0.3s ease;
+  width: 0;
+}
+
 .credit {
   color: var(--ink-soft);
   font-size: 0.72rem;

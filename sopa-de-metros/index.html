@@ -51,38 +51,10 @@
         padding: 1.1rem 1.1rem 0.4rem;
       }
 
-      /* Progress: a rounded "X / Y palabras" bar that fills green as words
-         are found. Sits at the card's bottom; its label is the smallest
-         still-legible size. */
+      /* Progress bar is shared.css now - here just placed at the card's
+         bottom. */
       .progress {
         padding: 0 1.1rem 1rem;
-      }
-
-      .progress__label {
-        color: var(--ink-soft);
-        font-size: 0.68rem;
-        margin-bottom: 0.35rem;
-      }
-
-      .progress__count {
-        color: var(--ink);
-        font-variant-numeric: tabular-nums;
-        font-weight: 800;
-      }
-
-      .progress__track {
-        background: var(--paper-well);
-        border-radius: 999px;
-        height: 0.65rem;
-        overflow: hidden;
-      }
-
-      .progress__fill {
-        background: var(--ok);
-        border-radius: 999px;
-        height: 100%;
-        transition: width 0.3s ease;
-        width: 0;
       }
 
       /* The letter grid, full-bleed to the card's side edges. 12 equal

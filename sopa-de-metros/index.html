@@ -71,7 +71,7 @@
         font-size: 0.85rem;
       }
 
-      /* The letter grid, full-bleed to the card's side edges. 13 equal
+      /* The letter grid, full-bleed to the card's side edges. 12 equal
          columns, cells square via aspect-ratio; a 1px gap over the grid's
          own --rule background draws uniform hairlines between letters with
          no card-like spacing, so the glyphs run a bit bigger. */
@@ -83,7 +83,7 @@
         background: var(--rule);
         display: grid;
         gap: 1px;
-        grid-template-columns: repeat(13, 1fr);
+        grid-template-columns: repeat(12, 1fr);
         touch-action: manipulation;
       }
 
@@ -206,7 +206,7 @@
       (function () {
         'use strict';
 
-        var GRID = 13;
+        var GRID = 12;
         var WORD_COUNT = 10;
         // Metro-themed Spanish words, uppercase and accent-free so each
         // maps to one grid cell. 10 are drawn from this pool per board.

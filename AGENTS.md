@@ -564,8 +564,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   letters - deterministic per day via `createSeededRandom('metrordle-
   sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
   (still a pure function of the day). The player sees only the clues (a
-  `.clues` list), never the words; finding a word reveals it (green) in
-  front of its own clue. Tap a cell to anchor; an 8-neighbour tap
+  numbered `.clues` list, an `<ol>`), never the words; finding a word
+  reveals it (green) in front of its own clue, sinks that clue to the
+  bottom of the list (in solve order, tracked by `state.foundOrder`) and
+  strikes through the clue text - but NOT the just-revealed word, which
+  stays as the green answer. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
   orientation) locks it green - found words cycle 3 green shades,
@@ -573,7 +576,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   touches/crosses, which is what lets you tell contiguous words apart; a
   tap that breaks the line starts a fresh attempt at that cell, and
   re-tapping the live selection cancels it. Progress is a rounded
-  "X / 10 palabras" bar (`.progress`). No
+  "X / 10 palabras" bar (`.progress`) at the card's bottom, its label the
+  smallest still-legible size. No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
 

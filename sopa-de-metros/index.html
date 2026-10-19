@@ -52,15 +52,16 @@
       }
 
       /* Progress: a rounded "X / Y palabras" bar that fills green as words
-         are found. */
+         are found. Sits at the card's bottom; its label is the smallest
+         still-legible size. */
       .progress {
-        margin-top: 0.7rem;
+        padding: 0 1.1rem 1rem;
       }
 
       .progress__label {
         color: var(--ink-soft);
-        font-size: 0.85rem;
-        margin-bottom: 0.4rem;
+        font-size: 0.68rem;
+        margin-bottom: 0.35rem;
       }
 
       .progress__count {
@@ -139,9 +140,11 @@
         background: var(--line);
       }
 
-      /* Clue list. One hint per hidden word; the word itself stays secret
-         until it's found, when it's revealed (green) in front of its clue
-         and the disc marker turns green too. */
+      /* Clue list - a numbered list. One hint per hidden word; the word
+         itself stays secret until it's found, when it's revealed (green)
+         in front of its clue, the number marker turns green, the found
+         clue sinks to the bottom and its clue text (not the revealed
+         word) gets struck through. */
       .clues {
         color: var(--ink-soft);
         font-size: 0.82rem;
@@ -168,6 +171,10 @@
         letter-spacing: 0.03em;
         margin-right: 0.3rem;
         text-transform: uppercase;
+      }
+
+      .clue--found .clue__text {
+        text-decoration: line-through;
       }
 
       .actions {
@@ -201,24 +208,25 @@
         <div class="sign__head">
           <h1>Sopa de metros</h1>
           <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
-          <div class="progress">
-            <div class="progress__label"><span class="progress__count" id="progress-count">0 / 10</span> palabras</div>
-            <div class="progress__track">
-              <div class="progress__fill" id="progress-fill"></div>
-            </div>
-          </div>
         </div>
 
         <div class="board">
           <div class="grid" id="grid" aria-label="Cuadrícula de letras"></div>
         </div>
 
-        <ul class="clues" id="clues"></ul>
+        <ol class="clues" id="clues"></ol>
 
         <div id="win-notice" hidden></div>
 
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
+        </div>
+
+        <div class="progress">
+          <div class="progress__label"><span class="progress__count" id="progress-count">0 / 10</span> palabras</div>
+          <div class="progress__track">
+            <div class="progress__fill" id="progress-fill"></div>
+          </div>
         </div>
       </div>
 
@@ -364,11 +372,17 @@
           }
         }
 
-        // One clue per hidden word; a found word is revealed (green) in
-        // front of its own clue, which stays for context.
+        // Unfound clues first (original order), then found ones sunk to the
+        // bottom in solve order. A found word is revealed (green) in front
+        // of its clue, which stays (struck through) for context.
         function renderClues() {
           els.clues.innerHTML = '';
+          var unfound = [];
           state.words.forEach(function (entry, i) {
+            if (!state.found[i]) unfound.push(i);
+          });
+          unfound.concat(state.foundOrder).forEach(function (i) {
+            var entry = state.words[i];
             var li = document.createElement('li');
             li.className = 'clue' + (state.found[i] ? ' clue--found' : '');
             if (state.found[i]) {
@@ -483,6 +497,7 @@
 
         function markFound(idx) {
           state.found[idx] = true;
+          state.foundOrder.push(idx);
           var shade = pickShade(state.selection);
           state.selection.forEach(function (p) {
             var k = keyOf(p.r, p.c);
@@ -514,6 +529,7 @@
             grid: built.grid,
             words: built.words,
             found: built.words.map(function () { return false; }),
+            foundOrder: [],
             foundCells: {},
             selection: [],
             selDir: null,

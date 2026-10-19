@@ -568,8 +568,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   front of its own clue. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
-  orientation) locks it green; a tap that breaks the line starts a fresh
-  attempt at that cell, and re-tapping the live selection cancels it. No
+  orientation) locks it green - found words cycle 3 green shades,
+  assigned greedily so a word never shares a shade with one it
+  touches/crosses, which is what lets you tell contiguous words apart; a
+  tap that breaks the line starts a fresh attempt at that cell, and
+  re-tapping the live selection cancels it. Progress is a rounded
+  "X / 10 palabras" bar (`.progress`). No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
 

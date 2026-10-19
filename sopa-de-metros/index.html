@@ -51,24 +51,37 @@
         padding: 1.1rem 1.1rem 0.4rem;
       }
 
-      .counter {
-        align-items: baseline;
-        display: flex;
-        gap: 0.4rem;
-        margin-top: 0.6rem;
+      /* Progress: a rounded "X / Y palabras" bar that fills green as words
+         are found. */
+      .progress {
+        margin-top: 0.7rem;
       }
 
-      .counter__num {
-        color: var(--line);
-        font-size: 1.5rem;
-        font-weight: 900;
-        font-variant-numeric: tabular-nums;
-        line-height: 1;
-      }
-
-      .counter__label {
+      .progress__label {
         color: var(--ink-soft);
         font-size: 0.85rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .progress__count {
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+      }
+
+      .progress__track {
+        background: var(--paper-well);
+        border-radius: 999px;
+        height: 0.65rem;
+        overflow: hidden;
+      }
+
+      .progress__fill {
+        background: var(--ok);
+        border-radius: 999px;
+        height: 100%;
+        transition: width 0.3s ease;
+        width: 0;
       }
 
       /* The letter grid, full-bleed to the card's side edges. 12 equal
@@ -111,10 +124,16 @@
         color: var(--line-ink);
       }
 
+      /* Found cells cycle three green shades (assigned so touching words
+         never share one) - that's what lets you tell two contiguous or
+         crossing found words apart. */
       .cell--found {
-        background: var(--ok);
         color: #fff;
       }
+
+      .cell--g0 { background: #0b6b4d; }
+      .cell--g1 { background: #12805f; }
+      .cell--g2 { background: #1a9a73; }
 
       .cell--found.cell--sel {
         background: var(--line);
@@ -182,9 +201,11 @@
         <div class="sign__head">
           <h1>Sopa de metros</h1>
           <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
-          <div class="counter">
-            <span class="counter__num" id="counter-num">0</span>
-            <span class="counter__label" id="counter-label">de 10 palabras encontradas</span>
+          <div class="progress">
+            <div class="progress__label"><span class="progress__count" id="progress-count">0 / 10</span> palabras</div>
+            <div class="progress__track">
+              <div class="progress__fill" id="progress-fill"></div>
+            </div>
           </div>
         </div>
 
@@ -213,6 +234,7 @@
 
         var GRID = 12;
         var WORD_COUNT = 10;
+        var SHADES = 3; // green shades cycled so touching found words differ
         // Metro-themed Spanish words (uppercase, accent-free so each maps
         // to one grid cell) each paired with a clue - the player sees only
         // the clue until the word is found. 10 pairs are drawn per board.
@@ -331,9 +353,12 @@
           state.selection.forEach(function (p) { sel[keyOf(p.r, p.c)] = true; });
           for (var r = 0; r < GRID; r++) {
             for (var c = 0; c < GRID; c++) {
+              var k = keyOf(r, c);
               var cls = 'cell';
-              if (state.foundCells[keyOf(r, c)]) cls += ' cell--found';
-              if (sel[keyOf(r, c)]) cls += ' cell--sel';
+              // foundCells maps a cell to its word's shade (0-2), and 0 is
+              // falsy, so test presence, not truthiness.
+              if (k in state.foundCells) cls += ' cell--found cell--g' + state.foundCells[k];
+              if (sel[k]) cls += ' cell--sel';
               cellEls[r][c].className = cls;
             }
           }
@@ -360,10 +385,16 @@
           });
         }
 
-        function renderCounter() {
+        function foundCount() {
           var n = 0;
           for (var i = 0; i < state.found.length; i++) if (state.found[i]) n++;
-          els.counterNum.textContent = n;
+          return n;
+        }
+
+        function renderProgress() {
+          var n = foundCount(), total = state.words.length;
+          els.progressCount.textContent = n + ' / ' + total;
+          els.progressFill.style.width = (total ? (n / total) * 100 : 0) + '%';
         }
 
         // --- Interaction -------------------------------------------------
@@ -433,14 +464,36 @@
           return -1;
         }
 
+        // Lowest shade (0..SHADES-1) not used by any already-found cell in
+        // the 8-neighbourhood of this word, so a word never shares a shade
+        // with one it touches or crosses.
+        function pickShade(cells) {
+          var used = {};
+          cells.forEach(function (p) {
+            for (var dr = -1; dr <= 1; dr++) {
+              for (var dc = -1; dc <= 1; dc++) {
+                var k = keyOf(p.r + dr, p.c + dc);
+                if (k in state.foundCells) used[state.foundCells[k]] = true;
+              }
+            }
+          });
+          for (var s = 0; s < SHADES; s++) if (!used[s]) return s;
+          return 0;
+        }
+
         function markFound(idx) {
           state.found[idx] = true;
-          state.selection.forEach(function (p) { state.foundCells[keyOf(p.r, p.c)] = true; });
+          var shade = pickShade(state.selection);
+          state.selection.forEach(function (p) {
+            var k = keyOf(p.r, p.c);
+            // A cell shared with an earlier word keeps that word's shade.
+            if (!(k in state.foundCells)) state.foundCells[k] = shade;
+          });
           state.selection = [];
           state.selDir = null;
           paintCells();
           renderClues();
-          renderCounter();
+          renderProgress();
 
           var all = state.found.every(function (f) { return f; });
           if (all) {
@@ -471,14 +524,15 @@
           buildGrid();
           paintCells();
           renderClues();
-          renderCounter();
+          renderProgress();
         }
 
         function init() {
           els = {
             grid: $('grid'),
             clues: $('clues'),
-            counterNum: $('counter-num'),
+            progressCount: $('progress-count'),
+            progressFill: $('progress-fill'),
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),
           };

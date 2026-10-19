@@ -44,15 +44,15 @@ async function main() {
       await page.click('#start-btn');
       await page.waitForTimeout(1200);
 
-      const statusBeforeReload = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(statusBeforeReload, '59s · 0 parejas');
+      const timeBeforeReload = await page.$eval('#memo-time', (el) => el.textContent);
+      assert.strictEqual(timeBeforeReload, '0:59');
 
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
       assert.strictEqual(await page.locator('#start-overlay').isVisible(), true, 'the start dialog should reappear, not a resumed round');
-      const statusAfterReload = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(statusAfterReload, '60s · 0 parejas', 'reload should reset to the full round length, not carry over the countdown');
+      const timeAfterReload = await page.$eval('#memo-time', (el) => el.textContent);
+      assert.strictEqual(timeAfterReload, '1:00', 'reload should reset to the full round length, not carry over the countdown');
     } finally {
       await context.close();
     }
@@ -89,8 +89,8 @@ async function main() {
       await matchSpecificPair(page, station3);
       await page.waitForTimeout(300);
 
-      const midStatus = await page.$eval('#status', (el) => el.textContent);
-      assert.ok(midStatus.endsWith('3 parejas'), 'should show 3 parejas after matching three times, got: ' + midStatus);
+      const midPairs = await page.$eval('#memo-pairs', (el) => el.textContent);
+      assert.strictEqual(midPairs, '3 parejas', 'should show 3 parejas after matching three times, got: ' + midPairs);
 
       // Let the round run out for real - poll rather than sleep a fixed
       // 60s, since the exact remaining time depends on how long the

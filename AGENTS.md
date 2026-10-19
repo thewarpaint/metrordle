@@ -34,7 +34,13 @@ about `//`/`/* */` comments in the actual game/test code.)
 - **`/laberinto/`** - Metrordle: Laberinto: navigate from an origin to a
   destination station, picking neighbors/lines at each hop.
 - **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
-  pairing station icons with names. A match deals the refilled pair (and
+  pairing station icons with names. Its status strip is the shared
+  `.progress` bar (shared.css, same element Sopa de metros uses): the
+  track fills with the time remaining and its `.progress__label--split`
+  row reads the time left (m:ss) on the left and the pairs matched on the
+  right (`renderStatus()`; `formatClock()` formats both the live countdown
+  and practice's count-up clock) - this replaced the old bespoke
+  `.status-bar`/`.timer-track`. A match deals the refilled pair (and
   reshuffles it into the board, see `shuffleAfterMatch()`) immediately -
   no delay, same as this always worked before the effects below existed.
   The just-matched pair itself gets a brief "you got it!" moment via
@@ -88,13 +94,14 @@ about `//`/`/* */` comments in the actual game/test code.)
   player keep matching pairs on the same board with no stakes - a
   `state.status === 'practice'` mode that `onCardClick()`/`renderBoard()`
   treat exactly like `'playing'` for interactivity, but with the real
-  round's countdown-driven `.timer-track`/`startTimer()`/`tick()` never
+  round's countdown-driven progress bar/`startTimer()`/`tick()` never
   running again (so `endRound()` can't re-fire and resubmit), replaced by
-  a `.practice-banner` (shown alongside `.status-bar`, not instead of it)
+  a `.practice-banner` (shown alongside the progress bar, not instead of it)
   explaining nothing here is saved, and a "Volver al resultado" button
-  (`endPractice()`) back to the reveal screen. `.status-bar` itself stays
-  up, but showing practice's own pair of stats instead of the real
-  round's - an elapsed-time clock counting up from `0:00` on its own
+  (`endPractice()`) back to the reveal screen. The progress bar itself stays
+  up (its `.progress__track` hidden - no countdown to show - but its split
+  label still reading) showing practice's own pair of stats instead of the
+  real round's - an elapsed-time clock counting up from `0:00` on its own
   (`continuePractice()`'s own `setInterval(renderStatus, 1000)`, cleared
   again by `endPractice()`) and a pairs-matched count scoped to the
   practice session alone (`state.score` minus the score snapshotted the
@@ -736,11 +743,13 @@ are impossible without a debug override.
   rest of the station family and is cataloged in `/design/`, even though
   Laberinto is its only consumer so far; `.map-hub`/`.map-node` stay
   page-local for positioning/interaction. `.progress`/`__label`/`__count`/
-  `__track`/`__fill` (Sopa de metros's rounded "N / M palabras" bar - a
-  `--paper-well` track with an `--ok` fill, over a small label) also live
-  here now, cataloged in `/design/`'s own "Progreso" board, even though
-  Sopa is its only consumer so far; only the `.progress` wrapper's own
-  padding/placement stays page-local. Game-specific CSS
+  `__track`/`__fill` (a rounded `--paper-well` track with an `--ok` fill,
+  over a small label) also live here now, cataloged in `/design/`'s own
+  "Progreso" board - Sopa de metros uses it for "N / M palabras", Memoria
+  for a split "time left / pairs matched" row (`.progress__label--split`,
+  flex space-between); only the `.progress` wrapper's own padding/placement
+  (and Memoria's own 1s-linear `#progress-fill` transition override, for a
+  smooth countdown) stays page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

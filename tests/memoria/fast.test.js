@@ -44,8 +44,10 @@ async function main() {
     try {
       assert.strictEqual(await page.locator('#start-overlay').isVisible(), true, 'overlay should be visible on load');
 
-      const status = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(status, '60s · 0 parejas', 'status should preview the full round length before starting');
+      const time = await page.$eval('#memo-time', (el) => el.textContent);
+      const pairs = await page.$eval('#memo-pairs', (el) => el.textContent);
+      assert.strictEqual(time, '1:00', 'the timer should preview the full round length before starting');
+      assert.strictEqual(pairs, '0 parejas', 'no pairs matched before starting');
 
       const cells = await getCells(page);
       assert.strictEqual(cells.length, 16, 'board should have 16 cells even before the round starts');
@@ -66,12 +68,12 @@ async function main() {
     const { context, page } = await freshPage(TEST_DATE);
     try {
       await page.click('#start-btn');
-      const atStart = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(atStart, '60s · 0 parejas');
+      const atStart = await page.$eval('#memo-time', (el) => el.textContent);
+      assert.strictEqual(atStart, '1:00');
 
       await page.waitForTimeout(1200);
-      const afterOneTick = await page.$eval('#status', (el) => el.textContent);
-      assert.strictEqual(afterOneTick, '59s · 0 parejas', 'status should tick down to 59s after ~1s');
+      const afterOneTick = await page.$eval('#memo-time', (el) => el.textContent);
+      assert.strictEqual(afterOneTick, '0:59', 'the timer should tick down to 0:59 after ~1s');
     } finally {
       await context.close();
     }

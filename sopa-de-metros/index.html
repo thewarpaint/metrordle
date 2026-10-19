@@ -120,30 +120,35 @@
         background: var(--line);
       }
 
-      .words {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        justify-content: center;
-        padding: 0.4rem 1.1rem 0.2rem;
+      /* Clue list. One hint per hidden word; the word itself stays secret
+         until it's found, when it's revealed (green) in front of its clue
+         and the disc marker turns green too. */
+      .clues {
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        line-height: 1.4;
+        margin: 0;
+        padding: 0.6rem 1.1rem 0.2rem 2.2rem;
       }
 
-      .word-chip {
-        background: var(--paper-well);
-        border: 1px solid var(--rule);
-        border-radius: 0.4rem;
-        color: var(--ink);
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        padding: 0.25rem 0.55rem;
+      .clue {
+        margin-bottom: 0.28rem;
       }
 
-      .word-chip--found {
-        background: var(--ok);
-        border-color: var(--ok);
-        color: #fff;
-        text-decoration: line-through;
+      .clue:last-child {
+        margin-bottom: 0;
+      }
+
+      .clue--found::marker {
+        color: var(--ok);
+      }
+
+      .clue__word {
+        color: var(--ok);
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        margin-right: 0.3rem;
+        text-transform: uppercase;
       }
 
       .actions {
@@ -176,7 +181,7 @@
       <div class="sign">
         <div class="sign__head">
           <h1>Sopa de metros</h1>
-          <p class="dek">Encuentra las 10 palabras del Metro. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
+          <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
           <div class="counter">
             <span class="counter__num" id="counter-num">0</span>
             <span class="counter__label" id="counter-label">de 10 palabras encontradas</span>
@@ -187,7 +192,7 @@
           <div class="grid" id="grid" aria-label="Cuadrícula de letras"></div>
         </div>
 
-        <div class="words" id="words"></div>
+        <ul class="clues" id="clues"></ul>
 
         <div id="win-notice" hidden></div>
 
@@ -208,13 +213,30 @@
 
         var GRID = 12;
         var WORD_COUNT = 10;
-        // Metro-themed Spanish words, uppercase and accent-free so each
-        // maps to one grid cell. 10 are drawn from this pool per board.
+        // Metro-themed Spanish words (uppercase, accent-free so each maps
+        // to one grid cell) each paired with a clue - the player sees only
+        // the clue until the word is found. 10 pairs are drawn per board.
         var WORD_POOL = [
-          'METRO', 'TREN', 'ANDEN', 'LINEA', 'VAGON', 'BOLETO', 'ESTACION',
-          'PASAJERO', 'TORNIQUETE', 'TRANSBORDO', 'TARJETA', 'SALIDA',
-          'ENTRADA', 'RIELES', 'PARADA', 'DESTINO', 'CONVOY', 'TUNEL',
-          'ESCALERA', 'TAQUILLA',
+          { word: 'METRO', clue: 'El sistema de transporte que cruza la ciudad bajo tierra' },
+          { word: 'TREN', clue: 'Serie de carros enganchados que avanzan sobre las vías' },
+          { word: 'ANDEN', clue: 'Plataforma donde esperas para abordar' },
+          { word: 'LINEA', clue: 'Cada ruta, con su número o letra y su color' },
+          { word: 'VAGON', clue: 'Cada carro donde la gente viaja sentada o de pie' },
+          { word: 'BOLETO', clue: 'Papelito que antes comprabas para poder viajar' },
+          { word: 'ESTACION', clue: 'Punto del recorrido donde subes y bajas' },
+          { word: 'PASAJERO', clue: 'Cada persona que va a bordo' },
+          { word: 'TORNIQUETE', clue: 'Barrera giratoria que cruzas al pagar' },
+          { word: 'TRANSBORDO', clue: 'Pasar de una ruta a otra sin volver a la calle' },
+          { word: 'TARJETA', clue: 'Plástico recargable que acercas al lector' },
+          { word: 'SALIDA', clue: 'Por aquí abandonas el recorrido hacia la calle' },
+          { word: 'ENTRADA', clue: 'Por aquí accedes desde la calle' },
+          { word: 'RIELES', clue: 'Barras de acero paralelas por donde ruedan las ruedas' },
+          { word: 'PARADA', clue: 'Cada punto donde el servicio se detiene' },
+          { word: 'DESTINO', clue: 'El lugar al que quieres llegar' },
+          { word: 'CONVOY', clue: 'El conjunto de carros que forma una unidad en marcha' },
+          { word: 'TUNEL', clue: 'Conducto subterráneo por donde circula el servicio' },
+          { word: 'ESCALERA', clue: 'Peldaños, a veces eléctricos, para cambiar de nivel' },
+          { word: 'TAQUILLA', clue: 'Ventanilla donde antes se compraba el acceso' },
         ];
         // Spanish-ish fill alphabet (no Ñ, no rare K/W).
         var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
@@ -257,7 +279,7 @@
             for (var c = 0; c < GRID; c++) grid[r].push(null);
           }
           for (var i = 0; i < words.length; i++) {
-            if (!placeWord(grid, words[i], rand)) return null;
+            if (!placeWord(grid, words[i].word, rand)) return null;
           }
           for (var r2 = 0; r2 < GRID; r2++) {
             for (var c2 = 0; c2 < GRID; c2++) {
@@ -317,13 +339,24 @@
           }
         }
 
-        function renderWords() {
-          els.words.innerHTML = '';
-          state.words.forEach(function (word, i) {
-            var chip = document.createElement('span');
-            chip.className = 'word-chip' + (state.found[i] ? ' word-chip--found' : '');
-            chip.textContent = word;
-            els.words.appendChild(chip);
+        // One clue per hidden word; a found word is revealed (green) in
+        // front of its own clue, which stays for context.
+        function renderClues() {
+          els.clues.innerHTML = '';
+          state.words.forEach(function (entry, i) {
+            var li = document.createElement('li');
+            li.className = 'clue' + (state.found[i] ? ' clue--found' : '');
+            if (state.found[i]) {
+              var w = document.createElement('span');
+              w.className = 'clue__word';
+              w.textContent = entry.word;
+              li.appendChild(w);
+            }
+            var text = document.createElement('span');
+            text.className = 'clue__text';
+            text.textContent = entry.clue;
+            li.appendChild(text);
+            els.clues.appendChild(li);
           });
         }
 
@@ -394,7 +427,8 @@
         function matchWord(str) {
           for (var i = 0; i < state.words.length; i++) {
             if (state.found[i]) continue;
-            if (str === state.words[i] || str === reverse(state.words[i])) return i;
+            var w = state.words[i].word;
+            if (str === w || str === reverse(w)) return i;
           }
           return -1;
         }
@@ -405,7 +439,7 @@
           state.selection = [];
           state.selDir = null;
           paintCells();
-          renderWords();
+          renderClues();
           renderCounter();
 
           var all = state.found.every(function (f) { return f; });
@@ -436,14 +470,14 @@
           els.winNotice.textContent = '';
           buildGrid();
           paintCells();
-          renderWords();
+          renderClues();
           renderCounter();
         }
 
         function init() {
           els = {
             grid: $('grid'),
-            words: $('words'),
+            clues: $('clues'),
             counterNum: $('counter-num'),
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),

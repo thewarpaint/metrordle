@@ -559,11 +559,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   (shared.css/shared.js, the pre-paint theme snippet, `.sign`/`.btn-*`,
   `.notice--success` win banner). A 12×12 grid hides 10 Metro-themed
   Spanish words (uppercase, accent-free so each maps to one cell; 10
-  drawn from a ~20-word pool), placed in any of the 8 directions
-  (forward or reversed), the rest filled with random letters -
-  deterministic per day via `createSeededRandom('metrordle-sopa-' +
-  dateKey)`, retried with a bumped counter if a word won't fit (still a
-  pure function of the day). Tap a cell to anchor; an 8-neighbour tap
+  `{word, clue}` pairs drawn from a ~20-pair pool), placed in any of the
+  8 directions (forward or reversed), the rest filled with random
+  letters - deterministic per day via `createSeededRandom('metrordle-
+  sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
+  (still a pure function of the day). The player sees only the clues (a
+  `.clues` list), never the words; finding a word reveals it (green) in
+  front of its own clue. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
   orientation) locks it green; a tap that breaks the line starts a fresh

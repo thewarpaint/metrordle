@@ -586,7 +586,6 @@ input[type="text"]:disabled {
 .progress__count {
   color: var(--ink);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
 }
 
 .progress__track {

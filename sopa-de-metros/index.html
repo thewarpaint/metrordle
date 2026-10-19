@@ -51,10 +51,9 @@
         padding: 1.1rem 1.1rem 0.4rem;
       }
 
-      /* Progress bar is shared.css now - here just placed at the card's
-         bottom. */
+      /* Progress bar is shared.css now - here just placed under the intro. */
       .progress {
-        padding: 0 1.1rem 1rem;
+        margin-top: 0.7rem;
       }
 
       /* The letter grid, full-bleed to the card's side edges. 12 equal
@@ -180,6 +179,12 @@
         <div class="sign__head">
           <h1>Sopa de metros</h1>
           <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
+          <div class="progress">
+            <div class="progress__track">
+              <div class="progress__fill" id="progress-fill"></div>
+            </div>
+            <div class="progress__label"><span class="progress__count" id="progress-count">0 / 10</span> palabras</div>
+          </div>
         </div>
 
         <div class="board">
@@ -192,13 +197,6 @@
 
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
-        </div>
-
-        <div class="progress">
-          <div class="progress__label"><span class="progress__count" id="progress-count">0 / 10</span> palabras</div>
-          <div class="progress__track">
-            <div class="progress__fill" id="progress-fill"></div>
-          </div>
         </div>
       </div>
 

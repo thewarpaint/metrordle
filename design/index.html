@@ -596,6 +596,13 @@
           var progress = document.createElement('div');
           progress.className = 'progress';
           progress.style.width = '100%';
+          var track = document.createElement('div');
+          track.className = 'progress__track';
+          var fill = document.createElement('div');
+          fill.className = 'progress__fill';
+          fill.style.width = '70%';
+          track.appendChild(fill);
+          progress.appendChild(track);
           var label = document.createElement('div');
           label.className = 'progress__label';
           var count = document.createElement('span');
@@ -604,13 +611,6 @@
           label.appendChild(count);
           label.appendChild(document.createTextNode(' palabras'));
           progress.appendChild(label);
-          var track = document.createElement('div');
-          track.className = 'progress__track';
-          var fill = document.createElement('div');
-          fill.className = 'progress__fill';
-          fill.style.width = '70%';
-          track.appendChild(fill);
-          progress.appendChild(track);
           gallery.appendChild(buildExample(progress, '<code>.progress</code>/<code>.progress__track</code>/<code>.progress__fill</code> · ✅ consolidado - barra redondeada que se llena con el avance, bajo una etiqueta chica "N / M …", Sopa de metros (cada página posiciona el contenedor <code>.progress</code>; el resto es compartido).'));
         }
 

@@ -578,8 +578,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   touches/crosses, which is what lets you tell contiguous words apart; a
   tap that breaks the line starts a fresh attempt at that cell, and
   re-tapping the live selection cancels it. Progress is a rounded
-  "X / 10 palabras" bar (shared.css's own `.progress`) at the card's
-  bottom, its label the smallest still-legible size. No
+  "X / 10 palabras" bar (shared.css's own `.progress`) under the intro,
+  its small label sitting below the bar. No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
 
@@ -732,7 +732,7 @@ are impossible without a debug override.
   Laberinto is its only consumer so far; `.map-hub`/`.map-node` stay
   page-local for positioning/interaction. `.progress`/`__label`/`__count`/
   `__track`/`__fill` (Sopa de metros's rounded "N / M palabras" bar - a
-  `--paper-well` track with an `--ok` fill, under a small label) also live
+  `--paper-well` track with an `--ok` fill, over a small label) also live
   here now, cataloged in `/design/`'s own "Progreso" board, even though
   Sopa is its only consumer so far; only the `.progress` wrapper's own
   padding/placement stays page-local. Game-specific CSS

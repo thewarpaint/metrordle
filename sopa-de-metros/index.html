@@ -152,8 +152,9 @@
         padding: 0.6rem 1.1rem 1rem;
       }
 
+      /* Win banner sits above the progress bar, inside the padded head. */
       #win-notice {
-        margin: 0 1.1rem 1rem;
+        margin: 0.2rem 0 0.8rem;
       }
 
       #win-notice[hidden] {
@@ -178,7 +179,8 @@
       <div class="sign">
         <div class="sign__head">
           <h1>Sopa de metros</h1>
-          <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra.</p>
+          <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra. Las palabras están ocultas en horizontal, vertical o diagonal, en cualquier sentido.</p>
+          <div id="win-notice" hidden></div>
           <div class="progress">
             <div class="progress__track">
               <div class="progress__fill" id="progress-fill"></div>
@@ -193,16 +195,10 @@
 
         <ol class="clues" id="clues"></ol>
 
-        <div id="win-notice" hidden></div>
-
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
         </div>
       </div>
-
-      <p class="credit">
-        Prototipo. Las palabras están ocultas en horizontal, vertical o diagonal, en cualquier sentido.
-      </p>
     </div>
 
     <script src="/shared.js"></script>
@@ -465,6 +461,15 @@
           return 0;
         }
 
+        function showWinBanner() {
+          MetroShared.renderNoticeBanner(
+            els.winNotice, 'notice--success',
+            '¡Las encontraste todas!',
+            'Completaste las 10 palabras del Metro.'
+          );
+          els.winNotice.hidden = false;
+        }
+
         function markFound(idx) {
           state.found[idx] = true;
           state.foundOrder.push(idx);
@@ -480,20 +485,45 @@
           renderClues();
           renderProgress();
 
-          var all = state.found.every(function (f) { return f; });
-          if (all) {
+          if (state.found.every(function (f) { return f; })) {
             state.won = true;
-            MetroShared.renderNoticeBanner(
-              els.winNotice, 'notice--success',
-              '¡Las encontraste todas!',
-              'Completaste las 10 palabras del Metro.'
-            );
-            els.winNotice.hidden = false;
+            showWinBanner();
           }
+          saveProgress();
+        }
+
+        // --- Persistence -------------------------------------------------
+        // Only today's deterministic board persists (its key is the day's
+        // own dateKey); the random "Nueva sopa" board never does. The board
+        // itself is a pure function of the salt, so only the found progress
+        // is stored and re-applied over a freshly rebuilt board on reload.
+        function saveProgress() {
+          if (!state.persistKey) return;
+          try {
+            localStorage.setItem(state.persistKey, JSON.stringify({
+              found: state.found,
+              foundOrder: state.foundOrder,
+              foundCells: state.foundCells,
+              won: state.won,
+            }));
+          } catch (e) {}
+        }
+
+        function restoreProgress(key) {
+          var saved = null;
+          try { saved = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+          // Ignore anything that doesn't match this board's word count (a
+          // stale/corrupt entry just starts the day fresh).
+          if (!saved || !Array.isArray(saved.found) ||
+              saved.found.length !== state.words.length) return;
+          state.found = saved.found;
+          state.foundOrder = Array.isArray(saved.foundOrder) ? saved.foundOrder : [];
+          state.foundCells = saved.foundCells && typeof saved.foundCells === 'object' ? saved.foundCells : {};
+          state.won = !!saved.won;
         }
 
         // --- Lifecycle ---------------------------------------------------
-        function newGame(salt) {
+        function newGame(salt, persistKey) {
           var built = buildBoard(salt);
           state = {
             grid: built.grid,
@@ -504,13 +534,16 @@
             selection: [],
             selDir: null,
             won: false,
+            persistKey: persistKey || null,
           };
+          if (persistKey) restoreProgress(persistKey);
           els.winNotice.hidden = true;
           els.winNotice.textContent = '';
           buildGrid();
           paintCells();
           renderClues();
           renderProgress();
+          if (state.won) showWinBanner();
         }
 
         function init() {
@@ -523,21 +556,25 @@
             restartBtn: $('restart-btn'),
           };
 
+          // Today's board is the same for everyone, same convention as
+          // every other game's single-seed-per-day; its progress persists.
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          var storageKey = 'metrordle-sopa:' + dateKey;
+
           els.grid.addEventListener('click', function (e) {
             var cell = e.target.closest('.cell');
             if (!cell) return;
             onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
           });
 
-          // A fresh random board, for prototyping replay.
+          // "Nueva sopa" discards today's saved progress and deals a fresh
+          // random board (itself not persisted - a prototyping replay).
           els.restartBtn.addEventListener('click', function () {
-            newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2));
+            try { localStorage.removeItem(storageKey); } catch (e) {}
+            newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2), null);
           });
 
-          // Today's board is the same for everyone, same convention as
-          // every other game's single-seed-per-day.
-          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
-          newGame('metrordle-sopa-' + dateKey);
+          newGame('metrordle-sopa-' + dateKey, storageKey);
         }
 
         init();

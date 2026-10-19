@@ -557,7 +557,7 @@ about `//`/`/* */` comments in the actual game/test code.)
   linked from any nav, `noindex`, not precached, no Firebase/leaderboard
   yet - a standalone playable board, same scaffolding as the real games
   (shared.css/shared.js, the pre-paint theme snippet, `.sign`/`.btn-*`,
-  `.notice--success` win banner). A 13×13 grid hides 10 Metro-themed
+  `.notice--success` win banner). A 12×12 grid hides 10 Metro-themed
   Spanish words (uppercase, accent-free so each maps to one cell; 10
   drawn from a ~20-word pool), placed in any of the 8 directions
   (forward or reversed), the rest filled with random letters -

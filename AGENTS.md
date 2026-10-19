@@ -579,7 +579,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   tap that breaks the line starts a fresh attempt at that cell, and
   re-tapping the live selection cancels it. Progress is a rounded
   "X / 10 palabras" bar (shared.css's own `.progress`) under the intro,
-  its small label sitting below the bar. No
+  its small label sitting below the bar; the win banner (`.notice--success`)
+  sits just above that bar. Today's board persists its found progress to
+  `'metrordle-sopa:' + dateKey` (only the found state - the board itself
+  is a pure function of the salt, rebuilt and re-overlaid on reload), so a
+  refresh keeps your progress; "Nueva sopa" removes that key and deals a
+  fresh random board (itself never persisted). No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
 

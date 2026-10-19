@@ -367,7 +367,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   and an "Avisos" board for how each game announces the round's own
   result once it ends - success, failure, or just "it's over" for the
   three games with no win/lose outcome to begin with - usually paired
-  with that game's own streak.
+  with that game's own streak. A "Progreso" board shows how in-round
+  advancement is surfaced - just the shared `.progress` bar (Sopa de
+  metros's "N / M palabras") so far, ✅ consolidado.
 
   The `.reveal__banner` card shape is consolidated now: Metrordle's/
   Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and
@@ -564,8 +566,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   letters - deterministic per day via `createSeededRandom('metrordle-
   sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
   (still a pure function of the day). The player sees only the clues (a
-  `.clues` list), never the words; finding a word reveals it (green) in
-  front of its own clue. Tap a cell to anchor; an 8-neighbour tap
+  numbered `.clues` list, an `<ol>`), never the words; finding a word
+  reveals it (green) in front of its own clue, sinks that clue to the
+  bottom of the list (in solve order, tracked by `state.foundOrder`) and
+  strikes through the clue text - but NOT the just-revealed word, which
+  stays as the green answer. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
   orientation) locks it green - found words cycle 3 green shades,
@@ -573,7 +578,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   touches/crosses, which is what lets you tell contiguous words apart; a
   tap that breaks the line starts a fresh attempt at that cell, and
   re-tapping the live selection cancels it. Progress is a rounded
-  "X / 10 palabras" bar (`.progress`). No
+  "X / 10 palabras" bar (shared.css's own `.progress`) under the intro,
+  its small label sitting below the bar. No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
 
@@ -724,7 +730,12 @@ are impossible without a debug override.
   Laberinto's own page-local copy into `shared.css` so it sits with the
   rest of the station family and is cataloged in `/design/`, even though
   Laberinto is its only consumer so far; `.map-hub`/`.map-node` stay
-  page-local for positioning/interaction. Game-specific CSS
+  page-local for positioning/interaction. `.progress`/`__label`/`__count`/
+  `__track`/`__fill` (Sopa de metros's rounded "N / M palabras" bar - a
+  `--paper-well` track with an `--ok` fill, over a small label) also live
+  here now, cataloged in `/design/`'s own "Progreso" board, even though
+  Sopa is its only consumer so far; only the `.progress` wrapper's own
+  padding/placement stays page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

@@ -120,6 +120,12 @@
         </div>
 
         <div class="sign design-board">
+          <h2 class="design-board__title">Progreso</h2>
+          <p class="design-board__dek">Cómo se muestra el avance dentro de una ronda - cuánto llevas y cuánto falta.</p>
+          <div id="progress-gallery"></div>
+        </div>
+
+        <div class="sign design-board">
           <h2 class="design-board__title">Formularios</h2>
           <p class="design-board__dek">Botones y campos - sobre todo las distintas formas de elegir "esto o aquello" repartidas por el sitio.</p>
           <div id="forms-gallery"></div>
@@ -584,6 +590,30 @@
           gallery.appendChild(buildExample(status, '<code>.status-bar__text[data-tone]</code> · Metrordle - la barra de estado compacta (arriba del tablero) también cambia a texto coloreado al terminar, sin tarjeta - a diferencia de los anteriores, reporta el número de intentos, no la racha.'));
         }
 
+        function renderProgressGallery() {
+          var gallery = document.getElementById('progress-gallery');
+
+          var progress = document.createElement('div');
+          progress.className = 'progress';
+          progress.style.width = '100%';
+          var track = document.createElement('div');
+          track.className = 'progress__track';
+          var fill = document.createElement('div');
+          fill.className = 'progress__fill';
+          fill.style.width = '70%';
+          track.appendChild(fill);
+          progress.appendChild(track);
+          var label = document.createElement('div');
+          label.className = 'progress__label';
+          var count = document.createElement('span');
+          count.className = 'progress__count';
+          count.textContent = '7 / 10';
+          label.appendChild(count);
+          label.appendChild(document.createTextNode(' palabras'));
+          progress.appendChild(label);
+          gallery.appendChild(buildExample(progress, '<code>.progress</code>/<code>.progress__track</code>/<code>.progress__fill</code> · ✅ consolidado - barra redondeada que se llena con el avance, bajo una etiqueta chica "N / M …", Sopa de metros (cada página posiciona el contenedor <code>.progress</code>; el resto es compartido).'));
+        }
+
         function renderFormsGallery() {
           var gallery = document.getElementById('forms-gallery');
 
@@ -803,6 +833,7 @@
         renderStationsGallery();
         renderStationListsGallery();
         renderNoticesGallery();
+        renderProgressGallery();
         renderFormsGallery();
       })();
     </script>

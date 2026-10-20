@@ -72,9 +72,7 @@
     </script>
 
     <style>
-      /* Shared .progress bar (shared.css) as the round's status strip -
-         here just placed under the intro; the track fills with the time
-         remaining and the split label reads time left / pairs matched. */
+      /* Shared .progress bar (shared.css) as the round's status strip. */
       .progress {
         padding: 0.2rem 1.1rem 0.7rem;
       }
@@ -84,17 +82,14 @@
         display: none;
       }
 
-      /* The countdown drains every second - override the shared fill's
-         default 0.3s ease (tuned for Sopa's stepwise word count) with a
-         1s linear glide so it tracks the clock smoothly. */
+      /* 1s linear to glide with the once-a-second countdown, not the
+         shared fill's step-tuned 0.3s ease. */
       #progress-fill {
         transition: width 1s linear;
       }
 
-      /* Shown alongside the .progress label while continuing a finished
-         round in practice mode (see continuePractice()) - the progress
-         track hides since there's no countdown, but its label still reads
-         the practice session's own elapsed time / pairs. */
+      /* Shown alongside the progress label in practice mode (see
+         continuePractice()) - no countdown, so the track hides. */
       .practice-banner {
         align-items: center;
         background: var(--paper-well);
@@ -985,8 +980,7 @@
           els.startOverlay.hidden = !ready;
           els.progress.hidden = done;
           els.board.hidden = done;
-          // The track shows the countdown (ready + playing); practice has no
-          // clock, so it hides the track and keeps just the label row.
+          // Practice has no countdown - hide the track, keep the label.
           els.progressTrack.hidden = practicing;
           els.practiceBanner.hidden = !practicing;
           els.reveal.hidden = !done;
@@ -999,9 +993,7 @@
           }
         }
 
-        // M:SS from a whole-seconds count - used by both the live countdown
-        // (counting DOWN from ROUND_SECONDS) and practice's own elapsed clock
-        // (counting UP from continuePractice()'s timestamp).
+        // M:SS - the live countdown and practice's count-up clock both use it.
         function formatClock(totalSeconds) {
           totalSeconds = Math.max(0, Math.floor(totalSeconds));
           var minutes = Math.floor(totalSeconds / 60);

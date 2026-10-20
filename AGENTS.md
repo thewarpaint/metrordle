@@ -191,7 +191,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   that bucket (`spawnGhost()`, same split-animation convention as
   Memoria's own `spawnMatchGhost()` - the ghost animates independently
   while the live queue re-renders underneath it) and the queue slides
-  down with a new station entering at the top. Has its own leaderboard,
+  down with a new station entering at the top. Its status strip is the
+  shared `.progress` bar (shared.css, same two-slot `.progress__label--split`
+  shape as Memoria): the track fills with the time remaining and the label
+  reads the time left (m:ss) on the left and the classified count on the
+  right (`renderStatus()`/`formatClock()`) - this replaced the old bespoke
+  `.status-bar`/`.timer-track`. Has its own leaderboard,
   streak, and share text now (see below).
 
   Both **which 6 of the real 12 Metro lines are featured** and **the
@@ -382,10 +387,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   result once it ends - success, failure, or just "it's over" for the
   three games with no win/lose outcome to begin with - usually paired
   with that game's own streak. A "Progreso" board shows how in-round
-  advancement is surfaced - the shared `.progress` bar in all three of
-  its usages (✅ consolidado): Sopa de metros's single "N / M palabras"
-  label, Memoria's two-slot `.progress__label--split` (time left / pairs)
-  and Metro Crush's three-slot one (time / centered combo toast / points).
+  advancement is surfaced - the shared `.progress` bar in all of its
+  usages (✅ consolidado): Sopa de metros's single "N / M palabras"
+  label, Memoria's and Clasificador's two-slot `.progress__label--split`
+  (time left / pairs or classified count) and Metro Crush's three-slot one
+  (time / centered combo toast / points).
 
   The `.reveal__banner` card shape is consolidated now: Metrordle's/
   Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and
@@ -754,12 +760,13 @@ are impossible without a debug override.
   page-local for positioning/interaction. `.progress`/`__label`/`__count`/
   `__track`/`__fill` (a rounded `--paper-well` track with an `--ok` fill,
   over a small label) also live here now, cataloged in `/design/`'s own
-  "Progreso" board - Sopa de metros uses it for "N / M palabras", Memoria
-  and Metro Crush for a `.progress__label--split` row (flex space-between):
-  Memoria's two slots (time left / pairs), Metro Crush's three (time left /
+  "Progreso" board - Sopa de metros uses it for "N / M palabras", and
+  Memoria, Clasificador and Metro Crush for a `.progress__label--split`
+  row (flex space-between): Memoria's and Clasificador's two slots (time
+  left / pairs or classified count), Metro Crush's three (time left /
   centered combo toast / points). Only each page's `.progress` wrapper
   padding/placement, its 1s-linear `#progress-fill` transition override (a
-  smooth countdown, Memoria + Metro Crush) and Metro Crush's own centered
+  smooth countdown, every countdown consumer) and Metro Crush's own centered
   `.toast` deltas stay page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+

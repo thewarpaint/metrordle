@@ -29,6 +29,10 @@
   --ok-ink: #ffffff;
   --danger: #b5382b;
   --danger-ink: #ffffff;
+  /* Partial-success amber - dark ink, same dark-on-yellow convention as
+     Línea 5's own badge (the one line where --badge-ink isn't white). */
+  --warn: #d79a0a;
+  --warn-ink: #14181a;
   /* Not an alias of --line - that's reassigned per day at runtime. */
   --info: #0057a8;
   --info-ink: #ffffff;
@@ -584,8 +588,11 @@ input[type="text"]:disabled {
   margin-top: 0.35rem;
 }
 
-/* Two secondary readouts, one at each end of the label row. */
+/* Two secondary readouts, one at each end of the label row - vertically
+   centered so a taller readout (e.g. Metrordle's chips) stays balanced
+   against the text. */
 .progress__label--split {
+  align-items: center;
   display: flex;
   gap: 0.6rem;
   justify-content: space-between;
@@ -616,6 +623,32 @@ input[type="text"]:disabled {
 .progress__fill--countdown {
   transition: width 1s linear;
 }
+
+/* Metrordle's per-guess "x/5" results in a split label's right slot -
+   rounded-corner rectangles banded red (0-1), amber (2-4), green (5) by
+   correctness. */
+.attempt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
+.attempt-chip {
+  align-items: center;
+  border-radius: 0.3rem;
+  display: flex;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  height: 1.1rem;
+  justify-content: center;
+  padding: 0 0.3rem;
+}
+
+.attempt-chip--bad { background: var(--danger); color: var(--danger-ink); }
+.attempt-chip--mid { background: var(--warn); color: var(--warn-ink); }
+.attempt-chip--good { background: var(--ok); color: var(--ok-ink); }
 
 .credit {
   color: var(--ink-soft);

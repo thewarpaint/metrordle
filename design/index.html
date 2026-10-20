@@ -62,6 +62,69 @@
         font-size: 0.8rem;
         margin: 0 0 1rem;
       }
+
+      /* A board's title is a self-link (jump to / reload this section) -
+         styled to read as the heading it replaced, not a blue link. */
+      .design-board__title a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .design-board__title a:hover,
+      .design-board__title a:focus-visible {
+        text-decoration: underline;
+      }
+
+      /* Keep a jumped-to section clear of the viewport's very top edge. */
+      .design-board {
+        scroll-margin-top: 0.8rem;
+      }
+
+      .design-index {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.7rem;
+        margin: 1rem 0 0;
+      }
+
+      .design-index a {
+        color: var(--focus);
+        font-size: 0.85rem;
+        text-decoration: none;
+      }
+
+      .design-index a:hover,
+      .design-index a:focus-visible {
+        text-decoration: underline;
+      }
+
+      .design-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.8rem;
+      }
+
+      .theme-toggle {
+        display: inline-flex;
+        gap: 0.25rem;
+      }
+
+      .theme-toggle button {
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-radius: 0.5rem;
+        color: var(--ink-soft);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.82rem;
+        padding: 0.32rem 0.75rem;
+      }
+
+      .theme-toggle button[aria-pressed="true"] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--paper);
+      }
     </style>
   </head>
 
@@ -78,6 +141,13 @@
         <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
       </div>
 
+      <div class="design-toolbar">
+        <div class="theme-toggle" role="group" aria-label="Tema">
+          <button type="button" data-theme-mode="light">Claro</button>
+          <button type="button" data-theme-mode="dark">Oscuro</button>
+        </div>
+      </div>
+
       <div class="sign">
         <div class="sign__head">
           <h1>Lenguaje visual</h1>
@@ -91,42 +161,50 @@
             siguiente paso es decidir, para cada concepto, cuál de
             estos patrones se queda.
           </p>
+          <nav class="design-index" aria-label="Índice">
+            <a href="#board-lineas">Líneas</a>
+            <a href="#board-estaciones">Estaciones</a>
+            <a href="#board-listas">Listas de estaciones</a>
+            <a href="#board-avisos">Avisos</a>
+            <a href="#board-progreso">Progreso</a>
+            <a href="#board-formularios">Formularios</a>
+          </nav>
         </div>
       </div>
 
       <div class="design-boards" id="design-boards">
-        <div class="sign design-board">
-          <h2 class="design-board__title">Líneas</h2>
+        <div class="sign design-board" id="board-lineas">
+          <h2 class="design-board__title"><a href="#board-lineas">Líneas</a></h2>
           <p class="design-board__dek">Cómo se indica "esto pertenece a esta línea", sin una estación de por medio.</p>
           <div id="lines-gallery"></div>
         </div>
 
-        <div class="sign design-board">
-          <h2 class="design-board__title">Estaciones</h2>
+        <div class="sign design-board" id="board-estaciones">
+          <h2 class="design-board__title"><a href="#board-estaciones">Estaciones</a></h2>
           <p class="design-board__dek">Cómo se muestra una estación concreta - con o sin su línea, con o sin ícono.</p>
           <div id="stations-gallery"></div>
         </div>
 
-        <div class="sign design-board">
-          <h2 class="design-board__title">Listas de estaciones</h2>
+        <div class="sign design-board" id="board-listas">
+          <h2 class="design-board__title"><a href="#board-listas">Listas de estaciones</a></h2>
           <p class="design-board__dek">Cómo se muestra una lista de varias estaciones seguidas, no una estación suelta.</p>
           <div id="station-lists-gallery"></div>
         </div>
 
-        <div class="sign design-board">
-          <h2 class="design-board__title">Avisos</h2>
+        <div class="sign design-board" id="board-avisos">
+          <h2 class="design-board__title"><a href="#board-avisos">Avisos</a></h2>
           <p class="design-board__dek">Cómo cada juego anuncia el resultado de la ronda al terminar - éxito, fracaso, o solo "se acabó" cuando no hay ninguno de los dos - y la racha que suele acompañarlo.</p>
           <div id="notices-gallery"></div>
         </div>
 
-        <div class="sign design-board">
-          <h2 class="design-board__title">Progreso</h2>
+        <div class="sign design-board" id="board-progreso">
+          <h2 class="design-board__title"><a href="#board-progreso">Progreso</a></h2>
           <p class="design-board__dek">Cómo se muestra el avance dentro de una ronda - cuánto llevas y cuánto falta.</p>
           <div id="progress-gallery"></div>
         </div>
 
-        <div class="sign design-board">
-          <h2 class="design-board__title">Formularios</h2>
+        <div class="sign design-board" id="board-formularios">
+          <h2 class="design-board__title"><a href="#board-formularios">Formularios</a></h2>
           <p class="design-board__dek">Botones y campos - sobre todo las distintas formas de elegir "esto o aquello" repartidas por el sitio.</p>
           <div id="forms-gallery"></div>
         </div>
@@ -896,6 +974,29 @@
           gallery.appendChild(buildExample(maxRow, '<code>.map-maximize-btn</code> · exploración, no consolidado todavía - Metroguessr, el botón redondo que maximiza el mapa (flota fijo sobre el mapa en la página real).'));
         }
 
+        // Light/dark toggle - reuses the site-wide theme store (see
+        // /configurar/), so a choice made here persists and applies
+        // everywhere. A button is "pressed" only when its mode is the
+        // explicit stored one; under 'system' neither is (change that
+        // from /configurar/).
+        function setupThemeToggle() {
+          var buttons = document.querySelectorAll('.theme-toggle button');
+          function sync() {
+            var mode = MetroShared.getThemeMode();
+            buttons.forEach(function (btn) {
+              btn.setAttribute('aria-pressed', btn.getAttribute('data-theme-mode') === mode ? 'true' : 'false');
+            });
+          }
+          buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              MetroShared.setThemeMode(btn.getAttribute('data-theme-mode'));
+              sync();
+            });
+          });
+          sync();
+        }
+
+        setupThemeToggle();
         renderLinesGallery();
         renderStationsGallery();
         renderStationListsGallery();

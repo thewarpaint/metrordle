@@ -154,6 +154,31 @@
         padding: 0.5rem 1.1rem 0.7rem;
       }
 
+      /* Per-guess "x/5" results in the label's right slot - rounded-corner
+         rectangles banded red (0-1), amber (2-4), green (5) by correctness. */
+      .attempt-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.28rem;
+      }
+
+      .attempt-chip {
+        align-items: center;
+        border-radius: 0.3rem;
+        display: flex;
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 0.7rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        height: 1.3rem;
+        justify-content: center;
+        padding: 0 0.35rem;
+      }
+
+      .attempt-chip--bad { background: var(--danger); color: var(--danger-ink); }
+      .attempt-chip--mid { background: var(--warn); color: var(--warn-ink); }
+      .attempt-chip--good { background: var(--ok); color: var(--ok-ink); }
+
       .platform {
         list-style: none;
         margin: 0;
@@ -522,7 +547,7 @@
           </div>
           <div class="progress__label progress__label--split">
             <span class="progress__count" id="attempts-left">5 intentos</span>
-            <span id="guess-results"></span>
+            <span class="attempt-chips" id="attempt-chips" aria-hidden="true"></span>
           </div>
         </div>
 
@@ -1438,16 +1463,29 @@
           $('term-end').textContent = state.line.stations[state.line.stations.length - 1];
         }
 
+        // Red for 0-1 right, amber for 2-4, green for all 5.
+        function chipTone(correct) {
+          if (correct >= STATIONS_PER_PUZZLE) return 'good';
+          return correct <= 1 ? 'bad' : 'mid';
+        }
+
         // The track counts down remaining attempts; the split label reads
-        // "N intentos" left and the per-guess "x/5" results (comma-separated)
+        // "N intentos" left and one chip per guess ("x/5", colored by band)
         // right. The win/lose summary lives on the reveal banner, not here.
         function renderStatus() {
           var remaining = state.attemptsRemaining;
           $('attempts-left').textContent = remaining + (remaining === 1 ? ' intento' : ' intentos');
-          $('guess-results').textContent = state.history.map(function (attempt) {
-            return attempt.correctCount + '/' + STATIONS_PER_PUZZLE;
-          }).join(', ');
           $('progress-fill').style.width = (remaining / TOTAL_ATTEMPTS * 100) + '%';
+
+          var chips = $('attempt-chips');
+          chips.innerHTML = '';
+          state.history.forEach(function (attempt, i) {
+            var chip = document.createElement('span');
+            chip.className = 'attempt-chip attempt-chip--' + chipTone(attempt.correctCount);
+            chip.textContent = attempt.correctCount + '/' + STATIONS_PER_PUZZLE;
+            chip.setAttribute('title', 'Intento ' + (i + 1));
+            chips.appendChild(chip);
+          });
         }
 
         function renderPlatform() {

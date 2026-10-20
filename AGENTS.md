@@ -35,12 +35,14 @@ about `//`/`/* */` comments in the actual game/test code.)
   the remaining attempts (base `.progress__fill`, a stepwise step per
   guess, not the per-second `.progress__fill--countdown` the timed games
   use) and a two-slot `.progress__label--split` row reads "N intentos"
-  (attempts remaining) on the left and each guess's "x/5" correctness as
-  a comma-separated list ("2/5, 4/5") on the right (`renderStatus()`) -
-  this replaced the old bespoke `.status-bar`/`.status-bar__text[data-tone]`
-  + colored `.attempt-chips` (and its `scaleColor()`). The win/lose
-  summary lives on the reveal `.notice` banner, so the status strip no
-  longer turns win/lose-colored.
+  (attempts remaining) on the left and one `.attempt-chip` per guess on
+  the right - a rounded-corner rectangle showing that guess's "x/5"
+  correctness, banded by `chipTone()`: `--danger` red for 0-1 right,
+  `--warn` amber for 2-4, `--ok` green for all 5 (`renderStatus()`). This
+  replaced the old bespoke `.status-bar`/`.status-bar__text[data-tone]`
+  (and the chips' earlier per-correctness `scaleColor()` gradient). The
+  win/lose summary lives on the reveal `.notice` banner, so the status
+  strip itself no longer turns win/lose-colored.
 - **`/laberinto/`** - Metrordle: Laberinto: navigate from an origin to a
   destination station, picking neighbors/lines at each hop.
 - **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
@@ -402,8 +404,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   label, Memoria's and Clasificador's two-slot `.progress__label--split`
   (time left / pairs or classified count), Metro Crush's three-slot one
   (time / centered combo toast / points), and Metrordle's two-slot one
-  (attempts remaining / comma-separated per-guess x/5 results, on the
-  base non-countdown fill).
+  (attempts remaining / one colored `.attempt-chip` per guess showing its
+  x/5 result, red/amber/green by band, on the base non-countdown fill).
 
   The `.reveal__banner` card shape is consolidated now: Metrordle's/
   Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and
@@ -771,8 +773,9 @@ are impossible without a debug override.
   `.progress__label--split` row (flex space-between): Memoria's and
   Clasificador's two slots (time left / pairs or classified count), Metro
   Crush's three (time left / centered combo toast / points), and
-  Metrordle's two (attempts remaining / comma-separated per-guess x/5
-  results). `.progress__fill--countdown` is the one fill modifier - a
+  Metrordle's two (attempts remaining / one colored per-guess x/5 chip,
+  red/amber/green by band). `.progress__fill--countdown` is the one fill
+  modifier - a
   1s-linear glide for a once-a-second countdown (Memoria, Metro Crush,
   Clasificador), vs the base 0.3s ease that suits a stepwise count (Sopa's
   words, Metrordle's per-guess attempts). Only each page's `.progress`

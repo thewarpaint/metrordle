@@ -29,6 +29,10 @@
   --ok-ink: #ffffff;
   --danger: #b5382b;
   --danger-ink: #ffffff;
+  /* Partial-success amber - dark ink, same dark-on-yellow convention as
+     Línea 5's own badge (the one line where --badge-ink isn't white). */
+  --warn: #d79a0a;
+  --warn-ink: #14181a;
   /* Not an alias of --line - that's reassigned per day at runtime. */
   --info: #0057a8;
   --info-ink: #ffffff;

@@ -611,6 +611,12 @@ input[type="text"]:disabled {
   width: 0;
 }
 
+/* A countdown bar glides smoothly over its once-a-second ticks; the base
+   0.3s ease suits a stepwise count (Sopa) instead. */
+.progress__fill--countdown {
+  transition: width 1s linear;
+}
+
 .credit {
   color: var(--ink-soft);
   font-size: 0.72rem;

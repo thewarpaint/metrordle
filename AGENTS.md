@@ -764,10 +764,12 @@ are impossible without a debug override.
   Memoria, Clasificador and Metro Crush for a `.progress__label--split`
   row (flex space-between): Memoria's and Clasificador's two slots (time
   left / pairs or classified count), Metro Crush's three (time left /
-  centered combo toast / points). Only each page's `.progress` wrapper
-  padding/placement, its 1s-linear `#progress-fill` transition override (a
-  smooth countdown, every countdown consumer) and Metro Crush's own centered
-  `.toast` deltas stay page-local. Game-specific CSS
+  centered combo toast / points). `.progress__fill--countdown` is the one
+  fill modifier - a 1s-linear glide for a once-a-second countdown (Memoria,
+  Metro Crush, Clasificador), vs the base 0.3s ease that suits Sopa's
+  stepwise word count. Only each page's `.progress` wrapper
+  padding/placement and Metro Crush's own centered `.toast` deltas stay
+  page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

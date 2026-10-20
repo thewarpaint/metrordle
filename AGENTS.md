@@ -382,8 +382,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   result once it ends - success, failure, or just "it's over" for the
   three games with no win/lose outcome to begin with - usually paired
   with that game's own streak. A "Progreso" board shows how in-round
-  advancement is surfaced - just the shared `.progress` bar (Sopa de
-  metros's "N / M palabras") so far, ✅ consolidado.
+  advancement is surfaced - the shared `.progress` bar in all three of
+  its usages (✅ consolidado): Sopa de metros's single "N / M palabras"
+  label, Memoria's two-slot `.progress__label--split` (time left / pairs)
+  and Metro Crush's three-slot one (time / centered combo toast / points).
 
   The `.reveal__banner` card shape is consolidated now: Metrordle's/
   Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and

@@ -660,13 +660,24 @@
           gallery.appendChild(buildExample(clasi, '<code>.progress__label--split</code> · ✅ consolidado - misma fila de dos extremos que Memoria: tiempo restante a la izquierda, estaciones clasificadas a la derecha, Clasificador.'));
 
           // Metrordle: two-slot split label (attempts left / per-guess x/5
-          // results), base fill (stepwise per guess, no --countdown).
+          // chips), base fill (stepwise per guess, no --countdown). The
+          // chips are page-local to Metrordle, inlined here as a stand-in.
           var metrordle = progressBar('60%');
+          var metrChips = document.createElement('span');
+          metrChips.style.display = 'flex';
+          metrChips.style.gap = '0.28rem';
+          [[2, 5], [4, 5]].forEach(function (r) {
+            var chip = document.createElement('span');
+            chip.textContent = r[0] + '/' + r[1];
+            chip.style.cssText = 'align-items:center;border-radius:50%;color:#12151a;display:flex;font-family:ui-monospace,Menlo,monospace;font-size:0.7rem;font-weight:700;font-variant-numeric:tabular-nums;height:1.3rem;justify-content:center;padding:0 0.3rem;';
+            chip.style.backgroundColor = 'hsl(' + Math.round(r[0] / r[1] * 120) + ', 72%, 52%)';
+            metrChips.appendChild(chip);
+          });
           metrordle.appendChild(splitLabel([
             splitSlot('3 intentos', { count: true }),
-            splitSlot('2/5, 4/5'),
+            metrChips,
           ]));
-          gallery.appendChild(buildExample(metrordle, '<code>.progress__label--split</code> · ✅ consolidado - cuenta regresiva de intentos a la izquierda, resultados x/5 de cada intento (lista separada por comas) a la derecha, Metrordle - usa el relleno base (0.3s, por intento), no el <code>.progress__fill--countdown</code> de los juegos con reloj.'));
+          gallery.appendChild(buildExample(metrordle, '<code>.progress__label--split</code> · ✅ consolidado - cuenta regresiva de intentos a la izquierda, un chip "x/5" por intento (coloreado por aciertos, sin borde, radio 50%) a la derecha, Metrordle - relleno base (0.3s, por intento), no el <code>.progress__fill--countdown</code> de los juegos con reloj. Los chips son propios de la página.'));
         }
 
         function renderFormsGallery() {

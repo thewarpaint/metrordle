@@ -104,26 +104,16 @@
         margin-bottom: 0.8rem;
       }
 
+      /* Single button showing the icon of the mode it switches TO - a sun
+         while dark (tap for light), a moon while light (tap for dark). */
       .theme-toggle {
-        display: inline-flex;
-        gap: 0.25rem;
-      }
-
-      .theme-toggle button {
         background: var(--paper-raised);
         border: 1px solid var(--rule);
         border-radius: 0.5rem;
-        color: var(--ink-soft);
         cursor: pointer;
-        font: inherit;
-        font-size: 0.82rem;
-        padding: 0.32rem 0.75rem;
-      }
-
-      .theme-toggle button[aria-pressed="true"] {
-        background: var(--ink);
-        border-color: var(--ink);
-        color: var(--paper);
+        font-size: 1.1rem;
+        line-height: 1;
+        padding: 0.35rem 0.6rem;
       }
     </style>
   </head>
@@ -142,10 +132,7 @@
       </div>
 
       <div class="design-toolbar">
-        <div class="theme-toggle" role="group" aria-label="Tema">
-          <button type="button" data-theme-mode="light">Claro</button>
-          <button type="button" data-theme-mode="dark">Oscuro</button>
-        </div>
+        <button type="button" class="theme-toggle" id="theme-toggle"></button>
       </div>
 
       <div class="sign">
@@ -974,24 +961,30 @@
           gallery.appendChild(buildExample(maxRow, '<code>.map-maximize-btn</code> · exploración, no consolidado todavía - Metroguessr, el botón redondo que maximiza el mapa (flota fijo sobre el mapa en la página real).'));
         }
 
-        // Light/dark toggle - reuses the site-wide theme store (see
+        // Single sun/moon toggle - reuses the site-wide theme store (see
         // /configurar/), so a choice made here persists and applies
-        // everywhere. A button is "pressed" only when its mode is the
-        // explicit stored one; under 'system' neither is (change that
-        // from /configurar/).
+        // everywhere. Shows the icon of the mode it switches TO (a sun
+        // while dark, a moon while light), resolving 'system' against the
+        // OS preference so the button always reflects what's on screen.
         function setupThemeToggle() {
-          var buttons = document.querySelectorAll('.theme-toggle button');
-          function sync() {
+          var btn = document.getElementById('theme-toggle');
+          if (!btn) return;
+          function isDark() {
             var mode = MetroShared.getThemeMode();
-            buttons.forEach(function (btn) {
-              btn.setAttribute('aria-pressed', btn.getAttribute('data-theme-mode') === mode ? 'true' : 'false');
-            });
+            if (mode === 'dark') return true;
+            if (mode === 'light') return false;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
           }
-          buttons.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-              MetroShared.setThemeMode(btn.getAttribute('data-theme-mode'));
-              sync();
-            });
+          function sync() {
+            var dark = isDark();
+            btn.textContent = dark ? '☀️' : '🌙';
+            var label = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('title', label);
+          }
+          btn.addEventListener('click', function () {
+            MetroShared.setThemeMode(isDark() ? 'light' : 'dark');
+            sync();
           });
           sync();
         }

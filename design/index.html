@@ -590,9 +590,8 @@
           gallery.appendChild(buildExample(status, '<code>.status-bar__text[data-tone]</code> · Metrordle - la barra de estado compacta (arriba del tablero) también cambia a texto coloreado al terminar, sin tarjeta - a diferencia de los anteriores, reporta el número de intentos, no la racha.'));
         }
 
-        function renderProgressGallery() {
-          var gallery = document.getElementById('progress-gallery');
-
+        // A .progress bar filled to pct, ready for a caller-built label.
+        function progressBar(pct) {
           var progress = document.createElement('div');
           progress.className = 'progress';
           progress.style.width = '100%';
@@ -600,18 +599,62 @@
           track.className = 'progress__track';
           var fill = document.createElement('div');
           fill.className = 'progress__fill';
-          fill.style.width = '70%';
+          fill.style.width = pct;
           track.appendChild(fill);
           progress.appendChild(track);
+          return progress;
+        }
+
+        // One slot of a .progress__label--split row. `center` stretches it
+        // (the Metro Crush toast's page-local flex:1); `count` is the shared
+        // tabular-number style.
+        function splitSlot(text, opts) {
+          opts = opts || {};
+          var span = document.createElement('span');
+          if (opts.count) span.className = 'progress__count';
+          if (opts.center) { span.style.flex = '1'; span.style.textAlign = 'center'; span.style.fontWeight = '700'; }
+          span.textContent = text;
+          return span;
+        }
+
+        function splitLabel(slots) {
           var label = document.createElement('div');
-          label.className = 'progress__label';
+          label.className = 'progress__label progress__label--split';
+          slots.forEach(function (s) { label.appendChild(s); });
+          return label;
+        }
+
+        function renderProgressGallery() {
+          var gallery = document.getElementById('progress-gallery');
+
+          // Sopa de metros: single centered-under label.
+          var sopa = progressBar('70%');
+          var sopaLabel = document.createElement('div');
+          sopaLabel.className = 'progress__label';
           var count = document.createElement('span');
           count.className = 'progress__count';
           count.textContent = '7 / 10';
-          label.appendChild(count);
-          label.appendChild(document.createTextNode(' palabras'));
-          progress.appendChild(label);
-          gallery.appendChild(buildExample(progress, '<code>.progress</code>/<code>.progress__track</code>/<code>.progress__fill</code> · ✅ consolidado - barra redondeada que se llena con el avance, bajo una etiqueta chica "N / M …", Sopa de metros (cada página posiciona el contenedor <code>.progress</code>; el resto es compartido).'));
+          sopaLabel.appendChild(count);
+          sopaLabel.appendChild(document.createTextNode(' palabras'));
+          sopa.appendChild(sopaLabel);
+          gallery.appendChild(buildExample(sopa, '<code>.progress</code>/<code>.progress__track</code>/<code>.progress__fill</code> · ✅ consolidado - barra redondeada que se llena con el avance, bajo una etiqueta chica "N / M …", Sopa de metros (cada página posiciona el contenedor <code>.progress</code>; el resto es compartido).'));
+
+          // Memoria: two-slot split label (time left / pairs).
+          var memoria = progressBar('45%');
+          memoria.appendChild(splitLabel([
+            splitSlot('0:27', { count: true }),
+            splitSlot('5 parejas'),
+          ]));
+          gallery.appendChild(buildExample(memoria, '<code>.progress__label--split</code> · ✅ consolidado - fila de dos extremos: tiempo restante a la izquierda, parejas hechas a la derecha, Memoria.'));
+
+          // Metro Crush: three-slot split label (time / centered toast / points).
+          var crush = progressBar('45%');
+          crush.appendChild(splitLabel([
+            splitSlot('0:27', { count: true }),
+            splitSlot('¡Combo ×3! +60 pts', { center: true }),
+            splitSlot('120 puntos'),
+          ]));
+          gallery.appendChild(buildExample(crush, '<code>.progress__label--split</code> · ✅ consolidado - misma fila con un tercer hueco al centro: tiempo a la izquierda, puntos a la derecha y el aviso de combo en medio (el <code>.toast</code> centrado es propio de la página), Metro Crush.'));
         }
 
         function renderFormsGallery() {

@@ -362,11 +362,11 @@
 
         <div class="progress" id="progress">
           <div class="progress__track" id="progress-track">
-            <div class="progress__fill progress__fill--countdown" id="progress-fill"></div>
+            <div class="progress__fill progress__fill--countdown" id="progress-fill" style="width: 100%"></div>
           </div>
           <div class="progress__label progress__label--split">
             <span class="progress__count" id="clasi-time">1:00</span>
-            <span id="clasi-count">0 correctas</span>
+            <span id="clasi-count">0 estaciones</span>
           </div>
         </div>
 
@@ -674,8 +674,12 @@
           var done = state.status === 'done';
 
           els.startOverlay.hidden = !ready;
+          // Show the whole status strip (track included) from the ready
+          // state on, so it's visible behind the start overlay and the
+          // queue doesn't jump down when the round begins; only the reveal
+          // screen (done) hides it.
           els.progress.hidden = done;
-          els.progressTrack.hidden = !playing;
+          els.progressTrack.hidden = done;
           els.queueWrap.hidden = done;
           els.buckets.hidden = done;
           els.reveal.hidden = !done;
@@ -690,7 +694,7 @@
 
         function renderStatus() {
           els.clasiTime.textContent = formatClock(state.timeLeft);
-          els.clasiCount.textContent = state.total + (state.total === 1 ? ' correcta' : ' correctas');
+          els.clasiCount.textContent = state.total + (state.total === 1 ? ' estación' : ' estaciones');
           els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 

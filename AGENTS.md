@@ -208,7 +208,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   shape as Memoria): the track fills with the time remaining and the label
   reads the time left (m:ss) on the left and the classified count on the
   right (`renderStatus()`/`formatClock()`) - this replaced the old bespoke
-  `.status-bar`/`.timer-track`. Has its own leaderboard,
+  `.status-bar`/`.timer-track`. The strip (track included, filled to 100%)
+  renders from the `ready` state on, behind the start overlay, so it's
+  visible before the round and the queue doesn't jump down when play begins
+  - `render()` hides it (track and all) only on the `done` reveal screen,
+  not before play (an earlier version hid the track until `playing`, which
+  popped it in and shifted the queue). Has its own leaderboard,
   streak, and share text now (see below).
 
   Both **which 6 of the real 12 Metro lines are featured** and **the

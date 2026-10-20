@@ -211,21 +211,21 @@
         gap: 0.15rem;
       }
 
-      /* Border is --rule-strong (= --ink in both themes), not the softer
-         --rule - same reasoning as the icon above. Stays neutral even
-         after the round ends; used to go green/red, doubling up on the
-         🟩/🟥 mark's own signal. */
+      /* No border - the --paper fill alone sets each row off from the
+         sign behind it (same borderless treatment as Clasificador's own
+         queue cards). The row takes --paper and the rank badge --paper-raised
+         (the lighter/whiter of the two), so the badge reads as raised off
+         the card. */
       .platform__row {
         align-items: center;
-        background: var(--paper-raised);
-        border: 2px solid var(--rule-strong);
+        background: var(--paper);
         border-radius: 0.5rem;
         cursor: grab;
         display: flex;
         gap: 0.6rem;
         margin-bottom: 0.4rem;
         padding: 0.4rem 0.55rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        transition: box-shadow 0.2s ease;
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
         -webkit-user-select: none;
@@ -248,11 +248,15 @@
         z-index: 20;
       }
 
+      /* Pill in the raised surface (--paper-raised, white in light mode)
+         with an --ink number, so it inverts with the theme and sits a shade
+         lighter than the --paper card behind it. No theme override needed
+         since both tokens already flip. */
       .platform__rank {
         align-items: center;
-        background: var(--rule-strong);
+        background: var(--paper-raised);
         border-radius: 999px;
-        color: var(--paper);
+        color: var(--ink);
         display: flex;
         flex: 0 0 auto;
         font-weight: 800;

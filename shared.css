@@ -1112,19 +1112,20 @@ input[type="text"]:disabled {
 
 .design-platform__row {
   align-items: center;
-  background: var(--paper-raised);
-  border: 2px solid var(--rule-strong);
+  background: var(--paper);
   border-radius: 0.5rem;
   display: flex;
   gap: 0.6rem;
   padding: 0.4rem 0.55rem;
 }
 
+/* Pill in the raised surface (a shade lighter than the --paper card),
+   number in --ink - inverts with the theme. See index.html's .platform__rank. */
 .design-platform__rank {
   align-items: center;
-  background: var(--rule-strong);
+  background: var(--paper-raised);
   border-radius: 999px;
-  color: var(--paper);
+  color: var(--ink);
   display: flex;
   flex: 0 0 auto;
   font-weight: 800;

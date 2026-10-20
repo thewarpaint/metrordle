@@ -211,12 +211,14 @@
         gap: 0.15rem;
       }
 
-      /* No border - the --paper-raised fill alone sets each row off from
-         the sign behind it (same borderless treatment as Clasificador's
-         own queue cards). */
+      /* No border - the --paper fill alone sets each row off from the
+         sign behind it (same borderless treatment as Clasificador's own
+         queue cards). The row takes --paper and the rank badge --paper-raised
+         (the lighter/whiter of the two), so the badge reads as raised off
+         the card. */
       .platform__row {
         align-items: center;
-        background: var(--paper-raised);
+        background: var(--paper);
         border-radius: 0.5rem;
         cursor: grab;
         display: flex;
@@ -246,13 +248,13 @@
         z-index: 20;
       }
 
-      /* Pill in the page tone (--paper) with an --ink number, so it inverts
-         with the theme: a light pill with a dark number in light mode, a
-         dark pill with a light number in dark mode. No theme override needed
+      /* Pill in the raised surface (--paper-raised, white in light mode)
+         with an --ink number, so it inverts with the theme and sits a shade
+         lighter than the --paper card behind it. No theme override needed
          since both tokens already flip. */
       .platform__rank {
         align-items: center;
-        background: var(--paper);
+        background: var(--paper-raised);
         border-radius: 999px;
         color: var(--ink);
         display: flex;

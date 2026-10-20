@@ -367,12 +367,14 @@ about `//`/`/* */` comments in the actual game/test code.)
   own - order, selection, growth - unlike the reveal-grid above):
   Metrordle's
   own `.platform`/`.platform__row` (the puzzle's numbered, reorderable
-  guess order - a rank circle whose pill is the page tone (`--paper`) with
-  an `--ink` number, so it inverts with the theme (a light pill with a dark
-  number in light mode, a dark pill with a light number in dark mode - both
-  themes share one rule since both tokens flip), a neutral `--ink` icon (was the day's own line
+  guess order - a rank circle whose pill is the raised surface
+  (`--paper-raised`, white in light mode) with an `--ink` number, so it
+  inverts with the theme (a white pill with a dark number in light mode, a
+  dark pill with a light number in dark mode - both themes share one rule
+  since both tokens flip) and sits a shade lighter than the `--paper` card
+  behind it, a neutral `--ink` icon (was the day's own line
   color, which read as too much color competing with the roundel-row's own
-  `.line-badge` above it), a borderless row (the `--paper-raised` fill alone
+  `.line-badge` above it), a borderless row (the `--paper` fill alone
   sets it off from the sign - the old `--rule-strong` border, black in
   light/white in dark, was dropped), name, and a 🟩/🟥 correctness mark
   once the round ends),

@@ -211,21 +211,19 @@
         gap: 0.15rem;
       }
 
-      /* Border is --rule-strong (= --ink in both themes), not the softer
-         --rule - same reasoning as the icon above. Stays neutral even
-         after the round ends; used to go green/red, doubling up on the
-         🟩/🟥 mark's own signal. */
+      /* No border - the --paper-raised fill alone sets each row off from
+         the sign behind it (same borderless treatment as Clasificador's
+         own queue cards). */
       .platform__row {
         align-items: center;
         background: var(--paper-raised);
-        border: 2px solid var(--rule-strong);
         border-radius: 0.5rem;
         cursor: grab;
         display: flex;
         gap: 0.6rem;
         margin-bottom: 0.4rem;
         padding: 0.4rem 0.55rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        transition: box-shadow 0.2s ease;
         -webkit-tap-highlight-color: transparent;
         -webkit-touch-callout: none;
         -webkit-user-select: none;
@@ -248,6 +246,10 @@
         z-index: 20;
       }
 
+      /* A dark pill with a light number in both themes. The default
+         --rule-strong/--paper tokens get this right in light mode but flip
+         to a light pill with dark text in dark mode, so pin the dark values
+         (--paper = near-black, --ink = near-white) explicitly there. */
       .platform__rank {
         align-items: center;
         background: var(--rule-strong);
@@ -260,6 +262,18 @@
         height: 1.6rem;
         justify-content: center;
         width: 1.6rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) .platform__rank {
+          background: var(--paper);
+          color: var(--ink);
+        }
+      }
+
+      :root[data-theme="dark"] .platform__rank {
+        background: var(--paper);
+        color: var(--ink);
       }
 
       /* --ink, not --line - was tinted by the day's own line color,

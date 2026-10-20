@@ -1113,13 +1113,13 @@ input[type="text"]:disabled {
 .design-platform__row {
   align-items: center;
   background: var(--paper-raised);
-  border: 2px solid var(--rule-strong);
   border-radius: 0.5rem;
   display: flex;
   gap: 0.6rem;
   padding: 0.4rem 0.55rem;
 }
 
+/* Dark pill, light number, both themes - see index.html's .platform__rank. */
 .design-platform__rank {
   align-items: center;
   background: var(--rule-strong);
@@ -1132,6 +1132,18 @@ input[type="text"]:disabled {
   height: 1.6rem;
   justify-content: center;
   width: 1.6rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .design-platform__rank {
+    background: var(--paper);
+    color: var(--ink);
+  }
+}
+
+:root[data-theme="dark"] .design-platform__rank {
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .design-platform__icon {

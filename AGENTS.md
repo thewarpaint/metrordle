@@ -367,10 +367,15 @@ about `//`/`/* */` comments in the actual game/test code.)
   own - order, selection, growth - unlike the reveal-grid above):
   Metrordle's
   own `.platform`/`.platform__row` (the puzzle's numbered, reorderable
-  guess order - rank circle, neutral icon and row border (`--ink`/
-  `--rule-strong` - was the day's own line color, which read as too
-  much color competing with the roundel-row's own `.line-badge`
-  above it), name, and a 🟩/🟥 correctness mark once the round ends),
+  guess order - a dark-pill rank circle (always a dark background with a
+  light number in both themes, pinned via an explicit dark-mode override
+  since the default `--rule-strong`/`--paper` tokens would flip it to a
+  light pill in dark mode), a neutral `--ink` icon (was the day's own line
+  color, which read as too much color competing with the roundel-row's own
+  `.line-badge` above it), a borderless row (the `--paper-raised` fill alone
+  sets it off from the sign - the old `--rule-strong` border, black in
+  light/white in dark, was dropped), name, and a 🟩/🟥 correctness mark
+  once the round ends),
   Clasificador's own `.queue`/`.queue-card` (the upcoming stations
   to classify - unordered, the icon deliberately neutral/un-colored-by-
   line so it can't give away the answer, and borderless (background

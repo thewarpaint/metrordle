@@ -588,8 +588,11 @@ input[type="text"]:disabled {
   margin-top: 0.35rem;
 }
 
-/* Two secondary readouts, one at each end of the label row. */
+/* Two secondary readouts, one at each end of the label row - vertically
+   centered so a taller readout (e.g. Metrordle's chips) stays balanced
+   against the text. */
 .progress__label--split {
+  align-items: center;
   display: flex;
   gap: 0.6rem;
   justify-content: space-between;

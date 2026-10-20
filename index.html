@@ -147,51 +147,11 @@
         padding: 0 0.5rem;
       }
 
-      .status-bar {
-        align-items: center;
-        background: var(--paper-well);
-        border-top: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem 0.6rem;
-        justify-content: space-between;
-        padding: 0.5rem 1.1rem;
-      }
-
-      .status-bar__text {
-        font-size: 0.82rem;
-      }
-
-      .status-bar__text[data-tone="win"] {
-        color: var(--ok);
-        font-weight: 700;
-      }
-
-      .status-bar__text[data-tone="lose"] {
-        color: var(--danger);
-        font-weight: 700;
-      }
-
-      .attempt-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.28rem;
-      }
-
-      .attempt-chip {
-        align-items: center;
-        border: 1px solid var(--rule-strong);
-        border-radius: 0.3rem;
-        color: #12151a;
-        display: flex;
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 0.7rem;
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
-        height: 1.3rem;
-        justify-content: center;
-        padding: 0 0.3rem;
+      /* Shared .progress bar (shared.css) as the status strip - here the
+         track counts down remaining attempts (base 0.3s ease, stepwise per
+         guess, not a per-second countdown). */
+      .progress {
+        padding: 0.2rem 1.1rem 0.7rem;
       }
 
       .platform {
@@ -556,9 +516,14 @@
           <span class="headsign__term headsign__term--end" id="term-end"></span>
         </div>
 
-        <div class="status-bar">
-          <span class="status-bar__text" id="status"></span>
-          <span class="attempt-chips" id="attempt-chips" aria-hidden="true"></span>
+        <div class="progress" id="progress">
+          <div class="progress__track">
+            <div class="progress__fill" id="progress-fill"></div>
+          </div>
+          <div class="progress__label progress__label--split">
+            <span class="progress__count" id="attempts-left">5 intentos</span>
+            <span id="guess-results"></span>
+          </div>
         </div>
 
         <div class="board-wrap" id="board-wrap">
@@ -1473,38 +1438,16 @@
           $('term-end').textContent = state.line.stations[state.line.stations.length - 1];
         }
 
-        function scaleColor(ratio) {
-          var hue = Math.round(ratio * 120);
-          return 'hsl(' + hue + ', 72%, 52%)';
-        }
-
+        // The track counts down remaining attempts; the split label reads
+        // "N intentos" left and the per-guess "x/5" results (comma-separated)
+        // right. The win/lose summary lives on the reveal banner, not here.
         function renderStatus() {
-          var status = $('status');
-          status.removeAttribute('data-tone');
-
-          if (state.gameOver) {
-            if (state.won) {
-              status.textContent = 'Resuelto en ' + state.history.length + (state.history.length === 1 ? ' intento' : ' intentos');
-              status.setAttribute('data-tone', 'win');
-            } else {
-              status.textContent = 'Sin intentos restantes';
-              status.setAttribute('data-tone', 'lose');
-            }
-          } else {
-            var plural = state.attemptsRemaining === 1 ? 'intento' : 'intentos';
-            status.textContent = state.attemptsRemaining + ' ' + plural + ' restantes';
-          }
-
-          var chips = $('attempt-chips');
-          chips.innerHTML = '';
-          state.history.forEach(function (attempt, i) {
-            var chip = document.createElement('span');
-            chip.className = 'attempt-chip';
-            chip.textContent = attempt.correctCount + '/' + STATIONS_PER_PUZZLE;
-            chip.style.backgroundColor = scaleColor(attempt.correctCount / STATIONS_PER_PUZZLE);
-            chip.setAttribute('title', 'Intento ' + (i + 1));
-            chips.appendChild(chip);
-          });
+          var remaining = state.attemptsRemaining;
+          $('attempts-left').textContent = remaining + (remaining === 1 ? ' intento' : ' intentos');
+          $('guess-results').textContent = state.history.map(function (attempt) {
+            return attempt.correctCount + '/' + STATIONS_PER_PUZZLE;
+          }).join(', ');
+          $('progress-fill').style.width = (remaining / TOTAL_ATTEMPTS * 100) + '%';
         }
 
         function renderPlatform() {

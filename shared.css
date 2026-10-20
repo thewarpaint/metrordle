@@ -1290,24 +1290,6 @@ input[type="text"]:disabled {
   width: 1.5rem;
 }
 
-/* Metrordle's own .status-bar__text[data-tone] - the compact status
-   line above the board (attempts remaining, while playing) turns
-   win/lose-colored plain text once the round ends, no card/background
-   at all - narrower-purpose than the other notices here (reports the
-   attempt count, not the streak) and the lightest-weight of the bunch. */
-.design-notice-status {
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.design-notice-status--win {
-  color: var(--ok);
-}
-
-.design-notice-status--lose {
-  color: var(--danger);
-}
-
 /* /configurar/'s own .mode-option[aria-pressed="true"] override - the
    pre-game modal/overlay choices below are dismissed the moment one is
    picked, so .mode-option itself has no persistent "selected" look;

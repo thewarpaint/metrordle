@@ -30,7 +30,17 @@ about `//`/`/* */` comments in the actual game/test code.)
   headsign, status) and the default-layout board render behind the
   opaque overlay, so the page is whole before the choice. A saved or
   `?debug=true` game skips the overlay (starts `started: true` in its
-  own mode), same as the old modal was skipped under debug.
+  own mode), same as the old modal was skipped under debug. Its status
+  strip is the shared `.progress` bar (shared.css): the track counts down
+  the remaining attempts (base `.progress__fill`, a stepwise step per
+  guess, not the per-second `.progress__fill--countdown` the timed games
+  use) and a two-slot `.progress__label--split` row reads "N intentos"
+  (attempts remaining) on the left and each guess's "x/5" correctness as
+  a comma-separated list ("2/5, 4/5") on the right (`renderStatus()`) -
+  this replaced the old bespoke `.status-bar`/`.status-bar__text[data-tone]`
+  + colored `.attempt-chips` (and its `scaleColor()`). The win/lose
+  summary lives on the reveal `.notice` banner, so the status strip no
+  longer turns win/lose-colored.
 - **`/laberinto/`** - Metrordle: Laberinto: navigate from an origin to a
   destination station, picking neighbors/lines at each hop.
 - **`/memoria/`** - Metrordle: Memoria: a 60-second memory-match game
@@ -390,8 +400,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   advancement is surfaced - the shared `.progress` bar in all of its
   usages (✅ consolidado): Sopa de metros's single "N / M palabras"
   label, Memoria's and Clasificador's two-slot `.progress__label--split`
-  (time left / pairs or classified count) and Metro Crush's three-slot one
-  (time / centered combo toast / points).
+  (time left / pairs or classified count), Metro Crush's three-slot one
+  (time / centered combo toast / points), and Metrordle's two-slot one
+  (attempts remaining / comma-separated per-guess x/5 results, on the
+  base non-countdown fill).
 
   The `.reveal__banner` card shape is consolidated now: Metrordle's/
   Laberinto's/Memoria's/Metro Crush's own bordered win/lose card and
@@ -443,17 +455,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   station-icon badge instead (`window.__mgIconMarkerEl`, set by the
   Leaflet test stub), reverse-looking-up `MetroShared.STATION_ICON_SLUGS`
   from the badge's `<use>` href - a source of truth independent of win/
-  loss, and of the banner's own wording either way.
-
-  One pattern stays outside this consolidation, a genuinely different
-  shape rather than another copy of the same card: Metrordle's own
-  `.status-bar__text[data-tone]` (the compact status line above the
-  board, not the end-of-round reveal screen - also turns win/lose-
-  colored once the round ends, but reports the attempt count, not the
-  streak, and no other game has an equivalent) - still backed by its
-  own `.design-notice-status` stand-in, built with real sample data via
-  `MetroShared.formatStreak()`/`formatMaxStreak()` so the text reads
-  exactly like a real reveal screen's own.
+  loss, and of the banner's own wording either way. (Metrordle's own
+  compact status line, once an `.status-bar__text[data-tone]` that turned
+  win/lose-colored and was cataloged here via a `.design-notice-status`
+  stand-in, is gone - it's now the neutral shared `.progress` bar, see
+  the "Progreso" board and Metrordle's own bullet above.)
 
   A "Formularios" board catalogs buttons/inputs, with the same split as
   every board above: already-consolidated shared.css classes shown
@@ -761,15 +767,17 @@ are impossible without a debug override.
   `__track`/`__fill` (a rounded `--paper-well` track with an `--ok` fill,
   over a small label) also live here now, cataloged in `/design/`'s own
   "Progreso" board - Sopa de metros uses it for "N / M palabras", and
-  Memoria, Clasificador and Metro Crush for a `.progress__label--split`
-  row (flex space-between): Memoria's and Clasificador's two slots (time
-  left / pairs or classified count), Metro Crush's three (time left /
-  centered combo toast / points). `.progress__fill--countdown` is the one
-  fill modifier - a 1s-linear glide for a once-a-second countdown (Memoria,
-  Metro Crush, Clasificador), vs the base 0.3s ease that suits Sopa's
-  stepwise word count. Only each page's `.progress` wrapper
-  padding/placement and Metro Crush's own centered `.toast` deltas stay
-  page-local. Game-specific CSS
+  Memoria, Clasificador, Metro Crush and Metrordle for a
+  `.progress__label--split` row (flex space-between): Memoria's and
+  Clasificador's two slots (time left / pairs or classified count), Metro
+  Crush's three (time left / centered combo toast / points), and
+  Metrordle's two (attempts remaining / comma-separated per-guess x/5
+  results). `.progress__fill--countdown` is the one fill modifier - a
+  1s-linear glide for a once-a-second countdown (Memoria, Metro Crush,
+  Clasificador), vs the base 0.3s ease that suits a stepwise count (Sopa's
+  words, Metrordle's per-guess attempts). Only each page's `.progress`
+  wrapper padding/placement and Metro Crush's own centered `.toast` deltas
+  stay page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

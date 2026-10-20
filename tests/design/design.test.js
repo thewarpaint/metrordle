@@ -102,7 +102,7 @@ async function main() {
       assert.strictEqual(mutedDots, 0, 'the origin should borrow the next hop\'s own line color rather than going muted');
 
       const noticeExamples = await page.locator('#notices-gallery .design-example').count();
-      assert.strictEqual(noticeExamples, 5, 'expected 5 notice examples (success card, error card, info card, Metroguessr card, status-bar text)');
+      assert.strictEqual(noticeExamples, 4, 'expected 4 notice examples (success card, error card, info card, Metroguessr card)');
 
       // Two examples now share .notice--error (the plain loss card and
       // Metroguessr's own) - scoped by row index, same convention the
@@ -120,9 +120,6 @@ async function main() {
       const guessrText = await page.locator('#notices-gallery .design-example').nth(3).locator('.notice--error').textContent();
       assert.ok(guessrText.indexOf('Racha: 0 días') !== -1, 'expected Metroguessr\'s own notice to include a streak: ' + guessrText);
       assert.ok(guessrText.indexOf('La estación era: Zócalo') !== -1, 'expected Metroguessr\'s own notice (a loss) to include the station name: ' + guessrText);
-
-      const statusText = await page.locator('#notices-gallery .design-example').nth(4).locator('.design-notice-status').textContent();
-      assert.strictEqual(statusText.indexOf('Racha') !== -1, false, 'the status-bar notice reports attempts, not a streak: ' + statusText);
 
       const formExamples = await page.locator('#forms-gallery .design-example').count();
       assert.strictEqual(formExamples, 11, 'expected 11 form examples (buttons, guess button, alias field, search field, mode modal, overlay modes, persistent picker, date-nav chevrons, reorder chevrons, debug mode toggle, map maximize button)');

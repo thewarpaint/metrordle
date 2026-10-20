@@ -583,11 +583,6 @@
           var guessr = document.createElement('div');
           MetroShared.renderNoticeBanner(guessr, 'notice--error', 'Se acabaron los intentos', '🔥 ' + MetroShared.formatStreak(0) + '. La estación era: Zócalo.');
           gallery.appendChild(buildExample(guessr, '<code>.notice</code> · ✅ consolidado - Metroguessr al perder, con el nombre de la estación acoplado al texto en vez de en su propia línea como antes; al ganar, ese nombre se omite por completo - ya lo acertaste.'));
-
-          var status = document.createElement('p');
-          status.className = 'design-notice-status design-notice-status--win';
-          status.textContent = 'Resuelto en 3 intentos';
-          gallery.appendChild(buildExample(status, '<code>.status-bar__text[data-tone]</code> · Metrordle - la barra de estado compacta (arriba del tablero) también cambia a texto coloreado al terminar, sin tarjeta - a diferencia de los anteriores, reporta el número de intentos, no la racha.'));
         }
 
         // A .progress bar filled to pct, ready for a caller-built label.
@@ -663,6 +658,15 @@
             splitSlot('12 correctas'),
           ]));
           gallery.appendChild(buildExample(clasi, '<code>.progress__label--split</code> · ✅ consolidado - misma fila de dos extremos que Memoria: tiempo restante a la izquierda, estaciones clasificadas a la derecha, Clasificador.'));
+
+          // Metrordle: two-slot split label (attempts left / per-guess x/5
+          // results), base fill (stepwise per guess, no --countdown).
+          var metrordle = progressBar('60%');
+          metrordle.appendChild(splitLabel([
+            splitSlot('3 intentos', { count: true }),
+            splitSlot('2/5, 4/5'),
+          ]));
+          gallery.appendChild(buildExample(metrordle, '<code>.progress__label--split</code> · ✅ consolidado - cuenta regresiva de intentos a la izquierda, resultados x/5 de cada intento (lista separada por comas) a la derecha, Metrordle - usa el relleno base (0.3s, por intento), no el <code>.progress__fill--countdown</code> de los juegos con reloj.'));
         }
 
         function renderFormsGallery() {

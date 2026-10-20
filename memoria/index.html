@@ -72,48 +72,24 @@
     </script>
 
     <style>
-      .status-bar {
-        align-items: center;
-        background: var(--paper-well);
-        border-top: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem 0.6rem;
-        justify-content: space-between;
-        padding: 0.5rem 1.1rem;
+      /* Shared .progress bar (shared.css) as the round's status strip. */
+      .progress {
+        padding: 0.2rem 1.1rem 0.7rem;
       }
 
-      .status-bar[hidden] {
+      .progress[hidden],
+      .progress__track[hidden] {
         display: none;
       }
 
-      .status-bar__text {
-        font-size: 0.82rem;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .timer-track {
-        background: var(--paper-well);
-        border-bottom: 1px solid var(--rule);
-        height: 0.35rem;
-        overflow: hidden;
-      }
-
-      .timer-track[hidden] {
-        display: none;
-      }
-
-      .timer-bar {
-        background: var(--line);
-        height: 100%;
+      /* 1s linear to glide with the once-a-second countdown, not the
+         shared fill's step-tuned 0.3s ease. */
+      #progress-fill {
         transition: width 1s linear;
-        width: 100%;
       }
 
-      /* Shown instead of .status-bar/.timer-track while continuing a
-         finished round in practice mode (see continuePractice()) -
-         same slot, same chrome, since there's no countdown to show. */
+      /* Shown alongside the progress label in practice mode (see
+         continuePractice()) - no countdown, so the track hides. */
       .practice-banner {
         align-items: center;
         background: var(--paper-well);
@@ -354,12 +330,14 @@
           </p>
         </div>
 
-        <div class="status-bar" id="status-bar">
-          <span class="status-bar__text" id="status"></span>
-        </div>
-
-        <div class="timer-track" id="timer-track">
-          <div class="timer-bar" id="timer-bar"></div>
+        <div class="progress" id="progress">
+          <div class="progress__track" id="progress-track">
+            <div class="progress__fill" id="progress-fill"></div>
+          </div>
+          <div class="progress__label progress__label--split">
+            <span class="progress__count" id="memo-time">1:00</span>
+            <span id="memo-pairs">0 parejas</span>
+          </div>
         </div>
 
         <div class="practice-banner" id="practice-banner" hidden>
@@ -1000,9 +978,10 @@
           var done = state.status === 'done';
 
           els.startOverlay.hidden = !ready;
-          els.statusBar.hidden = done;
+          els.progress.hidden = done;
           els.board.hidden = done;
-          els.timerTrack.hidden = !playing;
+          // Practice has no countdown - hide the track, keep the label.
+          els.progressTrack.hidden = practicing;
           els.practiceBanner.hidden = !practicing;
           els.reveal.hidden = !done;
 
@@ -1014,18 +993,19 @@
           }
         }
 
-        // M:SS, counting up - used only by practice mode's own elapsed-
-        // time stat (the real round always counts DOWN from ROUND_SECONDS,
-        // rendered inline below instead).
-        function formatElapsed(ms) {
-          var totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        // M:SS - the live countdown and practice's count-up clock both use it.
+        function formatClock(totalSeconds) {
+          totalSeconds = Math.max(0, Math.floor(totalSeconds));
           var minutes = Math.floor(totalSeconds / 60);
           var seconds = totalSeconds % 60;
           return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
 
+        function pairsLabel(n) {
+          return n + (n === 1 ? ' pareja' : ' parejas');
+        }
+
         function renderStatus() {
-          var parejasLabel = state.score + (state.score === 1 ? ' pareja' : ' parejas');
           if (state.status === 'practice') {
             // Its own pair of stats, not the real round's - how many of
             // state.score's pairs were matched AFTER entering practice
@@ -1033,16 +1013,16 @@
             // state.score itself, which still carries the real result's
             // own count forward) and how long this practice session has
             // run, counting up from continuePractice()'s own timestamp.
-            // The practice banner (a sibling of #status, see render())
+            // The practice banner (a sibling of #progress, see render())
             // already says none of this is being saved.
             var practiceMatches = state.score - state.practiceSnapshot.score;
-            var practiceMatchesLabel = practiceMatches + (practiceMatches === 1 ? ' pareja' : ' parejas');
-            var elapsedLabel = formatElapsed(Date.now() - state.practiceStartedAt);
-            els.status.textContent = elapsedLabel + ' · ' + practiceMatchesLabel;
+            els.memoTime.textContent = formatClock((Date.now() - state.practiceStartedAt) / 1000);
+            els.memoPairs.textContent = pairsLabel(practiceMatches);
             return;
           }
-          els.status.textContent = state.timeLeft + 's · ' + parejasLabel;
-          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          els.memoTime.textContent = formatClock(state.timeLeft);
+          els.memoPairs.textContent = pairsLabel(state.score);
+          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
         // Toggles which single card shows .station-card--selected without
@@ -1441,10 +1421,11 @@
 
         function init() {
           els = {
-            statusBar: $('status-bar'),
-            status: $('status'),
-            timerTrack: $('timer-track'),
-            timerBar: $('timer-bar'),
+            progress: $('progress'),
+            progressTrack: $('progress-track'),
+            progressFill: $('progress-fill'),
+            memoTime: $('memo-time'),
+            memoPairs: $('memo-pairs'),
             boardWrap: $('board-wrap'),
             board: $('memo-board'),
             startOverlay: $('start-overlay'),

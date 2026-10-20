@@ -161,7 +161,7 @@ screen's "Seguir jugando sin guardar" button
 screen, deals a fresh 16-card board (the planted finished result never
 had one saved - `state.cells` starts empty on a reload), hides the
 countdown in favor of a `.practice-banner`, and lets matches keep
-incrementing `#status`'s own practice-only stats with no round timer
+incrementing the progress bar's own practice-only stats with no round timer
 running: an elapsed-time clock counting up from `0:00` on its own
 (`continuePractice()`'s `setInterval(renderStatus, 1000)`, distinct
 from the real round's countdown-driven `startTimer()`/`tick()`) and a

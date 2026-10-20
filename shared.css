@@ -575,12 +575,20 @@ input[type="text"]:disabled {
 }
 
 /* Progress bar - a rounded track that fills as a round advances, over a
-   small "N / M …" label. Sopa de metros's own so far; each page positions
-   the .progress wrapper itself (its padding/margins stay page-local). */
+   small label. Sopa de metros uses it for "N / M palabras"; Memoria for a
+   split "time left / pairs matched" row (--split). Each page positions the
+   .progress wrapper itself (its padding/margins stay page-local). */
 .progress__label {
   color: var(--ink-soft);
   font-size: 0.68rem;
   margin-top: 0.35rem;
+}
+
+/* Two secondary readouts, one at each end of the label row. */
+.progress__label--split {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
 }
 
 .progress__count {

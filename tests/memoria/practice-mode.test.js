@@ -49,7 +49,7 @@ async function main() {
       assert.strictEqual(await page.locator('#reveal').isVisible(), false, 'reveal should hide once practicing');
       assert.strictEqual(await page.locator('#memo-board').isVisible(), true, 'the board should be visible again');
       assert.strictEqual(await page.locator('#practice-banner').isVisible(), true, 'the practice banner should explain nothing is being saved');
-      assert.strictEqual(await page.locator('#timer-track').isVisible(), false, 'no countdown should run during practice');
+      assert.strictEqual(await page.locator('#progress-track').isVisible(), false, 'no countdown should run during practice');
 
       const cardCount = await page.locator('#memo-board .station-card:not(.station-card--empty)').count();
       assert.strictEqual(cardCount, 16, 'a fresh practice board should deal a full 16-card grid, since the finished day never had one saved');
@@ -58,22 +58,29 @@ async function main() {
       // clock counting up from 0:00 (not the exact seconds, which are
       // timing-dependent) and a pairs-matched count starting at 0,
       // regardless of the planted result's own score of 3.
-      const statusBeforeMatch = await page.$eval('#status', (el) => el.textContent);
-      assert.match(statusBeforeMatch, /^0:0\d · 0 parejas$/, 'practice status should start its own elapsed clock and pair count at zero, got: ' + statusBeforeMatch);
+      const readStatus = async () => ({
+        time: await page.$eval('#memo-time', (el) => el.textContent),
+        pairs: await page.$eval('#memo-pairs', (el) => el.textContent),
+      });
+
+      const before = await readStatus();
+      assert.match(before.time, /^0:0\d$/, 'practice clock should start its own elapsed count near zero, got: ' + before.time);
+      assert.strictEqual(before.pairs, '0 parejas', 'practice pair count should start at zero, not the planted result\'s own score, got: ' + before.pairs);
 
       const matched = await matchOnePair(page);
       assert.ok(matched, 'expected a matchable pair on the fresh practice board');
       await page.waitForTimeout(250);
 
-      const statusAfterMatch = await page.$eval('#status', (el) => el.textContent);
-      assert.match(statusAfterMatch, /^0:0\d · 1 pareja$/, 'a practice match should bump the practice-only pair count to 1 (singular), not the real result\'s own score, got: ' + statusAfterMatch);
+      const afterMatch = await readStatus();
+      assert.strictEqual(afterMatch.pairs, '1 pareja', 'a practice match should bump the practice-only pair count to 1 (singular), not the real result\'s own score, got: ' + afterMatch.pairs);
 
       // The elapsed clock keeps ticking on its own, once a second, with no
       // further action from the player (continuePractice()'s own
       // setInterval(renderStatus, 1000), not a one-off read at entry time).
       await page.waitForTimeout(1200);
-      const statusAfterTick = await page.$eval('#status', (el) => el.textContent);
-      assert.match(statusAfterTick, /^0:0[1-9] · 1 pareja$/, 'the elapsed-time stat should keep advancing on its own while practicing, got: ' + statusAfterTick);
+      const afterTick = await readStatus();
+      assert.match(afterTick.time, /^0:0[1-9]$/, 'the elapsed-time stat should keep advancing on its own while practicing, got: ' + afterTick.time);
+      assert.strictEqual(afterTick.pairs, '1 pareja', 'the practice pair count should hold at 1 while only the clock advances, got: ' + afterTick.pairs);
 
       // The whole point: nothing from practice play should ever reach
       // localStorage - the real submitted result stays exactly as planted.
@@ -103,20 +110,22 @@ async function main() {
       await matchOnePair(page);
       await page.waitForTimeout(250);
 
-      const statusDuringPractice = await page.$eval('#status', (el) => el.textContent);
-      assert.match(statusDuringPractice, /^0:0\d · 1 pareja$/, 'the practice-only pair count should read 1, not the real result\'s own score of 5, got: ' + statusDuringPractice);
+      const timeDuringPractice = await page.$eval('#memo-time', (el) => el.textContent);
+      const pairsDuringPractice = await page.$eval('#memo-pairs', (el) => el.textContent);
+      assert.match(timeDuringPractice, /^0:0\d$/, 'the practice clock should read near zero, got: ' + timeDuringPractice);
+      assert.strictEqual(pairsDuringPractice, '1 pareja', 'the practice-only pair count should read 1, not the real result\'s own score of 5, got: ' + pairsDuringPractice);
 
       await page.click('#end-practice-btn');
       await page.waitForTimeout(200);
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'should land back on the reveal screen');
       assert.strictEqual(await page.locator('#memo-board').isVisible(), false, 'the board should hide again');
-      // #status-bar sits above the reveal banner and is never re-rendered
+      // #progress sits above the reveal banner and is never re-rendered
       // while 'done' (renderStatus() only runs for 'ready'/'playing'/
       // 'practice') - it must hide here, or it'd still show the stale
-      // practice stats ("0:0x · 1 pareja") right above the reveal's own,
+      // practice stats ("0:0x" / "1 pareja") right above the reveal's own,
       // correct "Parejas: 5", reading as two contradicting scores.
-      assert.strictEqual(await page.locator('#status-bar').isVisible(), false, 'the status bar should hide behind the reveal screen, not show stale practice stats');
+      assert.strictEqual(await page.locator('#progress').isVisible(), false, 'the progress bar should hide behind the reveal screen, not show stale practice stats');
       const stat = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(stat, 'Parejas: 5', 'the reveal should show the ORIGINAL submitted score, not the practice-inflated one');
 

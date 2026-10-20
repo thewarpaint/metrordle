@@ -774,7 +774,13 @@ are impossible without a debug override.
   Clasificador's two slots (time left / pairs or classified count), Metro
   Crush's three (time left / centered combo toast / points), and
   Metrordle's two (attempts remaining / one colored per-guess x/5 chip,
-  red/amber/green by band). `.progress__fill--countdown` is the one fill
+  red/amber/green by band). Those chips are the shared `.attempt-chips`/
+  `.attempt-chip` + `--bad`/`--mid`/`--good` band classes, living here too
+  (next to `.progress__fill--countdown`) since `/design/`'s own Progreso
+  board renders the real classes - Metrordle is their only consumer so far,
+  but the band tokens (`--danger`/`--warn`/`--ok`) are site-wide and the
+  design page shows them directly, so page-local was the wrong home.
+  `.progress__fill--countdown` is the one fill
   modifier - a
   1s-linear glide for a once-a-second countdown (Memoria, Metro Crush,
   Clasificador), vs the base 0.3s ease that suits a stepwise count (Sopa's

@@ -660,29 +660,25 @@
           gallery.appendChild(buildExample(clasi, '<code>.progress__label--split</code> · ✅ consolidado - misma fila de dos extremos que Memoria: tiempo restante a la izquierda, estaciones clasificadas a la derecha, Clasificador.'));
 
           // Metrordle: two-slot split label (attempts left / per-guess x/5
-          // chips), base fill (stepwise per guess, no --countdown). The
-          // chips are page-local to Metrordle; shown here across the full
-          // 0/5-5/5 scale so the red/amber/green bands read at a glance.
+          // chips), base fill (stepwise per guess, no --countdown). The real
+          // shared .attempt-chip classes are used directly (no inline styles);
+          // shown across the full 0/5-5/5 scale so the red/amber/green bands
+          // read at a glance.
           var metrordle = progressBar('60%');
           var metrChips = document.createElement('span');
-          metrChips.style.display = 'flex';
-          metrChips.style.flexWrap = 'wrap';
-          metrChips.style.gap = '0.28rem';
+          metrChips.className = 'attempt-chips';
           for (var correct = 0; correct <= 5; correct++) {
-            var tone = correct >= 5 ? ['var(--ok)', 'var(--ok-ink)']
-              : (correct <= 1 ? ['var(--danger)', 'var(--danger-ink)'] : ['var(--warn)', 'var(--warn-ink)']);
+            var band = correct >= 5 ? 'good' : (correct <= 1 ? 'bad' : 'mid');
             var chip = document.createElement('span');
+            chip.className = 'attempt-chip attempt-chip--' + band;
             chip.textContent = correct + '/5';
-            chip.style.cssText = 'align-items:center;border-radius:0.3rem;display:flex;font-family:ui-monospace,Menlo,monospace;font-size:0.65rem;font-weight:700;font-variant-numeric:tabular-nums;height:1.1rem;justify-content:center;padding:0 0.3rem;';
-            chip.style.background = tone[0];
-            chip.style.color = tone[1];
             metrChips.appendChild(chip);
           }
           metrordle.appendChild(splitLabel([
             splitSlot('3 intentos', { count: true }),
             metrChips,
           ]));
-          gallery.appendChild(buildExample(metrordle, '<code>.progress__label--split</code> · ✅ consolidado - cuenta regresiva de intentos a la izquierda, un chip "x/5" por intento a la derecha (rectángulo de esquinas redondeadas, coloreado por banda: <code>--danger</code> en 0-1, <code>--warn</code> en 2-4, <code>--ok</code> en 5), Metrordle. Relleno base (0.3s, por intento), no el <code>.progress__fill--countdown</code> de los juegos con reloj. Los chips son propios de la página.'));
+          gallery.appendChild(buildExample(metrordle, '<code>.attempt-chip</code> en <code>.progress__label--split</code> · ✅ consolidado - cuenta regresiva de intentos a la izquierda, un chip "x/5" por intento a la derecha (rectángulo de esquinas redondeadas, coloreado por banda: <code>--danger</code> en 0-1, <code>--warn</code> en 2-4, <code>--ok</code> en 5), Metrordle. Relleno base (0.3s, por intento), no el <code>.progress__fill--countdown</code> de los juegos con reloj.'));
         }
 
         function renderFormsGallery() {

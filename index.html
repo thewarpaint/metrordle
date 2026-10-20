@@ -154,31 +154,6 @@
         padding: 0.5rem 1.1rem 0.7rem;
       }
 
-      /* Per-guess "x/5" results in the label's right slot - rounded-corner
-         rectangles banded red (0-1), amber (2-4), green (5) by correctness. */
-      .attempt-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.28rem;
-      }
-
-      .attempt-chip {
-        align-items: center;
-        border-radius: 0.3rem;
-        display: flex;
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 0.65rem;
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
-        height: 1.1rem;
-        justify-content: center;
-        padding: 0 0.3rem;
-      }
-
-      .attempt-chip--bad { background: var(--danger); color: var(--danger-ink); }
-      .attempt-chip--mid { background: var(--warn); color: var(--warn-ink); }
-      .attempt-chip--good { background: var(--ok); color: var(--ok-ink); }
-
       .platform {
         list-style: none;
         margin: 0;

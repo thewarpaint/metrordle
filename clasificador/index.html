@@ -366,7 +366,7 @@
           </div>
           <div class="progress__label progress__label--split">
             <span class="progress__count" id="clasi-time">1:00</span>
-            <span id="clasi-count">0 correctas</span>
+            <span id="clasi-count">0 estaciones</span>
           </div>
         </div>
 
@@ -694,7 +694,7 @@
 
         function renderStatus() {
           els.clasiTime.textContent = formatClock(state.timeLeft);
-          els.clasiCount.textContent = state.total + (state.total === 1 ? ' correcta' : ' correctas');
+          els.clasiCount.textContent = state.total + (state.total === 1 ? ' estación' : ' estaciones');
           els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 

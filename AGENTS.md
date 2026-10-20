@@ -339,7 +339,17 @@ about `//`/`/* */` comments in the actual game/test code.)
   competing, un-redrawn copies of each game's own `<style>` block
   (pulled as-is, not hand-approximated), pending a decision; four
   concepts have actually been decided and consolidated already (see
-  below). A "Líneas" board (Clasificador's own `.line-bar__badge`,
+  below). The page opens with a quick index (anchor links to each
+  board below) and a single sun/moon theme toggle button wired to the
+  same site-wide theme store `/configurar/` uses
+  (`MetroShared.setThemeMode`/`getThemeMode`) - it shows the icon of the
+  mode it switches TO (a sun while dark, a moon while light, resolving
+  `system` against the OS preference), so a component can be previewed in
+  either theme without leaving the page; each board's own `<h2>` title is a self-link
+  to its section's anchor (`#board-<slug>`, e.g. `#board-lineas`), for
+  quickly reloading/returning to a section. All of this chrome is
+  page-local (the `.design-toolbar`/`.theme-toggle`/`.design-index`
+  styles live in this page's own `<style>`, not `shared.css`). A "Líneas" board (Clasificador's own `.line-bar__badge`,
   Metroguessr's `.hint-line-badge`, plus the already-decided
   `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
   an "Estaciones" board (the already-decided `.station-circle` family -

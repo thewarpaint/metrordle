@@ -246,15 +246,15 @@
         z-index: 20;
       }
 
-      /* A dark pill with a light number in both themes. The default
-         --rule-strong/--paper tokens get this right in light mode but flip
-         to a light pill with dark text in dark mode, so pin the dark values
-         (--paper = near-black, --ink = near-white) explicitly there. */
+      /* Pill in the page tone (--paper) with an --ink number, so it inverts
+         with the theme: a light pill with a dark number in light mode, a
+         dark pill with a light number in dark mode. No theme override needed
+         since both tokens already flip. */
       .platform__rank {
         align-items: center;
-        background: var(--rule-strong);
+        background: var(--paper);
         border-radius: 999px;
-        color: var(--paper);
+        color: var(--ink);
         display: flex;
         flex: 0 0 auto;
         font-weight: 800;
@@ -262,18 +262,6 @@
         height: 1.6rem;
         justify-content: center;
         width: 1.6rem;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) .platform__rank {
-          background: var(--paper);
-          color: var(--ink);
-        }
-      }
-
-      :root[data-theme="dark"] .platform__rank {
-        background: var(--paper);
-        color: var(--ink);
       }
 
       /* --ink, not --line - was tinted by the day's own line color,

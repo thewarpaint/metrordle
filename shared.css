@@ -1119,12 +1119,13 @@ input[type="text"]:disabled {
   padding: 0.4rem 0.55rem;
 }
 
-/* Dark pill, light number, both themes - see index.html's .platform__rank. */
+/* Pill in the page tone, number in --ink - inverts with the theme. See
+   index.html's .platform__rank. */
 .design-platform__rank {
   align-items: center;
-  background: var(--rule-strong);
+  background: var(--paper);
   border-radius: 999px;
-  color: var(--paper);
+  color: var(--ink);
   display: flex;
   flex: 0 0 auto;
   font-weight: 800;
@@ -1132,18 +1133,6 @@ input[type="text"]:disabled {
   height: 1.6rem;
   justify-content: center;
   width: 1.6rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .design-platform__rank {
-    background: var(--paper);
-    color: var(--ink);
-  }
-}
-
-:root[data-theme="dark"] .design-platform__rank {
-  background: var(--paper);
-  color: var(--ink);
 }
 
 .design-platform__icon {

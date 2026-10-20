@@ -69,44 +69,14 @@
     </script>
 
     <style>
-      .status-bar {
-        align-items: center;
-        background: var(--paper-well);
-        border-top: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem 0.6rem;
-        justify-content: space-between;
-        padding: 0.5rem 1.1rem;
+      /* Shared .progress bar (shared.css) as the round's status strip. */
+      .progress {
+        padding: 0.2rem 1.1rem 0.7rem;
       }
 
-      .status-bar[hidden] {
+      .progress[hidden],
+      .progress__track[hidden] {
         display: none;
-      }
-
-      .status-bar__text {
-        font-size: 0.82rem;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-      }
-
-      .timer-track {
-        background: var(--paper-well);
-        border-bottom: 1px solid var(--rule);
-        height: 0.35rem;
-        overflow: hidden;
-      }
-
-      .timer-track[hidden] {
-        display: none;
-      }
-
-      .timer-bar {
-        background: var(--line);
-        height: 100%;
-        transition: width 1s linear;
-        width: 100%;
       }
 
       /* --- Queue --- */
@@ -390,12 +360,14 @@
           </p>
         </div>
 
-        <div class="status-bar" id="status-bar">
-          <span class="status-bar__text" id="status"></span>
-        </div>
-
-        <div class="timer-track" id="timer-track">
-          <div class="timer-bar" id="timer-bar"></div>
+        <div class="progress" id="progress">
+          <div class="progress__track" id="progress-track">
+            <div class="progress__fill progress__fill--countdown" id="progress-fill"></div>
+          </div>
+          <div class="progress__label progress__label--split">
+            <span class="progress__count" id="clasi-time">1:00</span>
+            <span id="clasi-count">0 correctas</span>
+          </div>
         </div>
 
         <div class="queue-wrap" id="queue-wrap">
@@ -702,8 +674,8 @@
           var done = state.status === 'done';
 
           els.startOverlay.hidden = !ready;
-          els.statusBar.hidden = done;
-          els.timerTrack.hidden = !playing;
+          els.progress.hidden = done;
+          els.progressTrack.hidden = !playing;
           els.queueWrap.hidden = done;
           els.buckets.hidden = done;
           els.reveal.hidden = !done;
@@ -717,8 +689,17 @@
         }
 
         function renderStatus() {
-          els.status.textContent = state.timeLeft + 's · ' + state.total + (state.total === 1 ? ' correcta' : ' correctas');
-          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          els.clasiTime.textContent = formatClock(state.timeLeft);
+          els.clasiCount.textContent = state.total + (state.total === 1 ? ' correcta' : ' correctas');
+          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        // M:SS for the countdown.
+        function formatClock(totalSeconds) {
+          totalSeconds = Math.max(0, Math.floor(totalSeconds));
+          var minutes = Math.floor(totalSeconds / 60);
+          var seconds = totalSeconds % 60;
+          return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
 
         function buildQueueCard(item, isActive) {
@@ -1208,10 +1189,11 @@
 
         function init() {
           els = {
-            statusBar: $('status-bar'),
-            status: $('status'),
-            timerTrack: $('timer-track'),
-            timerBar: $('timer-bar'),
+            progress: $('progress'),
+            progressTrack: $('progress-track'),
+            progressFill: $('progress-fill'),
+            clasiTime: $('clasi-time'),
+            clasiCount: $('clasi-count'),
             queueWrap: $('queue-wrap'),
             queue: $('queue'),
             startOverlay: $('start-overlay'),

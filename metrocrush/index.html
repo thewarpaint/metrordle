@@ -98,10 +98,6 @@
       .progress[hidden],
       .progress__track[hidden] { display: none; }
 
-      /* 1s linear to glide with the once-a-second countdown, not the
-         shared fill's step-tuned 0.3s ease. */
-      #progress-fill { transition: width 1s linear; }
-
       .board-wrap {
         padding: 1rem 1.1rem;
         position: relative;
@@ -385,7 +381,7 @@
 
         <div class="progress" id="progress">
           <div class="progress__track" id="progress-track" hidden>
-            <div class="progress__fill" id="progress-fill"></div>
+            <div class="progress__fill progress__fill--countdown" id="progress-fill"></div>
           </div>
           <div class="progress__label progress__label--split">
             <span class="progress__count" id="mc-time">1:00</span>

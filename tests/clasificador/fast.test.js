@@ -116,8 +116,8 @@ async function main() {
       await page.click('#buckets .line-badge[data-line-id="4"]');
       await page.waitForTimeout(450);
 
-      const statusAfterWrong = await page.$eval('#status', (el) => el.textContent);
-      assert.ok(statusAfterWrong.endsWith('0 correctas'), 'a wrong guess should not change the score, got: ' + statusAfterWrong);
+      const countAfterWrong = await page.$eval('#clasi-count', (el) => el.textContent);
+      assert.strictEqual(countAfterWrong, '0 correctas', 'a wrong guess should not change the score, got: ' + countAfterWrong);
       const stillActiveName = await page.$eval('.queue-card--active .queue-card__name', (el) => el.textContent);
       assert.strictEqual(stillActiveName, 'Pantitlán', 'the wrongly-guessed station should still be active, not advanced');
 
@@ -127,8 +127,8 @@ async function main() {
       await page.click('#buckets .line-badge[data-line-id="5"]');
       await page.waitForTimeout(450);
 
-      const statusAfterCorrect = await page.$eval('#status', (el) => el.textContent);
-      assert.ok(statusAfterCorrect.endsWith('1 correcta'), 'a correct guess on the non-primary valid line should count, got: ' + statusAfterCorrect);
+      const countAfterCorrect = await page.$eval('#clasi-count', (el) => el.textContent);
+      assert.strictEqual(countAfterCorrect, '1 correcta', 'a correct guess on the non-primary valid line should count, got: ' + countAfterCorrect);
       const newActiveName = await page.$eval('.queue-card--active .queue-card__name', (el) => el.textContent);
       assert.notStrictEqual(newActiveName, 'Pantitlán', 'the queue should have advanced past the resolved station');
 
@@ -177,8 +177,8 @@ async function main() {
       await page.click('#buckets .line-badge[data-line-id="5"]');
       await page.waitForTimeout(450);
 
-      const statusAfterCorrect = await page.$eval('#status', (el) => el.textContent);
-      assert.ok(statusAfterCorrect.endsWith('1 correcta'), 'a correct guess should still count in hard mode, got: ' + statusAfterCorrect);
+      const countAfterCorrect = await page.$eval('#clasi-count', (el) => el.textContent);
+      assert.strictEqual(countAfterCorrect, '1 correcta', 'a correct guess should still count in hard mode, got: ' + countAfterCorrect);
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

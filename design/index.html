@@ -655,6 +655,14 @@
             splitSlot('120 puntos'),
           ]));
           gallery.appendChild(buildExample(crush, '<code>.progress__label--split</code> · ✅ consolidado - misma fila con un tercer hueco al centro: tiempo a la izquierda, puntos a la derecha y el aviso de combo en medio (el <code>.toast</code> centrado es propio de la página), Metro Crush.'));
+
+          // Clasificador: two-slot split label (time left / classified count).
+          var clasi = progressBar('45%');
+          clasi.appendChild(splitLabel([
+            splitSlot('0:27', { count: true }),
+            splitSlot('12 correctas'),
+          ]));
+          gallery.appendChild(buildExample(clasi, '<code>.progress__label--split</code> · ✅ consolidado - misma fila de dos extremos que Memoria: tiempo restante a la izquierda, estaciones clasificadas a la derecha, Clasificador.'));
         }
 
         function renderFormsGallery() {

@@ -102,9 +102,6 @@
          shared fill's step-tuned 0.3s ease. */
       #progress-fill { transition: width 1s linear; }
 
-      /* Time runs red in the last 10 seconds. */
-      .progress__count--low { color: var(--danger); }
-
       .board-wrap {
         padding: 1rem 1.1rem;
         position: relative;
@@ -1065,7 +1062,6 @@
           els.progress.hidden = state.status === 'done';
           els.progressTrack.hidden = state.status !== 'playing';
           els.mcTime.textContent = formatClock(state.timeLeft);
-          els.mcTime.classList.toggle('progress__count--low', state.status === 'playing' && state.timeLeft <= 10);
           els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
           els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
         }

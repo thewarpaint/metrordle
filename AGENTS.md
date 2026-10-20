@@ -172,9 +172,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   tile's line color, revealing it only mid-pop) and cascading combos.
   Its status strip is the shared `.progress` bar (shared.css, same as
   Memoria): the track fills with the time remaining and a three-slot
-  `.progress__label--split` row reads the time left (m:ss, running red
-  in the last 10s via `.progress__count--low`) on the left, points on
-  the right, and the combo toast (`setToast()`) centered between them -
+  `.progress__label--split` row reads the time left (m:ss) on the left,
+  points on the right, and the combo toast (`setToast()`) centered
+  between them -
   the toast now auto-clears after `TOAST_MS` (5s) instead of lingering
   until the next message. This replaced the old bespoke `.status-bar`/
   `.timer-track`/`.toast`. Has its own leaderboard (see below), but like
@@ -758,7 +758,7 @@ are impossible without a debug override.
   centered combo toast / points). Only each page's `.progress` wrapper
   padding/placement, its 1s-linear `#progress-fill` transition override (a
   smooth countdown, Memoria + Metro Crush) and Metro Crush's own centered
-  `.toast`/low-time `.progress__count--low` deltas stay page-local. Game-specific CSS
+  `.toast` deltas stay page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

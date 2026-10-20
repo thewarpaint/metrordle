@@ -92,40 +92,15 @@
         padding: 0 1.1rem 1rem;
       }
 
-      .status-bar {
-        align-items: center;
-        background: var(--paper-well);
-        border-top: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem 1.1rem;
-      }
+      /* Shared .progress bar (shared.css) as the round's status strip. */
+      .progress { padding: 0.2rem 1.1rem 0.5rem; }
 
-      .status-bar[hidden] { display: none; }
+      .progress[hidden],
+      .progress__track[hidden] { display: none; }
 
-      .status-bar__text {
-        font-size: 0.82rem;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .status-bar__text--low { color: var(--danger); font-weight: 700; }
-
-      .timer-track {
-        background: var(--paper-well);
-        border-bottom: 1px solid var(--rule);
-        height: 0.35rem;
-        overflow: hidden;
-      }
-
-      .timer-track[hidden] { display: none; }
-
-      .timer-bar {
-        background: var(--line);
-        height: 100%;
-        transition: width 1s linear;
-        width: 100%;
-      }
+      /* 1s linear to glide with the once-a-second countdown, not the
+         shared fill's step-tuned 0.3s ease. */
+      #progress-fill { transition: width 1s linear; }
 
       .board-wrap {
         padding: 1rem 1.1rem;
@@ -245,13 +220,18 @@
         100% { transform: translate(-50%, -160%) scale(1); opacity: 0; }
       }
 
+      /* The combo toast is the label row's centered middle column (between
+         time left and points); it takes the slack and ellipsises if long. */
       .toast {
         color: var(--ink-soft);
-        font-size: 0.8rem;
+        flex: 1;
         font-weight: 700;
-        height: 1.2rem;
-        margin: 0 0 0.2rem;
+        margin: 0;
+        min-width: 0;
+        overflow: hidden;
         text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       /* Shared .start-overlay (shared.css) over this game's --paper-raised
@@ -403,15 +383,16 @@
         <div class="legend" id="legend"></div>
         <p class="sr-only" id="legend-sr"></p>
 
-        <div class="status-bar" id="status-bar">
-          <span class="status-bar__text" id="status"></span>
+        <div class="progress" id="progress">
+          <div class="progress__track" id="progress-track" hidden>
+            <div class="progress__fill" id="progress-fill"></div>
+          </div>
+          <div class="progress__label progress__label--split">
+            <span class="progress__count" id="mc-time">1:00</span>
+            <span class="toast" id="toast" aria-live="polite"></span>
+            <span id="mc-score">0 puntos</span>
+          </div>
         </div>
-
-        <div class="timer-track" id="timer-track" hidden>
-          <div class="timer-bar" id="timer-bar"></div>
-        </div>
-
-        <p class="toast" id="toast" aria-live="polite"></p>
 
         <div class="board-wrap" id="board-wrap">
           <div class="board" id="board" style="--cols: 7;"></div>
@@ -502,6 +483,7 @@
         // resolveStep() never cuts the slide short.
         var SWAP_MS = 180;
         var HINT_IDLE_MS = 5000;
+        var TOAST_MS = 5000; // combo toast auto-clears after this
         var HARD_MODE_MULTIPLIER = 2;
         var SHARE_URL = 'https://metrordle.com/metrocrush/';
         var LEADERBOARD_COLLECTION = 'metrocrush-leaderboard';
@@ -773,6 +755,7 @@
 
           if (state && state.timerId) clearInterval(state.timerId);
           if (state && state.idleTimer) clearTimeout(state.idleTimer);
+          if (state && state.toastTimerId) clearTimeout(state.toastTimerId);
 
           var saved = loadSavedResult(dateKey);
 
@@ -841,6 +824,7 @@
             matchCountsByLine: {},
             timeLeft: ROUND_SECONDS,
             timerId: null,
+            toastTimerId: null,
             idleTimer: null,
             hintCell: null,
             cascadeStep: 0,
@@ -931,7 +915,18 @@
           els.legendSr.textContent = 'Líneas de hoy: ' + names.join(', ');
         }
 
-        function setToast(text) { els.toast.textContent = text; }
+        // Shows a combo/status message in the status row's middle slot,
+        // auto-clearing after TOAST_MS (or immediately on an empty text).
+        function setToast(text) {
+          els.toast.textContent = text;
+          if (state.toastTimerId) { clearTimeout(state.toastTimerId); state.toastTimerId = null; }
+          if (text) {
+            state.toastTimerId = setTimeout(function () {
+              els.toast.textContent = '';
+              state.toastTimerId = null;
+            }, TOAST_MS);
+          }
+        }
 
         function tileElementAt(r, c) {
           return els.board.children[r * COLS + c];
@@ -1064,15 +1059,19 @@
         }
 
         function renderStatus() {
-          els.statusBar.hidden = state.status === 'done';
-          // Empty on the reveal screen - drop it out of flow (like the
-          // status bar) so its reserved line doesn't gap the result.
-          els.toast.hidden = state.status === 'done';
-          els.status.textContent = state.timeLeft + 's · ' + state.score +
-            (state.score === 1 ? ' punto' : ' puntos');
-          els.status.classList.toggle('status-bar__text--low', state.status === 'playing' && state.timeLeft <= 10);
-          els.timerTrack.hidden = state.status !== 'playing';
-          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          els.progress.hidden = state.status === 'done';
+          els.progressTrack.hidden = state.status !== 'playing';
+          els.mcTime.textContent = formatClock(state.timeLeft);
+          els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
+          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        // M:SS for the countdown.
+        function formatClock(totalSeconds) {
+          totalSeconds = Math.max(0, Math.floor(totalSeconds));
+          var minutes = Math.floor(totalSeconds / 60);
+          var seconds = totalSeconds % 60;
+          return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
 
         // A plain selection change (selecting a tile, deselecting it,
@@ -1676,10 +1675,11 @@
           els = {
             legend: $('legend'),
             legendSr: $('legend-sr'),
-            statusBar: $('status-bar'),
-            status: $('status'),
-            timerTrack: $('timer-track'),
-            timerBar: $('timer-bar'),
+            progress: $('progress'),
+            progressTrack: $('progress-track'),
+            progressFill: $('progress-fill'),
+            mcTime: $('mc-time'),
+            mcScore: $('mc-score'),
             toast: $('toast'),
             boardWrap: $('board-wrap'),
             board: $('board'),

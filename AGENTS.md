@@ -170,10 +170,17 @@ about `//`/`/* */` comments in the actual game/test code.)
   to form rows of 3+ of the same line before a 60-second timer runs out,
   Bejeweled-style, with a normal/hard mode toggle (hard hides each
   tile's line color, revealing it only mid-pop) and cascading combos.
-  Has its own leaderboard (see below), but like Metroguessr above,
-  **no committed Playwright tests yet** - only ad-hoc scratchpad
-  scripts so far, not `tests/`. Not linked from any other game's nav
-  yet.
+  Its status strip is the shared `.progress` bar (shared.css, same as
+  Memoria): the track fills with the time remaining and a three-slot
+  `.progress__label--split` row reads the time left (m:ss) on the left,
+  points on the right, and the combo toast (`setToast()`) centered
+  between them -
+  the toast now auto-clears after `TOAST_MS` (5s) instead of lingering
+  until the next message. This replaced the old bespoke `.status-bar`/
+  `.timer-track`/`.toast`. Has its own leaderboard (see below), but like
+  Metroguessr above, **no committed Playwright tests yet** - only ad-hoc
+  scratchpad scripts so far, not `tests/`. Not linked from any other
+  game's nav yet.
 - **`/clasificador/`** - Metrordle: Clasificador: a vertical queue of
   Metro stations (icon + name, same pictogram-on-a-badge convention as
   the other games) stacks above a row of 6 "bucket" badges, one per
@@ -746,10 +753,12 @@ are impossible without a debug override.
   `__track`/`__fill` (a rounded `--paper-well` track with an `--ok` fill,
   over a small label) also live here now, cataloged in `/design/`'s own
   "Progreso" board - Sopa de metros uses it for "N / M palabras", Memoria
-  for a split "time left / pairs matched" row (`.progress__label--split`,
-  flex space-between); only the `.progress` wrapper's own padding/placement
-  (and Memoria's own 1s-linear `#progress-fill` transition override, for a
-  smooth countdown) stays page-local. Game-specific CSS
+  and Metro Crush for a `.progress__label--split` row (flex space-between):
+  Memoria's two slots (time left / pairs), Metro Crush's three (time left /
+  centered combo toast / points). Only each page's `.progress` wrapper
+  padding/placement, its 1s-linear `#progress-fill` transition override (a
+  smooth countdown, Memoria + Metro Crush) and Metro Crush's own centered
+  `.toast` deltas stay page-local. Game-specific CSS
   (including a game's own leaderboard sizing deltas, if any) lives in
   that page's own `<style>` block - **put any styling shared by 2+
   pages in `shared.css`, not copy-pasted per page** (this has already

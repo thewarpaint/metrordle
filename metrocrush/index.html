@@ -380,8 +380,8 @@
         <p class="sr-only" id="legend-sr"></p>
 
         <div class="progress" id="progress">
-          <div class="progress__track" id="progress-track" hidden>
-            <div class="progress__fill progress__fill--countdown" id="progress-fill"></div>
+          <div class="progress__track" id="progress-track">
+            <div class="progress__fill progress__fill--countdown" id="progress-fill" style="width: 100%"></div>
           </div>
           <div class="progress__label progress__label--split">
             <span class="progress__count" id="mc-time">1:00</span>
@@ -1056,7 +1056,10 @@
 
         function renderStatus() {
           els.progress.hidden = state.status === 'done';
-          els.progressTrack.hidden = state.status !== 'playing';
+          // Show the track from the ready state on, behind the start
+          // overlay, so the board doesn't jump down when the round begins;
+          // only the done reveal hides the whole strip.
+          els.progressTrack.hidden = state.status === 'done';
           els.mcTime.textContent = formatClock(state.timeLeft);
           els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
           els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';

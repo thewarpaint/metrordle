@@ -189,7 +189,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   between them -
   the toast now auto-clears after `TOAST_MS` (5s) instead of lingering
   until the next message. This replaced the old bespoke `.status-bar`/
-  `.timer-track`/`.toast`. Has its own leaderboard (see below), but like
+  `.timer-track`/`.toast`. The strip (track included, filled to 100%)
+  renders from the `ready` state on, behind the start overlay, so the
+  board doesn't jump down when play begins - `renderStatus()` hides it
+  only on the `done` reveal, same fix as Clasificador's own. Has its own leaderboard (see below), but like
   Metroguessr above, **no committed Playwright tests yet** - only ad-hoc
   scratchpad scripts so far, not `tests/`. Not linked from any other
   game's nav yet.

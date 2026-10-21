@@ -650,10 +650,8 @@ input[type="text"]:disabled {
 .attempt-chip--mid { background: var(--warn); color: var(--warn-ink); }
 .attempt-chip--good { background: var(--ok); color: var(--ok-ink); }
 
-/* In-round "keep playing, nothing is saved" banner, shown alongside the
-   progress label (its track hidden - no countdown) once a player chooses
-   to continue past a timed game's reveal. Memoria and Metro Crush both use
-   it (see each page's own continuePractice()). */
+/* "Nothing's saved, keep playing" banner past a timed game's reveal (its
+   track hidden - no countdown). Memoria + Metro Crush continuePractice(). */
 .practice-banner {
   align-items: center;
   background: var(--paper-well);

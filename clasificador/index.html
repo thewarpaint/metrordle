@@ -316,20 +316,6 @@
         font-weight: 700;
       }
 
-      /* min-width keeps a short score from shifting the 🧠 badge left. */
-      .leaderboard__score {
-        align-items: center;
-        display: flex;
-        gap: 0.35rem;
-      }
-
-      .leaderboard__score-number {
-        flex: none;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-        min-width: 2.7rem;
-        text-align: right;
-      }
     </style>
   </head>
 
@@ -1147,7 +1133,7 @@
                 if (entry.hardMode) badge.textContent = '🧠';
 
                 var number = document.createElement('span');
-                number.className = 'leaderboard__score-number';
+                number.className = 'leaderboard__score-number leaderboard__score-number--wide';
                 number.textContent = entry.score;
 
                 score.appendChild(badge);

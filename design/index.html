@@ -155,6 +155,7 @@
             <a href="#board-avisos">Avisos</a>
             <a href="#board-progreso">Progreso</a>
             <a href="#board-formularios">Formularios</a>
+            <a href="#board-marcadores">Marcadores</a>
           </nav>
         </div>
       </div>
@@ -194,6 +195,12 @@
           <h2 class="design-board__title"><a href="#board-formularios">Formularios</a></h2>
           <p class="design-board__dek">Botones y campos - sobre todo las distintas formas de elegir "esto o aquello" repartidas por el sitio.</p>
           <div id="forms-gallery"></div>
+        </div>
+
+        <div class="sign design-board" id="board-marcadores">
+          <h2 class="design-board__title"><a href="#board-marcadores">Marcadores</a></h2>
+          <p class="design-board__dek">La tabla de mejores puntajes al terminar - fila, puntaje (número solo o número + distintivo), racha, récord.</p>
+          <div id="leaderboards-gallery"></div>
         </div>
       </div>
     </div>
@@ -989,6 +996,99 @@
           sync();
         }
 
+        // The leaderboard component, shared across every game's reveal and
+        // /admin/. All real shared.css classes (✅ consolidado) - the two
+        // score shapes (plain number, or a flex badge+number cell with its
+        // --narrow/--wide number variants), plus the streak badge, record
+        // and status lines. Sample aliases are hardcoded, rendered via
+        // .textContent like the real leaderboards (AGENTS.md rendering-safety).
+        function renderLeaderboardsGallery() {
+          var gallery = document.getElementById('leaderboards-gallery');
+
+          function list(rows) {
+            var ol = document.createElement('ol');
+            ol.className = 'leaderboard__list';
+            rows.forEach(function (r) { ol.appendChild(r); });
+            return ol;
+          }
+
+          function row(opts) {
+            var li = document.createElement('li');
+            li.className = 'leaderboard__row' + (opts.you ? ' leaderboard__row--you' : '');
+            var rank = document.createElement('span');
+            rank.className = 'leaderboard__rank';
+            rank.textContent = '#' + opts.rank;
+            var name = document.createElement('span');
+            name.className = 'leaderboard__alias-name';
+            name.textContent = opts.alias;
+            li.appendChild(rank);
+            li.appendChild(name);
+            li.appendChild(opts.score);
+            li.appendChild(MetroShared.buildStreakBadge(opts.streak || 0));
+            return li;
+          }
+
+          function plainScore(text) {
+            var s = document.createElement('span');
+            s.className = 'leaderboard__score--plain';
+            s.textContent = text;
+            return s;
+          }
+
+          function badgeScore(numberText, variant, badgeText) {
+            var s = document.createElement('span');
+            s.className = 'leaderboard__score';
+            var badge = document.createElement('span');
+            badge.className = 'leaderboard__score-badge';
+            badge.textContent = badgeText || '';
+            var num = document.createElement('span');
+            num.className = 'leaderboard__score-number leaderboard__score-number--' + variant;
+            num.textContent = numberText;
+            s.appendChild(badge);
+            s.appendChild(num);
+            return s;
+          }
+
+          // 1: the list shell with a plain score and the "you" highlight.
+          var board = document.createElement('div');
+          board.className = 'leaderboard';
+          var title = document.createElement('h3');
+          title.className = 'leaderboard__title';
+          title.textContent = 'Mejores 5 puntajes hoy';
+          board.appendChild(title);
+          board.appendChild(list([
+            row({ rank: 1, alias: 'metrohead', score: plainScore('12-3'), streak: 4 }),
+            row({ rank: 2, alias: 'tú', score: plainScore('14-2'), streak: 1, you: true }),
+            row({ rank: 3, alias: 'pantitlan99', score: plainScore('15-5'), streak: 0 }),
+          ]));
+          gallery.appendChild(buildExample(board, '<code>.leaderboard</code>/<code>.leaderboard__list</code>/<code>.leaderboard__row</code> · ✅ consolidado - la tabla con su título, rango, alias (siempre <code>.textContent</code>), la fila propia resaltada (<code>--you</code>) y la racha <code>🔥 × N</code> (<code>.leaderboard__streak</code>, solo con N&gt;1). <code>.leaderboard__score--plain</code> es el puntaje a secas de Laberinto y Memoria.'));
+
+          // 2: narrow badge+number cell (single-digit attempts count).
+          gallery.appendChild(buildExample(list([
+            row({ rank: 1, alias: 'speedrun', score: badgeScore('2', 'narrow', '🧠'), streak: 7 }),
+            row({ rank: 2, alias: 'casual', score: badgeScore('4', 'narrow', ''), streak: 0 }),
+          ]), '<code>.leaderboard__score</code> + <code>.leaderboard__score-number--narrow</code> · ✅ consolidado - celda distintivo+número de Metrordle y Metroguessr: el <code>.leaderboard__score-badge</code> 🧠 (modo difícil, ancho fijo aunque esté vacío) junto a un número de un dígito de ancho fijo, para que todo quede en columna.'));
+
+          // 3: wide badge+number cell (multi-digit score).
+          gallery.appendChild(buildExample(list([
+            row({ rank: 1, alias: 'comborey', score: badgeScore('4820', 'wide', '🧠'), streak: 5 }),
+            row({ rank: 2, alias: 'novato', score: badgeScore('310', 'wide', ''), streak: 0 }),
+          ]), '<code>.leaderboard__score-number--wide</code> · ✅ consolidado - misma celda pero con <code>min-width</code> para los puntajes de varios dígitos de Metro Crush y Clasificador, así el distintivo no se corre con un número más largo.'));
+
+          // 4: the record and status lines.
+          var meta = document.createElement('div');
+          meta.className = 'leaderboard';
+          var record = document.createElement('p');
+          record.className = 'leaderboard__record';
+          record.textContent = '🏆 Récord: 6120 por comborey · #40 · 2026-10-20';
+          var status = document.createElement('p');
+          status.className = 'leaderboard__status';
+          status.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+          meta.appendChild(record);
+          meta.appendChild(status);
+          gallery.appendChild(buildExample(meta, '<code>.leaderboard__record</code> / <code>.leaderboard__status</code> · ✅ consolidado - el récord histórico (Memoria/Metro Crush/Clasificador y <code>/admin/</code>) y el aviso de "sin puntajes todavía / Firebase no disponible".'));
+        }
+
         setupThemeToggle();
         renderLinesGallery();
         renderStationsGallery();
@@ -996,6 +1096,7 @@
         renderNoticesGallery();
         renderProgressGallery();
         renderFormsGallery();
+        renderLeaderboardsGallery();
       })();
     </script>
 

@@ -466,19 +466,6 @@
       .leaderboard__row { font-size: 0.82rem; padding: 0.35rem 0.55rem; }
       .leaderboard__status { font-size: 0.8rem; margin: 0 0 0.5rem; }
 
-      /* Badge-next-to-the-number hard-mode display, same trick as
-         Metrordle's own leaderboard (.leaderboard__score-badge itself
-         is shared, see shared.css). gap keeps a breathing space between
-         the two now that the badge itself is right-aligned (see
-         .leaderboard__score-badge below) - without it, a right-aligned
-         badge would butt straight up against the number with no
-         visible separation. */
-      .leaderboard__score {
-        align-items: center;
-        display: flex;
-        gap: 0.4rem;
-      }
-
       /* Widened past shared.css's own 1.1rem, and nowrap added - unlike
          every other game's leaderboard, this badge can hold up to three
          emoji at once (up to two 🪄, one per hint used, plus 🧠 - see
@@ -492,19 +479,6 @@
         width: 3.4rem;
         white-space: nowrap;
         text-align: right;
-      }
-
-      /* Fixed at a single digit's width (matching Metrordle's own
-         leaderboard) now that the "intento(s)" suffix is gone - every
-         row's number lands in the same spot regardless of its own or
-         its neighbors' badge contents, giving the whole list a
-         table-like column alignment. */
-      .leaderboard__score-number {
-        flex: none;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-        text-align: right;
-        width: 1rem;
       }
 
       .history-scroll { flex: none; max-height: 4.6rem; overflow-y: auto; }
@@ -1822,7 +1796,7 @@
                 badge.textContent = badgeText;
 
                 var number = document.createElement('span');
-                number.className = 'leaderboard__score-number';
+                number.className = 'leaderboard__score-number leaderboard__score-number--narrow';
                 // Bare digit, no "intento(s)" suffix - the rank/badge/
                 // number layout already makes it obvious what this
                 // number counts, same as Metrordle's own leaderboard. A

@@ -16,7 +16,7 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('renders the Líneas, Estaciones, Listas de estaciones, Avisos, and Formularios galleries with one example row per pattern, no page errors', async () => {
+  test('renders the Líneas, Estaciones, Listas de estaciones, Avisos, Formularios, and Marcadores galleries with one example row per pattern, no page errors', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 1200 } });
     const page = await context.newPage();
     const errors = [];
@@ -183,6 +183,28 @@ async function main() {
       // by the .design-map-maximize-btn stand-in.
       const maximizeBtn = await page.locator('#forms-gallery .design-example').nth(10).locator('.design-map-maximize-btn').count();
       assert.strictEqual(maximizeBtn, 1, 'expected the map maximize button');
+
+      // Marcadores: the shared leaderboard component (✅ consolidado) -
+      // the list shell + plain score + --you highlight, then the narrow
+      // and wide badge+number score cells, then the record/status lines.
+      const leaderboardExamples = await page.locator('#leaderboards-gallery .design-example').count();
+      assert.strictEqual(leaderboardExamples, 4, 'expected 4 leaderboard examples (list+plain, narrow score, wide score, record+status)');
+
+      const youRows = await page.locator('#leaderboards-gallery .design-example').nth(0).locator('.leaderboard__row--you').count();
+      assert.strictEqual(youRows, 1, 'expected exactly one --you highlighted row');
+      const plainScores = await page.locator('#leaderboards-gallery .design-example').nth(0).locator('.leaderboard__score--plain').count();
+      assert.strictEqual(plainScores, 3, 'expected three plain score cells in the list shell');
+
+      const narrowScores = await page.locator('#leaderboards-gallery .design-example').nth(1).locator('.leaderboard__score-number--narrow').count();
+      assert.strictEqual(narrowScores, 2, 'expected two narrow (single-digit) score numbers');
+
+      const wideScores = await page.locator('#leaderboards-gallery .design-example').nth(2).locator('.leaderboard__score-number--wide').count();
+      assert.strictEqual(wideScores, 2, 'expected two wide (multi-digit) score numbers');
+
+      const recordLine = await page.locator('#leaderboards-gallery .design-example').nth(3).locator('.leaderboard__record').count();
+      assert.strictEqual(recordLine, 1, 'expected the all-time high score record line');
+      const statusLine = await page.locator('#leaderboards-gallery .design-example').nth(3).locator('.leaderboard__status').count();
+      assert.strictEqual(statusLine, 1, 'expected the leaderboard status line');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
     } finally {

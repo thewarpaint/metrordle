@@ -851,9 +851,38 @@ input[type="text"]:disabled {
   white-space: nowrap;
 }
 
+/* The score column. Two shapes: a plain number (--plain, for Laberinto's
+   and Memoria's bare score), or a flex badge+number cell (the base, for the
+   four games whose score sits next to a hard-mode/hint badge - Metrordle,
+   Metroguessr, Metro Crush, Clasificador, and /admin/'s matching columns).
+   `.leaderboard__score-number` is the number inside that badge cell; its
+   width modifiers keep the badge aligned down the list: --narrow for an
+   always-single-digit attempts count (Metrordle, Metroguessr), --wide for a
+   multi-digit score (Metro Crush's up-to-20000, Clasificador's up-to-500). */
 .leaderboard__score {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.leaderboard__score--plain {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+}
+
+.leaderboard__score-number {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+
+.leaderboard__score-number--narrow {
+  width: 1rem;
+}
+
+.leaderboard__score-number--wide {
+  min-width: 2.7rem;
 }
 
 /* The "🔥 × N" streak badge (see MetroShared.buildStreakBadge() in

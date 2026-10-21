@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Same defense-in-depth CSP as every other page (see index.html's own
+      comment). This page loads no Firebase, but keeping the shared policy
+      avoids a per-page exception to maintain.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="Estaciones · Metrordle">
+    <meta name="description" content="Todas las estaciones del Metro de la Ciudad de México con su pictograma.">
+    <meta name="robots" content="noindex">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Estaciones">
+
+    <title>Estaciones · Metrordle</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!--
+      Applies a saved theme override (see /configurar/) before first paint,
+      so a light/dark choice doesn't flash the OS default for a frame -
+      shared.js (end of <body>) runs too late. Self-contained on purpose,
+      same snippet as every other page's <head>.
+    -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .stations-head {
+        margin-bottom: 1rem;
+      }
+
+      .stations-meta {
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        margin: 0.3rem 0 0;
+      }
+
+      .station-grid {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fill, minmax(5.4rem, 1fr));
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .station-tile {
+        align-items: center;
+        background: var(--paper-raised);
+        border: 1px solid var(--rule);
+        border-radius: 0.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.5rem 0.3rem;
+        text-align: center;
+      }
+
+      /* A station with no pictogram yet - flagged so missing art is easy
+         to spot (currently none, but the dataset still grows). */
+      .station-tile--missing {
+        border-color: var(--danger);
+      }
+
+      .station-tile__icon {
+        color: var(--ink-soft);
+        height: 1.6rem;
+        width: 1.6rem;
+      }
+
+      .station-tile__icon svg {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .station-tile__name {
+        font-size: 0.64rem;
+        line-height: 1.15;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="1" y="6" width="22" height="12" rx="3" stroke="var(--ink)" stroke-width="2"/>
+          <circle cx="7" cy="20" r="2" fill="var(--ink)"/>
+          <circle cx="17" cy="20" r="2" fill="var(--ink)"/>
+          <line x1="1" y1="11" x2="23" y2="11" stroke="var(--ink)" stroke-width="1.5"/>
+        </svg>
+        <span class="brand__text">Metrordle · Estaciones</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head stations-head">
+          <h1>Estaciones del Metro</h1>
+          <p class="dek">Cada estación del Metro de la Ciudad de México con su pictograma, en orden alfabético.</p>
+          <p class="stations-meta" id="stations-meta"></p>
+        </div>
+
+        <ul class="station-grid" id="station-grid"></ul>
+      </div>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        var grid = document.getElementById('station-grid');
+        var meta = document.getElementById('stations-meta');
+
+        var seen = {};
+        var names = [];
+        MetroShared.LINES.forEach(function (line) {
+          line.stations.forEach(function (name) {
+            if (!seen[name]) {
+              seen[name] = true;
+              names.push(name);
+            }
+          });
+        });
+        names.sort(function (a, b) { return a.localeCompare(b, 'es'); });
+
+        var missingCount = 0;
+
+        names.forEach(function (name) {
+          var slug = MetroShared.STATION_ICON_SLUGS[name];
+          if (!slug) missingCount++;
+
+          var li = document.createElement('li');
+          li.className = 'station-tile' + (slug ? '' : ' station-tile--missing');
+
+          var iconWrap = document.createElement('span');
+          iconWrap.className = 'station-tile__icon';
+          if (slug) {
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('aria-hidden', 'true');
+            var use = document.createElementNS(svgNS, 'use');
+            // Absolute path so the sprite resolves from /stations/, same as
+            // every subdir page references it.
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+            use.setAttribute('href', '/station-icons.svg#' + slug);
+            svg.appendChild(use);
+            iconWrap.appendChild(svg);
+          } else {
+            iconWrap.setAttribute('aria-hidden', 'true');
+            iconWrap.textContent = '—';
+          }
+
+          var nameEl = document.createElement('span');
+          nameEl.className = 'station-tile__name';
+          nameEl.textContent = name;
+
+          li.appendChild(iconWrap);
+          li.appendChild(nameEl);
+          grid.appendChild(li);
+        });
+
+        meta.textContent = names.length + ' estaciones · ' + missingCount + ' sin ícono';
+      })();
+    </script>
+  </body>
+</html>

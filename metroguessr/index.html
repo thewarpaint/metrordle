@@ -97,6 +97,10 @@
         background: var(--paper-well);
       }
 
+      /* The pre-round overlay covers the map (its positioned parent),
+         matching the map's --paper-well so it reads as the covered map. */
+      .map-stage .start-overlay { background: var(--paper-well); }
+
       /* Leaflet's own default CSS paints its container a fixed #ddd
          regardless of theme - this overrides it (an id selector already
          beats leaflet.css's .leaflet-container class) so the gap while
@@ -413,15 +417,6 @@
       .suggestion:not(:last-child) { border-bottom: 1px solid var(--rule); }
       .suggestion:hover, .suggestion--active { background: var(--paper-well); }
 
-      .status-line {
-        flex: none;
-        text-align: center;
-        font-size: 0.82rem;
-        color: var(--ink-soft);
-        min-height: 1.1rem;
-        margin: 0;
-      }
-
       /* The hint button is the secondary small variant (.btn-secondary
          btn-secondary--sm). This overrides .btn-secondary's own default
          1.1rem top margin with the tighter standalone spacing it needs
@@ -529,26 +524,22 @@
     </style>
   </head>
   <body>
-    <div class="mode-modal" id="mode-modal" hidden>
-      <div class="mode-modal__backdrop"></div>
-      <div class="mode-modal__card" role="dialog" aria-modal="true" aria-labelledby="mode-modal-title">
-        <h2 id="mode-modal-title">Elige tu modo</h2>
-        <p class="mode-modal__dek">¿Cómo quieres jugar el Metroguessr de hoy?</p>
-        <div class="mode-modal__options">
-          <button type="button" class="mode-option" id="mode-normal-btn">
-            <span class="mode-option__title">Normal</span>
-            <span class="mode-option__desc">Puedes mover y hacer zoom en el mapa</span>
-          </button>
-          <button type="button" class="mode-option" id="mode-hard-btn">
-            <span class="mode-option__title">Difícil</span>
-            <span class="mode-option__desc">El mapa está bloqueado mientras juegas</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div class="map-stage">
       <div id="leaflet-map"></div>
+
+      <div class="start-overlay" id="start-overlay" hidden>
+        <div class="start-overlay__panel">
+          <p class="start-overlay__text">
+            Adivina la estación marcada en el mapa en 5 intentos; cada intento
+            te dice qué tan lejos y en qué dirección quedó.
+            <strong>Modo difícil:</strong> el mapa se bloquea mientras juegas.
+          </p>
+          <div class="start-overlay__modes">
+            <button type="button" class="btn-primary" id="mode-normal-btn">Jugar modo normal</button>
+            <button type="button" class="btn-secondary" id="mode-hard-btn">Jugar modo difícil</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <button type="button" class="map-maximize-btn" id="map-maximize-btn" hidden aria-label="Ampliar mapa" title="Ampliar mapa">⛶</button>
@@ -568,7 +559,7 @@
       <div class="pips" id="pips"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="panel" hidden>
       <div class="panel__inner">
         <div class="guess-form" id="guess-form">
           <div class="search-box">
@@ -577,8 +568,6 @@
           </div>
           <button type="button" class="btn-primary btn-primary--sm" id="guess-btn" disabled>Adivinar</button>
         </div>
-
-        <p class="status-line" id="status-line"></p>
 
         <button type="button" class="btn-secondary btn-secondary--sm hint-btn" id="hint-btn" hidden></button>
 
@@ -1050,7 +1039,7 @@
         var state = null;
         var pendingGameSetup = null;
 
-        // Remembered across mode-modal choices this session (and used to
+        // Remembered across mode choices this session (and used to
         // pick a mode without asking again under ?debug=true - see
         // startGame() below) - defaults to 'hard' since that's the
         // locked-map behavior that existed before this split, not
@@ -1072,22 +1061,44 @@
             finishStartingGame(saved.mode);
           } else if (MetroShared.isDebugMode()) {
             // The date-nav buttons call startGame() on every click; showing
-            // the modal for each fake "fresh day" would make date-browsing
+            // the overlay for each fake "fresh day" would make date-browsing
             // unusable, so debug mode skips it and reuses whatever mode was
-            // last picked (via the modal or the debug mode-toggle buttons).
+            // last picked (via the overlay or the debug mode-toggle buttons).
             finishStartingGame(lastPickedMode);
           } else {
-            $('mode-modal').hidden = false;
+            // Cover the map with the start overlay until a mode is picked;
+            // the panel (guess form) stays hidden behind it until then.
+            // Show the five (empty) attempt pips up top already, so the
+            // "5 intentos" the overlay promises is there to see.
+            renderEmptyPips();
+            $('start-overlay').hidden = false;
+            $('panel').hidden = true;
+            $('map-maximize-btn').hidden = true;
+          }
+        }
+
+        // Five empty pips, before any round exists (renderPips() needs
+        // state; this doesn't).
+        function renderEmptyPips() {
+          var wrap = $('pips');
+          wrap.innerHTML = '';
+          for (var i = 0; i < MAX_ATTEMPTS; i++) {
+            var span = document.createElement('span');
+            span.className = 'pip';
+            wrap.appendChild(span);
           }
         }
 
         function resolveModeChoice(mode) {
           lastPickedMode = mode;
-          $('mode-modal').hidden = true;
           finishStartingGame(mode);
         }
 
         function finishStartingGame(mode) {
+          // The round is on now - drop the start overlay and show the panel.
+          $('start-overlay').hidden = true;
+          $('panel').hidden = false;
+
           // A maximized map from a previous round (or a previous day,
           // via debug date-nav) shouldn't carry over into this one.
           // The button itself (unlike the maximized state) is always
@@ -1177,17 +1188,9 @@
           $('reveal').hidden = true;
           $('history-scroll').hidden = false;
           $('guess-form').hidden = false;
-          $('status-line').hidden = false;
           $('guess-input').disabled = false;
           $('guess-input').value = '';
           $('guess-btn').disabled = true;
-
-          if (state.attempts === 0) {
-            $('status-line').textContent = 'Tienes ' + MAX_ATTEMPTS + ' intentos.';
-          } else {
-            var left = MAX_ATTEMPTS - state.attempts;
-            $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
-          }
         }
 
         function renderPips() {
@@ -1266,8 +1269,6 @@
             // immediately redone.
             endGame(correct);
           } else {
-            var left = MAX_ATTEMPTS - state.attempts;
-            $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
             // A wrong guess gets its own map pin right away now, not
             // just once the round ends - endGame() -> showReveal()
             // paints the final set itself (this guess included) on the
@@ -1322,9 +1323,6 @@
 
           if (state.attempts >= MAX_ATTEMPTS) {
             endGame(false);
-          } else {
-            var left = MAX_ATTEMPTS - state.attempts;
-            $('status-line').textContent = left + ' intento' + (left === 1 ? '' : 's') + ' restante' + (left === 1 ? '' : 's') + '.';
           }
           renderHintButton();
 
@@ -1435,12 +1433,6 @@
           $('guess-form').hidden = true;
           $('guess-input').disabled = true;
           $('guess-btn').disabled = true;
-          // Emptied AND hidden - an empty status line still holds its own
-          // min-height plus the panel's row gap, which read as a big dead
-          // margin above the reveal banner. Hidden, the banner sits right
-          // under the sheet's own top padding instead.
-          $('status-line').textContent = '';
-          $('status-line').hidden = true;
           // The same distance/direction hints are already pinned on the
           // map itself too by now (see paintGuessMarkers() below, each
           // one live since the guess that made it) - hiding the history
@@ -2011,7 +2003,7 @@
           $('date-prev').addEventListener('click', function () { shiftDebugDate(-1); });
           $('date-next').addEventListener('click', function () { shiftDebugDate(1); });
 
-          // The real modal never shows in debug mode (see startGame()),
+          // The start overlay never shows in debug mode (see startGame()),
           // so these are the only way to flip modes while browsing dates -
           // they re-render the *current* effective day, no date change.
           $('debug-mode-normal').addEventListener('click', function () {

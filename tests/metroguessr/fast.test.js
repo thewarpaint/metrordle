@@ -204,8 +204,8 @@ async function main() {
       await stubMap(page);
       // No ?debug=true - these pins are an ordinary part of the reveal
       // now, not a debugging aid gated behind date-nav testing. That
-      // also means the mode-modal actually shows (it's skipped under
-      // ?debug=true) - dismiss it before anything else can happen.
+      // also means the start overlay actually shows (it's skipped under
+      // ?debug=true) - pick a mode before anything else can happen.
       await page.goto(server.baseUrl + '/metroguessr/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
       await chooseMode(page, 'hard');
@@ -313,11 +313,11 @@ async function main() {
     }
   });
 
-  test('a fresh day shows the mode modal, and the chosen mode controls whether the map stays locked', async () => {
+  test('a fresh day shows the start overlay, and the chosen mode controls whether the map stays locked', async () => {
     const DATE = '2026-09-28';
 
-    // Normal mode: the modal shows on a fresh day (no ?debug=true, no
-    // saved state) and picking it leaves the map free to drag/zoom
+    // Normal mode: the start overlay shows on a fresh day (no ?debug=true,
+    // no saved state) and picking it leaves the map free to drag/zoom
     // immediately, not just once the round ends.
     const normalContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
     const normalPage = await normalContext.newPage();
@@ -325,11 +325,13 @@ async function main() {
       await stubMap(normalPage);
       await normalPage.goto(server.baseUrl + '/metroguessr/?date=' + DATE, { waitUntil: 'networkidle' });
       await normalPage.waitForTimeout(150);
-      assert.strictEqual(await normalPage.locator('#mode-modal').isVisible(), true, 'expected the mode modal on a fresh day');
+      assert.strictEqual(await normalPage.locator('#start-overlay').isVisible(), true, 'expected the start overlay on a fresh day');
+      assert.strictEqual(await normalPage.locator('#panel').isVisible(), false, 'expected the guess panel hidden until a mode is picked');
 
       await normalPage.click('#mode-normal-btn');
       await normalPage.waitForTimeout(100);
-      assert.strictEqual(await normalPage.locator('#mode-modal').isVisible(), false, 'expected the modal to close after picking a mode');
+      assert.strictEqual(await normalPage.locator('#start-overlay').isVisible(), false, 'expected the overlay to close after picking a mode');
+      assert.strictEqual(await normalPage.locator('#panel').isVisible(), true, 'expected the guess panel to show once a mode is picked');
 
       const draggingEnabled = await normalPage.evaluate(() => window.__mgHandlers.dragging._enabled);
       assert.strictEqual(draggingEnabled, true, 'expected the map to be draggable immediately in normal mode');
@@ -337,13 +339,13 @@ async function main() {
       // Mode (like the rest of the round) is only persisted once there's
       // an actual guess to save alongside it (see persistState()) - a
       // reload before that point has nothing saved yet either way, so
-      // the modal reappearing there just means "nothing happened yet,"
+      // the overlay reappearing there just means "nothing happened yet,"
       // not a lost choice. Make one guess first, matching what a real
       // reload-mid-round actually looks like.
       await guess(normalPage, FILLER_GUESSES[0]);
       await normalPage.reload({ waitUntil: 'networkidle' });
       await normalPage.waitForTimeout(150);
-      assert.strictEqual(await normalPage.locator('#mode-modal').isVisible(), false, 'expected no second mode prompt on a reload after a real guess');
+      assert.strictEqual(await normalPage.locator('#start-overlay').isVisible(), false, 'expected no second mode prompt on a reload after a real guess');
 
       const draggingStillEnabled = await normalPage.evaluate(() => window.__mgHandlers.dragging._enabled);
       assert.strictEqual(draggingStillEnabled, true, 'expected normal mode to survive the reload');

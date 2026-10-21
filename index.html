@@ -450,25 +450,6 @@
         line-height: 1.15;
       }
 
-      /* Metrordle-only leaderboard styling: everything else
-         (.leaderboard, .leaderboard__title, .leaderboard__row, etc.,
-         including .leaderboard__score-badge - identical across every
-         game with a hard-mode badge) now lives in shared.css. The
-         number's own width stays here since it's always one digit for
-         this page's attempts count, unlike e.g. Metro Crush's score. */
-      .leaderboard__score {
-        align-items: center;
-        display: flex;
-      }
-
-      .leaderboard__score-number {
-        flex: none;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-        text-align: right;
-        width: 1rem;
-      }
-
     </style>
   </head>
 
@@ -1856,7 +1837,7 @@
                 if (entry.hardMode) badge.textContent = '🧠';
 
                 var number = document.createElement('span');
-                number.className = 'leaderboard__score-number';
+                number.className = 'leaderboard__score-number leaderboard__score-number--narrow';
                 // A loss has no meaningful attempts count to show (it's
                 // always TOTAL_ATTEMPTS, same for every loss) - a bare "-"
                 // instead of the number is what actually communicates that.

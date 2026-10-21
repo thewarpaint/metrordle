@@ -564,6 +564,16 @@ about `//`/`/* */` comments in the actual game/test code.)
   (`.btn-secondary--chev-sm`, in `.platform-icon-col__nav`) to move it
   left/right in hard mode - the button is the shared class, only the
   flex wrappers are page-local.
+  A "Marcadores" board catalogs the shared `.leaderboard*` component (all
+  ✅ consolidado - the whole thing lives in shared.css now, see "Shared
+  infrastructure"): the list shell (`.leaderboard`/`__list`/`__row`, the
+  `--you` self-highlight, `__rank`, `__alias-name` rendered via
+  `.textContent`, and the `🔥 × N` `.leaderboard__streak`) with a
+  `.leaderboard__score--plain` number, then the two badge+number score
+  cells (`.leaderboard__score` + `.leaderboard__score-badge` + a
+  `.leaderboard__score-number--narrow`/`--wide` number), then the
+  `.leaderboard__record`/`.leaderboard__status` lines - built from real
+  shared classes with hardcoded sample aliases, not `.design-` stand-ins.
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references
@@ -724,8 +734,23 @@ are impossible without a debug override.
   (every text field site-wide - the alias rows and Metroguessr's search
   box - shares it: the buttons' own 0.5rem corner radius and a slightly
   bigger text, so fields and buttons read as one system; only width/
-  flex sizing stays per-context), `.leaderboard*` including the
-  `.leaderboard__score-badge` hard-mode 🧠 flag, `.line-badge` - a line
+  flex sizing stays per-context), the whole `.leaderboard*` component
+  (`.leaderboard`/`__title`/`__alias`/`__list`/`__row` (its border matches
+  the `--paper-well` fill, so an ordinary row shows none - it only reserves
+  the 1px the current player's `__row--you` `--focus` border needs, keeping
+  every row the same size)/`__row--you`/`__rank`/
+  `__alias-name`/`__streak`/`__record`/`__status`, the `.leaderboard__score-badge`
+  hard-mode 🧠/🪄 flag, and the score cell: `.leaderboard__score` is a flex
+  badge+number row, `--plain` the bare-number alternative (Laberinto,
+  Memoria), `.leaderboard__score-number` the number beside a badge with
+  `--narrow` (single-digit attempts: Metrordle, Metroguessr) and `--wide`
+  (multi-digit score: Metro Crush, Clasificador) width modifiers - every
+  game's reveal leaderboard and `/admin/` build from these, cataloged in
+  `/design/`'s own "Marcadores" board; the only page-local leaderboard CSS
+  left is genuine deltas - Metroguessr's compact-sheet font sizing + widened
+  3-emoji badge, Metro Crush's/Metroguessr's `text-align: left` (their
+  `.reveal` centers), and `/admin/`'s tighter margins/wider rank),
+  `.line-badge` - a line
   indicator, colored by line via `--badge-bg`/`--badge-ink` falling
   back to the site-wide `--line`/`--line-ink` tokens, used by
   Clasificador's own classification buttons and by Metrordle's own

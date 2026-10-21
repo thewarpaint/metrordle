@@ -824,7 +824,9 @@ input[type="text"]:disabled {
 .leaderboard__row {
   align-items: center;
   background: var(--paper-well);
-  border: 1px solid var(--rule);
+  /* Matches the fill (invisible) - just reserves the 1px the --you row's
+     --focus border needs, so rows stay the same size. */
+  border: 1px solid var(--paper-well);
   border-radius: 0.4rem;
   display: flex;
   font-size: 0.85rem;
@@ -851,9 +853,33 @@ input[type="text"]:disabled {
   white-space: nowrap;
 }
 
+/* The score column: a bare number (--plain) or a flex badge+number cell
+   (base). --narrow/--wide fix the number's width so the badge stays aligned
+   down the list (single-digit attempts vs. a multi-digit score). */
 .leaderboard__score {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.leaderboard__score--plain {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+}
+
+.leaderboard__score-number {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  text-align: right;
+}
+
+.leaderboard__score-number--narrow {
+  width: 1rem;
+}
+
+.leaderboard__score-number--wide {
+  min-width: 2.7rem;
 }
 
 /* The "🔥 × N" streak badge (see MetroShared.buildStreakBadge() in

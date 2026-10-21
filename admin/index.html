@@ -94,92 +94,11 @@
         display: none;
       }
 
-      .leaderboard__list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .leaderboard__row {
-        align-items: center;
-        background: var(--paper-well);
-        border: 1px solid var(--rule);
-        border-radius: 0.4rem;
-        display: flex;
-        font-size: 0.85rem;
-        gap: 0.5rem;
-        padding: 0.4rem 0.6rem;
-      }
-
-      .leaderboard__rank {
-        color: var(--ink-soft);
-        font-variant-numeric: tabular-nums;
-        width: 1.8rem;
-      }
-
-      .leaderboard__alias-name {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      /* Metrordle's, Metroguessr's, and Metro Crush's scores are all a
-         two-slot badge+number cell (see /index.html, /metroguessr/index.html,
-         and /metrocrush/index.html) - .leaderboard__score-badge itself
-         (the fixed-width column the 🧠 hard-mode flag lives in,
-         aligned down the list whether or not a given row has one) is
-         shared, see shared.css; the gap here keeps it from sitting
-         flush against the number. Metrordle's/Metroguessr's number
-         needs no further help: their attempts count is always exactly
-         one digit, so it's already the same width on every row. Metro
-         Crush's score isn't - a 5 vs. a 999999 render at very different
-         widths, and since .leaderboard__score itself has no fixed
-         width, a wider number pushes the WHOLE badge+number block (and
-         so the badge) further left, breaking the badge's own column
-         alignment despite its fixed width. leaderboard__score-number--wide
-         (Metro Crush and Clasificador, see their GAMES entries below)
-         fixes that with a min-width generous enough for Metro Crush's
-         own 20000 ceiling (5 digits), comfortably covering
-         Clasificador's smaller 500 one too, plus right-alignment, so
-         the badge lands at the same spot on every row unless a score
-         is large enough to need more room than that. Laberinto/Memoria
-         use the simpler plain variant below. */
-      .leaderboard__score {
-        align-items: center;
-        display: flex;
-        gap: 0.35rem;
-      }
-
-      .leaderboard__score-number {
-        flex: none;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-      }
-
-      .leaderboard__score-number--wide {
-        min-width: 2.7rem;
-        text-align: right;
-      }
-
-      .leaderboard__score--plain {
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-      }
-
-      .leaderboard__status {
-        color: var(--ink-soft);
-        font-size: 0.82rem;
-        margin: 0;
-      }
-
-      .leaderboard__status[hidden] {
-        display: none;
-      }
+      /* .leaderboard* is shared (see shared.css); these are /admin/'s
+         deltas - stacked boards drop the bottom margins, rank runs wider. */
+      .leaderboard__list { margin: 0; }
+      .leaderboard__rank { width: 1.8rem; }
+      .leaderboard__status { margin: 0; }
 
       .admin-loading {
         align-items: center;

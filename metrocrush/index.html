@@ -390,6 +390,11 @@
           </div>
         </div>
 
+        <div class="practice-banner" id="practice-banner" hidden>
+          <span class="practice-banner__text">Modo práctica: este puntaje no se guarda.</span>
+          <button type="button" class="btn-secondary" id="end-practice-btn">Volver al resultado</button>
+        </div>
+
         <div class="board-wrap" id="board-wrap">
           <div class="board" id="board" style="--cols: 7;"></div>
 
@@ -440,6 +445,7 @@
           </div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+          <button type="button" class="btn-secondary" id="practice-btn">Seguir jugando sin guardar</button>
 
           <div id="game-promo-slot"></div>
         </div>
@@ -1058,11 +1064,95 @@
           els.progress.hidden = state.status === 'done';
           // Show the track from the ready state on, behind the start
           // overlay, so the board doesn't jump down when the round begins;
-          // only the done reveal hides the whole strip.
-          els.progressTrack.hidden = state.status === 'done';
+          // the done reveal and practice (no countdown) hide it.
+          els.progressTrack.hidden = state.status === 'done' || state.status === 'practice';
+
+          if (state.status === 'practice') {
+            // Its own pair of stats, not the real round's - the points
+            // earned since practice began (score minus the snapshot taken
+            // then, not the real result's own total) and an elapsed clock
+            // counting up from continuePractice()'s timestamp. The toast
+            // slot still works; the practice banner says none of it saves.
+            var practicePoints = state.score - state.practiceSnapshot.score;
+            els.mcTime.textContent = formatClock((Date.now() - state.practiceStartedAt) / 1000);
+            els.mcScore.textContent = practicePoints + (practicePoints === 1 ? ' punto' : ' puntos');
+            return;
+          }
+
           els.mcTime.textContent = formatClock(state.timeLeft);
           els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
           els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        // Lets a player keep swapping tiles past the reveal screen, purely
+        // for fun - the round's real result was already persisted and
+        // submitted by endRound(), and nothing here ever touches that
+        // (persistResult()/submitScore() only run from endRound() or
+        // submitScore()'s own success callback, neither of which practice
+        // reaches). The real stats are snapshotted first so "Volver al
+        // resultado" restores exactly what was submitted, not whatever the
+        // score happens to be when practice stops. Same pattern as Memoria's
+        // own continuePractice()/endPractice().
+        function continuePractice() {
+          if (!state || state.status !== 'done') return;
+          state.practiceSnapshot = {
+            score: state.score,
+            groupsFormed: state.groupsFormed,
+            maxCombo: state.maxCombo,
+            maxRunSeen: state.maxRunSeen,
+            matchCountsByLine: Object.assign({}, state.matchCountsByLine),
+          };
+          state.practiceStartedAt = Date.now();
+
+          // Always a fresh, clean board to play on - the real end-of-round
+          // board isn't kept (saved reloads regenerate only the starting
+          // one) and could be mid-cascade or dead, so deal a new one seeded
+          // off the moment (a reload during practice won't repeat it; the
+          // same rand also feeds practice's own gravity refills).
+          state.rand = MetroShared.createSeededRandom('metrordle-metrocrush-practice-' + state.dateKey + '-' + Date.now());
+          state.board = generateBoard(state.rand);
+          state.selected = null;
+          state.flagged = {};
+          state.hintCell = null;
+          state.cascadeStep = 0;
+          state.busy = false;
+          state.status = 'practice';
+
+          els.reveal.hidden = true;
+          expandBoard();
+          render();
+
+          // Keeps the elapsed clock ticking while the player sits thinking;
+          // never advances timeLeft and never calls endRound() - there's no
+          // score to lose by running forever.
+          state.practiceTimerId = setInterval(renderStatus, 1000);
+        }
+
+        function endPractice() {
+          if (!state || state.status !== 'practice') return;
+          if (state.practiceTimerId) clearInterval(state.practiceTimerId);
+          state.practiceTimerId = null;
+
+          var snap = state.practiceSnapshot;
+          if (snap) {
+            state.score = snap.score;
+            state.groupsFormed = snap.groupsFormed;
+            state.maxCombo = snap.maxCombo;
+            state.maxRunSeen = snap.maxRunSeen;
+            state.matchCountsByLine = snap.matchCountsByLine;
+            state.practiceSnapshot = null;
+          }
+          state.practiceStartedAt = null;
+          state.selected = null;
+          state.flagged = {};
+          state.busy = false;
+          state.status = 'done';
+
+          setToast('');
+          renderRevealStats();
+          els.reveal.hidden = false;
+          render();
+          collapseBoard(true);
         }
 
         // M:SS for the countdown.
@@ -1106,8 +1196,10 @@
         function render() {
           renderStatus();
 
-          var playing = state.status === 'playing';
+          // Practice plays exactly like a live round for interactivity.
+          var interactive = state.status === 'playing' || state.status === 'practice';
           els.startOverlay.hidden = state.status !== 'ready';
+          els.practiceBanner.hidden = state.status !== 'practice';
           els.board.classList.toggle('board--done', state.status === 'done');
 
           els.board.innerHTML = '';
@@ -1136,7 +1228,7 @@
                 // then would let a player memorize the board before
                 // picking "difícil".
                 var neutralColor = state.status === 'ready' ||
-                  (state.mode === 'hard' && state.status === 'playing' && flag !== 'pop');
+                  (state.mode === 'hard' && interactive && flag !== 'pop');
 
                 if (neutralColor) {
                   btn.className += ' tile--neutral';
@@ -1162,7 +1254,7 @@
                   btn.className += ' tile--hint';
                 }
 
-                btn.disabled = !playing || state.busy;
+                btn.disabled = !interactive || state.busy;
                 (function (rr, cc) {
                   btn.addEventListener('click', function () { onTileClick(rr, cc); });
                 })(r, c);
@@ -1179,7 +1271,7 @@
         }
 
         function onTileClick(r, c) {
-          if (state.status !== 'playing' || state.busy) return;
+          if ((state.status !== 'playing' && state.status !== 'practice') || state.busy) return;
 
           resetIdleTimer();
 
@@ -1253,7 +1345,7 @@
         // after the reveal screen already froze an earlier score into
         // reveal-score, which is exactly why the two used to disagree.
         function resolveStep() {
-          if (state.status !== 'playing') return;
+          if (state.status !== 'playing' && state.status !== 'practice') return;
 
           var result = findMatches(state.board);
 
@@ -1275,7 +1367,7 @@
           var popupOrigin = matchCentroid(result.matched);
 
           setTimeout(function () {
-            if (state.status !== 'playing') return;
+            if (state.status !== 'playing' && state.status !== 'practice') return;
 
             state.cascadeStep++;
             state.groupsFormed++;
@@ -1323,7 +1415,7 @@
         function finishMove() {
           state.flagged = {};
 
-          if (state.status === 'playing' && !hasAnyValidMove(state.board)) {
+          if ((state.status === 'playing' || state.status === 'practice') && !hasAnyValidMove(state.board)) {
             state.board = generateBoard(state.rand);
             setToast('Sin movimientos posibles — tablero revuelto.');
           }
@@ -1680,6 +1772,9 @@
             mcTime: $('mc-time'),
             mcScore: $('mc-score'),
             toast: $('toast'),
+            practiceBanner: $('practice-banner'),
+            endPracticeBtn: $('end-practice-btn'),
+            practiceBtn: $('practice-btn'),
             boardWrap: $('board-wrap'),
             board: $('board'),
             startOverlay: $('start-overlay'),
@@ -1707,6 +1802,8 @@
           els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
           els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
           els.shareBtn.addEventListener('click', shareResult);
+          els.practiceBtn.addEventListener('click', continuePractice);
+          els.endPracticeBtn.addEventListener('click', endPractice);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;

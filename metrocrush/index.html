@@ -380,14 +380,19 @@
         <p class="sr-only" id="legend-sr"></p>
 
         <div class="progress" id="progress">
-          <div class="progress__track" id="progress-track" hidden>
-            <div class="progress__fill progress__fill--countdown" id="progress-fill"></div>
+          <div class="progress__track" id="progress-track">
+            <div class="progress__fill progress__fill--countdown" id="progress-fill" style="width: 100%"></div>
           </div>
           <div class="progress__label progress__label--split">
             <span class="progress__count" id="mc-time">1:00</span>
             <span class="toast" id="toast" aria-live="polite"></span>
             <span id="mc-score">0 puntos</span>
           </div>
+        </div>
+
+        <div class="practice-banner" id="practice-banner" hidden>
+          <span class="practice-banner__text">Modo práctica: este puntaje no se guarda.</span>
+          <button type="button" class="btn-secondary" id="end-practice-btn">Volver al resultado</button>
         </div>
 
         <div class="board-wrap" id="board-wrap">
@@ -440,6 +445,7 @@
           </div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+          <button type="button" class="btn-secondary" id="practice-btn">Seguir jugando sin guardar</button>
 
           <div id="game-promo-slot"></div>
         </div>
@@ -1056,10 +1062,85 @@
 
         function renderStatus() {
           els.progress.hidden = state.status === 'done';
-          els.progressTrack.hidden = state.status !== 'playing';
+          // Show the track from the ready state on, behind the start
+          // overlay, so the board doesn't jump down when the round begins;
+          // the done reveal and practice (no countdown) hide it.
+          els.progressTrack.hidden = state.status === 'done' || state.status === 'practice';
+
+          if (state.status === 'practice') {
+            // Count-up clock + points since practice began (score minus the
+            // snapshot), not the real round's frozen stats.
+            var practicePoints = state.score - state.practiceSnapshot.score;
+            els.mcTime.textContent = formatClock((Date.now() - state.practiceStartedAt) / 1000);
+            els.mcScore.textContent = practicePoints + (practicePoints === 1 ? ' punto' : ' puntos');
+            return;
+          }
+
           els.mcTime.textContent = formatClock(state.timeLeft);
           els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
           els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        // Keep swapping tiles past the reveal, no stakes - the real result
+        // was already submitted by endRound(), and practice never reaches
+        // persistResult()/submitScore(). Snapshot it first so endPractice()
+        // restores exactly what was submitted. Mirrors Memoria's own.
+        function continuePractice() {
+          if (!state || state.status !== 'done') return;
+          state.practiceSnapshot = {
+            score: state.score,
+            groupsFormed: state.groupsFormed,
+            maxCombo: state.maxCombo,
+            maxRunSeen: state.maxRunSeen,
+            matchCountsByLine: Object.assign({}, state.matchCountsByLine),
+          };
+          state.practiceStartedAt = Date.now();
+
+          // Fresh board - the real end board isn't kept and could be
+          // dead/mid-cascade; seeded off the moment (also feeds refills).
+          state.rand = MetroShared.createSeededRandom('metrordle-metrocrush-practice-' + state.dateKey + '-' + Date.now());
+          state.board = generateBoard(state.rand);
+          state.selected = null;
+          state.flagged = {};
+          state.hintCell = null;
+          state.cascadeStep = 0;
+          state.busy = false;
+          state.status = 'practice';
+
+          els.reveal.hidden = true;
+          expandBoard();
+          render();
+
+          // Keeps the elapsed clock ticking; never advances timeLeft or
+          // calls endRound() - nothing to lose by running forever.
+          state.practiceTimerId = setInterval(renderStatus, 1000);
+        }
+
+        function endPractice() {
+          if (!state || state.status !== 'practice') return;
+          if (state.practiceTimerId) clearInterval(state.practiceTimerId);
+          state.practiceTimerId = null;
+
+          var snap = state.practiceSnapshot;
+          if (snap) {
+            state.score = snap.score;
+            state.groupsFormed = snap.groupsFormed;
+            state.maxCombo = snap.maxCombo;
+            state.maxRunSeen = snap.maxRunSeen;
+            state.matchCountsByLine = snap.matchCountsByLine;
+            state.practiceSnapshot = null;
+          }
+          state.practiceStartedAt = null;
+          state.selected = null;
+          state.flagged = {};
+          state.busy = false;
+          state.status = 'done';
+
+          setToast('');
+          renderRevealStats();
+          els.reveal.hidden = false;
+          render();
+          collapseBoard(true);
         }
 
         // M:SS for the countdown.
@@ -1103,8 +1184,10 @@
         function render() {
           renderStatus();
 
-          var playing = state.status === 'playing';
+          // Practice plays exactly like a live round for interactivity.
+          var interactive = state.status === 'playing' || state.status === 'practice';
           els.startOverlay.hidden = state.status !== 'ready';
+          els.practiceBanner.hidden = state.status !== 'practice';
           els.board.classList.toggle('board--done', state.status === 'done');
 
           els.board.innerHTML = '';
@@ -1133,7 +1216,7 @@
                 // then would let a player memorize the board before
                 // picking "difícil".
                 var neutralColor = state.status === 'ready' ||
-                  (state.mode === 'hard' && state.status === 'playing' && flag !== 'pop');
+                  (state.mode === 'hard' && interactive && flag !== 'pop');
 
                 if (neutralColor) {
                   btn.className += ' tile--neutral';
@@ -1159,7 +1242,7 @@
                   btn.className += ' tile--hint';
                 }
 
-                btn.disabled = !playing || state.busy;
+                btn.disabled = !interactive || state.busy;
                 (function (rr, cc) {
                   btn.addEventListener('click', function () { onTileClick(rr, cc); });
                 })(r, c);
@@ -1176,7 +1259,7 @@
         }
 
         function onTileClick(r, c) {
-          if (state.status !== 'playing' || state.busy) return;
+          if ((state.status !== 'playing' && state.status !== 'practice') || state.busy) return;
 
           resetIdleTimer();
 
@@ -1250,7 +1333,7 @@
         // after the reveal screen already froze an earlier score into
         // reveal-score, which is exactly why the two used to disagree.
         function resolveStep() {
-          if (state.status !== 'playing') return;
+          if (state.status !== 'playing' && state.status !== 'practice') return;
 
           var result = findMatches(state.board);
 
@@ -1272,7 +1355,7 @@
           var popupOrigin = matchCentroid(result.matched);
 
           setTimeout(function () {
-            if (state.status !== 'playing') return;
+            if (state.status !== 'playing' && state.status !== 'practice') return;
 
             state.cascadeStep++;
             state.groupsFormed++;
@@ -1320,7 +1403,7 @@
         function finishMove() {
           state.flagged = {};
 
-          if (state.status === 'playing' && !hasAnyValidMove(state.board)) {
+          if ((state.status === 'playing' || state.status === 'practice') && !hasAnyValidMove(state.board)) {
             state.board = generateBoard(state.rand);
             setToast('Sin movimientos posibles — tablero revuelto.');
           }
@@ -1677,6 +1760,9 @@
             mcTime: $('mc-time'),
             mcScore: $('mc-score'),
             toast: $('toast'),
+            practiceBanner: $('practice-banner'),
+            endPracticeBtn: $('end-practice-btn'),
+            practiceBtn: $('practice-btn'),
             boardWrap: $('board-wrap'),
             board: $('board'),
             startOverlay: $('start-overlay'),
@@ -1704,6 +1790,8 @@
           els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
           els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
           els.shareBtn.addEventListener('click', shareResult);
+          els.practiceBtn.addEventListener('click', continuePractice);
+          els.endPracticeBtn.addEventListener('click', endPractice);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;

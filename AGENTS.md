@@ -108,7 +108,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   treat exactly like `'playing'` for interactivity, but with the real
   round's countdown-driven progress bar/`startTimer()`/`tick()` never
   running again (so `endRound()` can't re-fire and resubmit), replaced by
-  a `.practice-banner` (shown alongside the progress bar, not instead of it)
+  the shared `.practice-banner` (shared.css, Metro Crush is its other
+  consumer now - shown alongside the progress bar, not instead of it)
   explaining nothing here is saved, and a "Volver al resultado" button
   (`endPractice()`) back to the reveal screen. The progress bar itself stays
   up (its `.progress__track` hidden - no countdown to show - but its split
@@ -189,7 +190,28 @@ about `//`/`/* */` comments in the actual game/test code.)
   between them -
   the toast now auto-clears after `TOAST_MS` (5s) instead of lingering
   until the next message. This replaced the old bespoke `.status-bar`/
-  `.timer-track`/`.toast`. Has its own leaderboard (see below), but like
+  `.timer-track`/`.toast`. The strip (track included, filled to 100%)
+  renders from the `ready` state on, behind the start overlay, so the
+  board doesn't jump down when play begins - `renderStatus()` hides it
+  only on the `done` reveal, same fix as Clasificador's own. Once a round
+  ends, the reveal's own "Seguir jugando sin guardar" button
+  (`continuePractice()`) lets a player keep swapping tiles with no stakes -
+  a `state.status === 'practice'` mode that `onTileClick()`, `render()`, and
+  the whole cascade (`resolveStep()`/`finishMove()`) treat exactly like
+  `'playing'` for interactivity, but with the countdown never running again
+  (so `endRound()` can't re-fire/resubmit), replaced by the shared
+  `.practice-banner` (see shared.css) and a progress strip showing
+  practice's own count-up clock and points-since-starting (`state.score`
+  minus a snapshot taken the moment practice began, not the real total). The
+  real result was already persisted/submitted by `endRound()` the instant
+  the timer hit 0; `continuePractice()` snapshots that submitted
+  score/`groupsFormed`/`maxCombo`/`maxRunSeen`/`matchCountsByLine` and
+  `endPractice()` ("Volver al resultado") restores exactly it, so nothing
+  from practice ever reaches `localStorage` or the leaderboard - same
+  pattern as Memoria's own (see its bullet). Unlike Memoria, practice always
+  deals a fresh board (the real end-of-round board isn't kept - a saved
+  reload only regenerates the deterministic starting one) rather than
+  resuming the finished one. Has its own leaderboard (see below), but like
   Metroguessr above, **no committed Playwright tests yet** - only ad-hoc
   scratchpad scripts so far, not `tests/`. Not linked from any other
   game's nav yet.
@@ -802,6 +824,10 @@ are impossible without a debug override.
   board renders the real classes - Metrordle is their only consumer so far,
   but the band tokens (`--danger`/`--warn`/`--ok`) are site-wide and the
   design page shows them directly, so page-local was the wrong home.
+  `.practice-banner`/`.practice-banner__text` (the "keep playing, nothing's
+  saved" in-round banner shown past a timed game's reveal - Memoria's and
+  Metro Crush's own `continuePractice()`) also live here now, promoted from
+  Memoria's page-local copy once Metro Crush became its second consumer.
   `.progress__fill--countdown` is the one fill
   modifier - a
   1s-linear glide for a once-a-second countdown (Memoria, Metro Crush,

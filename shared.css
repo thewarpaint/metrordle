@@ -650,6 +650,28 @@ input[type="text"]:disabled {
 .attempt-chip--mid { background: var(--warn); color: var(--warn-ink); }
 .attempt-chip--good { background: var(--ok); color: var(--ok-ink); }
 
+/* "Nothing's saved, keep playing" banner past a timed game's reveal (its
+   track hidden - no countdown). Memoria + Metro Crush continuePractice(). */
+.practice-banner {
+  align-items: center;
+  background: var(--paper-well);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  justify-content: space-between;
+  padding: 0.5rem 1.1rem;
+}
+
+.practice-banner[hidden] {
+  display: none;
+}
+
+.practice-banner__text {
+  font-size: 0.82rem;
+}
+
 .credit {
   color: var(--ink-soft);
   font-size: 0.72rem;

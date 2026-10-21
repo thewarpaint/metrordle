@@ -10,7 +10,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="title" content="🔤 Sopa de metros · Metrordle">
-    <meta name="description" content="Encuentra 10 palabras del Metro escondidas en la cuadrícula de letras.">
+    <meta name="description" content="Encuentra 10 estaciones del Metro con nombre de origen náhuatl escondidas en la cuadrícula de letras.">
     <meta name="robots" content="noindex">
 
     <meta name="theme-color" content="#0057a8">
@@ -179,7 +179,7 @@
       <div class="sign">
         <div class="sign__head">
           <h1>Sopa de metros</h1>
-          <p class="dek">Descifra las 10 palabras del Metro con ayuda de las pistas. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar una palabra. Las palabras están ocultas en horizontal, vertical o diagonal, en cualquier sentido.</p>
+          <p class="dek">Encuentra 10 estaciones del Metro con nombre de origen náhuatl: cada pista da el significado del topónimo y la línea donde está. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar la palabra. Están ocultas en horizontal, vertical o diagonal, en cualquier sentido.</p>
           <div id="win-notice" hidden></div>
           <div class="progress">
             <div class="progress__track">
@@ -212,27 +212,21 @@
         // Metro-themed Spanish words (uppercase, accent-free so each maps
         // to one grid cell) each paired with a clue - the player sees only
         // the clue until the word is found. 10 pairs are drawn per board.
+        // Topónimos en náhuatl: cada pista da el significado del nombre
+        // y la(s) línea(s) donde está la estación (verificadas contra
+        // MetroShared.LINES). Son exactamente WORD_COUNT, así que el
+        // shuffle solo varía dónde caen, no cuáles salen.
         var WORD_POOL = [
-          { word: 'METRO', clue: 'El sistema de transporte que cruza la ciudad bajo tierra' },
-          { word: 'TREN', clue: 'Serie de carros enganchados que avanzan sobre las vías' },
-          { word: 'ANDEN', clue: 'Plataforma donde esperas para abordar' },
-          { word: 'LINEA', clue: 'Cada ruta, con su número o letra y su color' },
-          { word: 'VAGON', clue: 'Cada carro donde la gente viaja sentada o de pie' },
-          { word: 'BOLETO', clue: 'Papelito que antes comprabas para poder viajar' },
-          { word: 'ESTACION', clue: 'Punto del recorrido donde subes y bajas' },
-          { word: 'PASAJERO', clue: 'Cada persona que va a bordo' },
-          { word: 'TORNIQUETE', clue: 'Barrera giratoria que cruzas al pagar' },
-          { word: 'TRANSBORDO', clue: 'Pasar de una ruta a otra sin volver a la calle' },
-          { word: 'TARJETA', clue: 'Plástico recargable que acercas al lector' },
-          { word: 'SALIDA', clue: 'Por aquí abandonas el recorrido hacia la calle' },
-          { word: 'ENTRADA', clue: 'Por aquí accedes desde la calle' },
-          { word: 'RIELES', clue: 'Barras de acero paralelas por donde ruedan las ruedas' },
-          { word: 'PARADA', clue: 'Cada punto donde el servicio se detiene' },
-          { word: 'DESTINO', clue: 'El lugar al que quieres llegar' },
-          { word: 'CONVOY', clue: 'El conjunto de carros que forma una unidad en marcha' },
-          { word: 'TUNEL', clue: 'Conducto subterráneo por donde circula el servicio' },
-          { word: 'ESCALERA', clue: 'Peldaños, a veces eléctricos, para cambiar de nivel' },
-          { word: 'TAQUILLA', clue: 'Ventanilla donde antes se compraba el acceso' },
+          { word: 'ACULCO', clue: '"En el agua torcida"; estación de la Línea 8' },
+          { word: 'COYOACAN', clue: '"Lugar de coyotes"; estación de la Línea 3' },
+          { word: 'CULHUACAN', clue: '"Lugar de quienes tienen abuelos"; estación de la Línea 12' },
+          { word: 'MIXCOAC', clue: '"Lugar de la serpiente de nubes"; estación de las Líneas 7 y 12' },
+          { word: 'MIXIUHCA', clue: '"Lugar del parto"; estación de la Línea 9' },
+          { word: 'PANTITLAN', clue: '"Entre las banderas"; estación de las Líneas 1, 5, 9 y A' },
+          { word: 'POPOTLA', clue: '"Donde abundan los popotes"; estación de la Línea 2' },
+          { word: 'TACUBA', clue: 'Del náhuatl Tlacopan, "sobre las varas"; estación de las Líneas 2 y 7' },
+          { word: 'TLATELOLCO', clue: '"En el montículo de tierra"; estación de la Línea 3' },
+          { word: 'ZAPOTITLAN', clue: '"Donde abundan los zapotes"; estación de la Línea 12' },
         ];
         // Spanish-ish fill alphabet (no Ñ, no rare K/W).
         var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
@@ -465,7 +459,7 @@
           MetroShared.renderNoticeBanner(
             els.winNotice, 'notice--success',
             '¡Las encontraste todas!',
-            'Completaste las 10 palabras del Metro.'
+            'Completaste las 10 estaciones de nombre náhuatl.'
           );
           els.winNotice.hidden = false;
         }

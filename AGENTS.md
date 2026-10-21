@@ -735,7 +735,10 @@ are impossible without a debug override.
   box - shares it: the buttons' own 0.5rem corner radius and a slightly
   bigger text, so fields and buttons read as one system; only width/
   flex sizing stays per-context), the whole `.leaderboard*` component
-  (`.leaderboard`/`__title`/`__alias`/`__list`/`__row`/`__row--you`/`__rank`/
+  (`.leaderboard`/`__title`/`__alias`/`__list`/`__row` (its border matches
+  the `--paper-well` fill, so an ordinary row shows none - it only reserves
+  the 1px the current player's `__row--you` `--focus` border needs, keeping
+  every row the same size)/`__row--you`/`__rank`/
   `__alias-name`/`__streak`/`__record`/`__status`, the `.leaderboard__score-badge`
   hard-mode 🧠/🪄 flag, and the score cell: `.leaderboard__score` is a flex
   badge+number row, `--plain` the bare-number alternative (Laberinto,

@@ -824,7 +824,10 @@ input[type="text"]:disabled {
 .leaderboard__row {
   align-items: center;
   background: var(--paper-well);
-  border: 1px solid var(--rule);
+  /* Border matches the fill, so an ordinary row shows none - it's only
+     there to reserve the 1px the current player's own --focus border
+     needs, keeping every row the same size. */
+  border: 1px solid var(--paper-well);
   border-radius: 0.4rem;
   display: flex;
   font-size: 0.85rem;

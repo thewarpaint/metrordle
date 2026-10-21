@@ -44,14 +44,15 @@ async function guess(page, name) {
   await page.waitForTimeout(120);
 }
 
-// Dismisses the pre-game normal/hard mode-modal by picking `mode` - a
+// Dismisses the pre-game normal/hard start overlay by picking `mode` - a
 // no-op if it isn't showing (e.g. under ?debug=true, which always skips
 // it - see startGame() in metroguessr/index.html). Needed by any test
 // that loads the page WITHOUT ?debug=true on a fresh day, since the
-// modal otherwise blocks every other interaction.
+// overlay otherwise covers the map and the panel stays hidden until a
+// mode is picked.
 async function chooseMode(page, mode) {
-  const modalShowing = await page.$('#mode-modal:not([hidden])');
-  if (!modalShowing) return;
+  const overlayShowing = await page.$('#start-overlay:not([hidden])');
+  if (!overlayShowing) return;
   await page.click(mode === 'normal' ? '#mode-normal-btn' : '#mode-hard-btn');
 }
 

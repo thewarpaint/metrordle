@@ -133,8 +133,15 @@ about `//`/`/* */` comments in the actual game/test code.)
 - **`/metroguessr/`** - Metrordle: Metroguessr: guess the Metro station
   marked on a Leaflet map (CARTO tiles) in 5 attempts, hinted by
   distance + compass direction after each guess. Has a "normal"/"hard"
-  mode toggle (`state.mode`), chosen via a modal on a fresh day, same
-  pattern as Metrordle's own - hard mode locks the map (no pan/zoom)
+  mode toggle (`state.mode`), chosen on a fresh day via the shared inline
+  `.start-overlay` over the map (`finishStartingGame(mode)`), same pattern
+  as the other games - a `.mode-modal` used to do this (full-screen); the
+  overlay replaced it, holding a short instructions paragraph (it names the
+  5-guess limit) + the two mode buttons, with the five attempt `.pips`
+  already showing up top and the guess `.panel` hidden behind it until a
+  mode is picked. There's no in-play "N intentos restantes" readout anymore
+  (the old `.status-line` is gone) - the `.pips` carry that. Hard mode locks
+  the map (no pan/zoom)
   while playing, same as this game always worked before the split;
   normal mode leaves it free throughout. Either way the map unlocks and
   swaps in the target's real station-icon badge (Metro Crush's
@@ -513,14 +520,16 @@ about `//`/`/* */` comments in the actual game/test code.)
   `.btn-primary`/`.btn-secondary` (every game's own start/save/share
   button), `.leaderboard__alias` (the alias input+button row every
   leaderboard uses, now also `/configurar/`'s own Alias section), and
-  `.mode-modal`/`.mode-option` (Metroguessr's full-screen
-  pre-game normal/hard choice - Metrordle used to share it too but now
-  uses its own inline `.start-overlay` instead, see its bullet above;
-  shown here as just `.mode-modal__card`
+  `.mode-modal`/`.mode-option` (a full-screen pre-game normal/hard choice -
+  Metrordle and Metroguessr both used it once, but each moved to its own
+  inline `.start-overlay` instead, so no game renders `.mode-modal` anymore;
+  it stays shared/cataloged here as `.mode-modal__card`
   inline - `.mode-modal` itself is `position: fixed`, which would break
   out of the gallery's own layout the way every other example on this
-  page stays inline) are all real, already-shared classes - as is
-  `.start-overlay__modes` (Metro Crush's, Clasificador's, and Metrordle's
+  page stays inline, and `.mode-option` is still live for `/configurar/`'s
+  own theme picker) are all real, already-shared classes - as is
+  `.start-overlay__modes` (Metro Crush's, Clasificador's, Metrordle's, and
+  now Metroguessr's
   own two-button pre-round choice): the whole `.start-overlay` family was
   promoted into shared.css once Metrordle became its third consumer (see
   "Shared infrastructure" below), so `/design/` shows the real
@@ -704,10 +713,15 @@ are impossible without a debug override.
   the whole file), and cross-game primitives (`.wrap`, `.brand`,
   `.sign`, `.date-debug` date-nav (its chevrons are
   `.btn-secondary--chev`, below), `.debug-mode-toggle`,
-  `.mode-modal`/`.mode-option*` pre-game normal/hard choice (Metroguessr)
+  `.mode-modal`/`.mode-option*` (a full-screen pre-game choice no game
+  renders anymore - both its old users, Metrordle and Metroguessr, moved to
+  the inline overlay below; `.mode-option` itself is still live for
+  `/configurar/`'s theme picker)
   and the lighter inline `.start-overlay`/`__panel`/`__text`/`__modes`
   that covers a game's own board until play begins - a normal/hard choice
-  via `__modes` (Metrordle, Metro Crush, Clasificador) or just a single
+  via `__modes` (Metrordle, Metro Crush, Clasificador, Metroguessr - the
+  last over its full-bleed map, with a page-local `--paper-well` background
+  override) or just a single
   "Comenzar" button (Memoria, which has no mode toggle). Each supplies the
   positioned parent it covers; Metro Crush and Memoria also override the
   background to the inset `--paper-well` shade (the shared default is

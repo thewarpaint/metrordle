@@ -181,19 +181,35 @@ self.addEventListener('fetch', function (event) {
               return netResponse;
             }
 
-            // Nothing cached under this exact request URL AND the network
-            // fetch also failed - this is the fallback of last resort.
-            // Loud on purpose: if request.url isn't for '/' or
-            // '/index.html' itself, this is a page silently rendering as
-            // the HOMEPAGE instead of what was actually requested, which
-            // reads to a player as "I visited X and got redirected to
-            // the index page" even though nothing actually redirected -
-            // the address bar never changes, only the served content
-            // does. Worth double-checking request.url here for anything
-            // that wouldn't have an exact match in PRECACHE_URLS - no
-            // trailing slash, a stray query string, etc.
-            warn('navigate FALLING BACK TO /index.html for', request.url, '- no cache entry and the network fetch failed. PRECACHE_URLS has:', PRECACHE_URLS);
-            return caches.match('/index.html');
+            // A no-trailing-slash navigation (e.g. /memoria) never matches
+            // the cached /memoria/ by exact URL. Online the host 301s it to
+            // the slash form before this matters; offline there's no
+            // redirect, so normalize it here and retry the cache before
+            // giving up. Match the slash path alone (dropping any query) -
+            // the cached page HTML doesn't vary by query string.
+            var pathname = new URL(request.url).pathname;
+            var slashMatch = pathname.charAt(pathname.length - 1) === '/'
+              ? Promise.resolve(null)
+              : caches.match(new URL(request.url).origin + pathname + '/');
+
+            return slashMatch.then(function (slashCached) {
+              if (slashCached) {
+                log('navigate serving the CACHED trailing-slash variant of', request.url);
+                return slashCached;
+              }
+
+              // Nothing cached under this exact request URL (or its slash
+              // variant) AND the network fetch also failed - fallback of
+              // last resort. Loud on purpose: if request.url isn't for '/'
+              // or '/index.html' itself, this is a page silently rendering
+              // as the HOMEPAGE instead of what was actually requested,
+              // which reads to a player as "I visited X and got redirected
+              // to the index page" even though nothing actually redirected
+              // - the address bar never changes, only the served content
+              // does.
+              warn('navigate FALLING BACK TO /index.html for', request.url, '- no cache entry (exact or trailing-slash) and the network fetch failed. PRECACHE_URLS has:', PRECACHE_URLS);
+              return caches.match('/index.html');
+            });
           });
         });
       })

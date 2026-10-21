@@ -154,6 +154,16 @@
         padding: 0.5rem 1.1rem 0.7rem;
       }
 
+      /* The reveal banner sits directly in .sign (no padding of its own)
+         between the full-bleed headsign and the progress bar, so inset it
+         to the progress bar's edges and add a top gap - longhand leaves
+         .notice's own margin-bottom intact. */
+      #reveal-banner {
+        margin-top: 0.9rem;
+        margin-left: 1.1rem;
+        margin-right: 1.1rem;
+      }
+
       .platform {
         list-style: none;
         margin: 0;
@@ -340,7 +350,8 @@
         font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
         font-size: 0.72rem;
         font-variant-numeric: tabular-nums;
-        width: 4rem;
+        white-space: nowrap;
+        width: 5rem;
       }
 
       .guess-board__squares {
@@ -501,6 +512,8 @@
           <span class="headsign__term headsign__term--end" id="term-end"></span>
         </div>
 
+        <div id="reveal-banner" hidden></div>
+
         <div class="progress" id="progress">
           <div class="progress__track">
             <div class="progress__fill" id="progress-fill"></div>
@@ -533,8 +546,6 @@
         </div>
 
         <div class="reveal" id="reveal" hidden>
-          <div id="reveal-banner"></div>
-
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
             <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
@@ -542,7 +553,7 @@
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
           </div>
 
-          <div class="reveal__col">
+          <div class="reveal__col" id="reveal-correct-col">
             <h3>Orden correcto</h3>
             <ol id="reveal-correct"></ol>
           </div>
@@ -1606,17 +1617,23 @@
         function renderReveal() {
           if (!state.gameOver) {
             els.reveal.hidden = true;
+            $('reveal-banner').hidden = true;
             return;
           }
 
           els.reveal.hidden = false;
 
+          $('reveal-banner').hidden = false;
           MetroShared.renderNoticeBanner(
             $('reveal-banner'),
             state.won ? 'notice--success' : 'notice--error',
             state.won ? '¡Lo lograste!' : 'Suerte para la próxima…',
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
+
+          // The correct order is only worth showing when the player
+          // didn't reach it themselves.
+          $('reveal-correct-col').hidden = state.won;
 
           renderAliasRow();
           renderLeaderboard();

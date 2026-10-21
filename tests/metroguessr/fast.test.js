@@ -328,6 +328,15 @@ async function main() {
       assert.strictEqual(await normalPage.locator('#start-overlay').isVisible(), true, 'expected the start overlay on a fresh day');
       assert.strictEqual(await normalPage.locator('#panel').isVisible(), false, 'expected the guess panel hidden until a mode is picked');
 
+      // The map is a real Leaflet instance in production (stubbed here),
+      // and #leaflet-map sets no z-index, so Leaflet's panes/controls (up
+      // to ~1000) live in .map-stage's stacking context. The overlay must
+      // outrank them or the map paints over it and the mode buttons can't
+      // be reached - the exact prod bug the stub can't otherwise catch.
+      const overlayZ = await normalPage.evaluate(() =>
+        parseInt(getComputedStyle(document.getElementById('start-overlay')).zIndex, 10));
+      assert.ok(overlayZ > 1000, 'expected the start overlay z-index above Leaflet layers, got ' + overlayZ);
+
       await normalPage.click('#mode-normal-btn');
       await normalPage.waitForTimeout(100);
       assert.strictEqual(await normalPage.locator('#start-overlay').isVisible(), false, 'expected the overlay to close after picking a mode');

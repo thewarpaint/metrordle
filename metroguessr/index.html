@@ -98,8 +98,12 @@
       }
 
       /* The pre-round overlay covers the map (its positioned parent),
-         matching the map's --paper-well so it reads as the covered map. */
-      .map-stage .start-overlay { background: var(--paper-well); }
+         matching the map's --paper-well so it reads as the covered map.
+         z-index beats Leaflet's own panes/controls (up to ~1000), which
+         sit in .map-stage's stacking context since #leaflet-map sets no
+         z-index of its own - shared.css's default 10 would let the map
+         paint on top and hide the overlay entirely. */
+      .map-stage .start-overlay { background: var(--paper-well); z-index: 1200; }
 
       /* Leaflet's own default CSS paints its container a fixed #ddd
          regardless of theme - this overrides it (an id selector already

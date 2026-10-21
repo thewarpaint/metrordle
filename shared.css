@@ -824,9 +824,8 @@ input[type="text"]:disabled {
 .leaderboard__row {
   align-items: center;
   background: var(--paper-well);
-  /* Border matches the fill, so an ordinary row shows none - it's only
-     there to reserve the 1px the current player's own --focus border
-     needs, keeping every row the same size. */
+  /* Matches the fill (invisible) - just reserves the 1px the --you row's
+     --focus border needs, so rows stay the same size. */
   border: 1px solid var(--paper-well);
   border-radius: 0.4rem;
   display: flex;
@@ -854,14 +853,9 @@ input[type="text"]:disabled {
   white-space: nowrap;
 }
 
-/* The score column. Two shapes: a plain number (--plain, for Laberinto's
-   and Memoria's bare score), or a flex badge+number cell (the base, for the
-   four games whose score sits next to a hard-mode/hint badge - Metrordle,
-   Metroguessr, Metro Crush, Clasificador, and /admin/'s matching columns).
-   `.leaderboard__score-number` is the number inside that badge cell; its
-   width modifiers keep the badge aligned down the list: --narrow for an
-   always-single-digit attempts count (Metrordle, Metroguessr), --wide for a
-   multi-digit score (Metro Crush's up-to-20000, Clasificador's up-to-500). */
+/* The score column: a bare number (--plain) or a flex badge+number cell
+   (base). --narrow/--wide fix the number's width so the badge stays aligned
+   down the list (single-digit attempts vs. a multi-digit score). */
 .leaderboard__score {
   align-items: center;
   display: flex;

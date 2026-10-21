@@ -94,12 +94,8 @@
         display: none;
       }
 
-      /* The whole .leaderboard* component (rows, score cell, badge, the
-         --plain/--narrow/--wide score variants, etc.) is shared - see
-         shared.css. These are just /admin/'s own deltas: the per-game
-         boards stack, so the list/status drop their bottom margin, and the
-         rank column is a touch wider for this denser cross-game view. The
-         scoreCell() builders below use the shared classes directly. */
+      /* .leaderboard* is shared (see shared.css); these are /admin/'s
+         deltas - stacked boards drop the bottom margins, rank runs wider. */
       .leaderboard__list { margin: 0; }
       .leaderboard__rank { width: 1.8rem; }
       .leaderboard__status { margin: 0; }

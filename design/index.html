@@ -996,12 +996,9 @@
           sync();
         }
 
-        // The leaderboard component, shared across every game's reveal and
-        // /admin/. All real shared.css classes (✅ consolidado) - the two
-        // score shapes (plain number, or a flex badge+number cell with its
-        // --narrow/--wide number variants), plus the streak badge, record
-        // and status lines. Sample aliases are hardcoded, rendered via
-        // .textContent like the real leaderboards (AGENTS.md rendering-safety).
+        // The shared leaderboard component, all real shared.css classes.
+        // Sample aliases hardcoded, rendered via .textContent like the real
+        // leaderboards (AGENTS.md rendering-safety).
         function renderLeaderboardsGallery() {
           var gallery = document.getElementById('leaderboards-gallery');
 

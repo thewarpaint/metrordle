@@ -280,6 +280,37 @@
       /* .leaderboard* styling itself now lives in shared.css, common to
          every game with a leaderboard - nothing Laberinto-specific to
          override here. */
+
+      /* The dismissible scoring notice: a × in its top-right corner, with
+         room reserved so the title/text never run under it. Page-local
+         since only this notice is dismissible (the shared .notice stays
+         untouched for every game's reveal banner). */
+      #scoring-notice {
+        position: relative;
+        padding-right: 2.2rem;
+        /* More breathing room above (off the intro copy), less below
+           (toward the headsign) than the shared .notice's 1rem bottom. */
+        margin-top: 0.9rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .notice__close {
+        position: absolute;
+        top: 0.35rem;
+        right: 0.4rem;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        font-size: 1.3rem;
+        line-height: 1;
+        opacity: 0.75;
+        padding: 0.2rem 0.4rem;
+      }
+
+      .notice__close:hover {
+        opacity: 1;
+      }
     </style>
   </head>
 
@@ -305,9 +336,10 @@
       <div class="sign">
         <div class="sign__head">
           <h1 id="game-title">Metrordle: Laberinto</h1>
-          <p class="dek">
+          <p class="dek" id="intro-dek">
             Salta de estación en estación hasta llegar al destino. Busca la ruta con menos estaciones posible.
           </p>
+          <div id="scoring-notice" hidden></div>
         </div>
 
         <div class="headsign">
@@ -397,6 +429,40 @@
         var PATH_DIFFICULTY_CUTOVER_DATE_KEY = '2026-09-20';
         var MIN_STOPS_SINCE_CUTOVER = 10;
 
+        // From this date on, a round is scored as stations + transfers:
+        // each line switch (transbordo) counts as a point, the leaderboard
+        // ranks by that sum ascending (submission time breaks ties), and
+        // the optimal route minimizes it rather than just the stop count.
+        // Earlier days keep the original fewest-stops-then-fewest-transfers
+        // scoring - branching on dateKey never changes an already-played
+        // day, same replay-safety reasoning as the difficulty cutover above.
+        var SCORING_CUTOVER_DATE_KEY = '2026-10-23';
+
+        // One-time dismissal of the scoring-change info notice - once the
+        // player closes it (the × below), it never shows again, on any day.
+        var SCORING_NOTICE_DISMISSED_KEY = 'laberinto:scoring-notice-dismissed';
+
+        function usesSumScoring(dateKey) {
+          return dateKey >= SCORING_CUTOVER_DATE_KEY;
+        }
+
+        function scoringNoticeDismissed() {
+          try {
+            return localStorage.getItem(SCORING_NOTICE_DISMISSED_KEY) === '1';
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function dismissScoringNotice() {
+          try {
+            localStorage.setItem(SCORING_NOTICE_DISMISSED_KEY, '1');
+          } catch (e) {}
+          var notice = $('scoring-notice');
+          notice.hidden = true;
+          notice.innerHTML = '';
+        }
+
         var adjacency = buildAdjacency(MetroShared.LINES);
 
         // Station name -> list of { station, line } reachable in one hop.
@@ -432,23 +498,29 @@
           return station + ' ' + (lineId || '');
         }
 
-        // Fewer stops always wins; among routes tied on stops, fewer line
-        // changes wins. Plain BFS alone can't guarantee the second part -
-        // it locks in whichever predecessor reaches a station first, with
-        // no regard for how many times that particular route switched
-        // lines to get there. This is a Dijkstra-style search instead,
-        // ordered by the (stops, transfers) pair, so a state is only
-        // finalized once it's provably the best route to it on both
-        // counts - not just the first one discovered.
+        // Dijkstra-style search for the best route, where "best" depends on
+        // the day's scoring (see SCORING_CUTOVER_DATE_KEY): by default fewer
+        // stops always wins and fewer line changes breaks a stop-count tie;
+        // under sumScoring the cost is stops + transfers (each switch a
+        // point), with the stop count breaking a tie so the chosen route
+        // stays stable. Plain BFS can't guarantee either secondary part - it
+        // locks in whichever predecessor reaches a station first regardless
+        // of transfers - so a state is only finalized once it's provably
+        // best on the day's full ordering, not just first discovered.
         //
         // Returns the winning route as a list of hops - [{ station,
         // lineId }], lineId null for the origin (no line ridden to get
         // there yet) - or null if destination is unreachable (shouldn't
         // happen on this graph).
-        function shortestPath(origin, destination) {
+        function shortestPath(origin, destination, sumScoring) {
           if (origin === destination) return [{ station: origin, lineId: null }];
 
           function isBetter(a, b) {
+            if (sumScoring) {
+              var ca = a.stops + a.transfers, cb = b.stops + b.transfers;
+              if (ca !== cb) return ca < cb;
+              return a.stops < b.stops;
+            }
             if (a.stops !== b.stops) return a.stops < b.stops;
             return a.transfers < b.transfers;
           }
@@ -533,6 +605,12 @@
           return transfers;
         }
 
+        // The sum-scoring metric from SCORING_CUTOVER_DATE_KEY on: stops
+        // plus line switches, each switch worth a point (lower is better).
+        function roundScore(path) {
+          return countStops(path) + countTransfers(path);
+        }
+
         // Deterministic daily puzzle: pick two different random lines, then
         // one random station from each, so origin and destination always
         // start on different lines. Reject-and-retry (same pattern
@@ -549,6 +627,7 @@
         function getPuzzleForDateKey(dateKey) {
           var rand = MetroShared.createSeededRandom('metrordle-laberinto-' + dateKey);
           var useNewDifficulty = dateKey >= PATH_DIFFICULTY_CUTOVER_DATE_KEY;
+          var sumScoring = usesSumScoring(dateKey);
           var origin, destination, path;
 
           do {
@@ -560,7 +639,7 @@
 
             origin = lineA.stations[Math.floor(rand() * lineA.stations.length)];
             destination = lineB.stations[Math.floor(rand() * lineB.stations.length)];
-            path = shortestPath(origin, destination);
+            path = shortestPath(origin, destination, sumScoring);
           } while (!path || (useNewDifficulty
             ? (countStops(path) < MIN_STOPS_SINCE_CUTOVER || countTransfers(path) < 1)
             : path.length < MIN_PATH_STATIONS));
@@ -672,6 +751,10 @@
           // ranking/results are identical whether or not an entry (old
           // or new) happens to have it.
           var fields = { stations: countStops(state.path), transfers: countTransfers(state.path), streak: state.streak };
+          // From the scoring cutover on, the leaderboard ranks by this sum
+          // (stations + transfers) ascending, with submission time as the
+          // only tiebreak - see renderLeaderboard()'s orderBySpecs.
+          if (usesSumScoring(state.dateKey)) fields.score = fields.stations + fields.transfers;
 
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
@@ -749,6 +832,8 @@
           $('term-start').textContent = state.origin;
           $('term-end').textContent = state.destination;
 
+          renderScoringMode();
+
           var playing = state.status === 'playing';
 
           renderBreadcrumb();
@@ -763,6 +848,37 @@
           }
 
           els.reveal.hidden = playing;
+        }
+
+        // Switches the intro copy and shows the one-time info notice on days
+        // scored by stations + transfers (SCORING_CUTOVER_DATE_KEY on). The
+        // notice only appears from the cutover day forward, so earlier days
+        // (and a debug jump back to one) read exactly as they did before.
+        function renderScoringMode() {
+          var sumScoring = usesSumScoring(state.dateKey);
+          $('intro-dek').textContent = sumScoring
+            ? 'Salta de estación en estación hasta llegar al destino. Cada cambio de línea cuenta como un punto: tu puntaje es estaciones + transbordos, y gana el más bajo.'
+            : 'Salta de estación en estación hasta llegar al destino. Busca la ruta con menos estaciones posible.';
+
+          var notice = $('scoring-notice');
+          if (sumScoring && !scoringNoticeDismissed()) {
+            MetroShared.renderNoticeBanner(notice, 'notice--info',
+              'Ahora los transbordos cuentan',
+              'Desde hoy, cada transbordo suma un punto. Tu puntaje es estaciones + transbordos (ejemplo: 15+3 = 18) y gana el más bajo.');
+
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'notice__close';
+            close.setAttribute('aria-label', 'Cerrar aviso');
+            close.textContent = '×';
+            close.addEventListener('click', dismissScoringNotice);
+            notice.appendChild(close);
+
+            notice.hidden = false;
+          } else {
+            notice.hidden = true;
+            notice.innerHTML = '';
+          }
         }
 
         function renderBreadcrumb() {
@@ -889,10 +1005,19 @@
           var optimalStops = countStops(state.shortestPath);
           var optimalTransfers = countTransfers(state.shortestPath);
 
-          $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '</strong> ' + (yourStops === 1 ? 'parada' : 'paradas') +
-            ' (<strong>' + yourTransfers + '</strong> ' + (yourTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
-          $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '</strong> ' + (optimalStops === 1 ? 'parada' : 'paradas') +
-            ' (<strong>' + optimalTransfers + '</strong> ' + (optimalTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
+          if (usesSumScoring(state.dateKey)) {
+            // Score is stations + transfers; show the "15+3" breakdown next
+            // to the total it ranks as, matching the leaderboard shorthand.
+            $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '+' + yourTransfers + '</strong> = ' +
+              (yourStops + yourTransfers) + ' puntos';
+            $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '+' + optimalTransfers + '</strong> = ' +
+              (optimalStops + optimalTransfers) + ' puntos';
+          } else {
+            $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '</strong> ' + (yourStops === 1 ? 'parada' : 'paradas') +
+              ' (<strong>' + yourTransfers + '</strong> ' + (yourTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
+            $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '</strong> ' + (optimalStops === 1 ? 'parada' : 'paradas') +
+              ' (<strong>' + optimalTransfers + '</strong> ' + (optimalTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
+          }
 
           renderAliasRow();
           renderLeaderboard();
@@ -1025,11 +1150,19 @@
           // list is only ever touched once a response actually arrives.
 
           var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+          var sumScoring = usesSumScoring(dateKey);
+
+          // From the cutover on, rank by the stations+transfers sum
+          // (submission time is getTopLeaderboardScores()'s own final
+          // tiebreak); stations/transfers still come along via extraFields
+          // for the "15+3" display. Earlier days keep stops-then-transfers.
+          var orderBySpecs = sumScoring ? [['score', 'asc']] : [['stations', 'asc'], ['transfers', 'asc']];
+          var extraFields = sumScoring ? ['stations', 'transfers', 'streak'] : ['streak'];
 
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['stations', 'asc'], ['transfers', 'asc']], { extraFields: ['streak'], myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, orderBySpecs, { extraFields: extraFields, myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1060,9 +1193,10 @@
 
                 var score = document.createElement('span');
                 score.className = 'leaderboard__score--plain';
-                // "xx-y": stations-transfers, matching the sitewide "Tú: X
-                // paradas (Y transbordos)" phrasing in shorthand form.
-                score.textContent = entry.stations + '-' + entry.transfers;
+                // Shorthand of the sitewide "Tú: X paradas (Y transbordos)"
+                // phrasing: "15+3" from the cutover on (the two add up to the
+                // ranked score), "15-3" on the older stops-then-transfers days.
+                score.textContent = entry.stations + (sumScoring ? '+' : '-') + entry.transfers;
 
                 li.appendChild(rank);
                 li.appendChild(name);
@@ -1079,7 +1213,12 @@
         function getRating() {
           if (state.status === 'gaveup') return { label: 'Terrible', square: '🟥' };
 
-          var extra = countStops(state.path) - countStops(state.shortestPath);
+          // How far over the optimal you finished, on the day's own metric:
+          // the stations+transfers score from the cutover on, just the stop
+          // count before it.
+          var extra = usesSumScoring(state.dateKey)
+            ? roundScore(state.path) - roundScore(state.shortestPath)
+            : countStops(state.path) - countStops(state.shortestPath);
           if (extra === 0) return { label: 'Perfecto', square: '🟦' };
           if (extra <= 5) return { label: 'Buena', square: '🟩' };
           if (extra <= 10) return { label: 'Regular', square: '🟨' };
@@ -1093,10 +1232,19 @@
           var optimalTransfers = countTransfers(state.shortestPath);
           var rating = getRating();
 
+          var yourLine, optimalLine;
+          if (usesSumScoring(state.dateKey)) {
+            yourLine = 'Tú: ' + yourStops + '+' + yourTransfers + ' = ' + (yourStops + yourTransfers) + ' puntos';
+            optimalLine = 'Óptima: ' + optimalStops + '+' + optimalTransfers + ' = ' + (optimalStops + optimalTransfers) + ' puntos';
+          } else {
+            yourLine = 'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)';
+            optimalLine = 'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)';
+          }
+
           return '#Metrordle: Laberinto #' + state.gameNumber + '\n\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
-            'Tú: ' + yourStops + ' paradas (' + yourTransfers + ' transbordos)\n' +
-            'Óptima: ' + optimalStops + ' paradas (' + optimalTransfers + ' transbordos)\n' +
+            yourLine + '\n' +
+            optimalLine + '\n' +
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
             SHARE_URL;
         }

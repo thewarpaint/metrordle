@@ -36,6 +36,11 @@
   /* Not an alias of --line - that's reassigned per day at runtime. */
   --info: #0057a8;
   --info-ink: #ffffff;
+  /* Subtle gold surface for the all-time high-score record card
+     (.leaderboard__record) - theme-aware like the paper tokens so it
+     stays understated in both light and dark. */
+  --record-bg: #f7edc9;
+  --record-ink: #5c4a12;
   --shadow: rgba(20, 24, 26, 0.14);
   --focus: #0057a8;
 }
@@ -49,6 +54,8 @@
     --ink-soft: #9aa5ab;
     --rule: #333c43;
     --rule-strong: #ece9e1;
+    --record-bg: #2a2412;
+    --record-ink: #e8d9a0;
     --shadow: rgba(0, 0, 0, 0.5);
   }
 }
@@ -61,6 +68,8 @@
   --ink-soft: #9aa5ab;
   --rule: #333c43;
   --rule-strong: #ece9e1;
+  --record-bg: #2a2412;
+  --record-ink: #e8d9a0;
   --shadow: rgba(0, 0, 0, 0.5);
 }
 
@@ -917,14 +926,24 @@ input[type="text"]:disabled {
 /* Memoria's, Metro Crush's, and Clasificador's own all-time high score
    (see MetroShared.getHighScoreRecord()/formatHighScoreRecord() in
    shared.js) - these games ranked by a raw score rather than a fixed
-   day's puzzle outcome, so it's worth calling out on its own line
+   day's puzzle outcome, so it's worth calling out in its own golden
+   card (a row-shaped rounded rectangle on top of the leaderboard list)
    rather than folding into the leaderboard title. Shared by /admin/'s
    own boards and by these games' own reveal-screen leaderboards. */
 .leaderboard__record {
-  color: var(--ink);
-  font-size: 0.8rem;
+  align-items: center;
+  background: var(--record-bg);
+  /* No visible border - matches the fill, only reserving the 1px that
+     keeps it the same height as a .leaderboard__row. */
+  border: 1px solid var(--record-bg);
+  border-radius: 0.4rem;
+  color: var(--record-ink);
+  display: flex;
+  font-size: 0.85rem;
   font-weight: 700;
+  gap: 0.5rem;
   margin: 0.2rem 0 0.5rem;
+  padding: 0.4rem 0.6rem;
 }
 
 .leaderboard__record[hidden] {

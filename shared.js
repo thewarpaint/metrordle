@@ -1276,7 +1276,7 @@ function formatRecordDateLabel(dateKey) {
 // trailing date dropped entirely (not "· Invalid Date") when
 // formatRecordDateLabel() can't make sense of record.dateKey.
 function formatHighScoreRecord(record) {
-  var base = '🏆 Récord: ' + record.score + ' por ' + record.alias + ' · #' + record.gameNumber;
+  var base = '🏆 ' + record.score + ' por ' + record.alias + ' · #' + record.gameNumber;
   var dateLabel = formatRecordDateLabel(record.dateKey);
   return dateLabel ? base + ' · ' + dateLabel : base;
 }

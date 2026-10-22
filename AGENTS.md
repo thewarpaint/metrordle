@@ -581,8 +581,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   `.leaderboard__score--plain` number, then the two badge+number score
   cells (`.leaderboard__score` + `.leaderboard__score-badge` + a
   `.leaderboard__score-number--narrow`/`--wide` number), then the
-  `.leaderboard__record`/`.leaderboard__status` lines - built from real
-  shared classes with hardcoded sample aliases, not `.design-` stand-ins.
+  `.leaderboard__record` (a golden row-shaped card shown on top of the
+  list) and the `.leaderboard__status` line - built from real shared
+  classes with hardcoded sample aliases, not `.design-` stand-ins.
   Still-undecided patterns are backed by a design-reference section in
   `shared.css` (search for the `.design-` prefix) that exists purely to
   give this page something real to show for those - no game references
@@ -1019,9 +1020,10 @@ state.score, alias, state.dateKey, state.gameNumber)` as a best-effort
 side effect of a successful leaderboard submission (never rejects, so
 it can't turn an otherwise-successful submission into a visible
 error). `getHighScoreRecord(gameKey)` + `formatHighScoreRecord()`
-(`'🏆 Récord: N por alias · #N · date'`) render it in two places: each
-game's own reveal-screen leaderboard (`.leaderboard__record`, shared
-markup/CSS - see `shared.css`) and `/admin/`'s matching board, both
+(`'🏆 N por alias · #N · date'`) render it in two places: each
+game's own reveal-screen leaderboard (`.leaderboard__record`, a golden
+row-shaped card on top of the list, shared markup/CSS - see
+`shared.css`) and `/admin/`'s matching board, both
 loading it once (no date dimension to re-fetch on date-nav) rather than
 per-render like the per-day leaderboard lists above. Clasificador's own
 `records/clasificador` was seeded from its real leaderboard's own

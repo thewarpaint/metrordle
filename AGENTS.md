@@ -1154,13 +1154,19 @@ per page, since mounting into that page's layout is still page-owned
 work) just finds its own `#game-promo-slot` placeholder and inserts
 (or clears) whatever `buildGamePromo()` returns.
 
-Suggestions follow a fixed priority order - Metrordle, Memoria,
-Metroguessr, Laberinto, Metro Crush, Clasificador (see `SUGGESTABLE_GAMES`
-in `shared.js`) - minus the current game and minus anything already
-completed **today**, capped to the top `MAX_SUGGESTED_GAMES` (2) so the
-section stays a quick glance rather than a full game menu (this list-building
-part is also exposed standalone as `MetroShared.getSuggestedGames(currentGameKey,
-dateKey)`, which `buildGamePromo()` calls internally). "Completed" is
+Suggestions are every game in `SUGGESTABLE_GAMES` (`shared.js`) minus
+the current game and minus anything already completed **today**, then
+**shuffled** and capped to the top `MAX_SUGGESTED_GAMES` (2) so the
+section stays a quick glance rather than a full game menu (this
+list-building part is also exposed standalone as
+`MetroShared.getSuggestedGames(currentGameKey, dateKey)`, which
+`buildGamePromo()` calls internally). The shuffle is a seeded
+Fisher-Yates (`createSeededRandom('metrordle-suggest-' + dateKey + '-' +
+currentGameKey)`), not a fresh `Math.random()` - so the two picks vary
+day to day and per game (surfacing every game over time rather than the
+old fixed priority order) yet stay stable within a day, so a reload of
+the reveal doesn't reshuffle them. `SUGGESTABLE_GAMES`' own array order
+no longer matters for which games show, only its membership. "Completed" is
 checked via that game's own `'<key>:' + dateKey` localStorage entry
 (every game's key matches its `storageKeyFor()` prefix, which is what
 makes one shared check possible instead of one per game):

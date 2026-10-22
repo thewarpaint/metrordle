@@ -482,14 +482,25 @@ function isGamePlayedToday(gameKey, dateKey) {
 // promo section stays a quick glance rather than a full game menu.
 var MAX_SUGGESTED_GAMES = 2;
 
-// The ordered, filtered list a game's own end screen should suggest:
-// the top MAX_SUGGESTED_GAMES games from SUGGESTABLE_GAMES's fixed
-// priority order, minus the current game and minus anything already
-// completed today.
+// The filtered, shuffled list a game's own end screen should suggest:
+// every game but the current one and anything already completed today,
+// shuffled and capped to MAX_SUGGESTED_GAMES. The shuffle is seeded on
+// the real dateKey + current game (not a fresh Math.random), so the
+// picks vary day to day and per game - surfacing all the games over
+// time instead of always the same few from a fixed order - while
+// staying stable within a day so a reload doesn't reshuffle them.
 function getSuggestedGames(currentGameKey, dateKey) {
-  return SUGGESTABLE_GAMES.filter(function (game) {
+  var candidates = SUGGESTABLE_GAMES.filter(function (game) {
     return game.key !== currentGameKey && !isGamePlayedToday(game.key, dateKey);
-  }).slice(0, MAX_SUGGESTED_GAMES);
+  });
+  var rand = createSeededRandom('metrordle-suggest-' + dateKey + '-' + currentGameKey);
+  for (var i = candidates.length - 1; i > 0; i--) {
+    var j = Math.floor(rand() * (i + 1));
+    var tmp = candidates[i];
+    candidates[i] = candidates[j];
+    candidates[j] = tmp;
+  }
+  return candidates.slice(0, MAX_SUGGESTED_GAMES);
 }
 
 // Builds the "sigue jugando hoy" promo component for currentGameKey, or

@@ -1736,7 +1736,7 @@
           // somewhere in the result even if it's ranked below the top
           // LEADERBOARD_SIZE (see getTopLeaderboardScores()'s own
           // comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed'], myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['attempts', 'asc'], ['lost', 'asc'], ['hardMode', 'desc']], { extraFields: ['hintsUsed', 'streak'], myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer
@@ -1804,6 +1804,9 @@
                 li.appendChild(rank);
                 li.appendChild(name);
                 li.appendChild(score);
+                // 🔥 × N streak badge, same as Metrordle's/Laberinto's own
+                // rows - entry.streak reaches here via extraFields above.
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 list.appendChild(li);
               });
 

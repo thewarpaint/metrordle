@@ -248,6 +248,34 @@ async function main() {
     await check('2026-10-23', true);  // cutover day
   });
 
+  test('the scoring notice has a × that dismisses it for good (persisted, never shown again)', async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      const url = server.baseUrl + '/laberinto/?debug=true&date=2026-10-23';
+      await page.goto(url, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+      assert.strictEqual(await page.locator('#scoring-notice').isVisible(), true, 'the notice should show on a cutover day');
+      assert.strictEqual(await page.locator('#scoring-notice .notice__close').count(), 1, 'the notice should have a × close button');
+
+      await page.click('#scoring-notice .notice__close');
+      await page.waitForTimeout(100);
+      assert.strictEqual(await page.locator('#scoring-notice').isVisible(), false, 'clicking × should hide the notice');
+      const flag = await page.evaluate(() => localStorage.getItem('laberinto:scoring-notice-dismissed'));
+      assert.strictEqual(flag, '1', 'dismissal should be persisted');
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+      assert.strictEqual(await page.locator('#scoring-notice').isVisible(), false, 'a dismissed notice should stay hidden after reload');
+
+      assert.strictEqual(errors.length, 0, 'no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

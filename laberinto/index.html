@@ -280,6 +280,33 @@
       /* .leaderboard* styling itself now lives in shared.css, common to
          every game with a leaderboard - nothing Laberinto-specific to
          override here. */
+
+      /* The dismissible scoring notice: a × in its top-right corner, with
+         room reserved so the title/text never run under it. Page-local
+         since only this notice is dismissible (the shared .notice stays
+         untouched for every game's reveal banner). */
+      #scoring-notice {
+        position: relative;
+        padding-right: 2.2rem;
+      }
+
+      .notice__close {
+        position: absolute;
+        top: 0.35rem;
+        right: 0.4rem;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        font-size: 1.3rem;
+        line-height: 1;
+        opacity: 0.75;
+        padding: 0.2rem 0.4rem;
+      }
+
+      .notice__close:hover {
+        opacity: 1;
+      }
     </style>
   </head>
 
@@ -407,8 +434,29 @@
         // day, same replay-safety reasoning as the difficulty cutover above.
         var SCORING_CUTOVER_DATE_KEY = '2026-10-23';
 
+        // One-time dismissal of the scoring-change info notice - once the
+        // player closes it (the × below), it never shows again, on any day.
+        var SCORING_NOTICE_DISMISSED_KEY = 'laberinto:scoring-notice-dismissed';
+
         function usesSumScoring(dateKey) {
           return dateKey >= SCORING_CUTOVER_DATE_KEY;
+        }
+
+        function scoringNoticeDismissed() {
+          try {
+            return localStorage.getItem(SCORING_NOTICE_DISMISSED_KEY) === '1';
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function dismissScoringNotice() {
+          try {
+            localStorage.setItem(SCORING_NOTICE_DISMISSED_KEY, '1');
+          } catch (e) {}
+          var notice = $('scoring-notice');
+          notice.hidden = true;
+          notice.innerHTML = '';
         }
 
         var adjacency = buildAdjacency(MetroShared.LINES);
@@ -809,10 +857,19 @@
             : 'Salta de estación en estación hasta llegar al destino. Busca la ruta con menos estaciones posible.';
 
           var notice = $('scoring-notice');
-          if (sumScoring) {
+          if (sumScoring && !scoringNoticeDismissed()) {
             MetroShared.renderNoticeBanner(notice, 'notice--info',
               'Nuevo: los cambios de línea cuentan',
               'Desde hoy, cada transbordo suma un punto. Tu puntaje es estaciones + transbordos (p. ej. 15+3 = 18) y gana el más bajo.');
+
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'notice__close';
+            close.setAttribute('aria-label', 'Cerrar aviso');
+            close.textContent = '×';
+            close.addEventListener('click', dismissScoringNotice);
+            notice.appendChild(close);
+
             notice.hidden = false;
           } else {
             notice.hidden = true;

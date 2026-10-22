@@ -126,8 +126,10 @@ async function main() {
       await page.click('#leaderboard-alias-row button');
       await page.waitForTimeout(300);
 
-      const displayText = await page.$eval('#leaderboard-alias-row', (el) => el.textContent);
-      assert.ok(displayText.includes('Eduardo'), 'should show the saved alias, got: ' + displayText);
+      // Saving an alias now hides the row entirely instead of showing a
+      // "Jugando como" display - the player's own highlighted leaderboard
+      // row identifies them.
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), false, 'the alias row should hide after saving an alias');
 
       const storedAlias = await page.evaluate(() => localStorage.getItem('metrordle:alias'));
       assert.strictEqual(storedAlias, 'Eduardo');
@@ -144,7 +146,7 @@ async function main() {
     }
   });
 
-  test('a loss now submits too (attempts: 5, lost: true), and shows the alias row instead of hiding it', async () => {
+  test('a loss now submits too (attempts: 5, lost: true); the alias row hides once an alias is set', async () => {
     const DATE = '2026-12-25';
     // serviceWorkers: 'block' - this page registers a real service
     // worker (sw.js) that precaches /shared.js; without blocking it, a
@@ -167,7 +169,9 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#leaderboard').isVisible(), true, 'the leaderboard section should still show on a loss');
-      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), true, 'the alias row should show on a loss now (there is something meaningful to submit), not stay hidden like before');
+      // With an alias already set (above), the row hides on a loss as on
+      // a win; the meaningful "a loss still submits" check is below.
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), false, 'the alias row hides once an alias is set');
 
       const fields = await page.evaluate(() => window.__submittedFields);
       assert.ok(fields, 'submitScore() should have attempted a submission on a loss now');

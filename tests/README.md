@@ -121,8 +121,9 @@ covering the leaderboard section on the real `/memoria/` page (its own
   can't reach `gstatic.com` at all, which doubles as a real "player whose
   network blocks Firebase" case).
 - Saving an alias persists it under the site-wide `metrordle:alias` key
-  and shows the "Jugando como: ..." display, without a page error, even
-  under `?debug=true`.
+  and then hides the alias row entirely (the player's own highlighted
+  leaderboard row identifies them), without a page error, even under
+  `?debug=true`.
 - A play under `?debug=true` never marks `leaderboardSubmitted` true -
   date-nav testing shouldn't pollute the real leaderboard.
 - Each row shows a "🔥 × N" streak badge (stubbed `getTopLeaderboardScores()`

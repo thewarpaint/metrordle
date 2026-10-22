@@ -805,6 +805,12 @@ input[type="text"]:disabled {
   margin-bottom: 0.6rem;
 }
 
+/* Needed because the display: flex above otherwise beats the UA
+   [hidden] rule, leaving a hidden row taking its margin as a stray gap. */
+.leaderboard__alias[hidden] {
+  display: none;
+}
+
 /* Visuals come from the shared input[type="text"] rule above; this just
    sets the flex sizing for the inline alias+button row. */
 .leaderboard__alias input {

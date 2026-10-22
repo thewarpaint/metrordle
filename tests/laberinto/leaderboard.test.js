@@ -195,6 +195,59 @@ async function main() {
     }
   });
 
+  test('from the scoring cutover on, the leaderboard ranks by stations+transfers and shows "NN+MM"; earlier days keep "NN-MM" and no notice', async () => {
+    async function check(dateKey, expectSum) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block' });
+      const page = await context.newPage();
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      try {
+        await page.route('**/shared.js', async (route) => {
+          const response = await route.fetch();
+          const body = await response.text();
+          // Capture the ranking spec the page asks for, and feed back one
+          // entry carrying both the sum `score` and its stations/transfers
+          // breakdown so either scoring mode has what it renders.
+          const patched = body + `
+            (function () {
+              window.__orderBy = null; window.__extra = null;
+              window.MetroShared.getTopLeaderboardScores = function (col, dk, n, orderBySpecs, opts) {
+                window.__orderBy = orderBySpecs; window.__extra = (opts && opts.extraFields) || [];
+                return Promise.resolve([{ id: 'ana', alias: 'Ana', stations: 15, transfers: 3, score: 18, streak: 4 }]);
+              };
+            })();`;
+          await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
+        });
+        await page.goto(server.baseUrl + '/laberinto/?debug=true&date=' + dateKey, { waitUntil: 'networkidle' });
+        await plantWonState(page, dateKey, 15, 3, true);
+        await page.reload({ waitUntil: 'networkidle' });
+        await page.waitForTimeout(400);
+
+        const scoreText = await page.locator('#leaderboard-list .leaderboard__row .leaderboard__score--plain').first().textContent();
+        const orderBy = await page.evaluate(() => window.__orderBy);
+        const extra = await page.evaluate(() => window.__extra);
+        const noticeVisible = await page.evaluate(() => { const nn = document.getElementById('scoring-notice'); return !!nn && !nn.hidden; });
+
+        if (expectSum) {
+          assert.strictEqual(scoreText, '15+3', dateKey + ': expected the "15+3" sum display');
+          assert.deepStrictEqual(orderBy, [['score', 'asc']], dateKey + ': expected ranking by the stations+transfers sum');
+          assert.ok(extra.indexOf('stations') !== -1 && extra.indexOf('transfers') !== -1, dateKey + ': stations/transfers must come via extraFields to render "15+3"');
+          assert.strictEqual(noticeVisible, true, dateKey + ': expected the scoring info notice');
+        } else {
+          assert.strictEqual(scoreText, '15-3', dateKey + ': expected the old "15-3" display');
+          assert.deepStrictEqual(orderBy, [['stations', 'asc'], ['transfers', 'asc']], dateKey + ': expected the old stops-then-transfers ranking');
+          assert.strictEqual(noticeVisible, false, dateKey + ': there should be no scoring notice before the cutover');
+        }
+        assert.strictEqual(errors.length, 0, dateKey + ': no page errors: ' + JSON.stringify(errors));
+      } finally {
+        await context.close();
+      }
+    }
+
+    await check('2026-10-22', false); // day before the cutover
+    await check('2026-10-23', true);  // cutover day
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

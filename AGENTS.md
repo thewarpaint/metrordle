@@ -983,10 +983,20 @@ added to lock the fix in.
   (`[['attempts','asc'],['lost','asc'],['hardMode','desc']]`). See
   "Losses" below for the `lost` field and why it's second, not first,
   in that list.
-- Laberinto: fewest stations, then fewest transfers, both ascending.
-  Unlike Metrordle/Metroguessr, a give-up here still has nothing
-  meaningful to rank (no route at all, not just a worse one) - it
-  still only ever submits on a win.
+- Laberinto: fewest stations, then fewest transfers, both ascending -
+  but from `SCORING_CUTOVER_DATE_KEY` (`2026-10-23`) on, a round is
+  scored as the single sum `stations + transfers` (each line switch a
+  point), ranked ascending with submission time as the only tiebreak,
+  submitted as its own `score` field and displayed as "15+3" (vs the
+  older "15-3"); the shortest-path search minimizes that same sum on
+  those days, and an `.notice--info` on the page announces the change.
+  Branching on dateKey keeps earlier days exactly as they were, same
+  replay-safety convention as `PATH_DIFFICULTY_CUTOVER_DATE_KEY`.
+  `/admin/`'s own Laberinto board still ranks/shows the old
+  stations-then-transfers way for every day (not yet updated for the
+  cutover). Unlike Metrordle/Metroguessr, a give-up here still has
+  nothing meaningful to rank (no route at all, not just a worse one) -
+  it still only ever submits on a win.
 - Memoria: highest score, descending.
 - Metroguessr: fewest attempts, a loss always after every win,
   hard-mode beats normal-mode at a tie - same shape as Metrordle's own

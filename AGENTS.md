@@ -1118,11 +1118,13 @@ this is no longer a single page's own thing) reading **`🔥 × N` when
 worth calling out), always returned (even empty) so a row's score
 column still lands in the same spot whether or not it has one.
 `/admin/`'s own `renderGame()` appends one to every row for all six
-collections now; Metrordle's, Laberinto's, Memoria's, and
+collections now; Metrordle's, Laberinto's, Memoria's, Metroguessr's, and
 Clasificador's own `renderLeaderboard()` do the same on their own
-in-page leaderboards (Metroguessr's and Metro Crush's own leaderboards
-don't, yet - nothing architectural stops either, this just hasn't been
-asked for). Every one of those `getTopLeaderboardScores()` calls needs
+in-page leaderboards (only Metro Crush's own leaderboard doesn't yet -
+nothing architectural stops it, this just hasn't been asked for).
+Metroguessr's own call carries both `hintsUsed` and `streak` in
+`extraFields`, since it renders the 🪄 badge and the 🔥 one. Every one
+of those `getTopLeaderboardScores()` calls needs
 `extraFields: ['streak']` for the value to actually reach
 `entry.streak` at all (see `extraFields` above) - `buildStreakBadge()`
 itself doesn't guard against a missing field beyond `streak > 1`

@@ -101,8 +101,10 @@ async function main() {
       await page.click('#leaderboard-alias-row button');
       await page.waitForTimeout(300);
 
-      const displayText = await page.$eval('#leaderboard-alias-row', (el) => el.textContent);
-      assert.ok(displayText.includes('Eduardo'), 'should show the saved alias, got: ' + displayText);
+      // Saving an alias now hides the row entirely instead of showing a
+      // "Jugando como" display - the player's own highlighted leaderboard
+      // row identifies them.
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), false, 'the alias row should hide after saving an alias');
 
       const storedAlias = await page.evaluate(() => localStorage.getItem('metrordle:alias'));
       assert.strictEqual(storedAlias, 'Eduardo');

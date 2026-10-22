@@ -118,8 +118,10 @@ async function main() {
       await page.click('#leaderboard-alias-row button');
       await page.waitForTimeout(300);
 
-      const displayText = await page.locator('#leaderboard-alias-row').textContent();
-      assert.ok(displayText.includes('Eduardo'), 'should show the saved alias, got: ' + displayText);
+      // Saving an alias now hides the row entirely (the player's own
+      // highlighted leaderboard row identifies them) instead of showing a
+      // "Jugando como" display.
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), false, 'the alias row should hide after saving an alias');
 
       const storedAlias = await page.evaluate(() => localStorage.getItem('metrordle:alias'));
       assert.strictEqual(storedAlias, 'Eduardo');
@@ -170,7 +172,10 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#leaderboard').isVisible(), true, 'the leaderboard section should still show on a loss');
-      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), true, 'the alias row should show on a loss now (there is something meaningful to submit), not stay hidden like before');
+      // With an alias already set (above), the row hides on a loss as on
+      // a win - the "a loss still submits" check is __submittedFields
+      // below, not the row's visibility.
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').isVisible(), false, 'the alias row hides once an alias is set');
 
       const fields = await page.evaluate(() => window.__submittedFields);
       assert.ok(fields, 'submitScore() should have attempted a submission on a loss now');

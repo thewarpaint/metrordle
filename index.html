@@ -1606,23 +1606,19 @@
           el.hidden = false;
           var alias = MetroShared.getAlias();
           if (alias) {
-            showAliasDisplay(alias);
+            hideAliasRow();
           } else {
             showAliasInput();
           }
         }
 
-        function showAliasDisplay(alias) {
+        function hideAliasRow() {
+          // The player's own highlighted row in the leaderboard below
+          // already identifies them, so once an alias is set there's
+          // nothing to show here.
           var el = els.leaderboardAliasRow;
+          el.hidden = true;
           el.innerHTML = '';
-
-          var label = document.createElement('span');
-          label.textContent = 'Jugando como: ';
-          var strong = document.createElement('strong');
-          strong.textContent = alias;
-          label.appendChild(strong);
-
-          el.appendChild(label);
         }
 
         function showAliasInput() {
@@ -1643,7 +1639,7 @@
           function save() {
             var normalized = MetroShared.setAlias(input.value);
             if (!normalized) return;
-            showAliasDisplay(normalized);
+            hideAliasRow();
             submitScore();
           }
 

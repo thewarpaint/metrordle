@@ -29,7 +29,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { REPO_ROOT, test, runAll } = require('../lib/harness');
-const { checkCacheVersionBump } = require('../lib/sw-cache-version');
+const { checkCacheVersionBump, extractPrecacheUrls } = require('../lib/sw-cache-version');
 
 // Same base this repo's own workflow branches every PR off of (see
 // AGENTS.md's "Branch off latest main for every change"). Overridable
@@ -108,6 +108,19 @@ async function main() {
       "CACHE_NAME is still '" + result.headCacheName + "' - bump it (see AGENTS.md's \"sw.js\" bullet) " +
       'so returning players actually pick up the new file(s) instead of the stale cached copy.'
     );
+  });
+
+  // /admin/ is precached deliberately (it was excluded before), so a
+  // change to admin/index.html must bump CACHE_NAME like any other
+  // precached asset. The real-diff check above enforces that for free -
+  // but only while admin actually stays in PRECACHE_URLS. This pins that
+  // membership, so quietly dropping admin from the precache list (which
+  // would silently stop the check above from watching it) fails here.
+  test("sw.js's PRECACHE_URLS includes /admin/ and its index.html", async () => {
+    const swSource = fs.readFileSync(path.join(REPO_ROOT, 'sw.js'), 'utf8');
+    const urls = extractPrecacheUrls(swSource);
+    assert.ok(urls.includes('/admin/'), "expected '/admin/' in PRECACHE_URLS");
+    assert.ok(urls.includes('/admin/index.html'), "expected '/admin/index.html' in PRECACHE_URLS");
   });
 
   test('self-test: flags a precached file changing without a CACHE_NAME bump', async () => {

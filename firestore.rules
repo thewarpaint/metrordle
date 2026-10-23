@@ -52,12 +52,18 @@ service cloud.firestore {
     // indefinitely before reaching the destination - there's no move limit
     // to derive a tighter cap from. streak is display-only (see Memoria's
     // own comment above) - only a win submits here, so unlike Memoria's
-    // it's always at least 1.
+    // it's always at least 1. From SCORING_CUTOVER_DATE_KEY (2026-10-23)
+    // on, laberinto/index.html also submits a `score` field = stations +
+    // transfers (each line switch a point; see AGENTS.md's Laberinto
+    // leaderboard bullet). It's OPTIONAL here on purpose: a player on a
+    // stale cached pre-cutover shared.js still writes without it, so the
+    // rule must accept both shapes - validate it only when present. Bound
+    // matches stations (500) + transfers (100).
     match /laberinto-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'stations', 'transfers', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'stations', 'transfers', 'streak', 'score', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -70,6 +76,10 @@ service cloud.firestore {
         request.resource.data.streak is int &&
         request.resource.data.streak >= 1 &&
         request.resource.data.streak <= 5000 &&
+        (!('score' in request.resource.data) ||
+          (request.resource.data.score is int &&
+           request.resource.data.score >= 0 &&
+           request.resource.data.score <= 600)) &&
         request.resource.data.submittedAt == request.time &&
         aliasId == request.resource.data.alias.lower();
 

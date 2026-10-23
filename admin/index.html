@@ -275,6 +275,13 @@
         // neither has a daily win/loss puzzle to hook into - see their
         // own STREAK_STORAGE_KEY comments) but are submitted/rendered
         // exactly the same way.
+        //
+        // A game whose ranking/display changed on a cutover date (so far
+        // only Laberinto) supplies orderBySpecs/extraFields as functions of
+        // the shown dateKey, and its scoreCell reads dateKey too - renderGame()
+        // resolves all three per date, so date-nav into an earlier day still
+        // renders exactly as that day was scored.
+        var LABERINTO_SCORING_CUTOVER_DATE_KEY = '2026-10-23';
         var GAMES = [
           {
             key: 'metrordle',
@@ -310,13 +317,30 @@
             key: 'laberinto',
             collection: 'laberinto-leaderboard',
             startDateKey: '2026-08-26',
-            orderBySpecs: [['stations', 'asc'], ['transfers', 'asc']],
-            extraFields: ['streak'],
+            // From the cutover on, a round is the single sum stations +
+            // transfers (submission time the only tiebreak), ranked ascending
+            // and shown "15+3"; before it, the old stations-then-transfers
+            // order shown "15-3" - mirrors laberinto/index.html's own
+            // usesSumScoring(dateKey) so both pages agree per day.
+            orderBySpecs: function (dateKey) {
+              return dateKey >= LABERINTO_SCORING_CUTOVER_DATE_KEY
+                ? [['score', 'asc']]
+                : [['stations', 'asc'], ['transfers', 'asc']];
+            },
+            // stations/transfers drive the "15+3"/"15-3" display either way;
+            // post-cutover neither is in orderBySpecs (score is), so both must
+            // be named here to reach the row - see getTopLeaderboardScores().
+            extraFields: function (dateKey) {
+              return dateKey >= LABERINTO_SCORING_CUTOVER_DATE_KEY
+                ? ['stations', 'transfers', 'streak']
+                : ['streak'];
+            },
             href: '/laberinto/',
-            scoreCell: function (entry) {
+            scoreCell: function (entry, dateKey) {
               var score = document.createElement('span');
               score.className = 'leaderboard__score--plain';
-              score.textContent = entry.stations + '-' + entry.transfers;
+              var sep = dateKey >= LABERINTO_SCORING_CUTOVER_DATE_KEY ? '+' : '-';
+              score.textContent = entry.stations + sep + entry.transfers;
               return score;
             },
           },
@@ -508,7 +532,12 @@
           gameEls.list.innerHTML = '';
           gameEls.status.hidden = true;
 
-          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, FETCH_LIMIT, game.orderBySpecs, { extraFields: game.extraFields || [] })
+          // A game may supply orderBySpecs/extraFields as a function of the
+          // shown date (cutover scoring - see GAMES above); resolve both here.
+          var orderBySpecs = typeof game.orderBySpecs === 'function' ? game.orderBySpecs(dateKey) : game.orderBySpecs;
+          var extraFields = typeof game.extraFields === 'function' ? game.extraFields(dateKey) : (game.extraFields || []);
+
+          return MetroShared.getTopLeaderboardScores(game.collection, dateKey, FETCH_LIMIT, orderBySpecs, { extraFields: extraFields })
             .then(function (entries) {
               // A newer date change (or an unreachable Firebase, which
               // getTopLeaderboardScores() already resolves to [] rather
@@ -543,7 +572,7 @@
 
                 li.appendChild(rank);
                 li.appendChild(name);
-                li.appendChild(game.scoreCell(entry));
+                li.appendChild(game.scoreCell(entry, dateKey));
                 li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 gameEls.list.appendChild(li);
               });

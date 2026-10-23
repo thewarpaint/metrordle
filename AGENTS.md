@@ -998,8 +998,14 @@ added to lock the fix in.
   after the rule originally did, so its deploy was the follow-up that
   stopped the cutover-day `permission-denied` writes (rules are a manual
   deploy - see the `firestore.rules` bullet). `/admin/`'s own Laberinto
-  board still ranks/shows the old stations-then-transfers way for every
-  day (not yet updated for the cutover). Unlike Metrordle/Metroguessr, a give-up here still has
+  board now branches the same way per shown date
+  (`LABERINTO_SCORING_CUTOVER_DATE_KEY`): on/after the cutover it ranks by
+  the single `score` and shows "15+3", before it the old
+  stations-then-transfers order shown "15-3" - `renderGame()` resolves a
+  game's `orderBySpecs`/`extraFields` per date when they're supplied as
+  functions (Laberinto is the only one so far) and passes `dateKey` to
+  `scoreCell`, so date-nav into an earlier day still renders as that day
+  was scored. Unlike Metrordle/Metroguessr, a give-up here still has
   nothing meaningful to rank (no route at all, not just a worse one) -
   it still only ever submits on a win.
 - Memoria: highest score, descending.

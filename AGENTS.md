@@ -992,9 +992,14 @@ added to lock the fix in.
   those days, and an `.notice--info` on the page announces the change.
   Branching on dateKey keeps earlier days exactly as they were, same
   replay-safety convention as `PATH_DIFFICULTY_CUTOVER_DATE_KEY`.
-  `/admin/`'s own Laberinto board still ranks/shows the old
-  stations-then-transfers way for every day (not yet updated for the
-  cutover). Unlike Metrordle/Metroguessr, a give-up here still has
+  `firestore.rules`' laberinto block allows `score` as an *optional*
+  field (bounded 0-600) - optional so a stale pre-cutover cached client,
+  still writing without it, isn't rejected; the `score` field shipped
+  after the rule originally did, so its deploy was the follow-up that
+  stopped the cutover-day `permission-denied` writes (rules are a manual
+  deploy - see the `firestore.rules` bullet). `/admin/`'s own Laberinto
+  board still ranks/shows the old stations-then-transfers way for every
+  day (not yet updated for the cutover). Unlike Metrordle/Metroguessr, a give-up here still has
   nothing meaningful to rank (no route at all, not just a worse one) -
   it still only ever submits on a win.
 - Memoria: highest score, descending.

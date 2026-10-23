@@ -359,7 +359,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   attempts-count tiebreak for it to win at the same score the way
   Metrordle's own hard mode does.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
-  from any game's nav, `noindex`). Same prev/next date-nav as the
+  from any game's nav, `noindex`). Precached (`sw.js`'s own
+  `PRECACHE_URLS`) despite being unlinked, so a change to its
+  `index.html` needs a `CACHE_NAME` bump - see the `sw.js` bullet.
+  Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each
   game's own "Ver este día en ___" deep link too) - shows only today's
   real data otherwise. Two `.stat-grid`/`.stat-box` tiles (shared with
@@ -597,9 +600,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   custom properties - `--badge-bg`/`--badge-ink`, the same convention
   every consolidated class now shares) rather
   than being hand-copied, so the examples can't silently drift from the
-  real palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`,
-  same reasoning as `/admin/`'s own exclusion (not a player-facing game
-  route).
+  real palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`
+  (not a player-facing game route - same reasoning that used to apply to
+  `/admin/`, which is precached now, so `/map/` is its closest still-
+  excluded peer).
 - **`/configurar/`** - site-wide settings page, linked from every game's
   header (a small ⚙️ in `.brand`, or `.topbar` for Metroguessr's own
   layout) via `.brand__settings`/`.topbar__settings`. For now just a
@@ -608,7 +612,7 @@ about `//`/`/* */` comments in the actual game/test code.)
   without a new page or a new localStorage key.
 - **`/status/`** - a read-only ops health check (not linked from any
   game's nav, `noindex`, same as `/admin/`/`/design/`), but unlike
-  those two, deliberately precached (`sw.js`'s own `PRECACHE_URLS`) so
+  `/design/` (and `/map/`), deliberately precached (`sw.js`'s own `PRECACHE_URLS`) so
   it's reachable even when the network is the very thing being
   diagnosed. An internal/ops page, not player-facing, so its copy is
   English - the one page on the site that isn't es-MX. Shows which
@@ -637,7 +641,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   (no `/shared.js`/`/shared.css` dependency), since it exists to recover
   from a *broken* cache.
 - **`/map/`** - an internal diagnostic page (not linked from any game's
-  nav, `noindex`, not precached - same as `/admin/`/`/design/`; English
+  nav and `noindex` - same as `/admin/`/`/design/` - and not precached,
+  same as `/design/` (`/admin/` is precached now); English
   copy like `/status/`). Plots every `MetroShared.STATION_COORDS` station
   on the same OpenFreeMap/Leaflet map Metroguessr uses, draws each
   `MetroShared.LINES` line as a polyline through its stations in the
@@ -909,9 +914,15 @@ are impossible without a debug override.
   the directory (`/metroguessr/`) and its `index.html`** - Metroguessr
   shipped without either for several PRs before this was caught; when
   adding a new game, add both paths here (and bump `CACHE_NAME`) in the
-  same PR that ships it. `/admin/` and `/purge/` are deliberately
-  excluded (not linked from any game's nav, and "must never itself be
-  cached," respectively) - don't add those. `/status/` is the opposite
+  same PR that ships it. `/admin/` is precached too now (though not a
+  game route and still unlinked from any game's nav) - so a change to
+  `admin/index.html` needs a `CACHE_NAME` bump like any other precached
+  asset, which `tests/meta/sw-cache-version.test.js` now enforces (it
+  derives its watched set straight from `PRECACHE_URLS`, and pins
+  admin's membership so dropping it fails loudly). `/design/` and
+  `/map/` are still deliberately excluded (not player-facing routes),
+  and `/purge/` is excluded because it "must never itself be cached" -
+  don't add those. `/status/` is the opposite
   exception - precached on purpose, so it stays reachable offline (see
   its own bullet above) - but `/healthcheck.json`, which that page
   fetches, must stay out of `PRECACHE_URLS` *and* has its own early

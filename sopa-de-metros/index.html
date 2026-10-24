@@ -126,46 +126,79 @@
         background: var(--line);
       }
 
-      /* Clue list - a numbered list. One hint per hidden word; the word
-         itself stays secret until it's found, when it's revealed (green)
-         in front of its clue, the number marker turns green, the found
-         clue sinks to the bottom and its clue text (not the revealed
-         word) gets struck through. */
+      /* Two numbered lists, each under its own small header: "Pistas"
+         (hints still to find, one line each) and "Respuestas" (solved
+         stations, two lines each: its lines + name, then the meaning). A
+         group hides itself when its list is empty. */
+      .clue-group[hidden] { display: none; }
+
+      .clue-group__title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-soft);
+        margin: 0;
+        padding: 0.7rem 1.1rem 0;
+      }
+
+      /* Numbers are a CSS counter (not the native <ol> marker) so the gap
+         between the number and the content is ours to set - see .clue's
+         padding-left vs .clue__num's width below. */
       .clues {
+        counter-reset: clue;
+        list-style: none;
         color: var(--ink-soft);
         font-size: 0.82rem;
         line-height: 1.4;
         margin: 0;
-        padding: 0.6rem 1.1rem 0.2rem 2.2rem;
+        padding: 0.35rem 1.1rem 0.2rem;
       }
 
       .clue {
-        margin-bottom: 0.28rem;
+        counter-increment: clue;
+        position: relative;
+        margin-bottom: 0.4rem;
+        padding-left: 1.9rem;
       }
 
       .clue:last-child {
         margin-bottom: 0;
       }
 
-      .clue--found::marker {
-        color: var(--ok);
+      /* Right-aligned number column; the 0.5rem gap to the content is the
+         difference between .clue's padding-left and this width. */
+      .clue::before {
+        content: counter(clue) ".";
+        position: absolute;
+        left: 0;
+        width: 1.4rem;
+        text-align: right;
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
       }
 
       .clue__word {
-        color: var(--ok);
         font-weight: 800;
         letter-spacing: 0.03em;
-        margin-right: 0.3rem;
         text-transform: uppercase;
       }
 
-      .clue--found .clue__text {
-        text-decoration: line-through;
+      /* Respuestas rows are two lines: lines + station name, then the
+         meaning on its own line (room for more content later). */
+      .clue__answer-head {
+        margin-bottom: 0.1rem;
       }
 
-      /* The station's line roundel, leading the clue on its text line. */
-      .clue__line {
+      .clue--answer .clue__text {
+        display: block;
+      }
+
+      /* The station's line roundel(s), leading the clue on its text line.
+         Pistas shows one; Respuestas shows all of a solved station's. */
+      .clue__lines {
         display: inline-flex;
+        gap: 0.25rem;
         margin-right: 0.4rem;
         vertical-align: middle;
       }
@@ -230,7 +263,15 @@
           <div class="grid" id="grid" aria-label="Cuadrícula de letras"></div>
         </div>
 
-        <ol class="clues" id="clues"></ol>
+        <div class="clue-group" id="pistas-group">
+          <h2 class="clue-group__title">Pistas</h2>
+          <ol class="clues" id="clues"></ol>
+        </div>
+
+        <div class="clue-group" id="respuestas-group" hidden>
+          <h2 class="clue-group__title">Respuestas</h2>
+          <ol class="clues" id="answers"></ol>
+        </div>
 
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
@@ -373,40 +414,63 @@
           }
         }
 
-        // Unfound clues first (original order), then found ones sunk to the
-        // bottom in solve order. A found word is revealed (green) in front
-        // of its clue, which stays (struck through) for context.
+        // Two lists: unfound clues in "Pistas" (original order), solved
+        // ones in "Respuestas" (solve order), each list's group hidden
+        // when empty. A solved item shows the revealed word in front of
+        // its clue.
         function renderClues() {
           els.clues.innerHTML = '';
-          var unfound = [];
+          els.answers.innerHTML = '';
           state.words.forEach(function (entry, i) {
-            if (!state.found[i]) unfound.push(i);
+            if (!state.found[i]) els.clues.appendChild(buildClueItem(i, false));
           });
-          unfound.concat(state.foundOrder).forEach(function (i) {
-            var entry = state.words[i];
-            var li = document.createElement('li');
-            li.className = 'clue' + (state.found[i] ? ' clue--found' : '');
-            // Line roundel leads, then the revealed word (if found), then clue.
-            li.appendChild(buildLineBadge(entry.lineId));
-            if (state.found[i]) {
-              var w = document.createElement('span');
-              w.className = 'clue__word';
-              w.textContent = entry.word;
-              li.appendChild(w);
-            }
-            var text = document.createElement('span');
-            text.className = 'clue__text';
-            text.textContent = entry.clue;
+          state.foundOrder.forEach(function (i) {
+            els.answers.appendChild(buildClueItem(i, true));
+          });
+          els.pistasGroup.hidden = els.clues.children.length === 0;
+          els.respuestasGroup.hidden = els.answers.children.length === 0;
+        }
+
+        function buildClueItem(i, found) {
+          var entry = state.words[i];
+          var li = document.createElement('li');
+          li.className = 'clue' + (found ? ' clue--answer' : '');
+          var text = document.createElement('span');
+          text.className = 'clue__text';
+          text.textContent = entry.clue;
+          if (found) {
+            // Respuestas: a first line of all the station's lines + its
+            // name, then the meaning on its own line.
+            var head = document.createElement('div');
+            head.className = 'clue__answer-head';
+            head.appendChild(buildLineBadges(entry.lineIds));
+            var w = document.createElement('span');
+            w.className = 'clue__word';
+            w.textContent = entry.word;
+            head.appendChild(w);
+            li.appendChild(head);
             li.appendChild(text);
-            els.clues.appendChild(li);
-          });
+          } else {
+            // Pistas: one seeded line badge, then the meaning, one line.
+            li.appendChild(buildLineBadges([entry.lineId]));
+            li.appendChild(text);
+          }
+          return li;
+        }
+
+        // One or more line roundels in an inline wrapper, leading a clue.
+        function buildLineBadges(lineIds) {
+          var wrap = document.createElement('span');
+          wrap.className = 'clue__lines';
+          lineIds.forEach(function (id) { wrap.appendChild(buildLineBadge(id)); });
+          return wrap;
         }
 
         // A line id as a small .line-bar__badge--sm roundel, colored from LINES.
         function buildLineBadge(lineId) {
           var line = lineById(lineId);
           var badge = document.createElement('span');
-          badge.className = 'line-bar__badge line-bar__badge--sm clue__line';
+          badge.className = 'line-bar__badge line-bar__badge--sm';
           if (line) {
             badge.style.setProperty('--badge-bg', line.color);
             badge.style.setProperty('--badge-ink', line.textColor);
@@ -691,6 +755,9 @@
           els = {
             grid: $('grid'),
             clues: $('clues'),
+            answers: $('answers'),
+            pistasGroup: $('pistas-group'),
+            respuestasGroup: $('respuestas-group'),
             progressCount: $('progress-count'),
             progressFill: $('progress-fill'),
             winNotice: $('win-notice'),

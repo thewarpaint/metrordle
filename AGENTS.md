@@ -676,11 +676,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   pair's own `lineIds` by a per-board seeded stream (`salt + '-lines'`,
   separate from the board-building RNG, so it's stable per day and fresh
   on "Nueva sopa"), when a station has several - followed by the
-  toponym's meaning, not "estación de la Línea N" text. Finding a word
-  reveals it (green) in front of its own clue, sinks that clue to the
-  bottom of the list (in solve order, tracked by `state.foundOrder`) and
-  strikes through the clue text - but NOT the just-revealed word, which
-  stays as the green answer. Tap a cell to anchor; an 8-neighbour tap
+  toponym's meaning, not "estación de la Línea N" text. The clues sit in
+  two numbered, headed lists (`buildClueItem()`/`renderClues()`): "Pistas"
+  (unfound clues, original order) and "Respuestas" (solved stations, in
+  solve order via `state.foundOrder`), each group hidden while its list is
+  empty. Finding a word moves it to Respuestas, shown as the revealed word
+  (plain `--ink`, no longer green) in front of its own clue - no
+  strike-through. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
   orientation) locks it green - found words cycle 3 green shades,

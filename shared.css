@@ -412,13 +412,9 @@ h1 {
   margin-top: 0.05rem;
 }
 
-/* Clasificador's .line-bar__badge - the same rounded-corner square as
-   .line-badge, but a single bold id with no "Línea" caption (its
-   result-row roundel). Colored via --badge-bg/--badge-ink, same
-   convention as .line-badge; flex:0 0 auto so it keeps its size inside
-   Clasificador's own .line-bar flex row. Promoted from that page (and
-   /design/'s old .design-badge stand-in) once Sopa de metros became a
-   second consumer, using the --sm size below in its clue list. */
+/* .line-badge's rounded square but a single bold id, no "Línea" caption
+   (Clasificador's result-row roundel; Sopa's clue badge via --sm).
+   Promoted from Clasificador + /design/'s old .design-badge stand-in. */
 .line-bar__badge {
   align-items: center;
   aspect-ratio: 1;
@@ -432,10 +428,7 @@ h1 {
   font-size: 0.78rem;
   font-weight: 900;
   justify-content: center;
-  /* line-height:1 + a small em-based padding-top optically center the
-     digits, which otherwise sit high (the font's empty descent space
-     pushes a descender-less number up under plain flex centering). em so
-     the nudge scales with --sm too. */
+  /* Optically center the descender-less digits (em scales to --sm). */
   line-height: 1;
   padding-top: 0.14em;
   width: 1.9rem;

@@ -240,10 +240,8 @@
         // y la(s) línea(s) donde está la estación (verificadas contra
         // MetroShared.LINES). Son exactamente WORD_COUNT, así que el
         // shuffle solo varía dónde caen, no cuáles salen.
-        // clue is just the toponym's meaning now; the line(s) render as
-        // .line-bar__badge--sm roundels (shared.css), looked up by id in
-        // MetroShared.LINES, instead of the old "estación de la Línea N"
-        // text. lineIds are those same ids.
+        // clue is just the toponym's meaning; lineIds are the station's
+        // line ids (MetroShared.LINES), rendered as a leading badge.
         var WORD_POOL = [
           { word: 'ACULCO', clue: '"En el agua torcida"', lineIds: ['8'] },
           { word: 'COYOACAN', clue: '"Lugar de coyotes"', lineIds: ['3'] },
@@ -373,8 +371,7 @@
             var entry = state.words[i];
             var li = document.createElement('li');
             li.className = 'clue' + (state.found[i] ? ' clue--found' : '');
-            // Line roundel leads the hint; the revealed word (if found) and
-            // the clue text follow.
+            // Line roundel leads, then the revealed word (if found), then clue.
             li.appendChild(buildLineBadge(entry.lineId));
             if (state.found[i]) {
               var w = document.createElement('span');
@@ -390,8 +387,7 @@
           });
         }
 
-        // The station's line as a small .line-bar__badge--sm roundel
-        // (shared.css), colored from MetroShared.LINES.
+        // A line id as a small .line-bar__badge--sm roundel, colored from LINES.
         function buildLineBadge(lineId) {
           var line = lineById(lineId);
           var badge = document.createElement('span');
@@ -570,10 +566,9 @@
         // --- Lifecycle ---------------------------------------------------
         function newGame(salt, persistKey) {
           var built = buildBoard(salt);
-          // Pick one line per station to badge the clue with - stable per
-          // board (seeded off the same salt, a separate stream so it doesn't
-          // perturb buildBoard's own), fresh on "Nueva sopa". A copy per
-          // word, so WORD_POOL's own shared entries aren't mutated.
+          // One line per station for the clue badge - seeded off the salt
+          // (separate stream, so buildBoard's RNG is untouched), stable per
+          // board. Copy each word so WORD_POOL's shared entries aren't mutated.
           var lineRand = MetroShared.createSeededRandom(salt + '-lines');
           var words = built.words.map(function (w) {
             return {

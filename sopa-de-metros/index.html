@@ -127,9 +127,9 @@
       }
 
       /* Two numbered lists, each under its own small header: "Pistas"
-         (hints still to find) and "Respuestas" (solved stations - the
-         revealed word in front of its clue). A group hides itself when
-         its list is empty. */
+         (hints still to find, one line each) and "Respuestas" (solved
+         stations, two lines each: its lines + name, then the meaning). A
+         group hides itself when its list is empty. */
       .clue-group[hidden] { display: none; }
 
       .clue-group__title {
@@ -142,27 +142,56 @@
         padding: 0.7rem 1.1rem 0;
       }
 
+      /* Numbers are a CSS counter (not the native <ol> marker) so the gap
+         between the number and the content is ours to set - see .clue's
+         padding-left vs .clue__num's width below. */
       .clues {
+        counter-reset: clue;
+        list-style: none;
         color: var(--ink-soft);
         font-size: 0.82rem;
         line-height: 1.4;
         margin: 0;
-        padding: 0.35rem 1.1rem 0.2rem 2.2rem;
+        padding: 0.35rem 1.1rem 0.2rem;
       }
 
       .clue {
-        margin-bottom: 0.28rem;
+        counter-increment: clue;
+        position: relative;
+        margin-bottom: 0.4rem;
+        padding-left: 1.9rem;
       }
 
       .clue:last-child {
         margin-bottom: 0;
       }
 
+      /* Right-aligned number column; the 0.5rem gap to the content is the
+         difference between .clue's padding-left and this width. */
+      .clue::before {
+        content: counter(clue) ".";
+        position: absolute;
+        left: 0;
+        width: 1.4rem;
+        text-align: right;
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+      }
+
       .clue__word {
         font-weight: 800;
         letter-spacing: 0.03em;
-        margin-right: 0.3rem;
         text-transform: uppercase;
+      }
+
+      /* Respuestas rows are two lines: lines + station name, then the
+         meaning on its own line (room for more content later). */
+      .clue__answer-head {
+        margin-bottom: 0.1rem;
+      }
+
+      .clue--answer .clue__text {
+        display: block;
       }
 
       /* The station's line roundel(s), leading the clue on its text line.
@@ -405,21 +434,27 @@
         function buildClueItem(i, found) {
           var entry = state.words[i];
           var li = document.createElement('li');
-          li.className = 'clue';
-          // Line roundel(s) lead, then the revealed word (if found), then
-          // clue. Pistas shows one seeded line; Respuestas shows all of a
-          // solved station's lines.
-          li.appendChild(buildLineBadges(found ? entry.lineIds : [entry.lineId]));
-          if (found) {
-            var w = document.createElement('span');
-            w.className = 'clue__word';
-            w.textContent = entry.word;
-            li.appendChild(w);
-          }
+          li.className = 'clue' + (found ? ' clue--answer' : '');
           var text = document.createElement('span');
           text.className = 'clue__text';
           text.textContent = entry.clue;
-          li.appendChild(text);
+          if (found) {
+            // Respuestas: a first line of all the station's lines + its
+            // name, then the meaning on its own line.
+            var head = document.createElement('div');
+            head.className = 'clue__answer-head';
+            head.appendChild(buildLineBadges(entry.lineIds));
+            var w = document.createElement('span');
+            w.className = 'clue__word';
+            w.textContent = entry.word;
+            head.appendChild(w);
+            li.appendChild(head);
+            li.appendChild(text);
+          } else {
+            // Pistas: one seeded line badge, then the meaning, one line.
+            li.appendChild(buildLineBadges([entry.lineId]));
+            li.appendChild(text);
+          }
           return li;
         }
 

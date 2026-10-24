@@ -163,11 +163,10 @@
         text-decoration: line-through;
       }
 
-      /* The station's line roundel(s), sitting on the clue's text line. */
-      .clue__lines {
+      /* The station's line roundel, leading the clue on its text line. */
+      .clue__line {
         display: inline-flex;
-        gap: 0.25rem;
-        margin-left: 0.4rem;
+        margin-right: 0.4rem;
         vertical-align: middle;
       }
 
@@ -374,6 +373,9 @@
             var entry = state.words[i];
             var li = document.createElement('li');
             li.className = 'clue' + (state.found[i] ? ' clue--found' : '');
+            // Line roundel leads the hint; the revealed word (if found) and
+            // the clue text follow.
+            li.appendChild(buildLineBadge(entry.lineId));
             if (state.found[i]) {
               var w = document.createElement('span');
               w.className = 'clue__word';
@@ -384,28 +386,22 @@
             text.className = 'clue__text';
             text.textContent = entry.clue;
             li.appendChild(text);
-            li.appendChild(buildLineBadges(entry.lineIds));
             els.clues.appendChild(li);
           });
         }
 
-        // The station's line(s) as small .line-bar__badge--sm roundels
-        // (shared.css), colored per line from MetroShared.LINES.
-        function buildLineBadges(lineIds) {
-          var wrap = document.createElement('span');
-          wrap.className = 'clue__lines';
-          (lineIds || []).forEach(function (id) {
-            var line = lineById(id);
-            var badge = document.createElement('span');
-            badge.className = 'line-bar__badge line-bar__badge--sm';
-            if (line) {
-              badge.style.setProperty('--badge-bg', line.color);
-              badge.style.setProperty('--badge-ink', line.textColor);
-            }
-            badge.textContent = id;
-            wrap.appendChild(badge);
-          });
-          return wrap;
+        // The station's line as a small .line-bar__badge--sm roundel
+        // (shared.css), colored from MetroShared.LINES.
+        function buildLineBadge(lineId) {
+          var line = lineById(lineId);
+          var badge = document.createElement('span');
+          badge.className = 'line-bar__badge line-bar__badge--sm clue__line';
+          if (line) {
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+          }
+          badge.textContent = lineId;
+          return badge;
         }
 
         function lineById(id) {
@@ -574,10 +570,23 @@
         // --- Lifecycle ---------------------------------------------------
         function newGame(salt, persistKey) {
           var built = buildBoard(salt);
+          // Pick one line per station to badge the clue with - stable per
+          // board (seeded off the same salt, a separate stream so it doesn't
+          // perturb buildBoard's own), fresh on "Nueva sopa". A copy per
+          // word, so WORD_POOL's own shared entries aren't mutated.
+          var lineRand = MetroShared.createSeededRandom(salt + '-lines');
+          var words = built.words.map(function (w) {
+            return {
+              word: w.word,
+              clue: w.clue,
+              lineIds: w.lineIds,
+              lineId: w.lineIds[Math.floor(lineRand() * w.lineIds.length)],
+            };
+          });
           state = {
             grid: built.grid,
-            words: built.words,
-            found: built.words.map(function () { return false; }),
+            words: words,
+            found: words.map(function () { return false; }),
             foundOrder: [],
             foundCells: {},
             selection: [],

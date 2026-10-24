@@ -666,11 +666,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   letters - deterministic per day via `createSeededRandom('metrordle-
   sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
   (still a pure function of the day). The player sees only the clues (a
-  numbered `.clues` list, an `<ol>`), never the words; each clue is the
-  toponym's meaning plus the station's line(s) shown as
-  `.line-bar__badge--sm` roundels (shared.css, colored by line from
-  `MetroShared.LINES` via each pair's own `lineIds`), not "estación de la
-  Línea N" text. Finding a word
+  numbered `.clues` list, an `<ol>`), never the words; each clue is led
+  by a single `.line-bar__badge--sm` roundel (shared.css, colored from
+  `MetroShared.LINES`) for one of the station's lines - picked from that
+  pair's own `lineIds` by a per-board seeded stream (`salt + '-lines'`,
+  separate from the board-building RNG, so it's stable per day and fresh
+  on "Nueva sopa"), when a station has several - followed by the
+  toponym's meaning, not "estación de la Línea N" text. Finding a word
   reveals it (green) in front of its own clue, sinks that clue to the
   bottom of the list (in solve order, tracked by `state.foundOrder`) and
   strikes through the clue text - but NOT the just-revealed word, which
@@ -786,10 +788,11 @@ are impossible without a debug override.
   (Clasificador's result-row roundel), colored the same
   `--badge-bg`/`--badge-ink` way, promoted from Clasificador's own
   page-local copy (and `/design/`'s old `.design-badge` stand-in) once
-  Sopa de metros became a second consumer - Sopa renders the line(s) a
-  station is on as `.line-bar__badge--sm` (the one smaller size modifier)
-  roundels in its clue list instead of "estación de la Línea N" text;
-  `.station-card` - a neutral station
+  Sopa de metros became a second consumer - Sopa leads each clue with a
+  single `.line-bar__badge--sm` (the one smaller size modifier) roundel
+  for one of the station's lines (picked by the day's seed when a station
+  has several, stable per board) instead of "estación de la Línea N"
+  text; `.station-card` - a neutral station
   card, same square-with-rounded-top-right-corner shape as `.line-badge`
   but uncolored and borderless (just `--paper-well` for the background,
   no line, no border - the border was dropped after promotion, so

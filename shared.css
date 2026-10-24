@@ -432,6 +432,12 @@ h1 {
   font-size: 0.78rem;
   font-weight: 900;
   justify-content: center;
+  /* line-height:1 + a small em-based padding-top optically center the
+     digits, which otherwise sit high (the font's empty descent space
+     pushes a descender-less number up under plain flex centering). em so
+     the nudge scales with --sm too. */
+  line-height: 1;
+  padding-top: 0.14em;
   width: 1.9rem;
 }
 

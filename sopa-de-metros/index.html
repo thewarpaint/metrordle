@@ -165,9 +165,11 @@
         text-transform: uppercase;
       }
 
-      /* The station's line roundel, leading the clue on its text line. */
-      .clue__line {
+      /* The station's line roundel(s), leading the clue on its text line.
+         Pistas shows one; Respuestas shows all of a solved station's. */
+      .clue__lines {
         display: inline-flex;
+        gap: 0.25rem;
         margin-right: 0.4rem;
         vertical-align: middle;
       }
@@ -404,8 +406,10 @@
           var entry = state.words[i];
           var li = document.createElement('li');
           li.className = 'clue';
-          // Line roundel leads, then the revealed word (if found), then clue.
-          li.appendChild(buildLineBadge(entry.lineId));
+          // Line roundel(s) lead, then the revealed word (if found), then
+          // clue. Pistas shows one seeded line; Respuestas shows all of a
+          // solved station's lines.
+          li.appendChild(buildLineBadges(found ? entry.lineIds : [entry.lineId]));
           if (found) {
             var w = document.createElement('span');
             w.className = 'clue__word';
@@ -419,11 +423,19 @@
           return li;
         }
 
+        // One or more line roundels in an inline wrapper, leading a clue.
+        function buildLineBadges(lineIds) {
+          var wrap = document.createElement('span');
+          wrap.className = 'clue__lines';
+          lineIds.forEach(function (id) { wrap.appendChild(buildLineBadge(id)); });
+          return wrap;
+        }
+
         // A line id as a small .line-bar__badge--sm roundel, colored from LINES.
         function buildLineBadge(lineId) {
           var line = lineById(lineId);
           var badge = document.createElement('span');
-          badge.className = 'line-bar__badge line-bar__badge--sm clue__line';
+          badge.className = 'line-bar__badge line-bar__badge--sm';
           if (line) {
             badge.style.setProperty('--badge-bg', line.color);
             badge.style.setProperty('--badge-ink', line.textColor);

@@ -671,18 +671,20 @@ about `//`/`/* */` comments in the actual game/test code.)
   sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
   (still a pure function of the day). The player sees only the clues (a
   numbered `.clues` list, an `<ol>`), never the words; each clue is led
-  by a single `.line-bar__badge--sm` roundel (shared.css, colored from
-  `MetroShared.LINES`) for one of the station's lines - picked from that
-  pair's own `lineIds` by a per-board seeded stream (`salt + '-lines'`,
-  separate from the board-building RNG, so it's stable per day and fresh
-  on "Nueva sopa"), when a station has several - followed by the
-  toponym's meaning, not "estación de la Línea N" text. The clues sit in
-  two numbered, headed lists (`buildClueItem()`/`renderClues()`): "Pistas"
-  (unfound clues, original order) and "Respuestas" (solved stations, in
-  solve order via `state.foundOrder`), each group hidden while its list is
-  empty. Finding a word moves it to Respuestas, shown as the revealed word
-  (plain `--ink`, no longer green) in front of its own clue - no
-  strike-through. Tap a cell to anchor; an 8-neighbour tap
+  by `.line-bar__badge--sm` roundel(s) (shared.css, colored from
+  `MetroShared.LINES`, wrapped in `.clue__lines`). A Pistas clue shows a
+  single line - one of the station's own `lineIds`, picked by a per-board
+  seeded stream (`salt + '-lines'`, separate from the board-building RNG,
+  so it's stable per day and fresh on "Nueva sopa") when a station has
+  several - followed by the toponym's meaning, not "estación de la Línea
+  N" text; a solved station in Respuestas shows **all** of its lines
+  (`entry.lineIds`), since the answer's no longer a secret. The clues sit
+  in two numbered, headed lists (`buildClueItem()`/`renderClues()`):
+  "Pistas" (unfound clues, original order) and "Respuestas" (solved
+  stations, in solve order via `state.foundOrder`), each group hidden
+  while its list is empty. Finding a word moves it to Respuestas, shown as
+  the revealed word (plain `--ink`, no longer green) in front of its own
+  clue - no strike-through. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
   orientation) locks it green - found words cycle 3 green shades,
@@ -802,11 +804,11 @@ are impossible without a debug override.
   (Clasificador's result-row roundel), colored the same
   `--badge-bg`/`--badge-ink` way, promoted from Clasificador's own
   page-local copy (and `/design/`'s old `.design-badge` stand-in) once
-  Sopa de metros became a second consumer - Sopa leads each clue with a
-  single `.line-bar__badge--sm` (the one smaller size modifier) roundel
-  for one of the station's lines (picked by the day's seed when a station
-  has several, stable per board) instead of "estación de la Línea N"
-  text; `.station-card` - a neutral station
+  Sopa de metros became a second consumer - Sopa leads each clue with
+  `.line-bar__badge--sm` (the one smaller size modifier) roundel(s)
+  instead of "estación de la Línea N" text: one seeded line in "Pistas",
+  all of a solved station's lines in "Respuestas" (see its own bullet
+  above); `.station-card` - a neutral station
   card, same square-with-rounded-top-right-corner shape as `.line-badge`
   but uncolored and borderless (just `--paper-well` for the background,
   no line, no border - the border was dropped after promotion, so

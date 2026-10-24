@@ -412,6 +412,34 @@ h1 {
   margin-top: 0.05rem;
 }
 
+/* .line-badge's rounded square but a single bold id, no "Línea" caption
+   (Clasificador's result-row roundel; Sopa's clue badge via --sm).
+   Promoted from Clasificador + /design/'s old .design-badge stand-in. */
+.line-bar__badge {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--badge-bg, var(--line));
+  border: none;
+  border-radius: 0 30% 0 0;
+  color: var(--badge-ink, var(--line-ink));
+  display: flex;
+  flex: 0 0 auto;
+  font-family: 'Overpass', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  justify-content: center;
+  /* Optically center the descender-less digits (em scales to --sm). */
+  line-height: 1;
+  padding-top: 0.14em;
+  width: 1.9rem;
+}
+
+/* Smaller id roundel for dense/inline contexts (Sopa's clue list). */
+.line-bar__badge--sm {
+  font-size: 0.62rem;
+  width: 1.35rem;
+}
+
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible {
   outline: 3px solid var(--focus);
@@ -1093,23 +1121,6 @@ input[type="text"]:disabled {
 
    --badge-bg/--badge-ink matches .line-badge's own convention, set per
    example by /design/'s own script from MetroShared.LINES. */
-.design-badge--sm {
-  align-items: center;
-  aspect-ratio: 1;
-  background: var(--badge-bg, var(--paper-well));
-  border-radius: 0 30% 0 0;
-  color: var(--badge-ink, var(--ink));
-  display: flex;
-  font-family: 'Overpass', sans-serif;
-  justify-content: center;
-  width: 1.9rem;
-}
-
-.design-badge__id {
-  font-size: 0.78rem;
-  font-weight: 900;
-  line-height: 1;
-}
 
 /* Metroguessr's .hint-line-badge - a circle instead of the rounded-
    corner square, same kind of id text. */

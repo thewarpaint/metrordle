@@ -51,6 +51,21 @@
         padding: 1.1rem 1.1rem 0.4rem;
       }
 
+      /* Tagline between the title and the two-paragraph intro. */
+      .sign__sub {
+        font-family: 'Overpass', sans-serif;
+        font-weight: 600;
+        color: var(--ink-soft);
+        font-size: 0.98rem;
+        line-height: 1.2;
+        margin: 0 0 0.55rem;
+      }
+
+      /* .dek is margin:0 in shared.css; space the second paragraph. */
+      .dek + .dek {
+        margin-top: 0.6rem;
+      }
+
       /* Progress bar is shared.css now - here just placed under the intro. */
       .progress {
         margin-top: 0.7rem;
@@ -148,6 +163,13 @@
         text-decoration: line-through;
       }
 
+      /* The station's line roundel, leading the clue on its text line. */
+      .clue__line {
+        display: inline-flex;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+      }
+
       .actions {
         padding: 0.6rem 1.1rem 1rem;
       }
@@ -178,8 +200,10 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Sopa de metros</h1>
-          <p class="dek">Encuentra 10 estaciones del Metro con nombre de origen náhuatl: cada pista da el significado del topónimo y la línea donde está. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar la palabra. Están ocultas en horizontal, vertical o diagonal, en cualquier sentido.</p>
+          <h1>Sopa de metros: noviembre</h1>
+          <p class="sign__sub">Topónimos del náhuatl</p>
+          <p class="dek">Encuentra 10 estaciones del Metro en la cuadrícula. Para cada estación la pista es el significado de un topónimo de origen náhuatl y la línea en la que se encuentra.</p>
+          <p class="dek">Toca una letra y continúa tocando casillas adyacentes en la misma dirección para seleccionar una palabra. Están ocultas en sentido horizontal, vertical o diagonal. Una letra puede ser compartida por más de una palabra.</p>
           <div id="win-notice" hidden></div>
           <div class="progress">
             <div class="progress__track">
@@ -216,17 +240,19 @@
         // y la(s) línea(s) donde está la estación (verificadas contra
         // MetroShared.LINES). Son exactamente WORD_COUNT, así que el
         // shuffle solo varía dónde caen, no cuáles salen.
+        // clue is just the toponym's meaning; lineIds are the station's
+        // line ids (MetroShared.LINES), rendered as a leading badge.
         var WORD_POOL = [
-          { word: 'ACULCO', clue: '"En el agua torcida"; estación de la Línea 8' },
-          { word: 'COYOACAN', clue: '"Lugar de coyotes"; estación de la Línea 3' },
-          { word: 'CULHUACAN', clue: '"Lugar de quienes tienen abuelos"; estación de la Línea 12' },
-          { word: 'MIXCOAC', clue: '"Lugar de la serpiente de nubes"; estación de las Líneas 7 y 12' },
-          { word: 'MIXIUHCA', clue: '"Lugar del parto"; estación de la Línea 9' },
-          { word: 'PANTITLAN', clue: '"Entre las banderas"; estación de las Líneas 1, 5, 9 y A' },
-          { word: 'POPOTLA', clue: '"Donde abundan los popotes"; estación de la Línea 2' },
-          { word: 'TACUBA', clue: 'Del náhuatl Tlacopan, "sobre las varas"; estación de las Líneas 2 y 7' },
-          { word: 'TLATELOLCO', clue: '"En el montículo de tierra"; estación de la Línea 3' },
-          { word: 'ZAPOTITLAN', clue: '"Donde abundan los zapotes"; estación de la Línea 12' },
+          { word: 'ACULCO', clue: '"En el agua torcida"', lineIds: ['8'] },
+          { word: 'COYOACAN', clue: '"Lugar de coyotes"', lineIds: ['3'] },
+          { word: 'CULHUACAN', clue: '"Lugar de quienes tienen abuelos"', lineIds: ['12'] },
+          { word: 'MIXCOAC', clue: '"Lugar de la serpiente de nubes"', lineIds: ['7', '12'] },
+          { word: 'MIXIUHCA', clue: '"Lugar del parto"', lineIds: ['9'] },
+          { word: 'PANTITLAN', clue: '"Entre las banderas"', lineIds: ['1', '5', '9', 'A'] },
+          { word: 'POPOTLA', clue: '"Donde abundan los popotes"', lineIds: ['2'] },
+          { word: 'TACUBA', clue: 'Del náhuatl Tlacopan, "sobre las varas"', lineIds: ['2', '7'] },
+          { word: 'TLATELOLCO', clue: '"En el montículo de tierra"', lineIds: ['3'] },
+          { word: 'ZAPOTITLAN', clue: '"Donde abundan los zapotes"', lineIds: ['12'] },
         ];
         // Spanish-ish fill alphabet (no Ñ, no rare K/W).
         var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
@@ -345,6 +371,8 @@
             var entry = state.words[i];
             var li = document.createElement('li');
             li.className = 'clue' + (state.found[i] ? ' clue--found' : '');
+            // Line roundel leads, then the revealed word (if found), then clue.
+            li.appendChild(buildLineBadge(entry.lineId));
             if (state.found[i]) {
               var w = document.createElement('span');
               w.className = 'clue__word';
@@ -357,6 +385,25 @@
             li.appendChild(text);
             els.clues.appendChild(li);
           });
+        }
+
+        // A line id as a small .line-bar__badge--sm roundel, colored from LINES.
+        function buildLineBadge(lineId) {
+          var line = lineById(lineId);
+          var badge = document.createElement('span');
+          badge.className = 'line-bar__badge line-bar__badge--sm clue__line';
+          if (line) {
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+          }
+          badge.textContent = lineId;
+          return badge;
+        }
+
+        function lineById(id) {
+          var lines = MetroShared.LINES;
+          for (var i = 0; i < lines.length; i++) if (lines[i].id === id) return lines[i];
+          return null;
         }
 
         function foundCount() {
@@ -519,10 +566,22 @@
         // --- Lifecycle ---------------------------------------------------
         function newGame(salt, persistKey) {
           var built = buildBoard(salt);
+          // One line per station for the clue badge - seeded off the salt
+          // (separate stream, so buildBoard's RNG is untouched), stable per
+          // board. Copy each word so WORD_POOL's shared entries aren't mutated.
+          var lineRand = MetroShared.createSeededRandom(salt + '-lines');
+          var words = built.words.map(function (w) {
+            return {
+              word: w.word,
+              clue: w.clue,
+              lineIds: w.lineIds,
+              lineId: w.lineIds[Math.floor(lineRand() * w.lineIds.length)],
+            };
+          });
           state = {
             grid: built.grid,
-            words: built.words,
-            found: built.words.map(function () { return false; }),
+            words: words,
+            found: words.map(function () { return false; }),
             foundOrder: [],
             foundCells: {},
             selection: [],

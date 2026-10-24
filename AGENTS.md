@@ -656,8 +656,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   game map.
 - **`/sopa-de-metros/`** - **prototype**, early word-search (sopa de
   letras - the folder's a pun on it). Not
-  linked from any nav, `noindex`, not precached, no Firebase/leaderboard
-  yet - a standalone playable board, same scaffolding as the real games
+  linked from any nav, `noindex`, no Firebase/leaderboard
+  yet, but precached now (`sw.js`'s own `PRECACHE_URLS`, both the
+  directory and its `index.html`, same as the real games) - so a change
+  to it needs a `CACHE_NAME` bump, which
+  `tests/meta/sw-cache-version.test.js` enforces off that list - a
+  standalone playable board, same scaffolding as the real games
   (shared.css/shared.js, the pre-paint theme snippet, `.sign`/`.btn-*`,
   `.notice--success` win banner). A 12×12 grid hides 10 Metro-themed
   Spanish words (uppercase, accent-free so each maps to one cell; 10

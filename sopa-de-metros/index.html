@@ -51,6 +51,21 @@
         padding: 1.1rem 1.1rem 0.4rem;
       }
 
+      /* Tagline between the title and the two-paragraph intro. */
+      .sign__sub {
+        font-family: 'Overpass', sans-serif;
+        font-weight: 600;
+        color: var(--ink-soft);
+        font-size: 0.98rem;
+        line-height: 1.2;
+        margin: 0 0 0.55rem;
+      }
+
+      /* .dek is margin:0 in shared.css; space the second paragraph. */
+      .dek + .dek {
+        margin-top: 0.6rem;
+      }
+
       /* Progress bar is shared.css now - here just placed under the intro. */
       .progress {
         margin-top: 0.7rem;
@@ -186,8 +201,10 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Sopa de metros</h1>
-          <p class="dek">Encuentra 10 estaciones del Metro con nombre de origen náhuatl: cada pista da el significado del topónimo y la línea donde está. Toca una letra y sigue tocando casillas vecinas en la misma dirección hasta completar la palabra. Están ocultas en horizontal, vertical o diagonal, en cualquier sentido.</p>
+          <h1>Sopa de metros: noviembre</h1>
+          <p class="sign__sub">Topónimos del náhuatl</p>
+          <p class="dek">Encuentra 10 estaciones del Metro en la cuadrícula. Para cada estación la pista es el significado de un topónimo de origen náhuatl y la línea en la que se encuentra.</p>
+          <p class="dek">Toca una letra y continúa tocando casillas adyacentes en la misma dirección para seleccionar una palabra. Están ocultas en sentido horizontal, vertical o diagonal. Una letra puede ser compartida por más de una palabra.</p>
           <div id="win-notice" hidden></div>
           <div class="progress">
             <div class="progress__track">

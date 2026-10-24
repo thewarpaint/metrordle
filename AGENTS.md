@@ -686,7 +686,15 @@ about `//`/`/* */` comments in the actual game/test code.)
   re-tapping the live selection cancels it. Progress is a rounded
   "X / 10 palabras" bar (shared.css's own `.progress`) under the intro,
   its small label sitting below the bar; the win banner (`.notice--success`)
-  sits just above that bar. Today's board persists its found progress to
+  sits just above that bar. Completing the board fires a one-shot
+  celebration (`celebrate()`): a burst of 💀 erupts from the progress bar
+  and rains over the card, drawn as emoji particles on a page-local
+  `.celebration-fx` canvas that covers the `.sign` (pointer-events none).
+  It fires only on a live solve (from `markFound`), never on a same-day
+  reload of an already-won board, and honors
+  `MetroShared.prefersReducedMotion()` (fewer, calmer skulls). Page-local
+  for now; a candidate to promote to a shared `MetroShared` helper once a
+  second game wants one. Today's board persists its found progress to
   `'metrordle-sopa:' + dateKey` (only the found state - the board itself
   is a pure function of the salt, rebuilt and re-overlaid on reload), so a
   refresh keeps your progress; "Nueva sopa" removes that key and deals a

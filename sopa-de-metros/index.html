@@ -148,6 +148,14 @@
         text-decoration: line-through;
       }
 
+      /* The station's line roundel(s), sitting on the clue's text line. */
+      .clue__lines {
+        display: inline-flex;
+        gap: 0.25rem;
+        margin-left: 0.4rem;
+        vertical-align: middle;
+      }
+
       .actions {
         padding: 0.6rem 1.1rem 1rem;
       }
@@ -216,17 +224,21 @@
         // y la(s) línea(s) donde está la estación (verificadas contra
         // MetroShared.LINES). Son exactamente WORD_COUNT, así que el
         // shuffle solo varía dónde caen, no cuáles salen.
+        // clue is just the toponym's meaning now; the line(s) render as
+        // .line-bar__badge--sm roundels (shared.css), looked up by id in
+        // MetroShared.LINES, instead of the old "estación de la Línea N"
+        // text. lineIds are those same ids.
         var WORD_POOL = [
-          { word: 'ACULCO', clue: '"En el agua torcida"; estación de la Línea 8' },
-          { word: 'COYOACAN', clue: '"Lugar de coyotes"; estación de la Línea 3' },
-          { word: 'CULHUACAN', clue: '"Lugar de quienes tienen abuelos"; estación de la Línea 12' },
-          { word: 'MIXCOAC', clue: '"Lugar de la serpiente de nubes"; estación de las Líneas 7 y 12' },
-          { word: 'MIXIUHCA', clue: '"Lugar del parto"; estación de la Línea 9' },
-          { word: 'PANTITLAN', clue: '"Entre las banderas"; estación de las Líneas 1, 5, 9 y A' },
-          { word: 'POPOTLA', clue: '"Donde abundan los popotes"; estación de la Línea 2' },
-          { word: 'TACUBA', clue: 'Del náhuatl Tlacopan, "sobre las varas"; estación de las Líneas 2 y 7' },
-          { word: 'TLATELOLCO', clue: '"En el montículo de tierra"; estación de la Línea 3' },
-          { word: 'ZAPOTITLAN', clue: '"Donde abundan los zapotes"; estación de la Línea 12' },
+          { word: 'ACULCO', clue: '"En el agua torcida"', lineIds: ['8'] },
+          { word: 'COYOACAN', clue: '"Lugar de coyotes"', lineIds: ['3'] },
+          { word: 'CULHUACAN', clue: '"Lugar de quienes tienen abuelos"', lineIds: ['12'] },
+          { word: 'MIXCOAC', clue: '"Lugar de la serpiente de nubes"', lineIds: ['7', '12'] },
+          { word: 'MIXIUHCA', clue: '"Lugar del parto"', lineIds: ['9'] },
+          { word: 'PANTITLAN', clue: '"Entre las banderas"', lineIds: ['1', '5', '9', 'A'] },
+          { word: 'POPOTLA', clue: '"Donde abundan los popotes"', lineIds: ['2'] },
+          { word: 'TACUBA', clue: 'Del náhuatl Tlacopan, "sobre las varas"', lineIds: ['2', '7'] },
+          { word: 'TLATELOLCO', clue: '"En el montículo de tierra"', lineIds: ['3'] },
+          { word: 'ZAPOTITLAN', clue: '"Donde abundan los zapotes"', lineIds: ['12'] },
         ];
         // Spanish-ish fill alphabet (no Ñ, no rare K/W).
         var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
@@ -355,8 +367,34 @@
             text.className = 'clue__text';
             text.textContent = entry.clue;
             li.appendChild(text);
+            li.appendChild(buildLineBadges(entry.lineIds));
             els.clues.appendChild(li);
           });
+        }
+
+        // The station's line(s) as small .line-bar__badge--sm roundels
+        // (shared.css), colored per line from MetroShared.LINES.
+        function buildLineBadges(lineIds) {
+          var wrap = document.createElement('span');
+          wrap.className = 'clue__lines';
+          (lineIds || []).forEach(function (id) {
+            var line = lineById(id);
+            var badge = document.createElement('span');
+            badge.className = 'line-bar__badge line-bar__badge--sm';
+            if (line) {
+              badge.style.setProperty('--badge-bg', line.color);
+              badge.style.setProperty('--badge-ink', line.textColor);
+            }
+            badge.textContent = id;
+            wrap.appendChild(badge);
+          });
+          return wrap;
+        }
+
+        function lineById(id) {
+          var lines = MetroShared.LINES;
+          for (var i = 0; i < lines.length; i++) if (lines[i].id === id) return lines[i];
+          return null;
         }
 
         function foundCount() {

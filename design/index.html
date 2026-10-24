@@ -332,16 +332,24 @@
           var compactRow = buildRow();
           lines.forEach(function (line) {
             var badge = document.createElement('div');
-            badge.className = 'design-badge design-badge--sm';
+            badge.className = 'line-bar__badge';
             badge.style.setProperty('--badge-bg', line.color);
             badge.style.setProperty('--badge-ink', line.textColor);
-            var id = document.createElement('span');
-            id.className = 'design-badge__id';
-            id.textContent = line.id;
-            badge.appendChild(id);
+            badge.textContent = line.id;
             compactRow.appendChild(badge);
           });
-          gallery.appendChild(buildExample(compactRow, '<code>.line-bar__badge</code> · resumen de resultado, Clasificador.'));
+          gallery.appendChild(buildExample(compactRow, '<code>.line-bar__badge</code> · ✅ consolidado - roundel de resultado de Clasificador.'));
+
+          var compactSmRow = buildRow();
+          lines.forEach(function (line) {
+            var badge = document.createElement('div');
+            badge.className = 'line-bar__badge line-bar__badge--sm';
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
+            badge.textContent = line.id;
+            compactSmRow.appendChild(badge);
+          });
+          gallery.appendChild(buildExample(compactSmRow, '<code>.line-bar__badge--sm</code> · versión chica en las pistas de Sopa de metros.'));
 
           var circleRow = buildRow();
           lines.forEach(function (line) {

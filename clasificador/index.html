@@ -298,18 +298,8 @@
         gap: 0.4rem;
       }
 
-      .line-bar__badge {
-        align-items: center;
-        border-radius: 0 30% 0 0;
-        display: flex;
-        flex: 0 0 auto;
-        font-size: 0.78rem;
-        font-weight: 900;
-        height: 1.9rem;
-        justify-content: center;
-        width: 1.9rem;
-      }
-
+      /* .line-bar__badge is shared.css now; .line-bar/.line-bar__count
+         (the result row around it) stay page-local. */
       .line-bar__count {
         font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
         font-size: 0.92rem;
@@ -983,8 +973,8 @@
 
             var badge = document.createElement('span');
             badge.className = 'line-bar__badge';
-            badge.style.background = line.color;
-            badge.style.color = line.textColor;
+            badge.style.setProperty('--badge-bg', line.color);
+            badge.style.setProperty('--badge-ink', line.textColor);
             badge.textContent = line.id;
             row.appendChild(badge);
 

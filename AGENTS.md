@@ -386,7 +386,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   to its section's anchor (`#board-<slug>`, e.g. `#board-lineas`), for
   quickly reloading/returning to a section. All of this chrome is
   page-local (the `.design-toolbar`/`.theme-toggle`/`.design-index`
-  styles live in this page's own `<style>`, not `shared.css`). A "Líneas" board (Clasificador's own `.line-bar__badge`,
+  styles live in this page's own `<style>`, not `shared.css`). A "Líneas" board (the already-decided
+  `.line-bar__badge` (+ its `--sm` size, shown as its own example),
   Metroguessr's `.hint-line-badge`, plus the already-decided
   `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
   an "Estaciones" board (the already-decided `.station-circle` family -
@@ -665,7 +666,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   letters - deterministic per day via `createSeededRandom('metrordle-
   sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
   (still a pure function of the day). The player sees only the clues (a
-  numbered `.clues` list, an `<ol>`), never the words; finding a word
+  numbered `.clues` list, an `<ol>`), never the words; each clue is the
+  toponym's meaning plus the station's line(s) shown as
+  `.line-bar__badge--sm` roundels (shared.css, colored by line from
+  `MetroShared.LINES` via each pair's own `lineIds`), not "estación de la
+  Línea N" text. Finding a word
   reveals it (green) in front of its own clue, sinks that clue to the
   bottom of the list (in solve order, tracked by `state.foundOrder`) and
   strikes through the clue text - but NOT the just-revealed word, which
@@ -776,7 +781,15 @@ are impossible without a debug override.
   Clasificador's own classification buttons and by Metrordle's own
   line-of-the-day indicator - the first pattern `/design/`'s own
   catalog actually settled on, see its own comment in `shared.css` and
-  `/design/`'s own bullet above; `.station-card` - a neutral station
+  `/design/`'s own bullet above; `.line-bar__badge` - the same
+  rounded-corner square but a single bold id with no "Línea" caption
+  (Clasificador's result-row roundel), colored the same
+  `--badge-bg`/`--badge-ink` way, promoted from Clasificador's own
+  page-local copy (and `/design/`'s old `.design-badge` stand-in) once
+  Sopa de metros became a second consumer - Sopa renders the line(s) a
+  station is on as `.line-bar__badge--sm` (the one smaller size modifier)
+  roundels in its clue list instead of "estación de la Línea N" text;
+  `.station-card` - a neutral station
   card, same square-with-rounded-top-right-corner shape as `.line-badge`
   but uncolored and borderless (just `--paper-well` for the background,
   no line, no border - the border was dropped after promotion, so

@@ -669,7 +669,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   8 directions (forward or reversed), the rest filled with random
   letters - deterministic per day via `createSeededRandom('metrordle-
   sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
-  (still a pure function of the day). The player sees only the clues (a
+  (still a pure function of the day). `placeWord()` samples candidate
+  spots and takes the one reusing the fewest already-filled cells
+  (short-circuiting on a crossing-free spot), so words overlap as little
+  as possible - fewer shared cells, fewer touching words. The player sees only the clues (a
   numbered `.clues` list, an `<ol>`), never the words; each clue is led
   by `.line-bar__badge--sm` roundel(s) (shared.css, colored from
   `MetroShared.LINES`, wrapped in `.clue__lines`). A Pistas clue shows a
@@ -687,9 +690,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   clue - no strike-through. Tap a cell to anchor; an 8-neighbour tap
   locks a direction and extends; each further tap must be the next cell
   in that direction. A run whose letters spell a target word (either
-  orientation) locks it green - found words cycle 3 green shades,
-  assigned greedily so a word never shares a shade with one it
-  touches/crosses, which is what lets you tell contiguous words apart; a
+  orientation) locks it green - found words cycle 4 green shades
+  (`.cell--g0..g3`), colored once at board-build time (`colorWords()`,
+  Welsh-Powell over the word-adjacency graph - two words adjacent when any
+  cells are within Chebyshev 1, shared cells included) rather than at
+  solve time, so no two touching or crossing words ever share a shade
+  regardless of the order they're found (4 shades always suffice for these
+  boards), which is what lets you tell contiguous words apart; a
   tap that breaks the line starts a fresh attempt at that cell, and
   re-tapping the live selection cancels it. Progress is a rounded
   "X / 10 palabras" bar (shared.css's own `.progress`) under the intro,

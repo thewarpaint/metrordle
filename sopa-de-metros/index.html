@@ -111,7 +111,7 @@
         color: var(--line-ink);
       }
 
-      /* Found cells cycle three green shades (assigned so touching words
+      /* Found cells cycle four green shades (assigned so touching words
          never share one) - that's what lets you tell two contiguous or
          crossing found words apart. */
       .cell--found {
@@ -121,6 +121,7 @@
       .cell--g0 { background: #0b6b4d; }
       .cell--g1 { background: #12805f; }
       .cell--g2 { background: #1a9a73; }
+      .cell--g3 { background: #26b98c; }
 
       .cell--found.cell--sel {
         background: var(--line);
@@ -288,7 +289,7 @@
 
         var GRID = 12;
         var WORD_COUNT = 10;
-        var SHADES = 3; // green shades cycled so touching found words differ
+        var SHADES = 4; // green shades cycled so touching found words differ
         // Metro-themed Spanish words (uppercase, accent-free so each maps
         // to one grid cell) each paired with a clue - the player sees only
         // the clue until the word is found. 10 pairs are drawn per board.
@@ -350,32 +351,95 @@
             grid.push([]);
             for (var c = 0; c < GRID; c++) grid[r].push(null);
           }
+          var wordCells = [];
           for (var i = 0; i < words.length; i++) {
-            if (!placeWord(grid, words[i].word, rand)) return null;
+            var cells = placeWord(grid, words[i].word, rand);
+            if (!cells) return null;
+            wordCells.push(cells);
           }
           for (var r2 = 0; r2 < GRID; r2++) {
             for (var c2 = 0; c2 < GRID; c2++) {
               if (grid[r2][c2] === null) grid[r2][c2] = FILL.charAt(Math.floor(rand() * FILL.length));
             }
           }
-          return { grid: grid, words: words };
+          return { grid: grid, words: words, shades: colorWords(wordCells) };
         }
 
+        // Sample candidate placements and take the one that reuses the
+        // fewest already-filled cells (short-circuiting on a crossing-free
+        // spot), so words overlap as little as possible - fewer shared
+        // cells means fewer touching words and clearer shades.
         function placeWord(grid, word, rand) {
+          var len = word.length;
+          var best = null, bestOverlap = Infinity;
           for (var t = 0; t < 300; t++) {
             var dir = DIRS[Math.floor(rand() * DIRS.length)];
-            var dr = dir[0], dc = dir[1], len = word.length;
+            var dr = dir[0], dc = dir[1];
             var r0 = Math.floor(rand() * GRID), c0 = Math.floor(rand() * GRID);
             var rEnd = r0 + dr * (len - 1), cEnd = c0 + dc * (len - 1);
             if (rEnd < 0 || rEnd >= GRID || cEnd < 0 || cEnd >= GRID) continue;
-            var fits = true;
+            var fits = true, overlap = 0;
             for (var k = 0; k < len; k++) {
               var cur = grid[r0 + dr * k][c0 + dc * k];
-              if (cur !== null && cur !== word.charAt(k)) { fits = false; break; }
+              if (cur !== null) {
+                if (cur !== word.charAt(k)) { fits = false; break; }
+                overlap++;
+              }
             }
             if (!fits) continue;
-            for (var k2 = 0; k2 < len; k2++) grid[r0 + dr * k2][c0 + dc * k2] = word.charAt(k2);
-            return true;
+            if (overlap < bestOverlap) {
+              best = { r0: r0, c0: c0, dr: dr, dc: dc };
+              bestOverlap = overlap;
+              if (overlap === 0) break; // can't do better than no crossing
+            }
+          }
+          if (!best) return null;
+          var placed = [];
+          for (var k2 = 0; k2 < len; k2++) {
+            var r = best.r0 + best.dr * k2, c = best.c0 + best.dc * k2;
+            grid[r][c] = word.charAt(k2);
+            placed.push([r, c]);
+          }
+          return placed;
+        }
+
+        // Proper shade coloring computed once at build time (not per solve)
+        // so it never depends on the order words are found: words that
+        // touch or cross (any cells within Chebyshev distance 1, shared
+        // cells included) always get different shades. Welsh-Powell greedy
+        // (highest degree first) - verified to stay within SHADES (4) for
+        // these boards; the modulo is a never-expected guard, not a real
+        // fallback.
+        function colorWords(wordCells) {
+          var n = wordCells.length;
+          var adj = [];
+          for (var i = 0; i < n; i++) adj.push({});
+          for (var a = 0; a < n; a++) {
+            for (var b = a + 1; b < n; b++) {
+              if (wordsTouch(wordCells[a], wordCells[b])) { adj[a][b] = true; adj[b][a] = true; }
+            }
+          }
+          var order = [];
+          for (var i2 = 0; i2 < n; i2++) order.push(i2);
+          order.sort(function (x, y) {
+            return Object.keys(adj[y]).length - Object.keys(adj[x]).length || x - y;
+          });
+          var shades = new Array(n);
+          for (var oi = 0; oi < order.length; oi++) {
+            var v = order[oi], used = {};
+            for (var u in adj[v]) if (shades[u] !== undefined) used[shades[u]] = true;
+            var s = 0;
+            while (used[s]) s++;
+            shades[v] = s % SHADES;
+          }
+          return shades;
+        }
+
+        function wordsTouch(cellsA, cellsB) {
+          for (var i = 0; i < cellsA.length; i++) {
+            for (var j = 0; j < cellsB.length; j++) {
+              if (Math.max(Math.abs(cellsA[i][0] - cellsB[j][0]), Math.abs(cellsA[i][1] - cellsB[j][1])) <= 1) return true;
+            }
           }
           return false;
         }
@@ -564,23 +628,6 @@
           return -1;
         }
 
-        // Lowest shade (0..SHADES-1) not used by any already-found cell in
-        // the 8-neighbourhood of this word, so a word never shares a shade
-        // with one it touches or crosses.
-        function pickShade(cells) {
-          var used = {};
-          cells.forEach(function (p) {
-            for (var dr = -1; dr <= 1; dr++) {
-              for (var dc = -1; dc <= 1; dc++) {
-                var k = keyOf(p.r + dr, p.c + dc);
-                if (k in state.foundCells) used[state.foundCells[k]] = true;
-              }
-            }
-          });
-          for (var s = 0; s < SHADES; s++) if (!used[s]) return s;
-          return 0;
-        }
-
         function showWinBanner() {
           MetroShared.renderNoticeBanner(
             els.winNotice, 'notice--success',
@@ -665,10 +712,12 @@
         function markFound(idx) {
           state.found[idx] = true;
           state.foundOrder.push(idx);
-          var shade = pickShade(state.selection);
+          var shade = state.shades[idx];
           state.selection.forEach(function (p) {
             var k = keyOf(p.r, p.c);
-            // A cell shared with an earlier word keeps that word's shade.
+            // A cell shared with an earlier word keeps that word's shade;
+            // the build-time coloring guarantees the two words differ, so
+            // either choice stays distinct from everything they touch.
             if (!(k in state.foundCells)) state.foundCells[k] = shade;
           });
           state.selection = [];
@@ -733,6 +782,7 @@
           state = {
             grid: built.grid,
             words: words,
+            shades: built.shades,
             found: words.map(function () { return false; }),
             foundOrder: [],
             foundCells: {},

@@ -10,16 +10,16 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="title" content="🔍 Estación diferente · Metrordle">
+    <meta name="title" content="❄️ Copo de nieve · Metrordle">
     <meta name="description" content="Encuentra la estación del Metro con el icono distinto en una cuadrícula 7×7, contra reloj.">
     <meta name="robots" content="noindex">
 
     <meta name="theme-color" content="#0057a8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Metrordle: Estación diferente">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Copo de nieve">
 
-    <title>🔍 Estación diferente · Metrordle</title>
+    <title>❄️ Copo de nieve · Metrordle</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/favicon.png">
@@ -100,6 +100,29 @@
       .overlay__score { font-size: 2.6rem; font-weight: 900; margin: 0.1rem 0; font-variant-numeric: tabular-nums; }
       .overlay__best { color: var(--ink-soft); font-size: 0.9rem; font-weight: 600; margin: 0; }
 
+      /* End-of-round grid of the stations found, same pattern as Memoria's
+         reveal: shared .station tiles (neutral fill - these icons carry no
+         single line of their own) with a staggered pop-in. Capped + scrollable
+         so a big score still fits over the board. */
+      .reveal__icons {
+        display: grid;
+        gap: 0.35rem;
+        grid-template-columns: repeat(6, 1fr);
+        width: 100%;
+        max-height: 11rem;
+        overflow-y: auto;
+        margin: 0.3rem 0 0.1rem;
+      }
+      .reveal__icons[hidden] { display: none; }
+      .reveal__icon-cell--entering {
+        animation: copo-reveal-icon-pop-in 0.3s ease backwards;
+        animation-delay: var(--stagger-delay, 0s);
+      }
+      @keyframes copo-reveal-icon-pop-in {
+        from { opacity: 0; transform: scale(0.7); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
       .progress { margin-top: 0.7rem; }
     </style>
   </head>
@@ -113,19 +136,19 @@
           <circle cx="17" cy="20" r="2" fill="var(--ink)"/>
           <line x1="1" y1="11" x2="23" y2="11" stroke="var(--ink)" stroke-width="1.5"/>
         </svg>
-        <span class="brand__text">Metrordle · Estación diferente</span>
+        <span class="brand__text">Metrordle · Copo de nieve</span>
         <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
       </div>
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Estación diferente</h1>
-          <p class="dek">Una de las 49 estaciones tiene un icono distinto. Tócala para pasar a la siguiente. ¿Cuántas encuentras en 60 segundos?</p>
+          <h1>Copo de nieve</h1>
+          <p class="dek">Una de las 49 estaciones es única y especial. Tócala para avanzar ¿Cuántas puedes encontrar en 60 segundos?</p>
           <div class="progress">
             <div class="progress__track"><div class="progress__fill" id="time-fill"></div></div>
             <div class="progress__label progress__label--split">
-              <span><b id="time-text">1:00</b> restante</span>
-              <span>aciertos <b id="score-text">0</b></span>
+              <span><b id="time-text">1:00</b></span>
+              <span><b id="score-text">0</b> aciertos</span>
             </div>
           </div>
         </div>
@@ -134,10 +157,9 @@
           <div class="board" id="board" role="grid" aria-label="Cuadrícula de estaciones"></div>
           <div class="start-overlay" id="overlay">
             <div class="start-overlay__panel">
-              <p class="start-overlay__text" id="overlay-text">
-                Toca la estación cuyo icono no coincide con las demás. Cada acierto te da una cuadrícula nueva; un fallo te quita 1.5 s.
-              </p>
+              <p class="start-overlay__text" id="overlay-text" hidden></p>
               <div class="overlay__score" id="overlay-score" hidden></div>
+              <div class="reveal__icons" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
               <p class="overlay__best" id="overlay-best" hidden></p>
               <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
             </div>
@@ -151,8 +173,8 @@
       (function () {
         'use strict';
 
-        var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000, PENALTY_MS = 1500;
-        var BEST_KEY = 'diferente:best';
+        var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000;
+        var BEST_KEY = 'copo-de-nieve:best';
         // After this many finds the odd icon is drawn from the majority's
         // most visually-similar neighbours (hardest); 0 is all-random (easy).
         var RAMP_SCORE = 18;
@@ -166,6 +188,7 @@
         var timeFill = document.getElementById('time-fill');
         var timeText = document.getElementById('time-text');
         var scoreText = document.getElementById('score-text');
+        var revealIcons = document.getElementById('reveal-icons');
 
         // Build the 49 cells once; a round only mutates CSS vars + one
         // class, never the cell nodes.
@@ -224,19 +247,25 @@
         }
 
         var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0,
-          prevMajor: -1, prevOdd: -1, prevIndex: -1 };
+          prevMajor: -1, prevOdd: -1, prevIndex: -1, oddIconIdx: -1, found: [] };
 
-        function randInt(n) { return Math.floor(Math.random() * n); }
+        // Per-day seeded stream, so every player (and every same-day replay)
+        // gets the identical sequence of deals - and thus the same difficulty
+        // curve. Reseeded from the day's dateKey in start(); until then it's
+        // unused. All per-round randomness routes through rng(), never
+        // Math.random() directly, or the sequence would diverge per player.
+        var rng = Math.random;
+        function randInt(n) { return Math.floor(rng() * n); }
 
         // Difficulty ramps with the score (t in [0,1]): early on the odd
         // icon is a random dissimilar one (easy); as t grows it's drawn
         // ever nearer the top of the majority's most-similar neighbour list
-        // (hard), with a small random window so it's not scripted.
+        // (hard), with a small window so it isn't always a fixed rank.
         // avoid(i) is true for an icon this round must not reuse (either of
         // last round's two icons, and the majority itself).
         function pickOdd(majorIdx, avoid) {
           var t = Math.min(state.score / RAMP_SCORE, 1);
-          if (t > 0 && Math.random() < t) {
+          if (t > 0 && rng() < t) {
             var si = SIM_INDEX[ICONS[majorIdx].slug];
             var neigh = (si !== undefined) ? SIM_NEIGH[si] : null;
             if (neigh && neigh.length) {
@@ -276,6 +305,7 @@
           cell.classList.add('cell--odd');
           state.oddCell = cell;
           state.oddIndex = idx;
+          state.oddIconIdx = oddIdx; // the special station on the board right now
 
           state.prevMajor = major;
           state.prevOdd = oddIdx;
@@ -289,11 +319,11 @@
           if (+cell.dataset.i === state.oddIndex) {
             state.score++;
             scoreText.textContent = state.score;
+            if (state.oddIconIdx >= 0) state.found.push(ICONS[state.oddIconIdx].slug);
             flash(cell, 'cell--hit');
             nextRound();
           } else {
-            state.endTime -= PENALTY_MS; // wrong taps cost time, so spotting matters
-            flash(cell, 'cell--wrong');
+            flash(cell, 'cell--wrong'); // just feedback - no time penalty
           }
         }
 
@@ -306,6 +336,41 @@
             cell.classList.remove(cls);
             cell.removeEventListener('animationend', handler);
           });
+        }
+
+        // A station pictogram as a shared .station__icon span (external
+        // sprite <use>, same as Memoria's own makeIcon).
+        function makeIcon(slug) {
+          var wrap = document.createElement('span');
+          wrap.className = 'station__icon';
+          var svgNS = 'http://www.w3.org/2000/svg';
+          var svg = document.createElementNS(svgNS, 'svg');
+          svg.setAttribute('aria-hidden', 'true');
+          var use = document.createElementNS(svgNS, 'use');
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
+          use.setAttribute('href', '/station-icons.svg#' + slug);
+          svg.appendChild(use);
+          wrap.appendChild(svg);
+          return wrap;
+        }
+
+        // End-of-round grid of every station found, one neutral .station tile
+        // each, with a staggered pop-in (Memoria's reveal pattern).
+        function renderRevealIcons() {
+          revealIcons.textContent = '';
+          if (!state.found.length) { revealIcons.hidden = true; return; }
+          var reduce = MetroShared.prefersReducedMotion();
+          state.found.forEach(function (slug, i) {
+            var cell = document.createElement('span');
+            cell.className = 'station reveal__icon-cell';
+            if (!reduce) {
+              cell.classList.add('reveal__icon-cell--entering');
+              cell.style.setProperty('--stagger-delay', (i * 0.03) + 's');
+            }
+            cell.appendChild(makeIcon(slug));
+            revealIcons.appendChild(cell);
+          });
+          revealIcons.hidden = false;
         }
 
         function readBest() {
@@ -328,9 +393,17 @@
           if (!ICONS.length) return;
           state.running = true;
           state.score = 0;
+          state.found = [];
           state.prevMajor = state.prevOdd = state.prevIndex = -1;
+          // Seed the day's deterministic deal sequence (respects ?date= for QA).
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + dateKey);
           state.endTime = performance.now() + ROUND_MS;
           scoreText.textContent = '0';
+          overlayText.hidden = true;
+          overlayScore.hidden = true;
+          overlayBest.hidden = true;
+          revealIcons.hidden = true;
           overlay.hidden = true;
           nextRound();
           state.rafId = requestAnimationFrame(tick);
@@ -344,10 +417,12 @@
           var best = readBest();
           if (state.score > best) { best = state.score; writeBest(best); }
           overlayText.textContent = state.score === 1
-            ? 'Encontraste 1 estación diferente.'
-            : 'Encontraste ' + state.score + ' estaciones diferentes.';
+            ? 'Encontraste 1 estación especial.'
+            : 'Encontraste ' + state.score + ' estaciones especiales.';
+          overlayText.hidden = false;
           overlayScore.textContent = state.score;
           overlayScore.hidden = false;
+          renderRevealIcons();
           overlayBest.textContent = 'Mejor: ' + best;
           overlayBest.hidden = false;
           startBtn.textContent = 'Jugar de nuevo';

@@ -226,17 +226,23 @@
         var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0,
           prevMajor: -1, prevOdd: -1, prevIndex: -1 };
 
-        function randInt(n) { return Math.floor(Math.random() * n); }
+        // Per-day seeded stream, so every player (and every same-day replay)
+        // gets the identical sequence of deals - and thus the same difficulty
+        // curve. Reseeded from the day's dateKey in start(); until then it's
+        // unused. All per-round randomness routes through rng(), never
+        // Math.random() directly, or the sequence would diverge per player.
+        var rng = Math.random;
+        function randInt(n) { return Math.floor(rng() * n); }
 
         // Difficulty ramps with the score (t in [0,1]): early on the odd
         // icon is a random dissimilar one (easy); as t grows it's drawn
         // ever nearer the top of the majority's most-similar neighbour list
-        // (hard), with a small random window so it's not scripted.
+        // (hard), with a small window so it isn't always a fixed rank.
         // avoid(i) is true for an icon this round must not reuse (either of
         // last round's two icons, and the majority itself).
         function pickOdd(majorIdx, avoid) {
           var t = Math.min(state.score / RAMP_SCORE, 1);
-          if (t > 0 && Math.random() < t) {
+          if (t > 0 && rng() < t) {
             var si = SIM_INDEX[ICONS[majorIdx].slug];
             var neigh = (si !== undefined) ? SIM_NEIGH[si] : null;
             if (neigh && neigh.length) {
@@ -329,6 +335,9 @@
           state.running = true;
           state.score = 0;
           state.prevMajor = state.prevOdd = state.prevIndex = -1;
+          // Seed the day's deterministic deal sequence (respects ?date= for QA).
+          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          rng = MetroShared.createSeededRandom('metrordle-diferente-' + dateKey);
           state.endTime = performance.now() + ROUND_MS;
           scoreText.textContent = '0';
           overlay.hidden = true;

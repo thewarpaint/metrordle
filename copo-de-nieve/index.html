@@ -95,22 +95,27 @@
       @keyframes diff-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
       /* The start/result overlay reuses shared .start-overlay over the
-         board. A results screen shows the score big. */
+         board. A results screen shows the score big. On the results screen
+         (.board-stage--done) the overlay drops to normal flow and the board
+         is hidden, so the card grows to fit the full found-stations grid and
+         the page scrolls - instead of the grid being clipped inside the
+         fixed-height board area. */
       .start-overlay { background: var(--paper-raised); }
+      .board-stage--done #board { display: none; }
+      .board-stage--done .start-overlay { position: static; }
       .overlay__score { font-size: 2.6rem; font-weight: 900; margin: 0.1rem 0; font-variant-numeric: tabular-nums; }
       .overlay__best { color: var(--ink-soft); font-size: 0.9rem; font-weight: 600; margin: 0; }
 
       /* End-of-round grid of the stations found, same pattern as Memoria's
          reveal: shared .station tiles (neutral fill - these icons carry no
-         single line of their own) with a staggered pop-in. Capped + scrollable
-         so a big score still fits over the board. */
+         single line of their own) with a staggered pop-in. Height is
+         unrestricted - the whole grid shows, and the overlay scrolls if the
+         panel outgrows the board. */
       .reveal__icons {
         display: grid;
         gap: 0.35rem;
         grid-template-columns: repeat(6, 1fr);
         width: 100%;
-        max-height: 11rem;
-        overflow-y: auto;
         margin: 0.3rem 0 0.1rem;
       }
       .reveal__icons[hidden] { display: none; }
@@ -180,6 +185,7 @@
         var RAMP_SCORE = 18;
 
         var board = document.getElementById('board');
+        var boardStage = document.querySelector('.board-stage');
         var overlay = document.getElementById('overlay');
         var overlayText = document.getElementById('overlay-text');
         var overlayScore = document.getElementById('overlay-score');
@@ -404,6 +410,7 @@
           overlayScore.hidden = true;
           overlayBest.hidden = true;
           revealIcons.hidden = true;
+          boardStage.classList.remove('board-stage--done');
           overlay.hidden = true;
           nextRound();
           state.rafId = requestAnimationFrame(tick);
@@ -426,6 +433,7 @@
           overlayBest.textContent = 'Mejor: ' + best;
           overlayBest.hidden = false;
           startBtn.textContent = 'Jugar de nuevo';
+          boardStage.classList.add('board-stage--done'); // card grows to fit the full grid
           overlay.hidden = false;
         }
 

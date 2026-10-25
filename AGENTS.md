@@ -716,6 +716,27 @@ about `//`/`/* */` comments in the actual game/test code.)
   fresh random board (itself never persisted). No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
+- **`/diferente/`** - **prototype**, a reflex/arcade game (not linked
+  from any nav, `noindex`, not precached, no Firebase/leaderboard yet -
+  same prototype posture as `/sopa-de-metros/`). A 7×7 grid of station
+  cards all show one station pictogram except one, randomly placed, with
+  a different one; tapping the odd card deals a fresh random pair
+  (`nextRound()`) and scores a point. The goal is to find as many as
+  possible in 60 s; a wrong tap costs 1.5 s. Unlike the puzzle games it
+  is **not** deterministic per day - rounds are live `Math.random()`,
+  since there's no fixed daily puzzle (a local `diferente:best` high
+  score is the only persistence). Icons are real station pictograms: the
+  page fetches `/station-icons.svg` once and turns each symbol into a CSS
+  mask data URI (the pictograms are single-color, so the masked
+  silhouette is the exact icon the other games render via `<use>`); the
+  pool is every distinct slug in `MetroShared.STATION_ICON_SLUGS`.
+  Written for minimal repaint: the 49 `.cell` nodes are built once and
+  never rebuilt - a round only sets two CSS custom properties on
+  `#board` (`--major`/`--odd`, the two icon masks every cell reads via
+  `var()`) and moves the `.cell--odd` class, ~4 writes total; input is
+  one delegated listener on `#board`. Uses shared.css
+  (`.sign`/`.progress`/`.start-overlay`/`.btn-primary`) + shared.js. No
+  committed test yet (prototype).
 
 Each game is deterministic per calendar day: a seeded RNG
 (`MetroShared.createSeededRandom('<salt>-' + dateKey)`) derives that

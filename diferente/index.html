@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8">
+    <!--
+      Same defense-in-depth CSP as every other page (see clasificador's
+      own comment). This prototype loads no Firebase, but keeping the
+      shared policy avoids a per-page exception to maintain. connect-src
+      'self' is what lets the game fetch /station-icons.svg (below).
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="title" content="🔍 Estación diferente · Metrordle">
+    <meta name="description" content="Encuentra la estación del Metro con el icono distinto en una cuadrícula 7×7, contra reloj.">
+    <meta name="robots" content="noindex">
+
+    <meta name="theme-color" content="#0057a8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Metrordle: Estación diferente">
+
+    <title>🔍 Estación diferente · Metrordle</title>
+
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <link rel="stylesheet" href="/shared.css">
+
+    <!-- Applies a saved theme before first paint - see every other page's head. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('metrordle:config');
+          var mode = raw && JSON.parse(raw).mode;
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <style>
+      .dek { margin: 0; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.4; }
+
+      /* The board sits inside the card with its own padding (not full
+         bleed), so .sign keeps its frame. */
+      .board-stage { position: relative; padding: 0.6rem 0.7rem 0.9rem; }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+        /* A round sets these two icon masks; every .cell reads them via
+           var(), so swapping them repaints the whole grid without touching
+           a single cell node. */
+        --major: none;
+        --odd: none;
+      }
+
+      .cell {
+        aspect-ratio: 1;
+        border: none;
+        border-radius: 0 28% 0 0;
+        background: var(--paper-well);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      .cell:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+      /* Icons render as silhouettes masked in the ink color - the same
+         single-color look the other games give station pictograms. */
+      .cell__icon {
+        width: 66%;
+        height: 66%;
+        background: var(--ink);
+        -webkit-mask: var(--major) center / contain no-repeat;
+        mask: var(--major) center / contain no-repeat;
+      }
+      .cell--odd .cell__icon {
+        -webkit-mask-image: var(--odd);
+        mask-image: var(--odd);
+      }
+
+      .cell--hit { animation: diff-pop 0.18s ease; }
+      .cell--hit .cell__icon { background: var(--ok); }
+      .cell--wrong { animation: diff-shake 0.28s ease; }
+      .cell--wrong .cell__icon { background: var(--danger); }
+      @keyframes diff-pop { 50% { transform: scale(1.18); } }
+      @keyframes diff-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+      /* The start/result overlay reuses shared .start-overlay over the
+         board. A results screen shows the score big. */
+      .start-overlay { background: var(--paper-raised); }
+      .overlay__score { font-size: 2.6rem; font-weight: 900; margin: 0.1rem 0; font-variant-numeric: tabular-nums; }
+      .overlay__best { color: var(--ink-soft); font-size: 0.9rem; font-weight: 600; margin: 0; }
+
+      .progress { margin-top: 0.7rem; }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg class="brand__mark" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="1" y="6" width="22" height="12" rx="3" stroke="var(--ink)" stroke-width="2"/>
+          <circle cx="7" cy="20" r="2" fill="var(--ink)"/>
+          <circle cx="17" cy="20" r="2" fill="var(--ink)"/>
+          <line x1="1" y1="11" x2="23" y2="11" stroke="var(--ink)" stroke-width="1.5"/>
+        </svg>
+        <span class="brand__text">Metrordle · Estación diferente</span>
+        <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      </div>
+
+      <div class="sign">
+        <div class="sign__head">
+          <h1>Estación diferente</h1>
+          <p class="dek">Una de las 49 estaciones tiene un icono distinto. Tócala para pasar a la siguiente. ¿Cuántas encuentras en 60 segundos?</p>
+          <div class="progress">
+            <div class="progress__track"><div class="progress__fill" id="time-fill"></div></div>
+            <div class="progress__label progress__label--split">
+              <span><b id="time-text">1:00</b> restante</span>
+              <span>aciertos <b id="score-text">0</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="board-stage">
+          <div class="board" id="board" role="grid" aria-label="Cuadrícula de estaciones"></div>
+          <div class="start-overlay" id="overlay">
+            <div class="start-overlay__panel">
+              <p class="start-overlay__text" id="overlay-text">
+                Toca la estación cuyo icono no coincide con las demás. Cada acierto te da una cuadrícula nueva; un fallo te quita 1.5 s.
+              </p>
+              <div class="overlay__score" id="overlay-score" hidden></div>
+              <p class="overlay__best" id="overlay-best" hidden></p>
+              <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/shared.js"></script>
+    <script>
+      (function () {
+        'use strict';
+
+        var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000, PENALTY_MS = 1500;
+        var BEST_KEY = 'diferente:best';
+
+        var board = document.getElementById('board');
+        var overlay = document.getElementById('overlay');
+        var overlayText = document.getElementById('overlay-text');
+        var overlayScore = document.getElementById('overlay-score');
+        var overlayBest = document.getElementById('overlay-best');
+        var startBtn = document.getElementById('start-btn');
+        var timeFill = document.getElementById('time-fill');
+        var timeText = document.getElementById('time-text');
+        var scoreText = document.getElementById('score-text');
+
+        // Build the 49 cells once; a round only mutates CSS vars + one
+        // class, never the cell nodes.
+        var cells = [];
+        (function build() {
+          var frag = document.createDocumentFragment();
+          for (var i = 0; i < COUNT; i++) {
+            var cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'cell';
+            cell.setAttribute('role', 'gridcell');
+            cell.dataset.i = i;
+            var icon = document.createElement('span');
+            icon.className = 'cell__icon';
+            cell.appendChild(icon);
+            frag.appendChild(cell);
+            cells.push(cell);
+          }
+          board.appendChild(frag);
+        })();
+
+        // Real station pictograms: fetch the shared sprite once and turn
+        // each symbol into a CSS mask data URI (the icons are single-color,
+        // so the silhouette is the exact pictogram). The pool is every
+        // distinct slug MetroShared maps a station to.
+        var ICONS = [];
+        function buildIcons(svgText) {
+          var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+          var serializer = new XMLSerializer();
+          var seen = {};
+          var slugs = MetroShared.STATION_ICON_SLUGS;
+          for (var name in slugs) {
+            var slug = slugs[name];
+            if (!slug || seen[slug]) continue;
+            seen[slug] = true;
+            var sym = doc.getElementById(slug);
+            if (!sym) continue;
+            var inner = '';
+            for (var c = sym.firstChild; c; c = c.nextSibling) inner += serializer.serializeToString(c);
+            var vb = sym.getAttribute('viewBox') || '0 0 1024 1024';
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + inner + '</svg>';
+            ICONS.push('url("data:image/svg+xml,' + encodeURIComponent(svg) + '")');
+          }
+        }
+
+        var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0 };
+
+        function randInt(n) { return Math.floor(Math.random() * n); }
+
+        // A round = two property writes (the icons, read by every cell via
+        // var()) + moving the --odd class from the old odd cell to the new.
+        function nextRound() {
+          var major = randInt(ICONS.length);
+          var odd = randInt(ICONS.length - 1);
+          if (odd >= major) odd++; // distinct from major, unbiased
+          board.style.setProperty('--major', ICONS[major]);
+          board.style.setProperty('--odd', ICONS[odd]);
+
+          var idx = randInt(COUNT);
+          if (state.oddCell) state.oddCell.classList.remove('cell--odd');
+          var cell = cells[idx];
+          cell.classList.add('cell--odd');
+          state.oddCell = cell;
+          state.oddIndex = idx;
+        }
+
+        function onBoardClick(e) {
+          if (!state.running) return;
+          var cell = e.target.closest('.cell');
+          if (!cell) return;
+          if (+cell.dataset.i === state.oddIndex) {
+            state.score++;
+            scoreText.textContent = state.score;
+            flash(cell, 'cell--hit');
+            nextRound();
+          } else {
+            state.endTime -= PENALTY_MS; // wrong taps cost time, so spotting matters
+            flash(cell, 'cell--wrong');
+          }
+        }
+
+        // One-card feedback, cleared on its own animationend.
+        function flash(cell, cls) {
+          cell.classList.remove('cell--hit', 'cell--wrong');
+          void cell.offsetWidth; // restart the animation if same class repeats
+          cell.classList.add(cls);
+          cell.addEventListener('animationend', function handler() {
+            cell.classList.remove(cls);
+            cell.removeEventListener('animationend', handler);
+          });
+        }
+
+        function readBest() {
+          try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; }
+        }
+        function writeBest(n) {
+          try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) {}
+        }
+
+        function tick() {
+          var remaining = state.endTime - performance.now();
+          if (remaining <= 0) { finish(); return; }
+          var secs = Math.ceil(remaining / 1000);
+          timeText.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
+          timeFill.style.width = (remaining / ROUND_MS * 100) + '%';
+          state.rafId = requestAnimationFrame(tick);
+        }
+
+        function start() {
+          if (!ICONS.length) return;
+          state.running = true;
+          state.score = 0;
+          state.endTime = performance.now() + ROUND_MS;
+          scoreText.textContent = '0';
+          overlay.hidden = true;
+          nextRound();
+          state.rafId = requestAnimationFrame(tick);
+        }
+
+        function finish() {
+          state.running = false;
+          cancelAnimationFrame(state.rafId);
+          timeFill.style.width = '0%';
+          timeText.textContent = '0:00';
+          var best = readBest();
+          if (state.score > best) { best = state.score; writeBest(best); }
+          overlayText.textContent = state.score === 1
+            ? 'Encontraste 1 estación diferente.'
+            : 'Encontraste ' + state.score + ' estaciones diferentes.';
+          overlayScore.textContent = state.score;
+          overlayScore.hidden = false;
+          overlayBest.textContent = 'Mejor: ' + best;
+          overlayBest.hidden = false;
+          startBtn.textContent = 'Jugar de nuevo';
+          overlay.hidden = false;
+        }
+
+        board.addEventListener('click', onBoardClick);
+        startBtn.addEventListener('click', start);
+
+        fetch('/station-icons.svg')
+          .then(function (r) { return r.text(); })
+          .then(function (text) {
+            buildIcons(text);
+            if (ICONS.length < 2) throw new Error('no icons');
+            startBtn.disabled = false;
+            startBtn.textContent = 'Comenzar';
+          })
+          .catch(function () {
+            overlayText.textContent = 'No se pudieron cargar los iconos de las estaciones. Revisa tu conexión y recarga.';
+          });
+      })();
+    </script>
+  </body>
+</html>

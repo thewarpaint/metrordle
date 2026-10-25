@@ -223,7 +223,8 @@
           }
         }
 
-        var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0 };
+        var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0,
+          prevMajor: -1, prevOdd: -1, prevIndex: -1 };
 
         function randInt(n) { return Math.floor(Math.random() * n); }
 
@@ -231,38 +232,54 @@
         // icon is a random dissimilar one (easy); as t grows it's drawn
         // ever nearer the top of the majority's most-similar neighbour list
         // (hard), with a small random window so it's not scripted.
-        function pickOdd(majorIdx) {
+        // avoid(i) is true for an icon this round must not reuse (either of
+        // last round's two icons, and the majority itself).
+        function pickOdd(majorIdx, avoid) {
           var t = Math.min(state.score / RAMP_SCORE, 1);
           if (t > 0 && Math.random() < t) {
             var si = SIM_INDEX[ICONS[majorIdx].slug];
             var neigh = (si !== undefined) ? SIM_NEIGH[si] : null;
             if (neigh && neigh.length) {
               var span = neigh.length - 1;
-              var j = Math.round((1 - t) * span * 0.6) + randInt(4);
-              if (j > span) j = span;
-              var idx = slugToIcon[SIM_SLUGS[neigh[j]]];
-              if (idx !== undefined && idx !== majorIdx) return idx;
+              for (var k = 0; k < 6; k++) { // a few tries past an avoided neighbour
+                var j = Math.round((1 - t) * span * 0.6) + randInt(4);
+                if (j > span) j = span;
+                var idx = slugToIcon[SIM_SLUGS[neigh[j]]];
+                if (idx !== undefined && idx !== majorIdx && !avoid(idx)) return idx;
+              }
             }
           }
-          var odd = randInt(ICONS.length - 1); // random distinct, unbiased
-          if (odd >= majorIdx) odd++;
+          var odd; // random, distinct from the majority and both prior icons
+          do { odd = randInt(ICONS.length); } while (odd === majorIdx || avoid(odd));
           return odd;
         }
 
         // A round = two property writes (the icons, read by every cell via
         // var()) + moving the --odd class from the old odd cell to the new.
+        // Both icons and the odd-cell position differ from the previous round,
+        // so nothing visibly carries over between deals.
         function nextRound() {
-          var major = randInt(ICONS.length);
-          var oddIdx = pickOdd(major);
+          var major; // fresh majority, not either of last round's icons
+          do { major = randInt(ICONS.length); }
+          while (major === state.prevMajor || major === state.prevOdd);
+
+          var oddIdx = pickOdd(major, function (i) {
+            return i === state.prevMajor || i === state.prevOdd;
+          });
           board.style.setProperty('--major', ICONS[major].mask);
           board.style.setProperty('--odd', ICONS[oddIdx].mask);
 
-          var idx = randInt(COUNT);
+          var idx; // fresh position for the odd card
+          do { idx = randInt(COUNT); } while (idx === state.prevIndex);
           if (state.oddCell) state.oddCell.classList.remove('cell--odd');
           var cell = cells[idx];
           cell.classList.add('cell--odd');
           state.oddCell = cell;
           state.oddIndex = idx;
+
+          state.prevMajor = major;
+          state.prevOdd = oddIdx;
+          state.prevIndex = idx;
         }
 
         function onBoardClick(e) {
@@ -311,6 +328,7 @@
           if (!ICONS.length) return;
           state.running = true;
           state.score = 0;
+          state.prevMajor = state.prevOdd = state.prevIndex = -1;
           state.endTime = performance.now() + ROUND_MS;
           scoreText.textContent = '0';
           overlay.hidden = true;

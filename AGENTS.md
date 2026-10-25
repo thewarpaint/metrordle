@@ -716,37 +716,46 @@ about `//`/`/* */` comments in the actual game/test code.)
   fresh random board (itself never persisted). No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
-- **`/diferente/`** - **prototype**, a reflex/arcade game (not linked
+- **`/copo-de-nieve/`** - **prototype**, a reflex/arcade game (not linked
   from any nav, `noindex`, not precached, no Firebase/leaderboard yet -
   same prototype posture as `/sopa-de-metros/`). A 7×7 grid of station
   cards all show one station pictogram except one, randomly placed, with
-  a different one; tapping the odd card deals a fresh pair
-  (`nextRound()`) and scores a point. The goal is to find as many as
-  possible in 60 s; a wrong tap costs 1.5 s. The deal sequence is
-  **deterministic per day** like every other game: all per-round
-  randomness (which two icons, where the odd one lands, the
-  difficulty-ramp choices) routes through one seeded stream,
-  `MetroShared.createSeededRandom('metrordle-diferente-' + dateKey)`,
-  reseeded at each `start()` - so every player gets the same ordered
-  sequence of deals (and thus the same difficulty curve), and a same-day
-  replay reproduces it exactly. Unlike the puzzle games there's no saved
-  daily *result* (it's a reflex game with no fixed end state - a local
-  `diferente:best` high score is the only persistence), and `start()`
-  resets the per-round state (`prevMajor`/`prevOdd`/`prevIndex`, used so
-  no deal repeats either icon or the odd position from the round before)
-  before reseeding. `?date=YYYY-MM-DD` previews another day's sequence
-  for QA, same as the other games. Icons are real station pictograms: the
-  page fetches `/station-icons.svg` once and turns each symbol into a CSS
-  mask data URI (the pictograms are single-color, so the masked
-  silhouette is the exact icon the other games render via `<use>`); the
-  pool is every distinct slug in `MetroShared.STATION_ICON_SLUGS`.
+  a different one - the "única y especial" station (the game's snowflake
+  theme); tapping it deals a fresh pair (`nextRound()`) and scores a
+  point. The goal is to find as many as possible in 60 s. A wrong tap
+  just flashes the card (`cell--wrong`) - no time penalty (there was a
+  1.5 s one once; dropped). The deal sequence is **deterministic per
+  day** like every other game: all per-round randomness (which two icons,
+  where the odd one lands, the difficulty-ramp choices) routes through one
+  seeded stream, `MetroShared.createSeededRandom('metrordle-copo-de-nieve-'
+  + dateKey)`, reseeded at each `start()` - so every player gets the same
+  ordered sequence of deals (and thus the same difficulty curve), and a
+  same-day replay reproduces it exactly. Unlike the puzzle games there's
+  no saved daily *result* (it's a reflex game with no fixed end state - a
+  local `copo-de-nieve:best` high score is the only persistence), and
+  `start()` resets the per-round state (`prevMajor`/`prevOdd`/`prevIndex`,
+  used so no deal repeats either icon or the odd position from the round
+  before) before reseeding. `?date=YYYY-MM-DD` previews another day's
+  sequence for QA, same as the other games. Icons are real station
+  pictograms: the page fetches `/station-icons.svg` once and turns each
+  symbol into a CSS mask data URI (the pictograms are single-color, so the
+  masked silhouette is the exact icon the other games render via `<use>`);
+  the pool is every distinct slug in `MetroShared.STATION_ICON_SLUGS`.
   Written for minimal repaint: the 49 `.cell` nodes are built once and
   never rebuilt - a round only sets two CSS custom properties on
   `#board` (`--major`/`--odd`, the two icon masks every cell reads via
   `var()`) and moves the `.cell--odd` class, ~4 writes total; input is
-  one delegated listener on `#board`. Uses shared.css
-  (`.sign`/`.progress`/`.start-overlay`/`.btn-primary`) + shared.js. No
-  committed test yet (prototype).
+  one delegated listener on `#board`. The end-of-round overlay (the same
+  `.start-overlay` reused as a reveal) shows the icons of every station
+  found that round - a grid of neutral shared `.station` tiles with a
+  staggered pop-in, same pattern as Memoria's own `.reveal__icons` (these
+  icons carry no single line of their own, so they stay uncolored rather
+  than line-filled like Memoria's). Uses shared.css
+  (`.sign`/`.progress`/`.start-overlay`/`.station`/`.btn-primary`) +
+  shared.js. The visual-similarity table driving the ramp is precomputed
+  offline by `copo-de-nieve/build-icon-similarity.js` and baked into
+  `index.html` (see `build-icon-similarity.md`). No committed test yet
+  (prototype).
 
 Each game is deterministic per calendar day: a seeded RNG
 (`MetroShared.createSeededRandom('<salt>-' + dateKey)`) derives that

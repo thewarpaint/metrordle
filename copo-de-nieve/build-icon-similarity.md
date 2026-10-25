@@ -1,8 +1,8 @@
-# Icon similarity table (`/diferente/`)
+# Icon similarity table (`/copo-de-nieve/`)
 
 `build-icon-similarity.js` precomputes how visually similar each station
 pictogram is to every other one, and bakes the result into `index.html`.
-The game (`Estación diferente`) uses it for its **difficulty ramp**: early
+The game (`Copo de nieve`) uses it for its **difficulty ramp**: early
 in a round the odd icon is a random, clearly-different one; as the score
 climbs it's drawn from the majority icon's most visually-similar
 neighbours, so telling them apart gets progressively harder.
@@ -48,7 +48,7 @@ the hardest rounds unfair rather than hard.
 From the repo root:
 
 ```sh
-node diferente/build-icon-similarity.js
+node copo-de-nieve/build-icon-similarity.js
 ```
 
 It prints the icon count and a few of the most-similar pairs (a quick
@@ -60,7 +60,7 @@ from `station-icons.svg`, both already in the repo — no arguments.
 dependency — `cd tests && npm install` if it isn't installed) plus a
 Chromium it can launch. In the cloud dev environment Chromium is
 pre-installed; point Playwright at it with
-`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node diferente/build-icon-similarity.js`.
+`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node copo-de-nieve/build-icon-similarity.js`.
 Locally, Playwright manages its own browser.
 
 ## When to rerun

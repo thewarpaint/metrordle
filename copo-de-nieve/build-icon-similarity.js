@@ -1,6 +1,6 @@
 'use strict';
 
-// Precomputes a visual-similarity table for /diferente/'s station icons and
+// Precomputes a visual-similarity table for /copo-de-nieve/'s station icons and
 // bakes it into index.html (between the ICON_SIMILARITY markers). The game
 // uses it to make each round progressively harder - the odd icon is drawn
 // from the majority's most visually-similar neighbours as the score climbs.
@@ -15,7 +15,7 @@
 // UNFAIR_CAP (near-identical pictograms would be impossible to tell apart at
 // card size - "hard but fair", not "impossible").
 //
-// Rerun with:  node diferente/build-icon-similarity.js
+// Rerun with:  node copo-de-nieve/build-icon-similarity.js
 // See build-icon-similarity.md for details. Needs Playwright (the repo's
 // test dep) + a Chromium it can launch.
 

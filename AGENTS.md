@@ -720,12 +720,22 @@ about `//`/`/* */` comments in the actual game/test code.)
   from any nav, `noindex`, not precached, no Firebase/leaderboard yet -
   same prototype posture as `/sopa-de-metros/`). A 7×7 grid of station
   cards all show one station pictogram except one, randomly placed, with
-  a different one; tapping the odd card deals a fresh random pair
+  a different one; tapping the odd card deals a fresh pair
   (`nextRound()`) and scores a point. The goal is to find as many as
-  possible in 60 s; a wrong tap costs 1.5 s. Unlike the puzzle games it
-  is **not** deterministic per day - rounds are live `Math.random()`,
-  since there's no fixed daily puzzle (a local `diferente:best` high
-  score is the only persistence). Icons are real station pictograms: the
+  possible in 60 s; a wrong tap costs 1.5 s. The deal sequence is
+  **deterministic per day** like every other game: all per-round
+  randomness (which two icons, where the odd one lands, the
+  difficulty-ramp choices) routes through one seeded stream,
+  `MetroShared.createSeededRandom('metrordle-diferente-' + dateKey)`,
+  reseeded at each `start()` - so every player gets the same ordered
+  sequence of deals (and thus the same difficulty curve), and a same-day
+  replay reproduces it exactly. Unlike the puzzle games there's no saved
+  daily *result* (it's a reflex game with no fixed end state - a local
+  `diferente:best` high score is the only persistence), and `start()`
+  resets the per-round state (`prevMajor`/`prevOdd`/`prevIndex`, used so
+  no deal repeats either icon or the odd position from the round before)
+  before reseeding. `?date=YYYY-MM-DD` previews another day's sequence
+  for QA, same as the other games. Icons are real station pictograms: the
   page fetches `/station-icons.svg` once and turns each symbol into a CSS
   mask data URI (the pictograms are single-color, so the masked
   silhouette is the exact icon the other games render via `<use>`); the

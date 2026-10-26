@@ -754,6 +754,16 @@ input[type="text"]:disabled {
   border-color: var(--line);
 }
 
+/* A game already played today (the /juegos/ list moves these to the end):
+   muted but still a working link - hovering restores it to full. */
+.game-promo__card--played {
+  opacity: 0.5;
+}
+
+.game-promo__card--played:hover {
+  opacity: 1;
+}
+
 .game-promo__glyph {
   font-size: 1.3rem;
   line-height: 1;

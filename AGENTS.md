@@ -358,6 +358,18 @@ about `//`/`/* */` comments in the actual game/test code.)
   Crush's own - not part of `orderBySpecs`, since there's no
   attempts-count tiebreak for it to win at the same score the way
   Metrordle's own hard mode does.
+- **`/juegos/`** - a plain index page listing every game, built from the
+  same `.game-promo` card design the end-screen "sigue jugando hoy" promo
+  uses. `MetroShared.buildAllGamesGrid(dateKey)` (shared.js) renders all of
+  `SUGGESTABLE_GAMES` as cards, sorted A-Z by name, with the games already
+  played **today** (`isGamePlayedToday`, real calendar day) moved to the
+  end and muted via `.game-promo__card--played` (shared.css: `opacity: 0.5`,
+  restored on hover - still enabled links). Shares the card markup with
+  `buildGamePromo` through a common `buildGameCard(game, muted)` helper.
+  Player-facing, so precached (`sw.js`'s `PRECACHE_URLS`, so a change needs
+  a `CACHE_NAME` bump); loads no Firebase. Only lists the six
+  `SUGGESTABLE_GAMES` - not the `/sopa-de-metros/`/`/copo-de-nieve/`
+  prototypes, which aren't in it - and isn't linked from any game's nav yet.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Precached (`sw.js`'s own
   `PRECACHE_URLS`) despite being unlinked, so a change to its
@@ -809,7 +821,9 @@ are impossible without a debug override.
   helpers (`shareOrCopyText`, native `navigator.share` with a
   clipboard-copy fallback), `buildGamePromo(currentGameKey,
   dateKey)` for the "sigue jugando hoy" component on every game's own
-  end screen (see "Game suggestions" below), `renderNoticeBanner(el,
+  end screen and `buildAllGamesGrid(dateKey)` for the `/juegos/` index
+  (both from a shared `buildGameCard` - see "Game suggestions" below),
+  `renderNoticeBanner(el,
   variantClass, title, bodyText)` for every game's own end-of-round
   `.notice` banner (see `/design/`'s own "Avisos" bullet above), and
   the site-wide config object (`loadConfig`/`saveConfig`/`getThemeMode`/
@@ -1040,8 +1054,9 @@ are impossible without a debug override.
   shipped without either for several PRs before this was caught; when
   adding a new game, add both paths here (and bump `CACHE_NAME`) in the
   same PR that ships it. `/admin/` is precached too now (though not a
-  game route and still unlinked from any game's nav) - so a change to
-  `admin/index.html` needs a `CACHE_NAME` bump like any other precached
+  game route and still unlinked from any game's nav), as is `/juegos/`
+  (the player-facing games index) - so a change to `admin/index.html` or
+  `juegos/index.html` needs a `CACHE_NAME` bump like any other precached
   asset, which `tests/meta/sw-cache-version.test.js` now enforces (it
   derives its watched set straight from `PRECACHE_URLS`, and pins
   admin's membership so dropping it fails loudly). `/design/` and
@@ -1336,6 +1351,14 @@ possibly-`?debug=true`-simulated `dateKey` - suggestions reflect actual
 play activity, not whatever day is being previewed. `buildGamePromo()`
 returns `null` (nothing to mount) rather than an empty component if
 every other game is already done today.
+
+The `/juegos/` index reuses the same card design through a shared
+`buildGameCard(game, muted)` helper (also what `buildGamePromo` builds its
+cards from). `MetroShared.buildAllGamesGrid(dateKey)` renders *all* of
+`SUGGESTABLE_GAMES` (not minus-current, not capped, not shuffled) sorted
+A-Z, with today's already-played games (`isGamePlayedToday`) moved to the
+end and muted (`.game-promo__card--played`) but still enabled - see the
+`/juegos/` bullet above.
 
 ## Site config
 

@@ -716,9 +716,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   fresh random board (itself never persisted). No
   committed test yet (it's a prototype) - validated via a scratchpad
   Playwright solve.
-- **`/copo-de-nieve/`** - **prototype**, a reflex/arcade game (not linked
-  from any nav, `noindex`, not precached, no Firebase/leaderboard yet -
-  same prototype posture as `/sopa-de-metros/`). A 7×7 grid of station
+- **`/copo-de-nieve/`** - a reflex/arcade game, graduated partway out of
+  prototype: it has its own daily Firestore leaderboard, streak, all-time
+  high-score record, and game number now (see those sections below), and
+  is precached (`sw.js`'s own `PRECACHE_URLS`, both the directory and its
+  `index.html` - so a change needs a `CACHE_NAME` bump). Still **not**
+  linked from any nav, still `noindex`, and not in `SUGGESTABLE_GAMES` (no
+  "sigue jugando" promo) or share text yet. A 7×7 grid of station
   cards all show one station pictogram except one, randomly placed, with
   a different one - the "única y especial" station (the game's snowflake
   theme); tapping it deals a fresh pair (`nextRound()`) and scores a
@@ -730,13 +734,18 @@ about `//`/`/* */` comments in the actual game/test code.)
   seeded stream, `MetroShared.createSeededRandom('metrordle-copo-de-nieve-'
   + dateKey)`, reseeded at each `start()` - so every player gets the same
   ordered sequence of deals (and thus the same difficulty curve), and a
-  same-day replay reproduces it exactly. Unlike the puzzle games there's
-  no saved daily *result* (it's a reflex game with no fixed end state - a
-  local `copo-de-nieve:best` high score is the only persistence), and
-  `start()` resets the per-round state (`prevMajor`/`prevOdd`/`prevIndex`,
-  used so no deal repeats either icon or the odd position from the round
-  before) before reseeding. `?date=YYYY-MM-DD` previews another day's
-  sequence for QA, same as the other games. Icons are real station
+  same-day replay reproduces it exactly. Like the other score-based games
+  it persists the day's result (`'copo-de-nieve:' + dateKey` =
+  `{score, found, leaderboardSubmitted}` - the found slugs are stored so
+  the reveal grid rebuilds on reload without replaying the round), so a
+  same-day reload shows that reveal instead of a fresh board and never
+  resubmits (`loadSavedResult()`/`persistResult()`/`initDay()`). In normal
+  play there's no replay (the "Jugar de nuevo" button only returns under
+  `?debug=true`, same as every daily game); `start()` resets the per-round
+  state (`prevMajor`/`prevOdd`/`prevIndex`, used so no deal repeats either
+  icon or the odd position from the round before) before reseeding.
+  `?date=YYYY-MM-DD` previews another day's sequence for QA, same as the
+  other games. Icons are real station
   pictograms: the page fetches `/station-icons.svg` once and turns each
   symbol into a CSS mask data URI (the pictograms are single-color, so the
   masked silhouette is the exact icon the other games render via `<use>`);
@@ -750,12 +759,21 @@ about `//`/`/* */` comments in the actual game/test code.)
   found that round - a grid of neutral shared `.station` tiles with a
   staggered pop-in, same pattern as Memoria's own `.reveal__icons` (these
   icons carry no single line of their own, so they stay uncolored rather
-  than line-filled like Memoria's). Uses shared.css
-  (`.sign`/`.progress`/`.start-overlay`/`.station`/`.btn-primary`) +
-  shared.js. The visual-similarity table driving the ramp is precomputed
-  offline by `copo-de-nieve/build-icon-similarity.js` and baked into
-  `index.html` (see `build-icon-similarity.md`). No committed test yet
-  (prototype).
+  than line-filled like Memoria's). Below the grid the same overlay shows
+  the day's `copo-de-nieve-leaderboard` (alias row + top-5 list + the
+  all-time `records/copo-de-nieve` card), and the end-of-round `.notice`
+  carries the streak (`🔥 Racha: N días`) - the whole leaderboard/streak/
+  record/game-number wiring is the score-based pattern copied from
+  Clasificador (`submitScore()`/`renderLeaderboard()`/`renderAliasRow()`/
+  `renderHighScoreRecord()`), ranked by a single descending `score`.
+  Loads Firebase (the two gstatic compat SDKs + `/firebase-config.js`)
+  before `shared.js`, same as the real games; its CSP already allowed the
+  Firestore/gstatic origins. Uses shared.css
+  (`.sign`/`.progress`/`.start-overlay`/`.station`/`.notice`/`.leaderboard*`/
+  `.btn-primary`) + shared.js. The visual-similarity table driving the ramp
+  is precomputed offline by `copo-de-nieve/build-icon-similarity.js` and
+  baked into `index.html` (see `build-icon-similarity.md`). No committed
+  Playwright test yet (validated via a scratchpad run).
 
 Each game is deterministic per calendar day: a seeded RNG
 (`MetroShared.createSeededRandom('<salt>-' + dateKey)`) derives that
@@ -1014,7 +1032,7 @@ Each game has its own daily Firestore leaderboard:
 `{collection}/{dateKey}/entries/{aliasDocId}`, collections
 `metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard` /
 `metroguessr-leaderboard` / `metrocrush-leaderboard` /
-`clasificador-leaderboard`.
+`clasificador-leaderboard` / `copo-de-nieve-leaderboard`.
 Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
 key, shared across all games), changeable from `/configurar/` (see
 "Site config" below) - but still no way to carry old entries forward
@@ -1113,11 +1131,17 @@ added to lock the fix in.
   round's own `total` (stations correctly classified) - open-ended
   like Metro Crush's own, so its Firestore rule bounds it generously
   (500) rather than tightly.
+- Copo de nieve: highest score, descending - same shape as Memoria's/
+  Metro Crush's/Clasificador's own. `score` is how many "special"
+  stations were tapped in the 60-second round; no `hardMode` field (no
+  mode toggle). Open-ended and faster-paced than Clasificador (pure
+  tapping, no per-placement delay), so its Firestore rule bounds `score`
+  at a generous 1000.
 
 ### High score records
 
-Memoria, Metro Crush, and Clasificador - the three games ranked by a
-raw score rather than a fixed day's puzzle outcome - also track an
+Memoria, Metro Crush, Clasificador, and Copo de nieve - the games ranked
+by a raw score rather than a fixed day's puzzle outcome - also track an
 all-time high score, separate from (and never cleared by) the daily
 leaderboards above: a single long-lived `records/{gameKey}` Firestore
 document (`MetroShared.updateHighScoreRecord()`/`getHighScoreRecord()`/
@@ -1188,8 +1212,8 @@ can't paint over a newer one.
 
 ### Streaks
 
-Metrordle, Laberinto, Memoria, Metroguessr, Metro Crush, and
-Clasificador all track a consecutive-days streak
+Metrordle, Laberinto, Memoria, Metroguessr, Metro Crush,
+Clasificador, and Copo de nieve all track a consecutive-days streak
 (`MetroShared.loadStreak`/`saveStreak`/`updateStreakForResult`/
 `formatStreak`/`formatMaxStreak` in `shared.js`, one `'<key>:streak'`
 localStorage entry per game, separate from that day's own
@@ -1198,16 +1222,18 @@ reveal banner/share text (`🔥 Racha: N días`, plus a "máxima: M días"
 mention only when the best-ever streak is still ahead of today's - not
 yet true of Clasificador's own reveal screen, which doesn't show the
 streak anywhere in its own banner/text yet, only via its leaderboard
-rows' badge). The first four extend it on a win and reset it to 0 on a
-loss/give-up; Metro Crush and Clasificador both have no daily win/loss
-puzzle outcome to hook that into (their games are scored per-round, not
-"won" day to day), so each extends its own streak on any round that
-ends with a non-zero score instead, and resets it only on a genuine
-0-point round (still a real result - it submits and resets the streak,
-rather than being skipped) - see `metrocrush/index.html`'s own
-`STREAK_STORAGE_KEY` comment (Clasificador's own mirrors it).
+rows' badge). Copo de nieve does show it, right in its success notice
+(`🔥 Racha: N días` + the máxima mention when ahead). The first four
+extend it on a win and reset it to 0 on a loss/give-up; Metro Crush,
+Clasificador, and Copo de nieve have no daily win/loss puzzle outcome to
+hook that into (their games are scored per-round, not "won" day to day),
+so each extends its own streak on any round that ends with a non-zero
+score instead, and resets it only on a genuine 0-point round (still a
+real result - it submits and resets the streak, rather than being
+skipped) - see `metrocrush/index.html`'s own `STREAK_STORAGE_KEY`
+comment (Clasificador's and Copo de nieve's own mirror it).
 
-Each of those six games' own `submitScore()` also submits `streak` as
+Each of those seven games' own `submitScore()` also submits `streak` as
 a leaderboard field now, purely for display - like `hintsUsed` above,
 it's deliberately never part of `orderBySpecs`, so a query's
 ranking/results are identical whether or not a given entry (old or
@@ -1218,11 +1244,12 @@ this is no longer a single page's own thing) reading **`🔥 × N` when
 `N > 1`, nothing otherwise** (a streak of 0 or 1 isn't yet "a streak"
 worth calling out), always returned (even empty) so a row's score
 column still lands in the same spot whether or not it has one.
-`/admin/`'s own `renderGame()` appends one to every row for all six
-collections now; Metrordle's, Laberinto's, Memoria's, Metroguessr's, and
-Clasificador's own `renderLeaderboard()` do the same on their own
-in-page leaderboards (only Metro Crush's own leaderboard doesn't yet -
-nothing architectural stops it, this just hasn't been asked for).
+`/admin/`'s own `renderGame()` appends one to every row for all seven
+collections now; Metrordle's, Laberinto's, Memoria's, Metroguessr's,
+Clasificador's, and Copo de nieve's own `renderLeaderboard()` do the same
+on their own in-page leaderboards (only Metro Crush's own leaderboard
+doesn't yet - nothing architectural stops it, this just hasn't been
+asked for).
 Metroguessr's own call carries both `hintsUsed` and `streak` in
 `extraFields`, since it renders the 🪄 badge and the 🔥 one. Every one
 of those `getTopLeaderboardScores()` calls needs

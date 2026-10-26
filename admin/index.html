@@ -239,6 +239,17 @@
           <p class="leaderboard__status" id="clasificador-status" hidden></p>
           <a class="admin-board__link" id="clasificador-link" target="_blank" rel="noopener" hidden>Ver este día en Clasificador →</a>
         </div>
+
+        <div class="sign admin-board" id="copo-de-nieve-board">
+          <div class="admin-board__head">
+            <h2 class="admin-board__title">Copo de nieve <span class="admin-board__num" id="copo-de-nieve-num"></span></h2>
+            <p class="admin-board__dek">Más estaciones encontradas gana</p>
+            <p class="leaderboard__record" id="copo-de-nieve-record" hidden></p>
+          </div>
+          <ol class="leaderboard__list" id="copo-de-nieve-list"></ol>
+          <p class="leaderboard__status" id="copo-de-nieve-status" hidden></p>
+          <a class="admin-board__link" id="copo-de-nieve-link" target="_blank" rel="noopener" hidden>Ver este día en Copo de nieve →</a>
+        </div>
       </div>
     </div>
 
@@ -437,6 +448,29 @@
               return score;
             },
           },
+          {
+            key: 'copo-de-nieve',
+            collection: 'copo-de-nieve-leaderboard',
+            startDateKey: '2026-10-26',
+            orderBySpecs: [['score', 'desc']],
+            extraFields: ['streak'],
+            href: '/copo-de-nieve/',
+            scoreCell: function (entry) {
+              var score = document.createElement('span');
+              score.className = 'leaderboard__score';
+
+              var badge = document.createElement('span');
+              badge.className = 'leaderboard__score-badge';
+
+              var number = document.createElement('span');
+              number.className = 'leaderboard__score-number leaderboard__score-number--wide';
+              number.textContent = entry.score;
+
+              score.appendChild(badge);
+              score.appendChild(number);
+              return score;
+            },
+          },
         ];
 
         var els = {};
@@ -587,7 +621,7 @@
         // dimension - see shared.js's own updateHighScoreRecord()/
         // getHighScoreRecord()), so this only ever needs to load once,
         // not on every date-nav shiftDate().
-        var RECORD_GAMES = ['memoria', 'metrocrush', 'clasificador'];
+        var RECORD_GAMES = ['memoria', 'metrocrush', 'clasificador', 'copo-de-nieve'];
 
         function renderHighScoreRecords() {
           RECORD_GAMES.forEach(function (gameKey) {

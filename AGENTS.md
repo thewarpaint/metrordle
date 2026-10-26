@@ -397,7 +397,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   already-decided `.station-card` (Memoria's own board card); the
   already-decided `.station` (Metro Crush's `.tile`/Metroguessr's
   `.target-icon-marker` - see "Shared infrastructure" below) plus its
-  own `.station--chip` size (Metro Crush's `.legend__chip`), and
+  own `.station--chip` size (Metro Crush's `.legend__chip`) and its
+  `.station__icon--mask` variant (Copo de nieve's mask-rendered board
+  silhouette, the one example here built from an inlined sprite mask via
+  `MetroShared.buildStationMasks` rather than a `<use>`, with its last two
+  cells recolored to show the `--ok`/`--danger` hit/wrong states), and
   Memoria's own `.reveal__icons` - 18 stations across 3 rows of 6,
   mimicking the real end-of-round grid's own size (not just a handful
   like every other example here), using that same plain `.station` -
@@ -760,8 +764,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   only sets `--station-mask` from the board's `--major`/`--odd` and the
   silhouette `color` for its hit/wrong states); the `.cell` tile otherwise
   reuses the station family's neutral-`--paper-well` look and `0 33% 0 0`
-  corner. Not yet shown in `/design/`'s Estaciones board (the gallery still
-  only renders `<use>`-based station icons).
+  corner. Shown in `/design/`'s Estaciones board (✅ consolidado) - the one
+  example there that needs the sprite fetched + inlined via
+  `buildStationMasks`, since every other station icon on that page is
+  `<use>`-based.
   Written for minimal repaint: the 49 `.cell` nodes are built once and
   never rebuilt - a round only sets two CSS custom properties on
   `#board` (`--major`/`--odd`, the two icon masks every cell reads via

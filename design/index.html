@@ -9,7 +9,7 @@
       loads no Firebase SDK and renders no user-controlled data at all -
       defense-in-depth only, same reasoning as /configurar/'s own CSP.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
 
@@ -431,6 +431,30 @@
             badgeRow.appendChild(badge);
           });
           gallery.appendChild(buildExample(badgeRow, '<code>.station</code> · ✅ consolidado - ficha de Metro Crush y marcador de revelación de Metroguessr, ambos ahora iguales.'));
+
+          // .station__icon--mask: the mask-silhouette variant. Unlike the
+          // <use> icons everywhere else here it needs the sprite inlined, so
+          // these cells' --station-mask is filled by the async pass below.
+          var maskRow = buildRow();
+          function maskCell(slug, colorVar) {
+            var card = document.createElement('div');
+            card.className = 'station-card';
+            card.style.width = '3rem';
+            card.style.color = 'var(' + colorVar + ')';
+            var icon = document.createElement('span');
+            icon.className = 'station__icon station__icon--mask';
+            icon.setAttribute('data-mask-slug', slug);
+            card.appendChild(icon);
+            return card;
+          }
+          STATION_SAMPLE.forEach(function (station) {
+            maskRow.appendChild(maskCell(MetroShared.STATION_ICON_SLUGS[station.name], '--ink'));
+          });
+          // The last two recolored, to show the hit/wrong states copo drives
+          // purely by changing the silhouette's `color`.
+          maskRow.appendChild(maskCell(MetroShared.STATION_ICON_SLUGS[STATION_SAMPLE[0].name], '--ok'));
+          maskRow.appendChild(maskCell(MetroShared.STATION_ICON_SLUGS[STATION_SAMPLE[1].name], '--danger'));
+          gallery.appendChild(buildExample(maskRow, '<code>.station__icon--mask</code> · ✅ consolidado - variante de <code>.station__icon</code> pintada como silueta con <code>mask</code> (imagen desde <code>--station-mask</code>, construida por <code>MetroShared.buildStationMasks</code>; relleno con el <code>color</code> propio) en vez de un <code>&lt;svg&gt;&lt;use&gt;</code>. La usa el tablero de <code>/copo-de-nieve/</code> para repintar sus 49 celdas cambiando una sola propiedad; aquí las dos últimas muestran el recoloreo de acierto (<code>--ok</code>) y fallo (<code>--danger</code>).'));
 
           var chipRow = buildRow();
           STATION_SAMPLE.forEach(function (station) {
@@ -1102,6 +1126,17 @@
         renderProgressGallery();
         renderFormsGallery();
         renderLeaderboardsGallery();
+
+        // The .station__icon--mask examples need the sprite inlined as a data
+        // URI (buildStationMasks), unlike the <use> icons everywhere else, so
+        // fetch it once and fill each cell's --station-mask in.
+        fetch('/station-icons.svg').then(function (r) { return r.text(); }).then(function (text) {
+          var masks = MetroShared.buildStationMasks(text);
+          document.querySelectorAll('[data-mask-slug]').forEach(function (el) {
+            var m = masks[el.getAttribute('data-mask-slug')];
+            if (m) el.style.setProperty('--station-mask', m);
+          });
+        }).catch(function () {});
       })();
     </script>
 

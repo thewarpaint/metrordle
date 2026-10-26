@@ -271,6 +271,7 @@
         // unused. All per-round randomness routes through rng(), never
         // Math.random() directly, or the sequence would diverge per player.
         var rng = Math.random;
+        var saveTimer = 0; // 1s autosave of an in-progress round, for resume on reload
         function randInt(n) { return Math.floor(rng() * n); }
 
         // Difficulty ramps with the score (t in [0,1]): early on the odd
@@ -384,6 +385,14 @@
           return null;
         }
 
+        // A representative station name for an icon slug, for sorting the
+        // reveal grid alphabetically within each line.
+        function nameForSlug(slug) {
+          var slugs = MetroShared.STATION_ICON_SLUGS;
+          for (var name in slugs) { if (slugs[name] === slug) return name; }
+          return slug;
+        }
+
         // End-of-round grid of every station found, one .station tile each,
         // filled with its own line color and clustered by line, with a
         // staggered pop-in (Memoria's reveal pattern).
@@ -393,9 +402,10 @@
           var reduce = MetroShared.prefersReducedMotion();
           var entries = state.found.map(function (slug) {
             var line = lineForSlug(slug);
-            return { slug: slug, line: line, lineIndex: line ? MetroShared.LINES.indexOf(line) : MetroShared.LINES.length };
+            return { slug: slug, line: line, lineIndex: line ? MetroShared.LINES.indexOf(line) : MetroShared.LINES.length, name: nameForSlug(slug) };
           });
-          entries.sort(function (a, b) { return a.lineIndex - b.lineIndex; });
+          // Cluster by line, then alphabetical within each line.
+          entries.sort(function (a, b) { return (a.lineIndex - b.lineIndex) || a.name.localeCompare(b.name, 'es'); });
           entries.forEach(function (entry, i) {
             var cell = document.createElement('span');
             cell.className = 'station reveal__icon-cell';
@@ -413,8 +423,10 @@
           revealIcons.hidden = false;
         }
 
-        // Persist the day's result so a reload shows the same reveal and never
-        // resubmits (the found slugs rebuild the grid without replaying).
+        // The day's saved state is either an in-progress round
+        // (status 'playing' + remainingMs, for resuming on reload) or the
+        // finished result (reload shows the reveal, never resubmits). The
+        // found slugs rebuild the reveal grid without replaying.
         function storageKeyFor(dateKey) { return 'copo-de-nieve:' + dateKey; }
 
         function persistResult() {
@@ -427,13 +439,35 @@
           } catch (e) { /* localStorage unavailable - just won't reload the reveal */ }
         }
 
+        // An in-progress snapshot, written once a second while playing. On
+        // reload initDay() resumes from it: the deal sequence is a pure
+        // function of the day + score, so replaying nextRound() score+1 times
+        // restores the exact board and RNG position (see resumeGame()).
+        function persistProgress() {
+          if (!state.running) return;
+          try {
+            localStorage.setItem(storageKeyFor(state.dateKey), JSON.stringify({
+              status: 'playing',
+              score: state.score,
+              found: state.found,
+              remainingMs: Math.max(0, Math.round(state.endTime - performance.now())),
+            }));
+          } catch (e) { /* no resume if storage is unavailable */ }
+        }
+
+        function startSaveTimer() {
+          clearInterval(saveTimer);
+          saveTimer = setInterval(persistProgress, 1000);
+        }
+
         function loadSavedResult(dateKey) {
           try {
             var raw = localStorage.getItem(storageKeyFor(dateKey));
             if (!raw) return null;
             var parsed = JSON.parse(raw);
             if (!parsed || typeof parsed.score !== 'number' || !Array.isArray(parsed.found)) return null;
-            return { score: parsed.score, found: parsed.found, leaderboardSubmitted: !!parsed.leaderboardSubmitted };
+            return { score: parsed.score, found: parsed.found, leaderboardSubmitted: !!parsed.leaderboardSubmitted,
+              status: parsed.status, remainingMs: parsed.remainingMs };
           } catch (e) { return null; }
         }
 
@@ -573,6 +607,8 @@
         // The shared results view - used both when a round ends and when a
         // saved result is reloaded on the same day.
         function renderReveal() {
+          timeFill.style.width = '0%';
+          timeText.textContent = '0:00'; // the round is over, on a fresh end or a reload
           MetroShared.renderNoticeBanner(revealNotice, 'notice--success', '¡Tiempo!',
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', '));
           revealNotice.hidden = false;
@@ -609,6 +645,7 @@
           state.gameNumber = MetroShared.getGameNumberForDateKey(state.dateKey, START_DATE_KEY);
           rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
           state.endTime = performance.now() + ROUND_MS;
+          timeFill.style.width = '100%'; // full bar at kickoff, before it counts down
           scoreText.textContent = '0';
           revealNotice.hidden = true;
           revealIcons.hidden = true;
@@ -618,13 +655,40 @@
           overlay.hidden = true;
           nextRound();
           state.rafId = requestAnimationFrame(tick);
+          startSaveTimer();
+          persistProgress();
+        }
+
+        // Resume an in-progress round saved by persistProgress(): the deal
+        // sequence is a pure function of the day + score, so replaying
+        // nextRound() score+1 times (with the score each deal was dealt at,
+        // for the ramp) restores the exact board and RNG position the player
+        // left; then run the clock down from the saved remainder.
+        function resumeGame(saved) {
+          rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
+          state.found = saved.found.slice();
+          state.leaderboardSubmitted = false;
+          state.prevMajor = state.prevOdd = state.prevIndex = -1;
+          for (var k = 0; k <= saved.score; k++) { state.score = k; nextRound(); }
+          state.score = saved.score;
+          scoreText.textContent = state.score;
+          state.endTime = performance.now() + saved.remainingMs;
+          timeFill.style.width = (saved.remainingMs / ROUND_MS * 100) + '%';
+          revealNotice.hidden = true;
+          revealIcons.hidden = true;
+          leaderboardEl.hidden = true;
+          startBtn.hidden = true;
+          boardStage.classList.remove('board-stage--done');
+          overlay.hidden = true;
+          state.running = true;
+          state.rafId = requestAnimationFrame(tick);
+          startSaveTimer();
         }
 
         function finish() {
           state.running = false;
           cancelAnimationFrame(state.rafId);
-          timeFill.style.width = '0%';
-          timeText.textContent = '0:00';
+          clearInterval(saveTimer);
           state.leaderboardSubmitted = false;
           // "Won" = a non-zero score (no win/lose puzzle), same as Metro Crush.
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
@@ -643,7 +707,9 @@
           renderHighScoreRecord();
 
           var saved = loadSavedResult(state.dateKey);
-          if (saved) {
+          if (saved && saved.status === 'playing' && saved.remainingMs > 0) {
+            resumeGame(saved); // an unfinished round - pick up where they left off
+          } else if (saved) {
             var s = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state.score = saved.score;
             state.found = saved.found;
@@ -654,6 +720,12 @@
             renderReveal();
             submitScore(); // retry if a prior attempt never landed (e.g. alias set later)
           } else {
+            // Full timer on the pre-game ready screen, set instantly (the
+            // 0.3s width transition would otherwise animate it up from empty).
+            timeFill.style.transition = 'none';
+            timeFill.style.width = '100%';
+            void timeFill.offsetWidth;
+            timeFill.style.transition = '';
             startBtn.disabled = false;
             startBtn.textContent = 'Comenzar';
           }

@@ -749,7 +749,17 @@ about `//`/`/* */` comments in the actual game/test code.)
   pictograms: the page fetches `/station-icons.svg` once and turns each
   symbol into a CSS mask data URI (the pictograms are single-color, so the
   masked silhouette is the exact icon the other games render via `<use>`);
-  the pool is every distinct slug in `MetroShared.STATION_ICON_SLUGS`.
+  the pool is every distinct slug in `MetroShared.STATION_ICON_SLUGS`. This
+  mask-based silhouette is a **one-off** - every other place a station icon
+  is drawn uses `<use>` (the `.station`/`.station-card`/`.station-circle`
+  family), and nothing in `/design/` catalogs a masked variant. It's used
+  here only because a mask on a CSS custom property lets all 49 `.cell`s
+  repaint by swapping two `var()`s instead of touching DOM (the minimal-
+  repaint goal below); the `.cell` tile otherwise reuses the station
+  family's own neutral-`--paper-well` look and `0 33% 0 0` corner. A
+  candidate to promote to a shared `MetroShared` helper if a second game
+  ever needs cheap bulk icon-swapping - same "wait for a second consumer"
+  rule the rest of the shared layer follows; page-local until then.
   Written for minimal repaint: the 49 `.cell` nodes are built once and
   never rebuilt - a round only sets two CSS custom properties on
   `#board` (`--major`/`--odd`, the two icon masks every cell reads via

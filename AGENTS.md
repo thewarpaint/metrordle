@@ -287,9 +287,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   `'clasificador:' + dateKey` and a reload on the same day shows that
   same reveal screen instead of a fresh queue (`loadSavedResult()`/
   `startNewGame()`'s own saved-result branch). Now in `SUGGESTABLE_GAMES`
-  too (last in priority order, since it shipped last) - every other
-  game's "sigue jugando hoy" promo can suggest it, same as its own
-  reveal screen's promo suggests from the other five.
+  too (appended after the other five when it shipped; Copo de nieve now
+  follows it) - every other game's "sigue jugando hoy" promo can suggest
+  it, same as its own reveal screen's promo suggests from the other six.
 
   Has its own daily `clasificador-leaderboard` collection now (see
   "Leaderboards" below) - ranked by a single descending `score` (the
@@ -367,9 +367,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   restored on hover - still enabled links). Shares the card markup with
   `buildGamePromo` through a common `buildGameCard(game, muted)` helper.
   Player-facing, so precached (`sw.js`'s `PRECACHE_URLS`, so a change needs
-  a `CACHE_NAME` bump); loads no Firebase. Only lists the six
-  `SUGGESTABLE_GAMES` - not the `/sopa-de-metros/`/`/copo-de-nieve/`
-  prototypes, which aren't in it. Linked from each game page's footer now:
+  a `CACHE_NAME` bump); loads no Firebase. Lists all of
+  `SUGGESTABLE_GAMES` (seven now that Copo de nieve joined) - not the
+  `/sopa-de-metros/` prototype, the one game still outside that list.
+  Linked from each game page's footer now:
   the old `<p class="credit">` "Basado en el trazado real..." line (on
   `/`, `/laberinto/`, `/memoria/`, `/clasificador/`, `/metrocrush/`, and
   the unreferenced `/metrocrush-staging/`) was replaced by a single
@@ -745,8 +746,11 @@ about `//`/`/* */` comments in the actual game/test code.)
   high-score record, and game number now (see those sections below), and
   is precached (`sw.js`'s own `PRECACHE_URLS`, both the directory and its
   `index.html` - so a change needs a `CACHE_NAME` bump). Still **not**
-  linked from any nav, still `noindex`, and not in `SUGGESTABLE_GAMES` (no
-  "sigue jugando" promo) or share text yet. A 7×7 grid of station
+  linked from any nav and still `noindex`, but now in `SUGGESTABLE_GAMES`
+  (appended last, after Clasificador) - so every game's "sigue jugando
+  hoy" promo can suggest it and `/juegos/` lists it, same as the other
+  six; its own share text still doesn't carry the suggestions promo yet.
+  A 7×7 grid of station
   cards all show one station pictogram except one, randomly placed, with
   a different one - the "única y especial" station (the game's snowflake
   theme); tapping it deals a fresh pair (`nextRound()`) and scores a

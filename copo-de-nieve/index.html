@@ -399,10 +399,8 @@
           revealIcons.hidden = false;
         }
 
-        // --- Daily result persistence (so a reload shows the same reveal and
-        // never resubmits, same pattern as Memoria/Metro Crush/Clasificador).
-        // The found slugs are stored so the reveal grid can be rebuilt on
-        // reload without replaying the round.
+        // Persist the day's result so a reload shows the same reveal and never
+        // resubmits (the found slugs rebuild the grid without replaying).
         function storageKeyFor(dateKey) { return 'copo-de-nieve:' + dateKey; }
 
         function persistResult() {
@@ -425,17 +423,14 @@
           } catch (e) { return null; }
         }
 
-        // --- Leaderboard / streak / high-score record (score-based game, same
-        // shape as Memoria/Metro Crush/Clasificador: rank by a single
-        // descending score; streak is display-only).
+        // Leaderboard / streak / record - score-based, same shape as Clasificador.
         function submitScore() {
           if (state.leaderboardSubmitted) return;
           if (MetroShared.isDebugMode()) return; // never pollute the real board from date-nav
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          // streak is submitted purely for display (/admin/'s 🔥 badge), never
-          // part of orderBySpecs, so ranking is unaffected either way.
+          // streak is display-only, never part of orderBySpecs.
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
@@ -452,8 +447,7 @@
             });
         }
 
-        // Only worth showing when it's actually ahead of today's streak - same
-        // helper/convention as Metro Crush's/Clasificador's own.
+        // Only shown when the best-ever streak is ahead of today's.
         function maxStreakLine(separator) {
           if (state.maxStreak <= state.streak) return '';
           return separator + MetroShared.formatMaxStreak(state.maxStreak);
@@ -624,9 +618,7 @@
           timeFill.style.width = '0%';
           timeText.textContent = '0:00';
           state.leaderboardSubmitted = false;
-          // "Won" = a non-zero score; there's no win/lose puzzle, same
-          // convention as Metro Crush/Clasificador. Update the streak before
-          // persisting and rendering.
+          // "Won" = a non-zero score (no win/lose puzzle), same as Metro Crush.
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
           persistResult();

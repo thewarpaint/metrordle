@@ -370,15 +370,15 @@ about `//`/`/* */` comments in the actual game/test code.)
   a `CACHE_NAME` bump); loads no Firebase. Lists all of
   `SUGGESTABLE_GAMES` (seven now that Copo de nieve joined) - not the
   `/sopa-de-metros/` prototype, the one game still outside that list.
-  Linked from each game page's footer now:
-  the old `<p class="credit">` "Basado en el trazado real..." line (on
-  `/`, `/laberinto/`, `/memoria/`, `/clasificador/`, `/metrocrush/`, and
-  the unreferenced `/metrocrush-staging/`) was replaced by a single
-  `<a href="/juegos/">Todos los juegos</a>` in that same `.credit`
-  paragraph - a plain `color: inherit` link (shared.css's global `a`
-  rule), matching `/configurar/`'s own in-`.credit` "← Volver a Metrordle"
-  link. Metroguessr has no such footer (full-bleed map layout), so it
-  stays unlinked for now.
+  Linked from each game page's footer: a `<p class="credit">`
+  `<a href="/juegos/">Todos los juegos</a>` link (on `/`, `/laberinto/`,
+  `/memoria/`, `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, and
+  the unreferenced `/metrocrush-staging/`) - a plain `color: inherit`
+  link (shared.css's global `a` rule), matching `/configurar/`'s own
+  in-`.credit` "← Volver a Metrordle" link. On the first five it
+  replaced the old "Basado en el trazado real..." credit line; Copo had
+  no footer before, so it just gained one. Metroguessr has no such
+  footer (full-bleed map layout), so it stays unlinked for now.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Precached (`sw.js`'s own
   `PRECACHE_URLS`) despite being unlinked, so a change to its
@@ -797,11 +797,20 @@ about `//`/`/* */` comments in the actual game/test code.)
   `#board` (`--major`/`--odd`, the two icon masks every cell reads via
   `var()`) and moves the `.cell--odd` class, ~4 writes total; input is
   one delegated listener on `#board`. The end-of-round overlay (the same
-  `.start-overlay` reused as a reveal) shows the icons of every station
-  found that round - a grid of neutral shared `.station` tiles with a
-  staggered pop-in, same pattern as Memoria's own `.reveal__icons` (these
-  icons carry no single line of their own, so they stay uncolored rather
-  than line-filled like Memoria's). Below the grid the same overlay shows
+  `.start-overlay` reused as a reveal) fills the card's full width in the
+  result state (`.board-stage--done` drops the shared `.start-overlay__panel`
+  18rem cap - right for the narrow pre-game start panel, wrong for a full
+  reveal - zeroes the board-stage's own side padding, and sets the overlay's
+  own 1.3rem to match `.sign__head`, so the reveal lines up under the title
+  instead of sitting narrow and over-indented). It shows the icons of every
+  station found that round - a grid of shared `.station` tiles with a staggered
+  pop-in, same pattern as Memoria's own `.reveal__icons`: each tile is
+  filled with its station's own line color (`--badge-bg`/`--badge-ink`,
+  via a `lineForSlug()` that maps the found icon slug back to a station
+  name then its line) and the grid is clustered by line, exactly like
+  Memoria's. The old bespoke "Encontraste N estaciones especiales."
+  summary line above it is gone - the colored grid and the `.notice`
+  streak carry the result now. Below the grid the same overlay shows
   the day's `copo-de-nieve-leaderboard` (alias row + top-5 list + the
   all-time `records/copo-de-nieve` card), and the end-of-round `.notice`
   carries the streak (`🔥 Racha: N días`) - the whole leaderboard/streak/
@@ -851,7 +860,12 @@ are impossible without a debug override.
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
-  the whole file), and cross-game primitives (`.wrap`, `.brand`,
+  the whole file), a site-wide `body { touch-action: manipulation }`
+  (kills double-tap-to-zoom and the 300ms tap delay while keeping
+  pinch-zoom - distracting in the quick-tap games; an ancestor
+  `manipulation` restricts every descendant, so this one rule replaced
+  the per-board copies Copo/Metro Crush/Sopa used to keep), and
+  cross-game primitives (`.wrap`, `.brand`,
   `.sign`, `.date-debug` date-nav (its chevrons are
   `.btn-secondary--chev`, below), `.debug-mode-toggle`,
   `.mode-modal`/`.mode-option*` (a full-screen pre-game choice no game
@@ -1541,7 +1555,9 @@ a single `goto()` per test (most of this suite) never hits this.
 
 Branch off latest `main` for every change, one PR per logical change,
 never push directly to `main`. Commit messages and PR bodies end with
-the attribution footer from the session's system prompt. Known open
+the attribution footer from the session's system prompt. **Keep commit
+messages, PR descriptions, and GitHub comments succinct** - a few lines
+on what changed and why, not an essay; the diff is the record. Known open
 PRs as of this writing: **#33** (service-worker cache-consistency,
 already bumped `CACHE_NAME` on its own branch - expect a collision) and
 **#13** (Laberinto neighbor-fan layout, unrelated/stale). Re-check

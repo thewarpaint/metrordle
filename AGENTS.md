@@ -762,12 +762,19 @@ about `//`/`/* */` comments in the actual game/test code.)
   seeded stream, `MetroShared.createSeededRandom('metrordle-copo-de-nieve-'
   + dateKey)`, reseeded at each `start()` - so every player gets the same
   ordered sequence of deals (and thus the same difficulty curve), and a
-  same-day replay reproduces it exactly. Like the other score-based games
-  it persists the day's result (`'copo-de-nieve:' + dateKey` =
-  `{score, found, leaderboardSubmitted}` - the found slugs are stored so
-  the reveal grid rebuilds on reload without replaying the round), so a
-  same-day reload shows that reveal instead of a fresh board and never
-  resubmits (`loadSavedResult()`/`persistResult()`/`initDay()`). In normal
+  same-day replay reproduces it exactly. The day's state is persisted to
+  `'copo-de-nieve:' + dateKey` in one of two shapes: an in-progress round
+  (`persistProgress()`, autosaved once a second - `{status:'playing',
+  score, found, remainingMs}`) or the finished result (`persistResult()` -
+  `{score, found, leaderboardSubmitted}`). On reload `initDay()` **resumes**
+  an unfinished round (`resumeGame()` reseeds and replays `nextRound()`
+  score+1 times - the deal sequence being a pure function of day+score, with
+  the score each deal was dealt at for the ramp - to restore the exact board
+  and RNG position, then counts down from `remainingMs`), or shows the
+  reveal for a finished one and never resubmits. The pre-game ready screen
+  shows a full timer bar (set instantly, bypassing the 0.3s width ease), and
+  the reveal shows `0:00` (set in `renderReveal()`, so a reloaded finished
+  day shows it too, not the markup default `1:00`). In normal
   play there's no replay (the "Jugar de nuevo" button only returns under
   `?debug=true`, same as every daily game); `start()` resets the per-round
   state (`prevMajor`/`prevOdd`/`prevIndex`, used so no deal repeats either
@@ -807,8 +814,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   pop-in, same pattern as Memoria's own `.reveal__icons`: each tile is
   filled with its station's own line color (`--badge-bg`/`--badge-ink`,
   via a `lineForSlug()` that maps the found icon slug back to a station
-  name then its line) and the grid is clustered by line, exactly like
-  Memoria's. The old bespoke "Encontraste N estaciones especiales."
+  name then its line) and the grid is clustered by line, then alphabetical
+  within each line (by `nameForSlug()`), like Memoria's. The old bespoke "Encontraste N estaciones especiales."
   summary line above it is gone - the colored grid and the `.notice`
   streak carry the result now. Below the grid the same overlay shows
   the day's `copo-de-nieve-leaderboard` (alias row + top-5 list + the

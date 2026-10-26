@@ -503,12 +503,37 @@ function getSuggestedGames(currentGameKey, dateKey) {
   return candidates.slice(0, MAX_SUGGESTED_GAMES);
 }
 
+// One game card (the anchor used by both the end-screen promo and the
+// /juegos/ grid). muted marks a game already played today.
+function buildGameCard(game, muted) {
+  var a = document.createElement('a');
+  a.className = 'game-promo__card' + (muted ? ' game-promo__card--played' : '');
+  a.href = game.href;
+
+  var glyph = document.createElement('span');
+  glyph.className = 'game-promo__glyph';
+  glyph.setAttribute('aria-hidden', 'true');
+  glyph.textContent = game.glyph;
+
+  var name = document.createElement('span');
+  name.className = 'game-promo__name';
+  name.textContent = game.name;
+
+  var sub = document.createElement('span');
+  sub.className = 'game-promo__sub';
+  sub.textContent = game.sub;
+
+  a.appendChild(glyph);
+  a.appendChild(name);
+  a.appendChild(sub);
+  return a;
+}
+
 // Builds the "sigue jugando hoy" promo component for currentGameKey, or
 // null if every other game is already done today (the caller should
 // remove/hide any previously-inserted promo in that case). Returns a
 // detached element - it only knows the component's own markup, never
-// the page's - so every page stays free to mount it wherever its own
-// layout wants, without this shared code reaching into that page's DOM.
+// the page's.
 function buildGamePromo(currentGameKey, dateKey) {
   var suggestions = getSuggestedGames(currentGameKey, dateKey);
   if (suggestions.length === 0) return null;
@@ -523,32 +548,28 @@ function buildGamePromo(currentGameKey, dateKey) {
 
   var grid = document.createElement('div');
   grid.className = 'game-promo__grid';
-  suggestions.forEach(function (game) {
-    var a = document.createElement('a');
-    a.className = 'game-promo__card';
-    a.href = game.href;
-
-    var glyph = document.createElement('span');
-    glyph.className = 'game-promo__glyph';
-    glyph.setAttribute('aria-hidden', 'true');
-    glyph.textContent = game.glyph;
-
-    var name = document.createElement('span');
-    name.className = 'game-promo__name';
-    name.textContent = game.name;
-
-    var sub = document.createElement('span');
-    sub.className = 'game-promo__sub';
-    sub.textContent = game.sub;
-
-    a.appendChild(glyph);
-    a.appendChild(name);
-    a.appendChild(sub);
-    grid.appendChild(a);
-  });
+  suggestions.forEach(function (game) { grid.appendChild(buildGameCard(game, false)); });
   section.appendChild(grid);
 
   return section;
+}
+
+// The full games grid for /juegos/: every game as a card, sorted A-Z,
+// with the ones already played today moved to the end and muted (still
+// enabled links). Returns a detached .game-promo__grid.
+function buildAllGamesGrid(dateKey) {
+  var sorted = SUGGESTABLE_GAMES.slice().sort(function (a, b) {
+    return a.name.localeCompare(b.name, 'es');
+  });
+  var grid = document.createElement('div');
+  grid.className = 'game-promo__grid';
+  var played = [];
+  sorted.forEach(function (game) {
+    if (isGamePlayedToday(game.key, dateKey)) played.push(game);
+    else grid.appendChild(buildGameCard(game, false));
+  });
+  played.forEach(function (game) { grid.appendChild(buildGameCard(game, true)); });
+  return grid;
 }
 
 function loadStreak(storageKey) {
@@ -1330,6 +1351,7 @@ window.MetroShared = {
   getGameNumberForDateKey: getGameNumberForDateKey,
   getSuggestedGames: getSuggestedGames,
   buildGamePromo: buildGamePromo,
+  buildAllGamesGrid: buildAllGamesGrid,
   isDebugMode: isDebugMode,
   getEffectiveToday: getEffectiveToday,
   prefersReducedMotion: prefersReducedMotion,

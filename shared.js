@@ -1292,9 +1292,35 @@ function formatHighScoreRecord(record) {
   return dateLabel ? base + ' · ' + dateLabel : base;
 }
 
+// Build a { slug: maskUrl } map from the station-icons sprite - each a
+// `url("data:...")` for the --station-mask of the .station__icon--mask
+// variant (shared.css). {} on a parse failure.
+function buildStationMasks(svgText) {
+  var out = {};
+  try {
+    var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+    var serializer = new XMLSerializer();
+    var seen = {};
+    for (var name in STATION_ICON_SLUGS) {
+      var slug = STATION_ICON_SLUGS[name];
+      if (!slug || seen[slug]) continue;
+      seen[slug] = true;
+      var sym = doc.getElementById(slug);
+      if (!sym) continue;
+      var inner = '';
+      for (var c = sym.firstChild; c; c = c.nextSibling) inner += serializer.serializeToString(c);
+      var vb = sym.getAttribute('viewBox') || '0 0 1024 1024';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + inner + '</svg>';
+      out[slug] = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+    }
+  } catch (e) {}
+  return out;
+}
+
 window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
+  buildStationMasks: buildStationMasks,
   STATION_COORDS: STATION_COORDS,
   hashStringToInt: hashStringToInt,
   createSeededRandom: createSeededRandom,

@@ -1058,6 +1058,15 @@ input[type="text"]:disabled {
   width: 100%;
 }
 
+/* Silhouette variant of .station__icon: no inner <use> svg - the span paints
+   itself with a CSS mask (image from --station-mask, filled with its own
+   color), so a consumer can repaint many icons by swapping one property. */
+.station__icon--mask {
+  background: currentColor;
+  -webkit-mask: var(--station-mask) center / contain no-repeat;
+  mask: var(--station-mask) center / contain no-repeat;
+}
+
 /* Metro Crush's own .legend__chip - the pre-round line legend and the
    reveal screen's per-line match-summary, both a fixed compact size
    rather than filling a grid cell or a map-sized marker. Still the same

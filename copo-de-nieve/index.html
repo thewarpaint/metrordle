@@ -61,7 +61,7 @@
       .cell {
         aspect-ratio: 1;
         border: none;
-        border-radius: 0 28% 0 0;
+        border-radius: 0 33% 0 0; /* same rounded top-right corner as the station family */
         background: var(--paper-well);
         display: flex;
         align-items: center;
@@ -73,24 +73,15 @@
       }
       .cell:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-      /* Icons render as silhouettes masked in the ink color - the same
-         single-color look the other games give station pictograms. */
-      .cell__icon {
-        width: 66%;
-        height: 66%;
-        background: var(--ink);
-        -webkit-mask: var(--major) center / contain no-repeat;
-        mask: var(--major) center / contain no-repeat;
-      }
-      .cell--odd .cell__icon {
-        -webkit-mask-image: var(--odd);
-        mask-image: var(--odd);
-      }
+      /* The icon is the shared .station__icon--mask (shared.css); we just feed
+         it the board's --major/--odd mask and set the fill via `color`. */
+      .cell__icon { color: var(--ink); --station-mask: var(--major); }
+      .cell--odd .cell__icon { --station-mask: var(--odd); }
 
       .cell--hit { animation: diff-pop 0.18s ease; }
-      .cell--hit .cell__icon { background: var(--ok); }
+      .cell--hit .cell__icon { color: var(--ok); }
       .cell--wrong { animation: diff-shake 0.28s ease; }
-      .cell--wrong .cell__icon { background: var(--danger); }
+      .cell--wrong .cell__icon { color: var(--danger); }
       @keyframes diff-pop { 50% { transform: scale(1.18); } }
       @keyframes diff-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
@@ -227,7 +218,7 @@
             cell.setAttribute('role', 'gridcell');
             cell.dataset.i = i;
             var icon = document.createElement('span');
-            icon.className = 'cell__icon';
+            icon.className = 'cell__icon station__icon station__icon--mask';
             cell.appendChild(icon);
             frag.appendChild(cell);
             cells.push(cell);
@@ -245,29 +236,20 @@
         var SIM_INDEX = {};
         for (var _s = 0; _s < SIM_SLUGS.length; _s++) SIM_INDEX[SIM_SLUGS[_s]] = _s;
 
-        // Real station pictograms: fetch the shared sprite once and turn
-        // each symbol into a CSS mask data URI (the icons are single-color,
-        // so the silhouette is the exact pictogram). The pool is every
-        // distinct slug MetroShared maps a station to.
+        // Station pictograms as CSS mask urls (the --station-mask values),
+        // one per distinct slug present in the sprite.
         var ICONS = [];       // { slug, mask }
         var slugToIcon = {};
         function buildIcons(svgText) {
-          var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
-          var serializer = new XMLSerializer();
-          var seen = {};
+          var masks = MetroShared.buildStationMasks(svgText);
           var slugs = MetroShared.STATION_ICON_SLUGS;
+          var seen = {};
           for (var name in slugs) {
             var slug = slugs[name];
-            if (!slug || seen[slug]) continue;
+            if (!slug || seen[slug] || !masks[slug]) continue;
             seen[slug] = true;
-            var sym = doc.getElementById(slug);
-            if (!sym) continue;
-            var inner = '';
-            for (var c = sym.firstChild; c; c = c.nextSibling) inner += serializer.serializeToString(c);
-            var vb = sym.getAttribute('viewBox') || '0 0 1024 1024';
-            var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + inner + '</svg>';
             slugToIcon[slug] = ICONS.length;
-            ICONS.push({ slug: slug, mask: 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")' });
+            ICONS.push({ slug: slug, mask: masks[slug] });
           }
         }
 

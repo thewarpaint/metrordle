@@ -750,16 +750,18 @@ about `//`/`/* */` comments in the actual game/test code.)
   symbol into a CSS mask data URI (the pictograms are single-color, so the
   masked silhouette is the exact icon the other games render via `<use>`);
   the pool is every distinct slug in `MetroShared.STATION_ICON_SLUGS`. This
-  mask-based silhouette is a **one-off** - every other place a station icon
-  is drawn uses `<use>` (the `.station`/`.station-card`/`.station-circle`
-  family), and nothing in `/design/` catalogs a masked variant. It's used
-  here only because a mask on a CSS custom property lets all 49 `.cell`s
-  repaint by swapping two `var()`s instead of touching DOM (the minimal-
-  repaint goal below); the `.cell` tile otherwise reuses the station
-  family's own neutral-`--paper-well` look and `0 33% 0 0` corner. A
-  candidate to promote to a shared `MetroShared` helper if a second game
-  ever needs cheap bulk icon-swapping - same "wait for a second consumer"
-  rule the rest of the shared layer follows; page-local until then.
+  mask-based silhouette is now a shared station variant,
+  **`.station__icon--mask`** (shared.css), fed by
+  **`MetroShared.buildStationMasks(svgText)`** (shared.js, turns the fetched
+  sprite into a `{slug: maskUrl}` map) - an alternative to the `<use>`-based
+  `.station__icon` for repainting many icons cheaply by swapping one CSS
+  custom property (`--station-mask`) instead of touching the DOM. Copo is
+  its only consumer so far (its `.cell__icon` carries the shared classes and
+  only sets `--station-mask` from the board's `--major`/`--odd` and the
+  silhouette `color` for its hit/wrong states); the `.cell` tile otherwise
+  reuses the station family's neutral-`--paper-well` look and `0 33% 0 0`
+  corner. Not yet shown in `/design/`'s Estaciones board (the gallery still
+  only renders `<use>`-based station icons).
   Written for minimal repaint: the 49 `.cell` nodes are built once and
   never rebuilt - a round only sets two CSS custom properties on
   `#board` (`--major`/`--odd`, the two icon masks every cell reads via
@@ -805,7 +807,10 @@ are impossible without a debug override.
   variantClass, title, bodyText)` for every game's own end-of-round
   `.notice` banner (see `/design/`'s own "Avisos" bullet above), and
   the site-wide config object (`loadConfig`/`saveConfig`/`getThemeMode`/
-  `applyThemeMode`/`setThemeMode` - see "Site config" below). The shared
+  `applyThemeMode`/`setThemeMode` - see "Site config" below), and
+  `buildStationMasks(svgText)`, which turns the fetched station-icon sprite
+  into a `{slug: maskUrl}` map for the `.station__icon--mask` CSS variant
+  (see shared.css). The shared
   data tables also live here: `LINES` (per-line station order + colors),
   `STATION_ICON_SLUGS` (station -> pictogram), and `STATION_COORDS`
   (`[name, lat, lng]` for Metroguessr's map and `/map/` - moved out of
@@ -937,7 +942,14 @@ are impossible without a debug override.
   pictogram `<svg>` it appends to the marker element, where it used to
   append the bare `<svg>` directly - see `tests/lib/leaflet-stub.js`'s
   own token-based `className` match, no longer an exact-equality one,
-  for why)). A fifth pattern joined these: `.route-dot` (Laberinto's
+  for why)). `.station__icon--mask` is its one variant - the same icon box
+  but painted as a CSS `mask` silhouette (filled with the span's own
+  `color`, image from the `--station-mask` custom property) instead of an
+  inner `<use>` svg, for a consumer that needs to repaint many icons by
+  swapping one property rather than touching the DOM. `MetroShared.
+  buildStationMasks(svgText)` (shared.js) builds the `{slug: maskUrl}` map
+  it reads; `/copo-de-nieve/`'s 49-cell board is the only consumer so far.
+  A fifth pattern joined these: `.route-dot` (Laberinto's
   small line-color dot, no text or icon - the per-stop indicator in
   both `.breadcrumb` and `#optimal-path-list`), consolidating the live
   page's own copy with `/design/`'s own `.design-line-dot` stand-in

@@ -1292,9 +1292,40 @@ function formatHighScoreRecord(record) {
   return dateLabel ? base + ' · ' + dateLabel : base;
 }
 
+// Turn the fetched /station-icons.svg sprite into a { slug: maskUrl } map,
+// where each maskUrl is a `url("data:image/svg+xml,...")` usable as a CSS
+// mask-image (the --station-mask custom property the .station__icon--mask
+// variant reads - see shared.css). The pictograms are single-color, so the
+// masked silhouette matches the <use>-rendered icon exactly. This is the JS
+// half of the mask technique: it lets a page swap many station icons by
+// setting one CSS property instead of touching the DOM (see /copo-de-nieve/,
+// which repaints its 49-cell board this way). Returns {} on a parse failure.
+function buildStationMasks(svgText) {
+  var out = {};
+  try {
+    var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+    var serializer = new XMLSerializer();
+    var seen = {};
+    for (var name in STATION_ICON_SLUGS) {
+      var slug = STATION_ICON_SLUGS[name];
+      if (!slug || seen[slug]) continue;
+      seen[slug] = true;
+      var sym = doc.getElementById(slug);
+      if (!sym) continue;
+      var inner = '';
+      for (var c = sym.firstChild; c; c = c.nextSibling) inner += serializer.serializeToString(c);
+      var vb = sym.getAttribute('viewBox') || '0 0 1024 1024';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '">' + inner + '</svg>';
+      out[slug] = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+    }
+  } catch (e) {}
+  return out;
+}
+
 window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
+  buildStationMasks: buildStationMasks,
   STATION_COORDS: STATION_COORDS,
   hashStringToInt: hashStringToInt,
   createSeededRandom: createSeededRandom,

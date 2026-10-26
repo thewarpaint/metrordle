@@ -92,7 +92,14 @@
          being clipped inside the fixed-height board area. */
       .start-overlay { background: var(--paper-raised); }
       .board-stage--done #board { display: none; }
-      .board-stage--done .start-overlay { position: static; }
+      /* In the result state the overlay IS the card's full-width content,
+         not a small centered start panel - so drop the shared 18rem panel
+         cap, zero the board-stage's own side padding, and let the overlay's
+         1.3rem match sign__head, lining the reveal up under the title
+         instead of sitting narrow and over-indented. */
+      .board-stage--done { padding-left: 0; padding-right: 0; }
+      .board-stage--done .start-overlay { position: static; padding: 1.1rem 1.3rem; }
+      .board-stage--done .start-overlay__panel { max-width: none; }
       #reveal-notice { margin-bottom: 0.6rem; }
       .game-num { color: var(--ink-soft); font-weight: 700; font-size: 0.8em; }
       #leaderboard { margin-top: 1rem; text-align: left; }

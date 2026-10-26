@@ -797,8 +797,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   `#board` (`--major`/`--odd`, the two icon masks every cell reads via
   `var()`) and moves the `.cell--odd` class, ~4 writes total; input is
   one delegated listener on `#board`. The end-of-round overlay (the same
-  `.start-overlay` reused as a reveal) shows the icons of every station
-  found that round - a grid of shared `.station` tiles with a staggered
+  `.start-overlay` reused as a reveal) fills the card's full width in the
+  result state (`.board-stage--done` drops the shared `.start-overlay__panel`
+  18rem cap - right for the narrow pre-game start panel, wrong for a full
+  reveal - zeroes the board-stage's own side padding, and sets the overlay's
+  own 1.3rem to match `.sign__head`, so the reveal lines up under the title
+  instead of sitting narrow and over-indented). It shows the icons of every
+  station found that round - a grid of shared `.station` tiles with a staggered
   pop-in, same pattern as Memoria's own `.reveal__icons`: each tile is
   filled with its station's own line color (`--badge-bg`/`--badge-ink`,
   via a `lineForSlug()` that maps the found icon slug back to a station

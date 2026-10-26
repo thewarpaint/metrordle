@@ -95,16 +95,14 @@
       @keyframes diff-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
       /* The start/result overlay reuses shared .start-overlay over the
-         board. A results screen shows the score big. On the results screen
-         (.board-stage--done) the overlay drops to normal flow and the board
-         is hidden, so the card grows to fit the full found-stations grid and
-         the page scrolls - instead of the grid being clipped inside the
-         fixed-height board area. */
+         board. On the results screen (.board-stage--done) the overlay drops
+         to normal flow and the board is hidden, so the card grows to fit the
+         full found-stations grid and the page scrolls - instead of the grid
+         being clipped inside the fixed-height board area. */
       .start-overlay { background: var(--paper-raised); }
       .board-stage--done #board { display: none; }
       .board-stage--done .start-overlay { position: static; }
-      .overlay__score { font-size: 2.6rem; font-weight: 900; margin: 0.1rem 0; font-variant-numeric: tabular-nums; }
-      .overlay__best { color: var(--ink-soft); font-size: 0.9rem; font-weight: 600; margin: 0; }
+      #reveal-notice { margin-bottom: 0.6rem; }
 
       /* End-of-round grid of the stations found, same pattern as Memoria's
          reveal: shared .station tiles (neutral fill - these icons carry no
@@ -162,10 +160,8 @@
           <div class="board" id="board" role="grid" aria-label="Cuadrícula de estaciones"></div>
           <div class="start-overlay" id="overlay">
             <div class="start-overlay__panel">
-              <p class="start-overlay__text" id="overlay-text" hidden></p>
-              <div class="overlay__score" id="overlay-score" hidden></div>
+              <div class="notice notice--success" id="reveal-notice" hidden></div>
               <div class="reveal__icons" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
-              <p class="overlay__best" id="overlay-best" hidden></p>
               <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
             </div>
           </div>
@@ -187,9 +183,7 @@
         var board = document.getElementById('board');
         var boardStage = document.querySelector('.board-stage');
         var overlay = document.getElementById('overlay');
-        var overlayText = document.getElementById('overlay-text');
-        var overlayScore = document.getElementById('overlay-score');
-        var overlayBest = document.getElementById('overlay-best');
+        var revealNotice = document.getElementById('reveal-notice');
         var startBtn = document.getElementById('start-btn');
         var timeFill = document.getElementById('time-fill');
         var timeText = document.getElementById('time-text');
@@ -406,10 +400,9 @@
           rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + dateKey);
           state.endTime = performance.now() + ROUND_MS;
           scoreText.textContent = '0';
-          overlayText.hidden = true;
-          overlayScore.hidden = true;
-          overlayBest.hidden = true;
+          revealNotice.hidden = true;
           revealIcons.hidden = true;
+          startBtn.hidden = false;
           boardStage.classList.remove('board-stage--done');
           overlay.hidden = true;
           nextRound();
@@ -422,17 +415,17 @@
           timeFill.style.width = '0%';
           timeText.textContent = '0:00';
           var best = readBest();
-          if (state.score > best) { best = state.score; writeBest(best); }
-          overlayText.textContent = state.score === 1
+          if (state.score > best) writeBest(state.score); // still tracked, just not shown
+          var summary = state.score === 1
             ? 'Encontraste 1 estación especial.'
             : 'Encontraste ' + state.score + ' estaciones especiales.';
-          overlayText.hidden = false;
-          overlayScore.textContent = state.score;
-          overlayScore.hidden = false;
+          MetroShared.renderNoticeBanner(revealNotice, 'notice--success', '¡Tiempo!', summary);
+          revealNotice.hidden = false;
           renderRevealIcons();
-          overlayBest.textContent = 'Mejor: ' + best;
-          overlayBest.hidden = false;
+          // No replays of a daily deterministic board outside debug - same as
+          // every other game; the button only returns under ?debug=true.
           startBtn.textContent = 'Jugar de nuevo';
+          startBtn.hidden = !MetroShared.isDebugMode();
           boardStage.classList.add('board-stage--done'); // card grows to fit the full grid
           overlay.hidden = false;
         }
@@ -449,7 +442,9 @@
             startBtn.textContent = 'Comenzar';
           })
           .catch(function () {
-            overlayText.textContent = 'No se pudieron cargar los iconos de las estaciones. Revisa tu conexión y recarga.';
+            MetroShared.renderNoticeBanner(revealNotice, 'notice--error', 'Error',
+              'No se pudieron cargar los iconos de las estaciones. Revisa tu conexión y recarga.');
+            revealNotice.hidden = false;
           });
       })();
     </script>

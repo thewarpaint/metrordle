@@ -370,15 +370,15 @@ about `//`/`/* */` comments in the actual game/test code.)
   a `CACHE_NAME` bump); loads no Firebase. Lists all of
   `SUGGESTABLE_GAMES` (seven now that Copo de nieve joined) - not the
   `/sopa-de-metros/` prototype, the one game still outside that list.
-  Linked from each game page's footer now:
-  the old `<p class="credit">` "Basado en el trazado real..." line (on
-  `/`, `/laberinto/`, `/memoria/`, `/clasificador/`, `/metrocrush/`, and
-  the unreferenced `/metrocrush-staging/`) was replaced by a single
-  `<a href="/juegos/">Todos los juegos</a>` in that same `.credit`
-  paragraph - a plain `color: inherit` link (shared.css's global `a`
-  rule), matching `/configurar/`'s own in-`.credit` "← Volver a Metrordle"
-  link. Metroguessr has no such footer (full-bleed map layout), so it
-  stays unlinked for now.
+  Linked from each game page's footer: a `<p class="credit">`
+  `<a href="/juegos/">Todos los juegos</a>` link (on `/`, `/laberinto/`,
+  `/memoria/`, `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, and
+  the unreferenced `/metrocrush-staging/`) - a plain `color: inherit`
+  link (shared.css's global `a` rule), matching `/configurar/`'s own
+  in-`.credit` "← Volver a Metrordle" link. On the first five it
+  replaced the old "Basado en el trazado real..." credit line; Copo had
+  no footer before, so it just gained one. Metroguessr has no such
+  footer (full-bleed map layout), so it stays unlinked for now.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Precached (`sw.js`'s own
   `PRECACHE_URLS`) despite being unlinked, so a change to its
@@ -798,10 +798,14 @@ about `//`/`/* */` comments in the actual game/test code.)
   `var()`) and moves the `.cell--odd` class, ~4 writes total; input is
   one delegated listener on `#board`. The end-of-round overlay (the same
   `.start-overlay` reused as a reveal) shows the icons of every station
-  found that round - a grid of neutral shared `.station` tiles with a
-  staggered pop-in, same pattern as Memoria's own `.reveal__icons` (these
-  icons carry no single line of their own, so they stay uncolored rather
-  than line-filled like Memoria's). Below the grid the same overlay shows
+  found that round - a grid of shared `.station` tiles with a staggered
+  pop-in, same pattern as Memoria's own `.reveal__icons`: each tile is
+  filled with its station's own line color (`--badge-bg`/`--badge-ink`,
+  via a `lineForSlug()` that maps the found icon slug back to a station
+  name then its line) and the grid is clustered by line, exactly like
+  Memoria's. The old bespoke "Encontraste N estaciones especiales."
+  summary line above it is gone - the colored grid and the `.notice`
+  streak carry the result now. Below the grid the same overlay shows
   the day's `copo-de-nieve-leaderboard` (alias row + top-5 list + the
   all-time `records/copo-de-nieve` card), and the end-of-round `.notice`
   carries the streak (`🔥 Racha: N días`) - the whole leaderboard/streak/

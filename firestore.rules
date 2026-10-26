@@ -227,6 +227,33 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // copo-de-nieve-leaderboard/{dateKey}/entries/{aliasId} - score-based
+    // like Metro Crush's/Clasificador's own: a single descending score (how
+    // many "special" stations a player tapped in the 60-second round),
+    // open-ended so the bound is generous rather than tight. No hardMode
+    // field - this game has no mode toggle. streak is display-only (see
+    // Memoria's own comment above) and can legitimately be 0 on a scoreless
+    // round, same as Metro Crush's/Clasificador's own.
+    match /copo-de-nieve-leaderboard/{dateKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasOnly(['alias', 'score', 'streak', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.score is int &&
+        request.resource.data.score >= 0 &&
+        request.resource.data.score <= 1000 &&
+        request.resource.data.streak is int &&
+        request.resource.data.streak >= 0 &&
+        request.resource.data.streak <= 5000 &&
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow delete: if false;
+    }
+
     // records/{gameKey} - one document per game tracking its own
     // highest score ever (MetroShared.updateHighScoreRecord() in
     // shared.js), for Memoria, Metro Crush, and Clasificador: the games
@@ -256,28 +283,28 @@ service cloud.firestore {
       allow read: if true;
 
       allow create: if
-        gameKey in ['memoria', 'metrocrush', 'clasificador'] &&
+        gameKey in ['memoria', 'metrocrush', 'clasificador', 'copo-de-nieve'] &&
         request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'gameNumber', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.score is int &&
         request.resource.data.score >= 0 &&
-        request.resource.data.score <= (gameKey == 'memoria' ? 200 : gameKey == 'clasificador' ? 500 : 20000) &&
+        request.resource.data.score <= (gameKey == 'memoria' ? 200 : gameKey == 'clasificador' ? 500 : gameKey == 'copo-de-nieve' ? 1000 : 20000) &&
         request.resource.data.dateKey is string &&
         request.resource.data.gameNumber is int &&
         request.resource.data.gameNumber >= 1 &&
         request.resource.data.submittedAt == request.time;
 
       allow update: if
-        gameKey in ['memoria', 'metrocrush', 'clasificador'] &&
+        gameKey in ['memoria', 'metrocrush', 'clasificador', 'copo-de-nieve'] &&
         request.resource.data.keys().hasOnly(['score', 'alias', 'dateKey', 'gameNumber', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.score is int &&
         request.resource.data.score > resource.data.score &&
-        request.resource.data.score <= (gameKey == 'memoria' ? 200 : gameKey == 'clasificador' ? 500 : 20000) &&
+        request.resource.data.score <= (gameKey == 'memoria' ? 200 : gameKey == 'clasificador' ? 500 : gameKey == 'copo-de-nieve' ? 1000 : 20000) &&
         request.resource.data.dateKey is string &&
         request.resource.data.gameNumber is int &&
         request.resource.data.gameNumber >= 1 &&

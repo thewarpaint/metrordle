@@ -103,6 +103,9 @@
       .board-stage--done #board { display: none; }
       .board-stage--done .start-overlay { position: static; }
       #reveal-notice { margin-bottom: 0.6rem; }
+      .game-num { color: var(--ink-soft); font-weight: 700; font-size: 0.8em; }
+      .reveal-summary { margin: 0 0 0.6rem; font-weight: 600; }
+      #leaderboard { margin-top: 1rem; text-align: left; }
 
       /* End-of-round grid of the stations found, same pattern as Memoria's
          reveal: shared .station tiles (neutral fill - these icons carry no
@@ -145,7 +148,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Copo de nieve</h1>
+          <h1>Copo de nieve <span class="game-num" id="game-num"></span></h1>
           <p class="dek">Una de las 49 estaciones es única y especial. Tócala para avanzar ¿Cuántas puedes encontrar en 60 segundos?</p>
           <div class="progress">
             <div class="progress__track"><div class="progress__fill" id="time-fill"></div></div>
@@ -161,7 +164,15 @@
           <div class="start-overlay" id="overlay">
             <div class="start-overlay__panel">
               <div class="notice notice--success" id="reveal-notice" hidden></div>
+              <p class="reveal-summary" id="reveal-summary" hidden></p>
               <div class="reveal__icons" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
+              <div class="leaderboard" id="leaderboard" hidden>
+                <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
+                <p class="leaderboard__record" id="leaderboard-record" hidden></p>
+                <div class="leaderboard__alias" id="leaderboard-alias-row"></div>
+                <ol class="leaderboard__list" id="leaderboard-list"></ol>
+                <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+              </div>
               <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
             </div>
           </div>
@@ -169,16 +180,23 @@
       </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
         'use strict';
 
         var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000;
-        var BEST_KEY = 'copo-de-nieve:best';
         // After this many finds the odd icon is drawn from the majority's
         // most visually-similar neighbours (hardest); 0 is all-random (easy).
         var RAMP_SCORE = 18;
+        var START_DATE_KEY = '2026-10-26';        // leaderboards shipped this day - game #1
+        var STREAK_STORAGE_KEY = 'copo-de-nieve:streak';
+        var LEADERBOARD_COLLECTION = 'copo-de-nieve-leaderboard';
+        var RECORD_GAME_KEY = 'copo-de-nieve';
+        var LEADERBOARD_SIZE = 5;
 
         var board = document.getElementById('board');
         var boardStage = document.querySelector('.board-stage');
@@ -189,6 +207,13 @@
         var timeText = document.getElementById('time-text');
         var scoreText = document.getElementById('score-text');
         var revealIcons = document.getElementById('reveal-icons');
+        var revealSummary = document.getElementById('reveal-summary');
+        var gameNum = document.getElementById('game-num');
+        var leaderboardEl = document.getElementById('leaderboard');
+        var leaderboardRecord = document.getElementById('leaderboard-record');
+        var leaderboardAliasRow = document.getElementById('leaderboard-alias-row');
+        var leaderboardList = document.getElementById('leaderboard-list');
+        var leaderboardStatus = document.getElementById('leaderboard-status');
 
         // Build the 49 cells once; a round only mutates CSS vars + one
         // class, never the cell nodes.
@@ -247,7 +272,8 @@
         }
 
         var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0,
-          prevMajor: -1, prevOdd: -1, prevIndex: -1, oddIconIdx: -1, found: [] };
+          prevMajor: -1, prevOdd: -1, prevIndex: -1, oddIconIdx: -1, found: [],
+          dateKey: '', gameNumber: 0, leaderboardSubmitted: false, streak: 0, maxStreak: 0 };
 
         // Per-day seeded stream, so every player (and every same-day replay)
         // gets the identical sequence of deals - and thus the same difficulty
@@ -373,11 +399,190 @@
           revealIcons.hidden = false;
         }
 
-        function readBest() {
-          try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; }
+        // --- Daily result persistence (so a reload shows the same reveal and
+        // never resubmits, same pattern as Memoria/Metro Crush/Clasificador).
+        // The found slugs are stored so the reveal grid can be rebuilt on
+        // reload without replaying the round.
+        function storageKeyFor(dateKey) { return 'copo-de-nieve:' + dateKey; }
+
+        function persistResult() {
+          try {
+            localStorage.setItem(storageKeyFor(state.dateKey), JSON.stringify({
+              score: state.score,
+              found: state.found,
+              leaderboardSubmitted: !!state.leaderboardSubmitted,
+            }));
+          } catch (e) { /* localStorage unavailable - just won't reload the reveal */ }
         }
-        function writeBest(n) {
-          try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) {}
+
+        function loadSavedResult(dateKey) {
+          try {
+            var raw = localStorage.getItem(storageKeyFor(dateKey));
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed.score !== 'number' || !Array.isArray(parsed.found)) return null;
+            return { score: parsed.score, found: parsed.found, leaderboardSubmitted: !!parsed.leaderboardSubmitted };
+          } catch (e) { return null; }
+        }
+
+        // --- Leaderboard / streak / high-score record (score-based game, same
+        // shape as Memoria/Metro Crush/Clasificador: rank by a single
+        // descending score; streak is display-only).
+        function submitScore() {
+          if (state.leaderboardSubmitted) return;
+          if (MetroShared.isDebugMode()) return; // never pollute the real board from date-nav
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+
+          // streak is submitted purely for display (/admin/'s 🔥 badge), never
+          // part of orderBySpecs, so ranking is unaffected either way.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, streak: state.streak }, {})
+            .then(function () {
+              state.leaderboardSubmitted = true;
+              persistResult();
+              renderLeaderboard();
+              // Best-effort, never rejects - can't turn a good submission into
+              // a visible error. See updateHighScoreRecord()'s own comment.
+              MetroShared.updateHighScoreRecord(RECORD_GAME_KEY, state.score, alias, state.dateKey, state.gameNumber);
+            })
+            .catch(function (err) {
+              // The result is already saved locally; a failed submit is retried
+              // the next time submitScore() runs (e.g. the next reload).
+              console.error('[Leaderboard] submitScore() failed:', err);
+            });
+        }
+
+        // Only worth showing when it's actually ahead of today's streak - same
+        // helper/convention as Metro Crush's/Clasificador's own.
+        function maxStreakLine(separator) {
+          if (state.maxStreak <= state.streak) return '';
+          return separator + MetroShared.formatMaxStreak(state.maxStreak);
+        }
+
+        // All-time high score (records/copo-de-nieve) - no date dimension, so
+        // this only ever loads once, from initDay().
+        function renderHighScoreRecord() {
+          MetroShared.getHighScoreRecord(RECORD_GAME_KEY).then(function (record) {
+            if (!record) { leaderboardRecord.hidden = true; return; }
+            leaderboardRecord.textContent = MetroShared.formatHighScoreRecord(record);
+            leaderboardRecord.hidden = false;
+          });
+        }
+
+        // Guards against an earlier async response painting over a newer one -
+        // see Clasificador's own renderLeaderboard() comment.
+        var leaderboardRequestId = 0;
+
+        function renderLeaderboard() {
+          var dateKey = state.dateKey;
+          var requestId = ++leaderboardRequestId;
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['streak'], myAliasId: myAliasId })
+            .then(function (entries) {
+              if (!state || state.dateKey !== dateKey) return;
+              if (requestId !== leaderboardRequestId) return;
+
+              leaderboardList.innerHTML = '';
+              if (entries.length === 0) {
+                leaderboardStatus.textContent = 'Todavía no hay puntajes hoy. ¡Sé el primero!';
+                leaderboardStatus.hidden = false;
+                return;
+              }
+              leaderboardStatus.hidden = true;
+
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + MetroShared.formatRank(entry, index);
+
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias; // user text - textContent, never innerHTML
+
+                var score = document.createElement('span');
+                score.className = 'leaderboard__score';
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number leaderboard__score-number--wide';
+                number.textContent = entry.score;
+                score.appendChild(badge);
+                score.appendChild(number);
+
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(score);
+                li.appendChild(MetroShared.buildStreakBadge(entry.streak));
+                leaderboardList.appendChild(li);
+              });
+            });
+        }
+
+        function renderAliasRow() {
+          if (MetroShared.getAlias()) { hideAliasRow(); } else { showAliasInput(); }
+        }
+
+        function hideAliasRow() {
+          // Once an alias is set, the player's own highlighted row below
+          // already identifies them, so there's nothing to show here.
+          leaderboardAliasRow.hidden = true;
+          leaderboardAliasRow.innerHTML = '';
+        }
+
+        function showAliasInput() {
+          leaderboardAliasRow.hidden = false;
+          leaderboardAliasRow.innerHTML = '';
+
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+
+          function save() {
+            var normalized = MetroShared.setAlias(input.value);
+            if (!normalized) return;
+            hideAliasRow();
+            submitScore();
+          }
+
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) { if (e.key === 'Enter') save(); });
+
+          leaderboardAliasRow.appendChild(input);
+          leaderboardAliasRow.appendChild(saveBtn);
+        }
+
+        // The shared results view - used both when a round ends and when a
+        // saved result is reloaded on the same day.
+        function renderReveal() {
+          var summary = state.score === 1
+            ? 'Encontraste 1 estación especial.'
+            : 'Encontraste ' + state.score + ' estaciones especiales.';
+          MetroShared.renderNoticeBanner(revealNotice, 'notice--success', '¡Tiempo!',
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', '));
+          revealNotice.hidden = false;
+          revealSummary.textContent = summary;
+          revealSummary.hidden = false;
+          renderRevealIcons();
+          leaderboardEl.hidden = false;
+          renderAliasRow();
+          renderLeaderboard();
+          // No replays of a daily deterministic board outside debug - same as
+          // every other game; the button only returns under ?debug=true.
+          startBtn.textContent = 'Jugar de nuevo';
+          startBtn.hidden = !MetroShared.isDebugMode();
+          boardStage.classList.add('board-stage--done'); // card grows to fit the full grid
+          overlay.hidden = false;
         }
 
         function tick() {
@@ -394,14 +599,18 @@
           state.running = true;
           state.score = 0;
           state.found = [];
+          state.leaderboardSubmitted = false;
           state.prevMajor = state.prevOdd = state.prevIndex = -1;
           // Seed the day's deterministic deal sequence (respects ?date= for QA).
-          var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
-          rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + dateKey);
+          state.dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          state.gameNumber = MetroShared.getGameNumberForDateKey(state.dateKey, START_DATE_KEY);
+          rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
           state.endTime = performance.now() + ROUND_MS;
           scoreText.textContent = '0';
           revealNotice.hidden = true;
+          revealSummary.hidden = true;
           revealIcons.hidden = true;
+          leaderboardEl.hidden = true;
           startBtn.hidden = false;
           boardStage.classList.remove('board-stage--done');
           overlay.hidden = true;
@@ -414,20 +623,40 @@
           cancelAnimationFrame(state.rafId);
           timeFill.style.width = '0%';
           timeText.textContent = '0:00';
-          var best = readBest();
-          if (state.score > best) writeBest(state.score); // still tracked, just not shown
-          var summary = state.score === 1
-            ? 'Encontraste 1 estación especial.'
-            : 'Encontraste ' + state.score + ' estaciones especiales.';
-          MetroShared.renderNoticeBanner(revealNotice, 'notice--success', '¡Tiempo!', summary);
-          revealNotice.hidden = false;
-          renderRevealIcons();
-          // No replays of a daily deterministic board outside debug - same as
-          // every other game; the button only returns under ?debug=true.
-          startBtn.textContent = 'Jugar de nuevo';
-          startBtn.hidden = !MetroShared.isDebugMode();
-          boardStage.classList.add('board-stage--done'); // card grows to fit the full grid
-          overlay.hidden = false;
+          state.leaderboardSubmitted = false;
+          // "Won" = a non-zero score; there's no win/lose puzzle, same
+          // convention as Metro Crush/Clasificador. Update the streak before
+          // persisting and rendering.
+          state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
+          state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+          persistResult();
+          renderReveal();
+          submitScore();
+        }
+
+        // Resolves the day and its saved result once the icons are ready:
+        // shows the reveal for an already-played day, or arms the start button.
+        function initDay() {
+          state.dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          state.gameNumber = MetroShared.getGameNumberForDateKey(state.dateKey, START_DATE_KEY);
+          gameNum.textContent = '#' + state.gameNumber;
+          renderHighScoreRecord();
+
+          var saved = loadSavedResult(state.dateKey);
+          if (saved) {
+            var s = MetroShared.loadStreak(STREAK_STORAGE_KEY);
+            state.score = saved.score;
+            state.found = saved.found;
+            state.leaderboardSubmitted = saved.leaderboardSubmitted;
+            state.streak = s.count;
+            state.maxStreak = s.max;
+            scoreText.textContent = state.score;
+            renderReveal();
+            submitScore(); // retry if a prior attempt never landed (e.g. alias set later)
+          } else {
+            startBtn.disabled = false;
+            startBtn.textContent = 'Comenzar';
+          }
         }
 
         board.addEventListener('click', onBoardClick);
@@ -438,8 +667,7 @@
           .then(function (text) {
             buildIcons(text);
             if (ICONS.length < 2) throw new Error('no icons');
-            startBtn.disabled = false;
-            startBtn.textContent = 'Comenzar';
+            initDay();
           })
           .catch(function () {
             MetroShared.renderNoticeBanner(revealNotice, 'notice--error', 'Error',

@@ -107,6 +107,12 @@ body {
   color: var(--ink);
   font-family: 'Overpass', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   margin: 0;
+  /* Kill double-tap-to-zoom (and the 300ms tap delay) site-wide - a
+     stray double tap zooming the page is distracting in the quick-tap
+     games especially. Keeps pinch-zoom, so it's not user-scalable=no.
+     An ancestor manipulation restricts every descendant, so games no
+     longer set it on their own boards/tiles. */
+  touch-action: manipulation;
   min-height: 100vh;
   min-height: 100dvh;
   padding: clamp(1rem, 4vw, 3rem) 1rem 4rem;

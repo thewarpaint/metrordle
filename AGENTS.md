@@ -851,7 +851,12 @@ are impossible without a debug override.
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`
-  the whole file), and cross-game primitives (`.wrap`, `.brand`,
+  the whole file), a site-wide `body { touch-action: manipulation }`
+  (kills double-tap-to-zoom and the 300ms tap delay while keeping
+  pinch-zoom - distracting in the quick-tap games; an ancestor
+  `manipulation` restricts every descendant, so this one rule replaced
+  the per-board copies Copo/Metro Crush/Sopa used to keep), and
+  cross-game primitives (`.wrap`, `.brand`,
   `.sign`, `.date-debug` date-nav (its chevrons are
   `.btn-secondary--chev`, below), `.debug-mode-toggle`,
   `.mode-modal`/`.mode-option*` (a full-screen pre-game choice no game

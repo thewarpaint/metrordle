@@ -1058,13 +1058,9 @@ input[type="text"]:disabled {
   width: 100%;
 }
 
-/* Mask-rendered silhouette variant of .station__icon - an alternative to the
-   <use> svg above for cases that need to repaint many station icons cheaply
-   by swapping one CSS custom property instead of touching the DOM. The icon
-   image comes from --station-mask (a url(...) built by
-   MetroShared.buildStationMasks); the silhouette is filled with the span's
-   own color, so recoloring it is just a `color` change. No inner <svg> - the
-   span paints itself. Only consumer so far is /copo-de-nieve/'s board. */
+/* Silhouette variant of .station__icon: no inner <use> svg - the span paints
+   itself with a CSS mask (image from --station-mask, filled with its own
+   color), so a consumer can repaint many icons by swapping one property. */
 .station__icon--mask {
   background: currentColor;
   -webkit-mask: var(--station-mask) center / contain no-repeat;

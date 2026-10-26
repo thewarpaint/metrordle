@@ -1292,14 +1292,9 @@ function formatHighScoreRecord(record) {
   return dateLabel ? base + ' · ' + dateLabel : base;
 }
 
-// Turn the fetched /station-icons.svg sprite into a { slug: maskUrl } map,
-// where each maskUrl is a `url("data:image/svg+xml,...")` usable as a CSS
-// mask-image (the --station-mask custom property the .station__icon--mask
-// variant reads - see shared.css). The pictograms are single-color, so the
-// masked silhouette matches the <use>-rendered icon exactly. This is the JS
-// half of the mask technique: it lets a page swap many station icons by
-// setting one CSS property instead of touching the DOM (see /copo-de-nieve/,
-// which repaints its 49-cell board this way). Returns {} on a parse failure.
+// Build a { slug: maskUrl } map from the station-icons sprite - each a
+// `url("data:...")` for the --station-mask of the .station__icon--mask
+// variant (shared.css). {} on a parse failure.
 function buildStationMasks(svgText) {
   var out = {};
   try {

@@ -432,9 +432,7 @@
           });
           gallery.appendChild(buildExample(badgeRow, '<code>.station</code> · ✅ consolidado - ficha de Metro Crush y marcador de revelación de Metroguessr, ambos ahora iguales.'));
 
-          // .station__icon--mask: the mask-silhouette variant. Unlike the
-          // <use> icons everywhere else here it needs the sprite inlined, so
-          // these cells' --station-mask is filled by the async pass below.
+          // .station__icon--mask: --station-mask filled by the async pass below.
           var maskRow = buildRow();
           function maskCell(slug, colorVar) {
             var card = document.createElement('div');
@@ -1127,9 +1125,8 @@
         renderFormsGallery();
         renderLeaderboardsGallery();
 
-        // The .station__icon--mask examples need the sprite inlined as a data
-        // URI (buildStationMasks), unlike the <use> icons everywhere else, so
-        // fetch it once and fill each cell's --station-mask in.
+        // The .station__icon--mask cells need the sprite inlined (not a <use>);
+        // fetch it once and fill each cell's --station-mask.
         fetch('/station-icons.svg').then(function (r) { return r.text(); }).then(function (text) {
           var masks = MetroShared.buildStationMasks(text);
           document.querySelectorAll('[data-mask-slug]').forEach(function (el) {

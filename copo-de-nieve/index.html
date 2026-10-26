@@ -73,10 +73,8 @@
       }
       .cell:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-      /* The icon is the shared .station__icon--mask silhouette (shared.css);
-         here we only feed it the day's masks and recolor it. A round swaps
-         --major/--odd on #board; each cell's mask reads the right one, and
-         --ink/--ok/--danger set the silhouette's fill via its own color. */
+      /* The icon is the shared .station__icon--mask (shared.css); we just feed
+         it the board's --major/--odd mask and set the fill via `color`. */
       .cell__icon { color: var(--ink); --station-mask: var(--major); }
       .cell--odd .cell__icon { --station-mask: var(--odd); }
 
@@ -238,9 +236,8 @@
         var SIM_INDEX = {};
         for (var _s = 0; _s < SIM_SLUGS.length; _s++) SIM_INDEX[SIM_SLUGS[_s]] = _s;
 
-        // Real station pictograms as CSS mask urls (MetroShared.buildStationMasks),
-        // the --station-mask values the .cell__icon silhouettes read. The pool is
-        // every distinct slug present in the sprite, in STATION_ICON_SLUGS order.
+        // Station pictograms as CSS mask urls (the --station-mask values),
+        // one per distinct slug present in the sprite.
         var ICONS = [];       // { slug, mask }
         var slugToIcon = {};
         function buildIcons(svgText) {

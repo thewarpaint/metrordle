@@ -271,7 +271,7 @@
         // unused. All per-round randomness routes through rng(), never
         // Math.random() directly, or the sequence would diverge per player.
         var rng = Math.random;
-        var saveTimer = 0; // 1s autosave of an in-progress round, for resume on reload
+        var saveTimer = 0; // 1s autosave handle (resume on reload)
         function randInt(n) { return Math.floor(rng() * n); }
 
         // Difficulty ramps with the score (t in [0,1]): early on the odd
@@ -385,8 +385,7 @@
           return null;
         }
 
-        // A representative station name for an icon slug, for sorting the
-        // reveal grid alphabetically within each line.
+        // A station name for an icon slug (for the alphabetical reveal sort).
         function nameForSlug(slug) {
           var slugs = MetroShared.STATION_ICON_SLUGS;
           for (var name in slugs) { if (slugs[name] === slug) return name; }
@@ -423,10 +422,8 @@
           revealIcons.hidden = false;
         }
 
-        // The day's saved state is either an in-progress round
-        // (status 'playing' + remainingMs, for resuming on reload) or the
-        // finished result (reload shows the reveal, never resubmits). The
-        // found slugs rebuild the reveal grid without replaying.
+        // Saved state: an in-progress round (status 'playing' + remainingMs,
+        // resumed on reload) or the finished result (reload shows the reveal).
         function storageKeyFor(dateKey) { return 'copo-de-nieve:' + dateKey; }
 
         function persistResult() {
@@ -439,10 +436,8 @@
           } catch (e) { /* localStorage unavailable - just won't reload the reveal */ }
         }
 
-        // An in-progress snapshot, written once a second while playing. On
-        // reload initDay() resumes from it: the deal sequence is a pure
-        // function of the day + score, so replaying nextRound() score+1 times
-        // restores the exact board and RNG position (see resumeGame()).
+        // In-progress snapshot, written once a second; initDay() resumes from
+        // it on reload (see resumeGame()).
         function persistProgress() {
           if (!state.running) return;
           try {
@@ -608,7 +603,7 @@
         // saved result is reloaded on the same day.
         function renderReveal() {
           timeFill.style.width = '0%';
-          timeText.textContent = '0:00'; // the round is over, on a fresh end or a reload
+          timeText.textContent = '0:00'; // round over (fresh end or reload)
           MetroShared.renderNoticeBanner(revealNotice, 'notice--success', '¡Tiempo!',
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', '));
           revealNotice.hidden = false;
@@ -645,7 +640,7 @@
           state.gameNumber = MetroShared.getGameNumberForDateKey(state.dateKey, START_DATE_KEY);
           rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
           state.endTime = performance.now() + ROUND_MS;
-          timeFill.style.width = '100%'; // full bar at kickoff, before it counts down
+          timeFill.style.width = '100%'; // full bar at kickoff
           scoreText.textContent = '0';
           revealNotice.hidden = true;
           revealIcons.hidden = true;
@@ -659,11 +654,9 @@
           persistProgress();
         }
 
-        // Resume an in-progress round saved by persistProgress(): the deal
-        // sequence is a pure function of the day + score, so replaying
-        // nextRound() score+1 times (with the score each deal was dealt at,
-        // for the ramp) restores the exact board and RNG position the player
-        // left; then run the clock down from the saved remainder.
+        // The deal sequence is a pure function of day + score, so replaying
+        // nextRound() score+1 times (each at the score it was dealt at, for
+        // the ramp) restores the exact board + RNG position left off at.
         function resumeGame(saved) {
           rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
           state.found = saved.found.slice();
@@ -708,7 +701,7 @@
 
           var saved = loadSavedResult(state.dateKey);
           if (saved && saved.status === 'playing' && saved.remainingMs > 0) {
-            resumeGame(saved); // an unfinished round - pick up where they left off
+            resumeGame(saved); // unfinished round
           } else if (saved) {
             var s = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state.score = saved.score;
@@ -720,8 +713,7 @@
             renderReveal();
             submitScore(); // retry if a prior attempt never landed (e.g. alias set later)
           } else {
-            // Full timer on the pre-game ready screen, set instantly (the
-            // 0.3s width transition would otherwise animate it up from empty).
+            // Full timer, set instantly (else the 0.3s ease animates it up).
             timeFill.style.transition = 'none';
             timeFill.style.width = '100%';
             void timeFill.offsetWidth;

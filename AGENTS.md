@@ -369,7 +369,15 @@ about `//`/`/* */` comments in the actual game/test code.)
   Player-facing, so precached (`sw.js`'s `PRECACHE_URLS`, so a change needs
   a `CACHE_NAME` bump); loads no Firebase. Only lists the six
   `SUGGESTABLE_GAMES` - not the `/sopa-de-metros/`/`/copo-de-nieve/`
-  prototypes, which aren't in it - and isn't linked from any game's nav yet.
+  prototypes, which aren't in it. Linked from each game page's footer now:
+  the old `<p class="credit">` "Basado en el trazado real..." line (on
+  `/`, `/laberinto/`, `/memoria/`, `/clasificador/`, `/metrocrush/`, and
+  the unreferenced `/metrocrush-staging/`) was replaced by a single
+  `<a href="/juegos/">Todos los juegos</a>` in that same `.credit`
+  paragraph - a plain `color: inherit` link (shared.css's global `a`
+  rule), matching `/configurar/`'s own in-`.credit` "← Volver a Metrordle"
+  link. Metroguessr has no such footer (full-bleed map layout), so it
+  stays unlinked for now.
 - **`/admin/`** - read-only cross-game leaderboard browser (not linked
   from any game's nav, `noindex`). Precached (`sw.js`'s own
   `PRECACHE_URLS`) despite being unlinked, so a change to its

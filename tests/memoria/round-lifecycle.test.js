@@ -114,9 +114,9 @@ async function main() {
       // laid out 6 per row, grouped by line rather than match order -
       // Línea 1 (Candelaria), then Línea 2 (Normal), then Línea 12 (San
       // Andrés Tomatlán), reordered from the Línea 12/2/1 match order above.
-      const iconCells = await page.$$('#reveal-icons .reveal__icon-cell');
+      const iconCells = await page.$$('#reveal-icons .station-grid__cell');
       assert.strictEqual(iconCells.length, 3, 'expected one icon per matched pair');
-      const iconLabels = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
+      const iconLabels = await page.$$eval('#reveal-icons .station-grid__cell', (els) => els.map((e) => e.getAttribute('aria-label')));
       assert.deepStrictEqual(iconLabels, [station3, station2, station1], 'icons should be grouped by line, not shown in match order');
       const columnCount = await page.$eval('#reveal-icons', (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
       assert.strictEqual(columnCount, 6, 'expected the icon grid to lay out 6 per row');
@@ -139,7 +139,7 @@ async function main() {
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'reveal should show immediately on reload after finishing');
       const statAfterReload = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(statAfterReload, 'Parejas: 3', 'reload should show the same saved score, not start a new round');
-      const iconLabelsAfterReload = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
+      const iconLabelsAfterReload = await page.$$eval('#reveal-icons .station-grid__cell', (els) => els.map((e) => e.getAttribute('aria-label')));
       assert.deepStrictEqual(iconLabelsAfterReload, [station3, station2, station1], 'reload should show the same line-sorted icon order');
     } finally {
       await context.close();

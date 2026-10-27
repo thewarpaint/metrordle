@@ -129,7 +129,7 @@ async function main() {
       const stat = await page.$eval('#stat-you', (el) => el.textContent);
       assert.strictEqual(stat, 'Parejas: 5', 'the reveal should show the ORIGINAL submitted score, not the practice-inflated one');
 
-      const iconLabels = await page.$$eval('#reveal-icons .reveal__icon-cell', (els) => els.map((e) => e.getAttribute('aria-label')));
+      const iconLabels = await page.$$eval('#reveal-icons .station-grid__cell', (els) => els.map((e) => e.getAttribute('aria-label')));
       assert.strictEqual(iconLabels.length, 5, 'reveal icons should reflect only the originally matched stations, not the extra practice match');
 
       const stored = await page.evaluate((k) => localStorage.getItem('memoria:' + k), DATE);

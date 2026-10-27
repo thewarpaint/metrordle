@@ -236,36 +236,10 @@
         font-variant-numeric: tabular-nums;
       }
 
-      .reveal__icons {
-        display: grid;
+      /* Grid/pop-in in shared.css's .station-grid-6; only gap/margin differ. */
+      .station-grid-6 {
         gap: 0.5rem;
-        grid-template-columns: repeat(6, 1fr);
         margin-bottom: 1.1rem;
-      }
-
-      .reveal__icons[hidden] {
-        display: none;
-      }
-
-      /* Shape/background now live in shared.css's own .station (filled
-         with the matched station's own line via --badge-bg/--badge-ink,
-         set inline by renderRevealIcons()). */
-
-      /* Same pop-in as a freshly-refilled .station-card--entering, staggered
-         a beat apart per cell (--stagger-delay, set inline by
-         renderRevealIcons()) so the whole grid reads as a little cascade
-         landing into place rather than popping in all at once - a nicer
-         beat to land the round on, including for a recorded clip.
-         backwards keeps a not-yet-started cell invisible (its own "from"
-         frame) instead of flashing fully visible before its delay. */
-      .reveal__icon-cell--entering {
-        animation: memo-reveal-icon-pop-in 0.3s ease backwards;
-        animation-delay: var(--stagger-delay, 0s);
-      }
-
-      @keyframes memo-reveal-icon-pop-in {
-        from { opacity: 0; transform: scale(0.7); }
-        to { opacity: 1; transform: scale(1); }
       }
 
       /* .leaderboard* styling itself now lives in shared.css, common to
@@ -345,7 +319,7 @@
             <p class="leaderboard__status" id="leaderboard-status" hidden></p>
           </div>
 
-          <div class="reveal__icons" id="reveal-icons"></div>
+          <div class="station-grid-6" id="reveal-icons"></div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
           <button type="button" class="btn-secondary" id="practice-btn">Seguir jugando sin guardar</button>
@@ -1183,7 +1157,7 @@
 
           sortedMatchedStations().forEach(function (entry, index) {
             var cell = document.createElement('span');
-            cell.className = 'station reveal__icon-cell';
+            cell.className = 'station station-grid__cell';
             cell.title = entry.station;
             cell.setAttribute('aria-label', entry.station);
 
@@ -1193,7 +1167,7 @@
             }
 
             if (!reduceMotion) {
-              cell.classList.add('reveal__icon-cell--entering');
+              cell.classList.add('station-grid__cell--entering');
               cell.style.setProperty('--stagger-delay', (index * 0.04) + 's');
             }
 

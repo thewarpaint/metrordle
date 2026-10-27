@@ -432,7 +432,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   silhouette, the one example here built from an inlined sprite mask via
   `MetroShared.buildStationMasks` rather than a `<use>`, with its last two
   cells recolored to show the `--ok`/`--danger` hit/wrong states), and
-  Memoria's own `.reveal__icons` - 18 stations across 3 rows of 6,
+  the already-decided `.station-grid-6` reveal grid (now shared - see
+  "Shared infrastructure" below) - 18 stations across 3 rows of 6,
   mimicking the real end-of-round grid's own size (not just a handful
   like every other example here), using that same plain `.station` -
   a celebratory summary of the lines actually matched,
@@ -820,7 +821,7 @@ about `//`/`/* */` comments in the actual game/test code.)
   own 1.3rem to match `.sign__head`, so the reveal lines up under the title
   instead of sitting narrow and over-indented). It shows the icons of every
   station found that round - a grid of shared `.station` tiles with a staggered
-  pop-in, same pattern as Memoria's own `.reveal__icons`: each tile is
+  pop-in, same shared `.station-grid-6` as Memoria's: each tile is
   filled with its station's own line color (`--badge-bg`/`--badge-ink`,
   via a `lineForSlug()` that maps the found icon slug back to a station
   name then its line) and the grid is clustered by line, then alphabetical
@@ -1035,7 +1036,15 @@ are impossible without a debug override.
   Laberinto's own page-local copy into `shared.css` so it sits with the
   rest of the station family and is cataloged in `/design/`, even though
   Laberinto is its only consumer so far; `.map-hub`/`.map-node` stay
-  page-local for positioning/interaction. `.progress`/`__label`/`__count`/
+  page-local for positioning/interaction. An eighth pattern joined these:
+  `.station-grid-6` (6-col grid) + `.station-grid__cell--entering` and the
+  `station-grid-pop-in` keyframe (the end-of-round grid of `.station` tiles -
+  Memoria's, Copo de nieve's, and Clasificador's own icon summary, three
+  page-local copies of the same grid + staggered pop-in, each with its own
+  per-page-named keyframe, now one shared class + keyframe; the `-6` encodes
+  the column count). Only each page's own `gap`/`width`/`margin` stay
+  page-local; cataloged in `/design/`'s own "Estaciones" board (✅ consolidado).
+  `.progress`/`__label`/`__count`/
   `__track`/`__fill` (a rounded `--paper-well` track with an `--ok` fill,
   over a small label) also live here now, cataloged in `/design/`'s own
   "Progreso" board - Sopa de metros uses it for "N / M palabras", and

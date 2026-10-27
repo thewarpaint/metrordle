@@ -306,6 +306,26 @@
         font-weight: 700;
       }
 
+      /* The classified stations as a colored icon grid (same pattern as
+         Copo/Memoria's reveal); the line-bars chip summary is the fallback
+         for pre-STATION_LIST_SINCE_DATE_KEY saved days. */
+      .line-bars[hidden], .reveal__icons[hidden] { display: none; }
+      .reveal__icons {
+        display: grid;
+        gap: 0.35rem;
+        grid-template-columns: repeat(6, 1fr);
+        width: 100%;
+        margin: 0 0 1.2rem;
+      }
+      .reveal__icon-cell--entering {
+        animation: clasi-reveal-icon-pop-in 0.3s ease backwards;
+        animation-delay: var(--stagger-delay, 0s);
+      }
+      @keyframes clasi-reveal-icon-pop-in {
+        from { opacity: 0; transform: scale(0.7); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
     </style>
   </head>
 
@@ -370,6 +390,7 @@
           <p class="reveal__total" id="reveal-total"></p>
 
           <div class="line-bars" id="line-bars"></div>
+          <div class="reveal__icons" id="classified" aria-label="Estaciones clasificadas" hidden></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -406,6 +427,9 @@
         // pool (as low as 62 unique stations in the worst case) - see
         // pickFeaturedLines()'s own retry.
         var MIN_STATION_POOL = 80;
+        // Days from here on record state.classified; older saved results
+        // predate it and fall back to per-line counts.
+        var STATION_LIST_SINCE_DATE_KEY = '2026-10-27';
         var STREAK_STORAGE_KEY = 'clasificador:streak';
         var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
         var LEADERBOARD_SIZE = 5;
@@ -439,6 +463,7 @@
             return {
               total: parsed.total,
               correctByLine: parsed.correctByLine,
+              classified: Array.isArray(parsed.classified) ? parsed.classified : null,
               mode: parsed.mode === 'hard' ? 'hard' : 'normal',
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
@@ -447,11 +472,12 @@
           }
         }
 
-        function persistResult(dateKey, total, correctByLine, mode, leaderboardSubmitted) {
+        function persistResult(dateKey, total, correctByLine, classified, mode, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               total: total,
               correctByLine: correctByLine,
+              classified: classified,
               mode: mode,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
@@ -571,6 +597,7 @@
               lines: game.lines,
               total: saved.total,
               correctByLine: saved.correctByLine,
+              classified: saved.classified,
               mode: saved.mode,
               leaderboardSubmitted: saved.leaderboardSubmitted,
               streak: savedStreak.count,
@@ -603,6 +630,7 @@
             nextStation: game.nextStation,
             queue: queue,
             correctByLine: correctByLine,
+            classified: [],
             total: 0,
             mode: 'normal',
             timeLeft: ROUND_SECONDS,
@@ -814,6 +842,7 @@
             }
 
             state.correctByLine[lineId] += 1;
+            state.classified.push({ name: active.name, lineId: lineId });
             state.total += 1;
             state.queue.shift();
             state.queue.push(state.nextStation());
@@ -868,7 +897,7 @@
           state.timerId = null;
           state.status = 'done';
           state.leaderboardSubmitted = false;
-          persistResult(state.dateKey, state.total, state.correctByLine, state.mode, false);
+          persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, false);
           // "Won" here means a non-zero score - there's no puzzle to
           // actually win or lose, same convention as Metro Crush's own
           // STREAK_STORAGE_KEY (see its comment there).
@@ -900,7 +929,7 @@
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
-              persistResult(state.dateKey, state.total, state.correctByLine, state.mode, true);
+              persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, true);
               renderLeaderboard();
               // Best-effort, same as the leaderboard submission above -
               // never rejects, so this can't turn an otherwise-successful
@@ -954,6 +983,64 @@
           MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
         }
 
+        function lineBadge(line) {
+          var badge = document.createElement('span');
+          badge.className = 'line-bar__badge';
+          badge.style.setProperty('--badge-bg', line.color);
+          badge.style.setProperty('--badge-ink', line.textColor);
+          badge.textContent = line.id;
+          return badge;
+        }
+
+        // Icon grid, each tile colored by its line, clustered by line then
+        // alphabetical - same pattern as Copo/Memoria's reveal.
+        function renderClassifiedStations() {
+          els.classified.innerHTML = '';
+          var lineOf = {};
+          state.lines.forEach(function (line, i) { lineOf[line.id] = { line: line, index: i }; });
+          var reduce = MetroShared.prefersReducedMotion();
+          var entries = state.classified.map(function (c) {
+            var info = lineOf[c.lineId];
+            return { name: c.name, line: info ? info.line : null, index: info ? info.index : state.lines.length };
+          });
+          entries.sort(function (a, b) { return (a.index - b.index) || a.name.localeCompare(b.name, 'es'); });
+          entries.forEach(function (entry, i) {
+            var cell = document.createElement('span');
+            cell.className = 'station reveal__icon-cell';
+            cell.title = entry.name;
+            cell.setAttribute('aria-label', entry.name);
+            if (entry.line) {
+              cell.style.setProperty('--badge-bg', entry.line.color);
+              cell.style.setProperty('--badge-ink', entry.line.textColor);
+            }
+            if (!reduce) {
+              cell.classList.add('reveal__icon-cell--entering');
+              cell.style.setProperty('--stagger-delay', (i * 0.03) + 's');
+            }
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'station__icon';
+            var svg = makeStationIcon(entry.name);
+            if (svg) iconWrap.appendChild(svg);
+            cell.appendChild(iconWrap);
+            els.classified.appendChild(cell);
+          });
+        }
+
+        // Legacy fallback: a badge + "× N" chip per line.
+        function renderLineCounts() {
+          els.lineBars.innerHTML = '';
+          state.lines.forEach(function (line) {
+            var row = document.createElement('div');
+            row.className = 'line-bar';
+            row.appendChild(lineBadge(line));
+            var countEl = document.createElement('span');
+            countEl.className = 'line-bar__count';
+            countEl.textContent = '× ' + (state.correctByLine[line.id] || 0);
+            row.appendChild(countEl);
+            els.lineBars.appendChild(row);
+          });
+        }
+
         function renderReveal() {
           MetroShared.renderNoticeBanner(
             els.revealBanner,
@@ -964,27 +1051,13 @@
           els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
             (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
 
-          els.lineBars.innerHTML = '';
-          state.lines.forEach(function (line) {
-            var count = state.correctByLine[line.id] || 0;
-
-            var row = document.createElement('div');
-            row.className = 'line-bar';
-
-            var badge = document.createElement('span');
-            badge.className = 'line-bar__badge';
-            badge.style.setProperty('--badge-bg', line.color);
-            badge.style.setProperty('--badge-ink', line.textColor);
-            badge.textContent = line.id;
-            row.appendChild(badge);
-
-            var countEl = document.createElement('span');
-            countEl.className = 'line-bar__count';
-            countEl.textContent = '× ' + count;
-            row.appendChild(countEl);
-
-            els.lineBars.appendChild(row);
-          });
+          // Pre-cut-line days have no state.classified - show counts instead.
+          var showList = state.dateKey >= STATION_LIST_SINCE_DATE_KEY
+            && Array.isArray(state.classified);
+          els.lineBars.hidden = showList;
+          els.classified.hidden = !showList;
+          if (showList) renderClassifiedStations();
+          else renderLineCounts();
 
           renderAliasRow();
           renderLeaderboard();
@@ -1180,6 +1253,7 @@
             revealBanner: $('reveal-banner'),
             revealTotal: $('reveal-total'),
             lineBars: $('line-bars'),
+            classified: $('classified'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardList: $('leaderboard-list'),

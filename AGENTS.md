@@ -283,10 +283,19 @@ about `//`/`/* */` comments in the actual game/test code.)
   the mechanic, not something to design around.
 
   Like every other game, a finished round persists its result
-  (`total`/`correctByLine`/`leaderboardSubmitted`) to
+  (`total`/`correctByLine`/`classified`/`leaderboardSubmitted`) to
   `'clasificador:' + dateKey` and a reload on the same day shows that
   same reveal screen instead of a fresh queue (`loadSavedResult()`/
-  `startNewGame()`'s own saved-result branch). Now in `SUGGESTABLE_GAMES`
+  `startNewGame()`'s own saved-result branch). The reveal now shows the
+  exact stations classified as a colored icon grid (same pattern as Copo/
+  Memoria: `.station` tiles filled by the line each was placed into,
+  clustered by line then alphabetical, with a staggered pop-in) -
+  `classified` = `[{name, lineId}]`, recorded per correct placement in
+  `attemptPlace()`; `renderClassifiedStations()`. Saved results from
+  before `STATION_LIST_SINCE_DATE_KEY` (`2026-10-27`) predate the
+  `classified` field, so their reveal falls back to the old per-line
+  `× N` count chips (`renderLineCounts()`) - the cut line gated on
+  `state.dateKey`. Now in `SUGGESTABLE_GAMES`
   too (appended after the other five when it shipped; Copo de nieve now
   follows it) - every other game's "sigue jugando hoy" promo can suggest
   it, same as its own reveal screen's promo suggests from the other six.

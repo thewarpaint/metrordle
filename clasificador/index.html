@@ -306,24 +306,24 @@
         font-weight: 700;
       }
 
-      /* The per-line station list (new reveal; the line-bars chip summary
-         is the fallback for pre-STATION_LIST_SINCE_DATE_KEY saved days). */
-      .line-bars[hidden], .classified[hidden] { display: none; }
-      .classified {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-        margin-bottom: 1.2rem;
-        text-align: left;
+      /* The classified stations as a colored icon grid (same pattern as
+         Copo/Memoria's reveal); the line-bars chip summary is the fallback
+         for pre-STATION_LIST_SINCE_DATE_KEY saved days. */
+      .line-bars[hidden], .reveal__icons[hidden] { display: none; }
+      .reveal__icons {
+        display: grid;
+        gap: 0.35rem;
+        grid-template-columns: repeat(6, 1fr);
+        width: 100%;
+        margin: 0 0 1.2rem;
       }
-      .classified__line {
-        align-items: flex-start;
-        display: flex;
-        gap: 0.5rem;
+      .reveal__icon-cell--entering {
+        animation: clasi-reveal-icon-pop-in 0.3s ease backwards;
+        animation-delay: var(--stagger-delay, 0s);
       }
-      .classified__names {
-        font-size: 0.9rem;
-        line-height: 1.4;
+      @keyframes clasi-reveal-icon-pop-in {
+        from { opacity: 0; transform: scale(0.7); }
+        to { opacity: 1; transform: scale(1); }
       }
 
     </style>
@@ -390,7 +390,7 @@
           <p class="reveal__total" id="reveal-total"></p>
 
           <div class="line-bars" id="line-bars"></div>
-          <div class="classified" id="classified" hidden></div>
+          <div class="reveal__icons" id="classified" aria-label="Estaciones clasificadas" hidden></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -993,26 +993,38 @@
           return badge;
         }
 
-        // One row per featured line with ≥1 station, listing the names
-        // classified into it (in classification order), grouped under the
-        // line's own colored badge.
+        // The classified stations as an icon grid, each tile colored by the
+        // line it was placed into, clustered by line then alphabetical, with
+        // a staggered pop-in - same pattern as Copo/Memoria's reveal.
         function renderClassifiedStations() {
           els.classified.innerHTML = '';
-          var byLine = {};
-          state.classified.forEach(function (c) {
-            (byLine[c.lineId] || (byLine[c.lineId] = [])).push(c.name);
+          var lineOf = {};
+          state.lines.forEach(function (line, i) { lineOf[line.id] = { line: line, index: i }; });
+          var reduce = MetroShared.prefersReducedMotion();
+          var entries = state.classified.map(function (c) {
+            var info = lineOf[c.lineId];
+            return { name: c.name, line: info ? info.line : null, index: info ? info.index : state.lines.length };
           });
-          state.lines.forEach(function (line) {
-            var names = byLine[line.id];
-            if (!names || !names.length) return;
-            var row = document.createElement('div');
-            row.className = 'classified__line';
-            row.appendChild(lineBadge(line));
-            var namesEl = document.createElement('span');
-            namesEl.className = 'classified__names';
-            namesEl.textContent = names.join(', ');
-            row.appendChild(namesEl);
-            els.classified.appendChild(row);
+          entries.sort(function (a, b) { return (a.index - b.index) || a.name.localeCompare(b.name, 'es'); });
+          entries.forEach(function (entry, i) {
+            var cell = document.createElement('span');
+            cell.className = 'station reveal__icon-cell';
+            cell.title = entry.name;
+            cell.setAttribute('aria-label', entry.name);
+            if (entry.line) {
+              cell.style.setProperty('--badge-bg', entry.line.color);
+              cell.style.setProperty('--badge-ink', entry.line.textColor);
+            }
+            if (!reduce) {
+              cell.classList.add('reveal__icon-cell--entering');
+              cell.style.setProperty('--stagger-delay', (i * 0.03) + 's');
+            }
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'station__icon';
+            var svg = makeStationIcon(entry.name);
+            if (svg) iconWrap.appendChild(svg);
+            cell.appendChild(iconWrap);
+            els.classified.appendChild(cell);
           });
         }
 

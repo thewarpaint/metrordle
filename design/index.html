@@ -474,7 +474,8 @@
           gallery.appendChild(buildExample(textRow, 'Texto simple · migas de pan de Laberinto, estación revelada de Metroguessr - sin ícono ni color.'));
 
           var revealGrid = document.createElement('div');
-          revealGrid.className = 'design-reveal-grid';
+          revealGrid.className = 'station-grid-6';
+          revealGrid.style.gap = '0.35rem';
           REVEAL_GRID_SAMPLE.forEach(function (station) {
             var line = lineById(station.lineId);
             var slug = MetroShared.STATION_ICON_SLUGS[station.name];
@@ -485,7 +486,7 @@
             cell.appendChild(makeIcon('station__icon', slug));
             revealGrid.appendChild(cell);
           });
-          gallery.appendChild(buildExample(revealGrid, '<code>.reveal__icons</code>/<code>.station</code> · ✅ consolidado - parejas encontradas al terminar la ronda, Memoria, 18 estaciones en 3 filas de 6 igual que la cuadrícula real, solo ícono, sin nombre (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
+          gallery.appendChild(buildExample(revealGrid, '<code>.station-grid-6</code>/<code>.station</code> · ✅ consolidado - cuadrícula de íconos al terminar la ronda (Memoria, Copo de nieve, Clasificador), 18 estaciones en 3 filas de 6 igual que la cuadrícula real, solo ícono, sin nombre; cada página fija su propio gap/margin (a diferencia de los demás patrones de esta página, aquí el color es deliberado: celebra las líneas encontradas, no compite con nada más).'));
         }
 
         function renderStationListsGallery() {

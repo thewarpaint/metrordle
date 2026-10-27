@@ -1137,6 +1137,30 @@ input[type="text"]:disabled {
   width: 100%;
 }
 
+/* Grid of .station tiles (6 cols), colored by line inline - the end-of-round
+   summary in Memoria, Copo, and Clasificador. Each page sets its own
+   gap/width/margin. */
+.station-grid-6 {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.station-grid-6[hidden] {
+  display: none;
+}
+
+/* Staggered per-cell pop-in (--stagger-delay set inline); backwards hides a
+   cell until its delay instead of flashing in first. */
+.station-grid__cell--entering {
+  animation: station-grid-pop-in 0.3s ease backwards;
+  animation-delay: var(--stagger-delay, 0s);
+}
+
+@keyframes station-grid-pop-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* Design-reference patterns: real CSS copied under a design- prefix,
    recolored via custom properties instead of each game's own inline
    style.background/color - still-competing options nothing has settled
@@ -1189,16 +1213,6 @@ input[type="text"]:disabled {
 .route-dot--muted {
   background: var(--paper-well);
   border: 1px solid var(--rule);
-}
-
-/* Layout only - the cells themselves are the real, consolidated
-   .station now (see shared.css's own comment on .station). Lives here,
-   not on "Listas de estaciones", since it's a single-station widget
-   shown repeatedly. 6 columns matches the real grid's own count. */
-.design-reveal-grid {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: repeat(6, 1fr);
 }
 
 /* .roundel/.roundel-row (bordered circle, "STC" caption) is gone -

@@ -306,24 +306,14 @@
         font-weight: 700;
       }
 
-      /* The classified stations as a colored icon grid (same pattern as
-         Copo/Memoria's reveal); the line-bars chip summary is the fallback
-         for pre-STATION_LIST_SINCE_DATE_KEY saved days. */
-      .line-bars[hidden], .reveal__icons[hidden] { display: none; }
-      .reveal__icons {
-        display: grid;
+      /* Classified stations as a colored icon grid (grid/pop-in in shared
+         .station-grid-6; only sizing differs); line-bars chips are the
+         fallback for pre-STATION_LIST_SINCE_DATE_KEY saved days. */
+      .line-bars[hidden] { display: none; }
+      .station-grid-6 {
         gap: 0.35rem;
-        grid-template-columns: repeat(6, 1fr);
         width: 100%;
         margin: 0 0 1.2rem;
-      }
-      .reveal__icon-cell--entering {
-        animation: clasi-reveal-icon-pop-in 0.3s ease backwards;
-        animation-delay: var(--stagger-delay, 0s);
-      }
-      @keyframes clasi-reveal-icon-pop-in {
-        from { opacity: 0; transform: scale(0.7); }
-        to { opacity: 1; transform: scale(1); }
       }
 
     </style>
@@ -390,7 +380,7 @@
           <p class="reveal__total" id="reveal-total"></p>
 
           <div class="line-bars" id="line-bars"></div>
-          <div class="reveal__icons" id="classified" aria-label="Estaciones clasificadas" hidden></div>
+          <div class="station-grid-6" id="classified" aria-label="Estaciones clasificadas" hidden></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -1006,7 +996,7 @@
           entries.sort(function (a, b) { return (a.index - b.index) || a.name.localeCompare(b.name, 'es'); });
           entries.forEach(function (entry, i) {
             var cell = document.createElement('span');
-            cell.className = 'station reveal__icon-cell';
+            cell.className = 'station station-grid__cell';
             cell.title = entry.name;
             cell.setAttribute('aria-label', entry.name);
             if (entry.line) {
@@ -1014,7 +1004,7 @@
               cell.style.setProperty('--badge-ink', entry.line.textColor);
             }
             if (!reduce) {
-              cell.classList.add('reveal__icon-cell--entering');
+              cell.classList.add('station-grid__cell--entering');
               cell.style.setProperty('--stagger-delay', (i * 0.03) + 's');
             }
             var iconWrap = document.createElement('span');

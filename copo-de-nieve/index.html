@@ -103,27 +103,12 @@
       .game-num { color: var(--ink-soft); font-weight: 700; font-size: 0.8em; }
       #leaderboard { margin-top: 1rem; text-align: left; }
 
-      /* End-of-round grid of the stations found, same pattern as Memoria's
-         reveal: shared .station tiles filled with each station's own line
-         color (--badge-bg/--badge-ink, set inline by renderRevealIcons())
-         and clustered by line, with a staggered pop-in. Height is
-         unrestricted - the whole grid shows, and the overlay scrolls if the
-         panel outgrows the board. */
-      .reveal__icons {
-        display: grid;
+      /* Grid/pop-in in shared.css's .station-grid-6; only sizing differs.
+         Unrestricted height - the overlay scrolls if it outgrows the board. */
+      .station-grid-6 {
         gap: 0.35rem;
-        grid-template-columns: repeat(6, 1fr);
         width: 100%;
         margin: 0.3rem 0 0.1rem;
-      }
-      .reveal__icons[hidden] { display: none; }
-      .reveal__icon-cell--entering {
-        animation: copo-reveal-icon-pop-in 0.3s ease backwards;
-        animation-delay: var(--stagger-delay, 0s);
-      }
-      @keyframes copo-reveal-icon-pop-in {
-        from { opacity: 0; transform: scale(0.7); }
-        to { opacity: 1; transform: scale(1); }
       }
 
       .progress { margin-top: 0.7rem; }
@@ -161,7 +146,7 @@
           <div class="start-overlay" id="overlay">
             <div class="start-overlay__panel">
               <div class="notice notice--success" id="reveal-notice" hidden></div>
-              <div class="reveal__icons" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
+              <div class="station-grid-6" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
               <div class="leaderboard" id="leaderboard" hidden>
                 <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
                 <p class="leaderboard__record" id="leaderboard-record" hidden></p>
@@ -407,13 +392,13 @@
           entries.sort(function (a, b) { return (a.lineIndex - b.lineIndex) || a.name.localeCompare(b.name, 'es'); });
           entries.forEach(function (entry, i) {
             var cell = document.createElement('span');
-            cell.className = 'station reveal__icon-cell';
+            cell.className = 'station station-grid__cell';
             if (entry.line) {
               cell.style.setProperty('--badge-bg', entry.line.color);
               cell.style.setProperty('--badge-ink', entry.line.textColor);
             }
             if (!reduce) {
-              cell.classList.add('reveal__icon-cell--entering');
+              cell.classList.add('station-grid__cell--entering');
               cell.style.setProperty('--stagger-delay', (i * 0.03) + 's');
             }
             cell.appendChild(makeIcon(entry.slug));

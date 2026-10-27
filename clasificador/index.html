@@ -306,6 +306,26 @@
         font-weight: 700;
       }
 
+      /* The per-line station list (new reveal; the line-bars chip summary
+         is the fallback for pre-STATION_LIST_SINCE_DATE_KEY saved days). */
+      .line-bars[hidden], .classified[hidden] { display: none; }
+      .classified {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        margin-bottom: 1.2rem;
+        text-align: left;
+      }
+      .classified__line {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.5rem;
+      }
+      .classified__names {
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
     </style>
   </head>
 
@@ -370,6 +390,7 @@
           <p class="reveal__total" id="reveal-total"></p>
 
           <div class="line-bars" id="line-bars"></div>
+          <div class="classified" id="classified" hidden></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -406,6 +427,10 @@
         // pool (as low as 62 unique stations in the worst case) - see
         // pickFeaturedLines()'s own retry.
         var MIN_STATION_POOL = 80;
+        // Games from this day on record the exact stations classified
+        // (state.classified); the reveal lists them. Earlier saved results
+        // predate the field, so their reveal falls back to the per-line counts.
+        var STATION_LIST_SINCE_DATE_KEY = '2026-10-27';
         var STREAK_STORAGE_KEY = 'clasificador:streak';
         var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
         var LEADERBOARD_SIZE = 5;
@@ -439,6 +464,7 @@
             return {
               total: parsed.total,
               correctByLine: parsed.correctByLine,
+              classified: Array.isArray(parsed.classified) ? parsed.classified : null,
               mode: parsed.mode === 'hard' ? 'hard' : 'normal',
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
@@ -447,11 +473,12 @@
           }
         }
 
-        function persistResult(dateKey, total, correctByLine, mode, leaderboardSubmitted) {
+        function persistResult(dateKey, total, correctByLine, classified, mode, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               total: total,
               correctByLine: correctByLine,
+              classified: classified,
               mode: mode,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
@@ -571,6 +598,7 @@
               lines: game.lines,
               total: saved.total,
               correctByLine: saved.correctByLine,
+              classified: saved.classified,
               mode: saved.mode,
               leaderboardSubmitted: saved.leaderboardSubmitted,
               streak: savedStreak.count,
@@ -603,6 +631,7 @@
             nextStation: game.nextStation,
             queue: queue,
             correctByLine: correctByLine,
+            classified: [],
             total: 0,
             mode: 'normal',
             timeLeft: ROUND_SECONDS,
@@ -814,6 +843,7 @@
             }
 
             state.correctByLine[lineId] += 1;
+            state.classified.push({ name: active.name, lineId: lineId });
             state.total += 1;
             state.queue.shift();
             state.queue.push(state.nextStation());
@@ -868,7 +898,7 @@
           state.timerId = null;
           state.status = 'done';
           state.leaderboardSubmitted = false;
-          persistResult(state.dateKey, state.total, state.correctByLine, state.mode, false);
+          persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, false);
           // "Won" here means a non-zero score - there's no puzzle to
           // actually win or lose, same convention as Metro Crush's own
           // STREAK_STORAGE_KEY (see its comment there).
@@ -900,7 +930,7 @@
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
-              persistResult(state.dateKey, state.total, state.correctByLine, state.mode, true);
+              persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, true);
               renderLeaderboard();
               // Best-effort, same as the leaderboard submission above -
               // never rejects, so this can't turn an otherwise-successful
@@ -954,6 +984,53 @@
           MetroShared.shareOrCopyText(buildShareText(), els.shareBtn);
         }
 
+        function lineBadge(line) {
+          var badge = document.createElement('span');
+          badge.className = 'line-bar__badge';
+          badge.style.setProperty('--badge-bg', line.color);
+          badge.style.setProperty('--badge-ink', line.textColor);
+          badge.textContent = line.id;
+          return badge;
+        }
+
+        // One row per featured line with ≥1 station, listing the names
+        // classified into it (in classification order), grouped under the
+        // line's own colored badge.
+        function renderClassifiedStations() {
+          els.classified.innerHTML = '';
+          var byLine = {};
+          state.classified.forEach(function (c) {
+            (byLine[c.lineId] || (byLine[c.lineId] = [])).push(c.name);
+          });
+          state.lines.forEach(function (line) {
+            var names = byLine[line.id];
+            if (!names || !names.length) return;
+            var row = document.createElement('div');
+            row.className = 'classified__line';
+            row.appendChild(lineBadge(line));
+            var namesEl = document.createElement('span');
+            namesEl.className = 'classified__names';
+            namesEl.textContent = names.join(', ');
+            row.appendChild(namesEl);
+            els.classified.appendChild(row);
+          });
+        }
+
+        // Legacy fallback: a badge + "× N" chip per line.
+        function renderLineCounts() {
+          els.lineBars.innerHTML = '';
+          state.lines.forEach(function (line) {
+            var row = document.createElement('div');
+            row.className = 'line-bar';
+            row.appendChild(lineBadge(line));
+            var countEl = document.createElement('span');
+            countEl.className = 'line-bar__count';
+            countEl.textContent = '× ' + (state.correctByLine[line.id] || 0);
+            row.appendChild(countEl);
+            els.lineBars.appendChild(row);
+          });
+        }
+
         function renderReveal() {
           MetroShared.renderNoticeBanner(
             els.revealBanner,
@@ -964,27 +1041,14 @@
           els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
             (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
 
-          els.lineBars.innerHTML = '';
-          state.lines.forEach(function (line) {
-            var count = state.correctByLine[line.id] || 0;
-
-            var row = document.createElement('div');
-            row.className = 'line-bar';
-
-            var badge = document.createElement('span');
-            badge.className = 'line-bar__badge';
-            badge.style.setProperty('--badge-bg', line.color);
-            badge.style.setProperty('--badge-ink', line.textColor);
-            badge.textContent = line.id;
-            row.appendChild(badge);
-
-            var countEl = document.createElement('span');
-            countEl.className = 'line-bar__count';
-            countEl.textContent = '× ' + count;
-            row.appendChild(countEl);
-
-            els.lineBars.appendChild(row);
-          });
+          // Days from the cut-line on list the exact stations; older saved
+          // results predate state.classified and fall back to per-line counts.
+          var showList = state.dateKey >= STATION_LIST_SINCE_DATE_KEY
+            && Array.isArray(state.classified);
+          els.lineBars.hidden = showList;
+          els.classified.hidden = !showList;
+          if (showList) renderClassifiedStations();
+          else renderLineCounts();
 
           renderAliasRow();
           renderLeaderboard();
@@ -1180,6 +1244,7 @@
             revealBanner: $('reveal-banner'),
             revealTotal: $('reveal-total'),
             lineBars: $('line-bars'),
+            classified: $('classified'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardList: $('leaderboard-list'),

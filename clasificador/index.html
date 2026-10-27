@@ -427,9 +427,8 @@
         // pool (as low as 62 unique stations in the worst case) - see
         // pickFeaturedLines()'s own retry.
         var MIN_STATION_POOL = 80;
-        // Games from this day on record the exact stations classified
-        // (state.classified); the reveal lists them. Earlier saved results
-        // predate the field, so their reveal falls back to the per-line counts.
+        // Days from here on record state.classified; older saved results
+        // predate it and fall back to per-line counts.
         var STATION_LIST_SINCE_DATE_KEY = '2026-10-27';
         var STREAK_STORAGE_KEY = 'clasificador:streak';
         var LEADERBOARD_COLLECTION = 'clasificador-leaderboard';
@@ -993,9 +992,8 @@
           return badge;
         }
 
-        // The classified stations as an icon grid, each tile colored by the
-        // line it was placed into, clustered by line then alphabetical, with
-        // a staggered pop-in - same pattern as Copo/Memoria's reveal.
+        // Icon grid, each tile colored by its line, clustered by line then
+        // alphabetical - same pattern as Copo/Memoria's reveal.
         function renderClassifiedStations() {
           els.classified.innerHTML = '';
           var lineOf = {};
@@ -1053,8 +1051,7 @@
           els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
             (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
 
-          // Days from the cut-line on list the exact stations; older saved
-          // results predate state.classified and fall back to per-line counts.
+          // Pre-cut-line days have no state.classified - show counts instead.
           var showList = state.dateKey >= STATION_LIST_SINCE_DATE_KEY
             && Array.isArray(state.classified);
           els.lineBars.hidden = showList;

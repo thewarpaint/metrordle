@@ -366,7 +366,12 @@ about `//`/`/* */` comments in the actual game/test code.)
   as `hardMode` alongside `score` (🧠 badge, share text), same as Metro
   Crush's own - not part of `orderBySpecs`, since there's no
   attempts-count tiebreak for it to win at the same score the way
-  Metrordle's own hard mode does.
+  Metrordle's own hard mode does. Hard mode also makes the 60s clock
+  elastic (`HARD_BONUS_RUN`, `state.correctRun` in `attemptPlace()`):
+  every 5 correct in a row adds a second, each wrong guess subtracts one
+  (ending the round if it hits 0). Normal mode keeps the flat countdown.
+  The `.progress__fill` width is clamped to 100% since a bonus-fed
+  `timeLeft` can run past `ROUND_SECONDS`.
 - **`/juegos/`** - a plain index page listing every game, built from the
   same `.game-promo` card design the end-screen "sigue jugando hoy" promo
   uses. `MetroShared.buildAllGamesGrid(dateKey)` (shared.js) renders all of

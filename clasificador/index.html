@@ -362,7 +362,7 @@
           <div class="start-overlay" id="start-overlay" hidden>
             <div class="start-overlay__panel">
               <p class="start-overlay__text">
-                <strong>Modo difícil:</strong> las estaciones no muestran su nombre, solo su ícono.
+                <strong>Modo difícil:</strong> las estaciones solo muestran su ícono, sin nombre. El reloj es dinámico: 5 aciertos seguidos te regresan 1 segundo, pero cada error te resta 1.
               </p>
               <div class="start-overlay__modes">
                 <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
@@ -411,6 +411,9 @@
 
         var START_DATE_KEY = '2026-10-10';
         var ROUND_SECONDS = 60;
+        // Hard mode only: every HARD_BONUS_RUN correct in a row adds a
+        // second to the clock; a wrong guess subtracts one.
+        var HARD_BONUS_RUN = 5;
         var QUEUE_SIZE = 5;
         var FEATURED_LINE_COUNT = 6;
         // A day's 6 random lines can overlap enough to leave a thin
@@ -623,6 +626,7 @@
             classified: [],
             total: 0,
             mode: 'normal',
+            correctRun: 0,
             timeLeft: ROUND_SECONDS,
             timerId: null,
             streak: 0,
@@ -689,7 +693,7 @@
         function renderStatus() {
           els.clasiTime.textContent = formatClock(state.timeLeft);
           els.clasiCount.textContent = state.total + (state.total === 1 ? ' estación' : ' estaciones');
-          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          els.progressFill.style.width = Math.min(100, state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
         // M:SS for the countdown.
@@ -837,6 +841,11 @@
             state.queue.shift();
             state.queue.push(state.nextStation());
 
+            if (state.mode === 'hard' && ++state.correctRun >= HARD_BONUS_RUN) {
+              state.correctRun = 0;
+              state.timeLeft += 1;
+            }
+
             renderStatus();
             renderQueueCards(ghostInfo);
 
@@ -847,6 +856,12 @@
               setTimeout(function () { bucketEl.classList.remove('line-badge--correct'); }, 420);
             }
           } else {
+            if (state.mode === 'hard') {
+              state.correctRun = 0;
+              state.timeLeft = Math.max(0, state.timeLeft - 1);
+              renderStatus();
+              if (state.timeLeft <= 0) { endRound(); return; }
+            }
             var activeEl = els.queue.querySelector('.queue-active');
             if (activeEl) {
               activeEl.classList.remove('queue-card--shake');

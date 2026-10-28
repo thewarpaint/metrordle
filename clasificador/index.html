@@ -322,15 +322,12 @@
       #clasi-time { display: inline-block; transition: transform 0.15s ease, color 0.15s ease; }
       #clasi-time.clock--up { color: var(--ok); transform: scale(1.3); }
       #clasi-time.clock--down { color: var(--danger); transform: scale(1.3); }
-      /* Small filled badge (rounded rectangle) so the tag reads clearly. */
+      /* Reuses Metrordle's shared .attempt-chip badge for the look; this
+         only positions it and drives the rise animation. */
       .clock__delta {
         position: absolute; left: 50%; bottom: 100%; margin-bottom: 0.2rem;
-        padding: 0.1rem 0.4rem; border-radius: 0.4rem;
-        font-weight: 700; font-size: 0.75rem; line-height: 1.3;
-        white-space: nowrap; pointer-events: none; opacity: 0;
+        pointer-events: none; opacity: 0;
       }
-      .clock__delta--up { background: var(--ok); color: var(--ok-ink); }
-      .clock__delta--down { background: var(--danger); color: var(--danger-ink); }
       .clock__delta--show { animation: clock-delta-rise 0.7s ease forwards; }
       @keyframes clock-delta-rise {
         0% { opacity: 0; transform: translate(-50%, 0.2rem); }
@@ -733,7 +730,7 @@
           setTimeout(function () { els.clasiTime.classList.remove(numCls); }, 300);
 
           els.clockDelta.textContent = (up ? '+' : '−') + '1';
-          els.clockDelta.className = 'clock__delta clock__delta--' + (up ? 'up' : 'down');
+          els.clockDelta.className = 'clock__delta attempt-chip attempt-chip--' + (up ? 'good' : 'bad');
           void els.clockDelta.offsetWidth;
           els.clockDelta.classList.add('clock__delta--show');
           setTimeout(function () { els.clockDelta.classList.remove('clock__delta--show'); }, 700);

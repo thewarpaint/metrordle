@@ -316,6 +316,25 @@
         margin: 0 0 1.2rem;
       }
 
+      /* Hard-mode clock change: flash the time and float a +1/-1 tag, so
+         the ±1 second isn't lost against the running countdown. */
+      .clock { position: relative; display: inline-block; }
+      #clasi-time { display: inline-block; transition: transform 0.15s ease, color 0.15s ease; }
+      #clasi-time.clock--up { color: var(--ok); transform: scale(1.3); }
+      #clasi-time.clock--down { color: var(--danger); transform: scale(1.3); }
+      /* Reuses Metrordle's shared .attempt-chip badge for the look; this
+         only positions it and drives the rise animation. */
+      .clock__delta {
+        position: absolute; left: 50%; bottom: 100%; margin-bottom: 0.2rem;
+        pointer-events: none; opacity: 0;
+      }
+      .clock__delta--show { animation: clock-delta-rise 0.7s ease forwards; }
+      @keyframes clock-delta-rise {
+        0% { opacity: 0; transform: translate(-50%, 0.2rem); }
+        25% { opacity: 1; }
+        100% { opacity: 0; transform: translate(-50%, -1rem); }
+      }
+
     </style>
   </head>
 
@@ -351,7 +370,10 @@
             <div class="progress__fill progress__fill--countdown" id="progress-fill" style="width: 100%"></div>
           </div>
           <div class="progress__label progress__label--split">
-            <span class="progress__count" id="clasi-time">1:00</span>
+            <span class="progress__count clock">
+              <span id="clasi-time">1:00</span>
+              <span class="clock__delta" id="clock-delta" aria-hidden="true"></span>
+            </span>
             <span id="clasi-count">0 estaciones</span>
           </div>
         </div>
@@ -696,6 +718,24 @@
           els.progressFill.style.width = Math.min(100, state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
+        // Hard-mode cue: flash the time and float a +1/-1 so the bonus/penalty
+        // isn't lost against the running countdown. renderStatus() only ever
+        // sets textContent, so the toggled class survives the next tick.
+        function pulseClock(delta) {
+          var up = delta > 0;
+          var numCls = up ? 'clock--up' : 'clock--down';
+          els.clasiTime.classList.remove('clock--up', 'clock--down');
+          void els.clasiTime.offsetWidth;
+          els.clasiTime.classList.add(numCls);
+          setTimeout(function () { els.clasiTime.classList.remove(numCls); }, 300);
+
+          els.clockDelta.textContent = (up ? '+' : '−') + '1';
+          els.clockDelta.className = 'clock__delta attempt-chip attempt-chip--' + (up ? 'good' : 'bad');
+          void els.clockDelta.offsetWidth;
+          els.clockDelta.classList.add('clock__delta--show');
+          setTimeout(function () { els.clockDelta.classList.remove('clock__delta--show'); }, 700);
+        }
+
         // M:SS for the countdown.
         function formatClock(totalSeconds) {
           totalSeconds = Math.max(0, Math.floor(totalSeconds));
@@ -844,6 +884,7 @@
             if (state.mode === 'hard' && ++state.correctRun >= HARD_BONUS_RUN) {
               state.correctRun = 0;
               state.timeLeft += 1;
+              pulseClock(1);
             }
 
             renderStatus();
@@ -859,6 +900,7 @@
             if (state.mode === 'hard') {
               state.correctRun = 0;
               state.timeLeft = Math.max(0, state.timeLeft - 1);
+              pulseClock(-1);
               renderStatus();
               if (state.timeLeft <= 0) { endRound(); return; }
             }
@@ -1247,6 +1289,7 @@
             progressTrack: $('progress-track'),
             progressFill: $('progress-fill'),
             clasiTime: $('clasi-time'),
+            clockDelta: $('clock-delta'),
             clasiCount: $('clasi-count'),
             queueWrap: $('queue-wrap'),
             queue: $('queue'),

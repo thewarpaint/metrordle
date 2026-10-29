@@ -789,11 +789,13 @@ about `//`/`/* */` comments in the actual game/test code.)
   reveal for a finished one and never resubmits. The pre-game ready screen
   shows a full timer bar (set instantly, bypassing the 0.3s width ease), and
   the reveal shows `0:00` (set in `renderReveal()`, so a reloaded finished
-  day shows it too, not the markup default `1:00`). The reveal's deterministic
-  "Jugar de nuevo" replay stays `?debug=true`-only (`start()` resets the
-  per-round `prevMajor`/`prevOdd`/`prevIndex` before reseeding); the always-
-  available way to keep playing is "Seguir jugando sin guardar", a no-stakes
-  practice mode copied from Metro Crush (`continuePractice()`/`endPractice()`):
+  day shows it too, not the markup default `1:00`). The reveal's "Jugar de
+  nuevo" replays the day's deterministic board for a real, leaderboard-counting
+  score (always shown now, not just under `?debug=true`; `start()` resets the
+  per-round `prevMajor`/`prevOdd`/`prevIndex` before reseeding - note a replay
+  re-submits, overwriting that alias's entry for the day since the board is the
+  same); the no-stakes alternative is "Seguir jugando sin guardar", a practice
+  mode copied from Metro Crush (`continuePractice()`/`endPractice()`):
   it snapshots the already-submitted result, deals a fresh non-deterministic
   sequence (`...-practice-<dateKey>-<Date.now()>`), hides the countdown track
   for a count-up clock and points-since-start, and never reaches

@@ -624,11 +624,12 @@
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // Deterministic replay stays debug-only (QA); "Seguir jugando sin
-          // guardar" (practice, no stakes) is the always-available way to keep
-          // playing - same as Metro Crush's own reveal.
+          // "Jugar de nuevo" replays the day's deterministic board for a real,
+          // leaderboard-counting score; "Seguir jugando sin guardar" is the
+          // no-stakes practice alternative (see continuePractice()).
           startBtn.textContent = 'Jugar de nuevo';
-          startBtn.hidden = !MetroShared.isDebugMode();
+          startBtn.hidden = false;
+          startBtn.disabled = false; // armed on the reveal (incl. a saved-result reload)
           practiceBtn.hidden = false;
           practiceBanner.hidden = true;
           progressTrack.hidden = false;

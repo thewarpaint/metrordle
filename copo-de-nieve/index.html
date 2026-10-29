@@ -128,6 +128,12 @@
         <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
       </div>
 
+      <div class="date-debug" id="date-debug" hidden>
+        <button type="button" class="btn-secondary btn-secondary--chev" id="date-prev" aria-label="Día anterior" data-chev="left"></button>
+        <span class="date-debug__label" id="date-debug-label"></span>
+        <button type="button" class="btn-secondary btn-secondary--chev" id="date-next" aria-label="Día siguiente" data-chev="right"></button>
+      </div>
+
       <div class="sign">
         <div class="sign__head">
           <h1>Copo de nieve <span class="game-num" id="game-num"></span></h1>
@@ -139,6 +145,11 @@
               <span><b id="score-text">0</b> aciertos</span>
             </div>
           </div>
+        </div>
+
+        <div class="practice-banner" id="practice-banner" hidden>
+          <span class="practice-banner__text">Modo práctica: este puntaje no se guarda.</span>
+          <button type="button" class="btn-secondary" id="end-practice-btn">Volver al resultado</button>
         </div>
 
         <div class="board-stage">
@@ -155,6 +166,7 @@
                 <p class="leaderboard__status" id="leaderboard-status" hidden></p>
               </div>
               <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
+              <button type="button" class="btn-secondary" id="practice-btn" hidden>Seguir jugando sin guardar</button>
             </div>
           </div>
         </div>
@@ -198,6 +210,15 @@
         var leaderboardAliasRow = document.getElementById('leaderboard-alias-row');
         var leaderboardList = document.getElementById('leaderboard-list');
         var leaderboardStatus = document.getElementById('leaderboard-status');
+        var progressTrack = document.querySelector('.progress__track');
+        var practiceBtn = document.getElementById('practice-btn');
+        var practiceBanner = document.getElementById('practice-banner');
+        var endPracticeBtn = document.getElementById('end-practice-btn');
+        var dateDebug = document.getElementById('date-debug');
+        var datePrevBtn = document.getElementById('date-prev');
+        var dateNextBtn = document.getElementById('date-next');
+        var dateDebugLabel = document.getElementById('date-debug-label');
+        var debugDate = null; // ?debug=true date-nav offset
 
         // Build the 49 cells once; a round only mutates CSS vars + one
         // class, never the cell nodes.
@@ -248,7 +269,8 @@
 
         var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0,
           prevMajor: -1, prevOdd: -1, prevIndex: -1, oddIconIdx: -1, found: [],
-          dateKey: '', gameNumber: 0, leaderboardSubmitted: false, streak: 0, maxStreak: 0 };
+          dateKey: '', gameNumber: 0, leaderboardSubmitted: false, streak: 0, maxStreak: 0,
+          practice: false, practiceStartedAt: 0, practiceSnapshot: null, practiceTimerId: 0 };
 
         // Per-day seeded stream, so every player (and every same-day replay)
         // gets the identical sequence of deals - and thus the same difficulty
@@ -315,18 +337,24 @@
         }
 
         function onBoardClick(e) {
-          if (!state.running) return;
+          if (!state.running && !state.practice) return;
           var cell = e.target.closest('.cell');
           if (!cell) return;
           if (+cell.dataset.i === state.oddIndex) {
             state.score++;
-            scoreText.textContent = state.score;
             if (state.oddIconIdx >= 0) state.found.push(ICONS[state.oddIconIdx].slug);
+            renderScoreText();
             flash(cell, 'cell--hit');
             nextRound();
           } else {
             flash(cell, 'cell--wrong'); // just feedback - no time penalty
           }
+        }
+
+        // In practice the score column counts points since practice began
+        // (score minus the snapshot), not the real round's carried-over total.
+        function renderScoreText() {
+          scoreText.textContent = state.practice ? (state.score - state.practiceSnapshot.score) : state.score;
         }
 
         // One-card feedback, cleared on its own animationend.
@@ -596,10 +624,14 @@
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // No replays of a daily deterministic board outside debug - same as
-          // every other game; the button only returns under ?debug=true.
+          // Deterministic replay stays debug-only (QA); "Seguir jugando sin
+          // guardar" (practice, no stakes) is the always-available way to keep
+          // playing - same as Metro Crush's own reveal.
           startBtn.textContent = 'Jugar de nuevo';
           startBtn.hidden = !MetroShared.isDebugMode();
+          practiceBtn.hidden = false;
+          practiceBanner.hidden = true;
+          progressTrack.hidden = false;
           boardStage.classList.add('board-stage--done'); // card grows to fit the full grid
           overlay.hidden = false;
         }
@@ -620,8 +652,9 @@
           state.found = [];
           state.leaderboardSubmitted = false;
           state.prevMajor = state.prevOdd = state.prevIndex = -1;
-          // Seed the day's deterministic deal sequence (respects ?date= for QA).
-          state.dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          state.practice = false;
+          // Seed the day's deterministic deal sequence (respects ?date= / debug nav).
+          state.dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           state.gameNumber = MetroShared.getGameNumberForDateKey(state.dateKey, START_DATE_KEY);
           rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
           state.endTime = performance.now() + ROUND_MS;
@@ -631,6 +664,9 @@
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = false;
+          practiceBtn.hidden = true;
+          practiceBanner.hidden = true;
+          progressTrack.hidden = false;
           boardStage.classList.remove('board-stage--done');
           overlay.hidden = true;
           nextRound();
@@ -656,6 +692,9 @@
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = true;
+          practiceBtn.hidden = true;
+          practiceBanner.hidden = true;
+          progressTrack.hidden = false;
           boardStage.classList.remove('board-stage--done');
           overlay.hidden = true;
           state.running = true;
@@ -676,10 +715,101 @@
           submitScore();
         }
 
+        // Keep tapping past the reveal with no stakes - the real result was
+        // already submitted/persisted by finish(), and practice never reaches
+        // submitScore()/persistResult(). Snapshot it first so endPractice()
+        // restores exactly what was submitted. Mirrors Metro Crush's own.
+        function continuePractice() {
+          if (!state || state.running || state.practice) return;
+          state.practiceSnapshot = {
+            score: state.score, found: state.found.slice(),
+            streak: state.streak, maxStreak: state.maxStreak,
+            leaderboardSubmitted: state.leaderboardSubmitted,
+          };
+          state.practiceStartedAt = performance.now();
+          // Fresh, no-stakes deal sequence seeded off the moment (never the
+          // day's deterministic stream, so it can't be mistaken for the real one).
+          rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-practice-' + state.dateKey + '-' + Date.now());
+          state.prevMajor = state.prevOdd = state.prevIndex = -1;
+          state.practice = true;
+
+          overlay.hidden = true;
+          boardStage.classList.remove('board-stage--done');
+          progressTrack.hidden = true;   // no countdown in practice
+          practiceBanner.hidden = false;
+          nextRound();
+          renderScoreText();             // 0 (score - snapshot)
+          renderPracticeClock();
+          state.practiceTimerId = setInterval(renderPracticeClock, 1000);
+        }
+
+        // Count-up clock while practicing (no countdown to show).
+        function renderPracticeClock() {
+          var secs = Math.floor((performance.now() - state.practiceStartedAt) / 1000);
+          timeText.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
+        }
+
+        function endPractice() {
+          if (!state || !state.practice) return;
+          clearInterval(state.practiceTimerId);
+          state.practiceTimerId = 0;
+          var snap = state.practiceSnapshot;
+          if (snap) {
+            state.score = snap.score;
+            state.found = snap.found;
+            state.streak = snap.streak;
+            state.maxStreak = snap.maxStreak;
+            state.leaderboardSubmitted = snap.leaderboardSubmitted;
+            state.practiceSnapshot = null;
+          }
+          state.practice = false;
+          if (state.oddCell) { state.oddCell.classList.remove('cell--odd'); state.oddCell = null; }
+          scoreText.textContent = state.score;
+          renderReveal(); // restores the real, already-submitted result (never resubmits)
+        }
+
+        // ?debug=true date-nav: preview any day's deal sequence. submitScore()
+        // already no-ops under debug, so this never touches the real board.
+        function shiftDebugDate(deltaDays) {
+          var next = new Date(MetroShared.getEffectiveToday(debugDate).getTime());
+          next.setDate(next.getDate() + deltaDays);
+          debugDate = next;
+
+          state.running = false;
+          cancelAnimationFrame(state.rafId);
+          clearInterval(saveTimer);
+          if (state.practiceTimerId) { clearInterval(state.practiceTimerId); state.practiceTimerId = 0; }
+          state.practice = false;
+          state.practiceSnapshot = null;
+          state.score = 0;
+          state.found = [];
+          state.leaderboardSubmitted = false;
+          state.prevMajor = state.prevOdd = state.prevIndex = -1;
+          if (state.oddCell) { state.oddCell.classList.remove('cell--odd'); state.oddCell = null; }
+          overlay.hidden = true;
+          revealNotice.hidden = true;
+          revealIcons.hidden = true;
+          leaderboardEl.hidden = true;
+          practiceBanner.hidden = true;
+          practiceBtn.hidden = true;
+          progressTrack.hidden = false;
+          boardStage.classList.remove('board-stage--done');
+          scoreText.textContent = '0';
+          initDay();
+          renderDateDebugLabel();
+        }
+
+        function renderDateDebugLabel() {
+          if (!dateDebugLabel) return;
+          var dk = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
+          var isRealToday = dk === MetroShared.getDateKey(new Date());
+          dateDebugLabel.textContent = dk + (isRealToday ? ' (hoy)' : '');
+        }
+
         // Resolves the day and its saved result once the icons are ready:
         // shows the reveal for an already-played day, or arms the start button.
         function initDay() {
-          state.dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
+          state.dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           state.gameNumber = MetroShared.getGameNumberForDateKey(state.dateKey, START_DATE_KEY);
           gameNum.textContent = '#' + state.gameNumber;
           renderHighScoreRecord();
@@ -710,6 +840,14 @@
 
         board.addEventListener('click', onBoardClick);
         startBtn.addEventListener('click', start);
+        practiceBtn.addEventListener('click', continuePractice);
+        endPracticeBtn.addEventListener('click', endPractice);
+
+        if (MetroShared.isDebugMode()) {
+          dateDebug.hidden = false;
+          datePrevBtn.addEventListener('click', function () { shiftDebugDate(-1); });
+          dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
+        }
 
         fetch('/station-icons.svg')
           .then(function (r) { return r.text(); })
@@ -717,6 +855,7 @@
             buildIcons(text);
             if (ICONS.length < 2) throw new Error('no icons');
             initDay();
+            renderDateDebugLabel();
           })
           .catch(function () {
             MetroShared.renderNoticeBanner(revealNotice, 'notice--error', 'Error',

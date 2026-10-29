@@ -789,13 +789,19 @@ about `//`/`/* */` comments in the actual game/test code.)
   reveal for a finished one and never resubmits. The pre-game ready screen
   shows a full timer bar (set instantly, bypassing the 0.3s width ease), and
   the reveal shows `0:00` (set in `renderReveal()`, so a reloaded finished
-  day shows it too, not the markup default `1:00`). In normal
-  play there's no replay (the "Jugar de nuevo" button only returns under
-  `?debug=true`, same as every daily game); `start()` resets the per-round
-  state (`prevMajor`/`prevOdd`/`prevIndex`, used so no deal repeats either
-  icon or the odd position from the round before) before reseeding.
-  `?date=YYYY-MM-DD` previews another day's sequence for QA, same as the
-  other games. Icons are real station
+  day shows it too, not the markup default `1:00`). The reveal's deterministic
+  "Jugar de nuevo" replay stays `?debug=true`-only (`start()` resets the
+  per-round `prevMajor`/`prevOdd`/`prevIndex` before reseeding); the always-
+  available way to keep playing is "Seguir jugando sin guardar", a no-stakes
+  practice mode copied from Metro Crush (`continuePractice()`/`endPractice()`):
+  it snapshots the already-submitted result, deals a fresh non-deterministic
+  sequence (`...-practice-<dateKey>-<Date.now()>`), hides the countdown track
+  for a count-up clock and points-since-start, and never reaches
+  `submitScore()`/`persistResult()`; "Volver al resultado" restores the exact
+  snapshot. `?date=YYYY-MM-DD` previews another day's sequence for QA, and
+  under `?debug=true` the shared `.date-debug` prev/next nav (via a `debugDate`
+  offset passed to `getEffectiveToday()`, same pattern as the other games)
+  steps through days. Icons are real station
   pictograms: the page fetches `/station-icons.svg` once and turns each
   symbol into a CSS mask data URI (the pictograms are single-color, so the
   masked silhouette is the exact icon the other games render via `<use>`);

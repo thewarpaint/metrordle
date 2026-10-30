@@ -186,10 +186,8 @@
         'use strict';
 
         var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000;
-        // Difficulty ramp (t in pickOdd): the odd icon is a random dissimilar
-        // one while t is 0 (easy) and ever nearer the majority's most-similar
-        // neighbour as t climbs to 1 (hard). t stays 0 for the first RAMP_FLAT
-        // finds, climbs linearly to 1 over the next RAMP_SPAN, then stays 1.
+        // Difficulty ramp (t in pickOdd): flat at 0 for the first RAMP_FLAT
+        // finds, then climbs linearly to 1 over the next RAMP_SPAN.
         var RAMP_FLAT = 15;
         var RAMP_SPAN = 30;
         var START_DATE_KEY = '2026-10-26';        // leaderboards shipped this day - game #1

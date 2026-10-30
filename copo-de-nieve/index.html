@@ -166,6 +166,7 @@
                 <p class="leaderboard__status" id="leaderboard-status" hidden></p>
               </div>
               <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
+              <button type="button" class="btn-secondary" id="share-btn" hidden>Compartir</button>
               <button type="button" class="btn-secondary" id="practice-btn" hidden>Seguir jugando sin guardar</button>
             </div>
           </div>
@@ -194,6 +195,7 @@
         var STREAK_STORAGE_KEY = 'copo-de-nieve:streak';
         var LEADERBOARD_COLLECTION = 'copo-de-nieve-leaderboard';
         var RECORD_GAME_KEY = 'copo-de-nieve';
+        var SHARE_URL = 'https://metrordle.com/copo-de-nieve/';
         var LEADERBOARD_SIZE = 5;
 
         var board = document.getElementById('board');
@@ -212,6 +214,7 @@
         var leaderboardList = document.getElementById('leaderboard-list');
         var leaderboardStatus = document.getElementById('leaderboard-status');
         var progressTrack = document.querySelector('.progress__track');
+        var shareBtn = document.getElementById('share-btn');
         var practiceBtn = document.getElementById('practice-btn');
         var practiceBanner = document.getElementById('practice-banner');
         var endPracticeBtn = document.getElementById('end-practice-btn');
@@ -512,6 +515,31 @@
           return separator + MetroShared.formatMaxStreak(state.maxStreak);
         }
 
+        // Open-scale rating for the share text - bands seeded from
+        // Clasificador's (score-based, same 🟥-🟪 shape); under review for
+        // Copo's own pace before merge.
+        function getRating(score) {
+          if (score <= 5) return { label: 'Terrible', square: '🟥' };
+          if (score <= 15) return { label: 'Mala', square: '🟧' };
+          if (score <= 25) return { label: 'Regular', square: '🟨' };
+          if (score <= 35) return { label: 'Buena', square: '🟩' };
+          if (score <= 45) return { label: 'Excelente', square: '🟦' };
+          return { label: 'Sobresaliente', square: '🟪' };
+        }
+
+        function buildShareText() {
+          var rating = getRating(state.score);
+          return 'Metrordle: Copo de nieve #' + state.gameNumber + '\n\n' +
+            rating.square + ' Calificación: ' + rating.label + '\n' +
+            'Encontradas: ' + state.score + '\n' +
+            '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
+            SHARE_URL;
+        }
+
+        function shareResult() {
+          MetroShared.shareOrCopyText(buildShareText(), shareBtn);
+        }
+
         // All-time high score (records/copo-de-nieve) - no date dimension, so
         // this only ever loads once, from initDay().
         function renderHighScoreRecord() {
@@ -627,13 +655,13 @@
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // "Jugar de nuevo" replays the day's deterministic board but is
-          // no-stakes (finish() won't persist/submit a replay, so it can't
-          // overwrite the day); "Seguir jugando sin guardar" is the other
-          // no-stakes option, free-play on a fresh board (see continuePractice()).
+          // "Seguir jugando sin guardar" is the single no-stakes play-again in
+          // normal play. The deterministic "Jugar de nuevo" replay stays
+          // debug-only (a QA tool); finish() still guards it against overwriting.
           startBtn.textContent = 'Jugar de nuevo';
-          startBtn.hidden = false;
+          startBtn.hidden = !MetroShared.isDebugMode();
           startBtn.disabled = false; // armed on the reveal (incl. a saved-result reload)
+          shareBtn.hidden = false;
           practiceBtn.hidden = false;
           practiceBanner.hidden = true;
           progressTrack.hidden = false;
@@ -670,6 +698,7 @@
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = false;
+          shareBtn.hidden = true;
           practiceBtn.hidden = true;
           practiceBanner.hidden = true;
           progressTrack.hidden = false;
@@ -699,6 +728,7 @@
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = true;
+          shareBtn.hidden = true;
           practiceBtn.hidden = true;
           practiceBanner.hidden = true;
           progressTrack.hidden = false;
@@ -805,6 +835,7 @@
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           practiceBanner.hidden = true;
+          shareBtn.hidden = true;
           practiceBtn.hidden = true;
           progressTrack.hidden = false;
           boardStage.classList.remove('board-stage--done');
@@ -857,6 +888,7 @@
         // First play of the day counts; once the day is done the same button is
         // "Jugar de nuevo", a no-stakes replay.
         startBtn.addEventListener('click', function () { start(state.dayDone); });
+        shareBtn.addEventListener('click', shareResult);
         practiceBtn.addEventListener('click', continuePractice);
         endPracticeBtn.addEventListener('click', endPractice);
 

@@ -789,21 +789,20 @@ about `//`/`/* */` comments in the actual game/test code.)
   reveal for a finished one and never resubmits. The pre-game ready screen
   shows a full timer bar (set instantly, bypassing the 0.3s width ease), and
   the reveal shows `0:00` (set in `renderReveal()`, so a reloaded finished
-  day shows it too, not the markup default `1:00`). The reveal's "Jugar de
-  nuevo" replays the day's deterministic board (always shown now, not just under
-  `?debug=true`) but is **no-stakes**: a replay is `start(state.dayDone)` with
-  `state.replay` set, and `finish()` returns early for it - no streak update, no
-  `persistResult()`, no `submitScore()` - and `start()` skips the autosave timer,
-  so a replay can never overwrite the day's official saved result or leaderboard
-  entry (`state.dayDone` is set the first time a round completes and on a saved-
-  result reload, which is what flips the button from a counting first play to a
-  replay). "Seguir jugando sin guardar" is the other no-stakes option, a practice
-  mode copied from Metro Crush (`continuePractice()`/`endPractice()`):
-  it snapshots the already-submitted result, deals a fresh non-deterministic
-  sequence (`...-practice-<dateKey>-<Date.now()>`), hides the countdown track
-  for a count-up clock and points-since-start, and never reaches
+  day shows it too, not the markup default `1:00`). The single play-again in
+  normal play is "Seguir jugando sin guardar", a no-stakes practice mode copied
+  from Metro Crush (`continuePractice()`/`endPractice()`): it snapshots the
+  already-submitted result, deals a fresh non-deterministic sequence
+  (`...-practice-<dateKey>-<Date.now()>`), hides the countdown track for a
+  count-up clock and points-since-start, and never reaches
   `submitScore()`/`persistResult()`; "Volver al resultado" restores the exact
-  snapshot. `?date=YYYY-MM-DD` previews another day's sequence for QA, and
+  snapshot. The deterministic "Jugar de nuevo" replay is `?debug=true`-only (a
+  QA tool; `start(state.dayDone)` with `state.replay`, which `finish()` guards
+  against persisting/submitting so it can't overwrite the day). The reveal also
+  has a "Compartir" share button (`shareResult()`/`buildShareText()`/
+  `MetroShared.shareOrCopyText()`, same as the other games) rating the round via
+  a `getRating(score)` open-scale band (🟥-🟪, seeded from Clasificador's bands -
+  tune for Copo's own pace). `?date=YYYY-MM-DD` previews another day's sequence for QA, and
   under `?debug=true` the shared `.date-debug` prev/next nav (via a `debugDate`
   offset passed to `getEffectiveToday()`, same pattern as the other games)
   steps through days. Icons are real station

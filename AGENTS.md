@@ -790,11 +790,14 @@ about `//`/`/* */` comments in the actual game/test code.)
   shows a full timer bar (set instantly, bypassing the 0.3s width ease), and
   the reveal shows `0:00` (set in `renderReveal()`, so a reloaded finished
   day shows it too, not the markup default `1:00`). The reveal's "Jugar de
-  nuevo" replays the day's deterministic board for a real, leaderboard-counting
-  score (always shown now, not just under `?debug=true`; `start()` resets the
-  per-round `prevMajor`/`prevOdd`/`prevIndex` before reseeding - note a replay
-  re-submits, overwriting that alias's entry for the day since the board is the
-  same); the no-stakes alternative is "Seguir jugando sin guardar", a practice
+  nuevo" replays the day's deterministic board (always shown now, not just under
+  `?debug=true`) but is **no-stakes**: a replay is `start(state.dayDone)` with
+  `state.replay` set, and `finish()` returns early for it - no streak update, no
+  `persistResult()`, no `submitScore()` - and `start()` skips the autosave timer,
+  so a replay can never overwrite the day's official saved result or leaderboard
+  entry (`state.dayDone` is set the first time a round completes and on a saved-
+  result reload, which is what flips the button from a counting first play to a
+  replay). "Seguir jugando sin guardar" is the other no-stakes option, a practice
   mode copied from Metro Crush (`continuePractice()`/`endPractice()`):
   it snapshots the already-submitted result, deals a fresh non-deterministic
   sequence (`...-practice-<dateKey>-<Date.now()>`), hides the countdown track

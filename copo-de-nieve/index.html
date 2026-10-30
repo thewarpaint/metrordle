@@ -186,9 +186,10 @@
         'use strict';
 
         var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000;
-        // After this many finds the odd icon is drawn from the majority's
-        // most visually-similar neighbours (hardest); 0 is all-random (easy).
-        var RAMP_SCORE = 18;
+        // Difficulty ramp (t in pickOdd): flat at 0 for the first RAMP_FLAT
+        // finds, then climbs linearly to 1 over the next RAMP_SPAN.
+        var RAMP_FLAT = 15;
+        var RAMP_SPAN = 30;
         var START_DATE_KEY = '2026-10-26';        // leaderboards shipped this day - game #1
         var STREAK_STORAGE_KEY = 'copo-de-nieve:streak';
         var LEADERBOARD_COLLECTION = 'copo-de-nieve-leaderboard';
@@ -288,7 +289,7 @@
         // avoid(i) is true for an icon this round must not reuse (either of
         // last round's two icons, and the majority itself).
         function pickOdd(majorIdx, avoid) {
-          var t = Math.min(state.score / RAMP_SCORE, 1);
+          var t = Math.min(Math.max(state.score - RAMP_FLAT, 0) / RAMP_SPAN, 1);
           if (t > 0 && rng() < t) {
             var si = SIM_INDEX[ICONS[majorIdx].slug];
             var neigh = (si !== undefined) ? SIM_NEIGH[si] : null;

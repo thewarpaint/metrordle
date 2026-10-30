@@ -270,7 +270,8 @@
         var state = { running: false, score: 0, endTime: 0, oddIndex: -1, oddCell: null, rafId: 0,
           prevMajor: -1, prevOdd: -1, prevIndex: -1, oddIconIdx: -1, found: [],
           dateKey: '', gameNumber: 0, leaderboardSubmitted: false, streak: 0, maxStreak: 0,
-          practice: false, practiceStartedAt: 0, practiceSnapshot: null, practiceTimerId: 0 };
+          practice: false, practiceStartedAt: 0, practiceSnapshot: null, practiceTimerId: 0,
+          replay: false, dayDone: false };
 
         // Per-day seeded stream, so every player (and every same-day replay)
         // gets the identical sequence of deals - and thus the same difficulty
@@ -452,7 +453,7 @@
         // In-progress snapshot, written once a second; initDay() resumes from
         // it on reload (see resumeGame()).
         function persistProgress() {
-          if (!state.running) return;
+          if (!state.running || state.replay) return;
           try {
             localStorage.setItem(storageKeyFor(state.dateKey), JSON.stringify({
               status: 'playing',
@@ -482,6 +483,7 @@
         // Leaderboard / streak / record - score-based, same shape as Clasificador.
         function submitScore() {
           if (state.leaderboardSubmitted) return;
+          if (state.replay) return; // a replay never submits - can't overwrite the day's result
           if (MetroShared.isDebugMode()) return; // never pollute the real board from date-nav
           var alias = MetroShared.getAlias();
           if (!alias) return;
@@ -624,9 +626,10 @@
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // "Jugar de nuevo" replays the day's deterministic board for a real,
-          // leaderboard-counting score; "Seguir jugando sin guardar" is the
-          // no-stakes practice alternative (see continuePractice()).
+          // "Jugar de nuevo" replays the day's deterministic board but is
+          // no-stakes (finish() won't persist/submit a replay, so it can't
+          // overwrite the day); "Seguir jugando sin guardar" is the other
+          // no-stakes option, free-play on a fresh board (see continuePractice()).
           startBtn.textContent = 'Jugar de nuevo';
           startBtn.hidden = false;
           startBtn.disabled = false; // armed on the reveal (incl. a saved-result reload)
@@ -646,9 +649,10 @@
           state.rafId = requestAnimationFrame(tick);
         }
 
-        function start() {
+        function start(isReplay) {
           if (!ICONS.length) return;
           state.running = true;
+          state.replay = !!isReplay; // a replay plays the same board but counts for nothing
           state.score = 0;
           state.found = [];
           state.leaderboardSubmitted = false;
@@ -672,8 +676,9 @@
           overlay.hidden = true;
           nextRound();
           state.rafId = requestAnimationFrame(tick);
-          startSaveTimer();
-          persistProgress();
+          // A replay is ephemeral: skip autosave/persist so it can't overwrite
+          // the day's official saved result (or resume on reload).
+          if (!state.replay) { startSaveTimer(); persistProgress(); }
         }
 
         // The deal sequence is a pure function of day + score, so replaying
@@ -707,10 +712,17 @@
           state.running = false;
           cancelAnimationFrame(state.rafId);
           clearInterval(saveTimer);
+          if (state.replay) {
+            // A replay never counts: leave the streak, the saved result and the
+            // leaderboard alone - just show how this run went.
+            renderReveal();
+            return;
+          }
           state.leaderboardSubmitted = false;
           // "Won" = a non-zero score (no win/lose puzzle), same as Metro Crush.
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
+          state.dayDone = true;
           persistResult();
           renderReveal();
           submitScore();
@@ -825,6 +837,7 @@
             state.leaderboardSubmitted = saved.leaderboardSubmitted;
             state.streak = s.count;
             state.maxStreak = s.max;
+            state.dayDone = true; // already recorded - "Jugar de nuevo" is a replay
             scoreText.textContent = state.score;
             renderReveal();
             submitScore(); // retry if a prior attempt never landed (e.g. alias set later)
@@ -840,7 +853,9 @@
         }
 
         board.addEventListener('click', onBoardClick);
-        startBtn.addEventListener('click', start);
+        // First play of the day counts; once the day is done the same button is
+        // "Jugar de nuevo", a no-stakes replay.
+        startBtn.addEventListener('click', function () { start(state.dayDone); });
         practiceBtn.addEventListener('click', continuePractice);
         endPracticeBtn.addEventListener('click', endPractice);
 

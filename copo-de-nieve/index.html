@@ -655,12 +655,11 @@
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // "Seguir jugando sin guardar" is the single no-stakes play-again in
-          // normal play. The deterministic "Jugar de nuevo" replay stays
-          // debug-only (a QA tool); finish() still guards it against overwriting.
-          startBtn.textContent = 'Jugar de nuevo';
-          startBtn.hidden = !MetroShared.isDebugMode();
-          startBtn.disabled = false; // armed on the reveal (incl. a saved-result reload)
+          // "Seguir jugando sin guardar" is the only play-again; the start
+          // button never shows on the reveal (the deterministic replay was
+          // dropped - finish() still guards state.replay, now only reachable
+          // via start(true), which nothing calls).
+          startBtn.hidden = true;
           shareBtn.hidden = false;
           practiceBtn.hidden = false;
           practiceBanner.hidden = true;
@@ -869,7 +868,7 @@
             state.leaderboardSubmitted = saved.leaderboardSubmitted;
             state.streak = s.count;
             state.maxStreak = s.max;
-            state.dayDone = true; // already recorded - "Jugar de nuevo" is a replay
+            state.dayDone = true; // already recorded - no fresh play counts today
             scoreText.textContent = state.score;
             renderReveal();
             submitScore(); // retry if a prior attempt never landed (e.g. alias set later)
@@ -885,8 +884,8 @@
         }
 
         board.addEventListener('click', onBoardClick);
-        // First play of the day counts; once the day is done the same button is
-        // "Jugar de nuevo", a no-stakes replay.
+        // "Comenzar" - only shown before the day's first (and only) real round;
+        // hidden on the reveal, so start(true) is never reached.
         startBtn.addEventListener('click', function () { start(state.dayDone); });
         shareBtn.addEventListener('click', shareResult);
         practiceBtn.addEventListener('click', continuePractice);

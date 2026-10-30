@@ -796,9 +796,9 @@ about `//`/`/* */` comments in the actual game/test code.)
   (`...-practice-<dateKey>-<Date.now()>`), hides the countdown track for a
   count-up clock and points-since-start, and never reaches
   `submitScore()`/`persistResult()`; "Volver al resultado" restores the exact
-  snapshot. The deterministic "Jugar de nuevo" replay is `?debug=true`-only (a
-  QA tool; `start(state.dayDone)` with `state.replay`, which `finish()` guards
-  against persisting/submitting so it can't overwrite the day). The reveal also
+  snapshot. There's no deterministic "Jugar de nuevo" replay button anymore -
+  the reveal never shows the start button (`finish()` still guards `state.replay`,
+  now only reachable via `start(true)`, which nothing calls). The reveal also
   has a "Compartir" share button (`shareResult()`/`buildShareText()`/
   `MetroShared.shareOrCopyText()`, same as the other games) rating the round via
   a `getRating(score)` open-scale band (🟥-🟪, seeded from Clasificador's bands -

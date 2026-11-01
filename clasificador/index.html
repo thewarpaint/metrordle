@@ -484,9 +484,8 @@
               correctByLine: parsed.correctByLine,
               classified: Array.isArray(parsed.classified) ? parsed.classified : null,
               mode: parsed.mode === 'hard' ? 'hard' : 'normal',
-              // null (not 0) when a pre-this-feature save has no seconds
-              // recorded, so renderReveal hides the stats rather than
-              // showing a misleading 0/0.
+              // null (not 0) on old saves without seconds, so the reveal
+              // hides the stats instead of showing a misleading 0/0.
               secondsWon: typeof parsed.secondsWon === 'number' ? parsed.secondsWon : null,
               secondsLost: typeof parsed.secondsLost === 'number' ? parsed.secondsLost : null,
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
@@ -1114,8 +1113,7 @@
           );
           els.revealScore.textContent = state.total;
 
-          // Seconds gained/lost only exist in hard mode's elastic clock,
-          // and only on saves recorded since this feature (null otherwise).
+          // Hard mode only, and only when seconds were recorded (null on old saves).
           var showStats = state.mode === 'hard' && state.secondsWon !== null;
           els.revealStats.hidden = !showStats;
           if (showStats) {

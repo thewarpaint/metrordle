@@ -808,10 +808,8 @@ input[type="text"]:disabled {
 }
 
 /* Big monospace result number + caption on a reveal screen (Metro
-   Crush's "N puntos", Clasificador's "N estaciones") - centered so it
-   reads the same in a reveal that isn't otherwise center-aligned.
-   Promoted from Metro Crush's page-local copy once Clasificador became
-   a second consumer. */
+   Crush's "N puntos", Clasificador's "N estaciones"); centered for a
+   reveal that isn't otherwise center-aligned. */
 .reveal__score {
   font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   font-size: 2.4rem;
@@ -846,9 +844,8 @@ input[type="text"]:disabled {
   margin-bottom: 1.1rem;
 }
 
-/* display: grid above outranks the [hidden] attribute's own display: none,
-   so a toggled-off grid (Clasificador shows its stats in hard mode only)
-   needs this to actually hide. */
+/* display: grid above outranks [hidden]'s display: none, so a
+   toggled-off grid needs this to actually hide. */
 .stat-grid[hidden] { display: none; }
 
 .stat-box {

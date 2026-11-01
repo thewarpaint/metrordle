@@ -846,6 +846,11 @@ input[type="text"]:disabled {
   margin-bottom: 1.1rem;
 }
 
+/* display: grid above outranks the [hidden] attribute's own display: none,
+   so a toggled-off grid (Clasificador shows its stats in hard mode only)
+   needs this to actually hide. */
+.stat-grid[hidden] { display: none; }
+
 .stat-box {
   background: var(--paper-well);
   border: 1px solid var(--rule);

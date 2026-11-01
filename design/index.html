@@ -862,6 +862,22 @@
           buttonsRow.appendChild(secondaryBtn);
           gallery.appendChild(buildExample(buttonsRow, '<code>.btn-primary</code>/<code>.btn-secondary</code> · ✅ consolidado - el par de botones que usa cada juego (comenzar, guardar, compartir…), en todas partes.'));
 
+          var disabledRow = buildRow();
+          var disabledPrimary = document.createElement('button');
+          disabledPrimary.type = 'button';
+          disabledPrimary.className = 'btn-primary';
+          disabledPrimary.textContent = 'Comenzar';
+          disabledPrimary.disabled = true;
+          disabledRow.appendChild(disabledPrimary);
+          var disabledSecondary = document.createElement('button');
+          disabledSecondary.type = 'button';
+          disabledSecondary.className = 'btn-secondary';
+          disabledSecondary.style.marginTop = '0';
+          disabledSecondary.textContent = 'Compartir';
+          disabledSecondary.disabled = true;
+          disabledRow.appendChild(disabledSecondary);
+          gallery.appendChild(buildExample(disabledRow, '<code>:disabled</code> · ✅ consolidado - estado inhabilitado de los botones (opacidad 0.4, cursor <code>not-allowed</code>).'));
+
           var guessBtnWrap = document.createElement('div');
           guessBtnWrap.style.width = '100%';
           var guessBtn = document.createElement('button');

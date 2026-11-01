@@ -801,8 +801,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   now only reachable via `start(true)`, which nothing calls). The reveal also
   has a "Compartir" share button (`shareResult()`/`buildShareText()`/
   `MetroShared.shareOrCopyText()`, same as the other games) rating the round via
-  a `getRating(score)` open-scale band (🟥-🟪, seeded from Clasificador's bands -
-  tune for Copo's own pace). `?date=YYYY-MM-DD` previews another day's sequence for QA, and
+  a `getRating(score)` open-scale band (🟥-🟪, tuned to Copo's own faster pace -
+  10-point bands up to 50). `?date=YYYY-MM-DD` previews another day's sequence for QA, and
   under `?debug=true` the shared `.date-debug` prev/next nav (via a `debugDate`
   offset passed to `getEffectiveToday()`, same pattern as the other games)
   steps through days. Icons are real station

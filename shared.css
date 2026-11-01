@@ -853,7 +853,6 @@ input[type="text"]:disabled {
 
 .stat-box {
   background: var(--paper-well);
-  border: 1px solid var(--rule);
   border-radius: 0.4rem;
   padding: 0.55rem 0.3rem;
   text-align: center;

@@ -989,16 +989,16 @@
           var optimalStops = countStops(state.shortestPath);
           var optimalTransfers = countTransfers(state.shortestPath);
 
-          // Big score = the player's result, with the optimal folded into
-          // the caption (.stats__label uppercases it). The secondary dimension
-          // (the +transfers breakdown / transfer count) is dropped here for the
-          // compact single-number style - the route lists below still show it.
+          // Big score = the player's stations±transfers breakdown (same
+          // shorthand the leaderboard uses: "15+3" from the cutover on,
+          // "15-3" before), with the optimal's breakdown folded into the
+          // caption (.stats__label uppercases it).
           if (usesSumScoring(state.dateKey)) {
-            $('stat-score').textContent = yourStops + yourTransfers;
-            $('stat-label').textContent = 'puntos · óptima ' + (optimalStops + optimalTransfers);
+            $('stat-score').textContent = yourStops + '+' + yourTransfers;
+            $('stat-label').textContent = 'puntos · óptima ' + optimalStops + '+' + optimalTransfers;
           } else {
-            $('stat-score').textContent = yourStops;
-            $('stat-label').textContent = (yourStops === 1 ? 'parada' : 'paradas') + ' · óptima ' + optimalStops;
+            $('stat-score').textContent = yourStops + '-' + yourTransfers;
+            $('stat-label').textContent = 'óptima ' + optimalStops + '-' + optimalTransfers;
           }
 
           renderAliasRow();

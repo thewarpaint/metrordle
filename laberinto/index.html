@@ -989,10 +989,8 @@
           var optimalStops = countStops(state.shortestPath);
           var optimalTransfers = countTransfers(state.shortestPath);
 
-          // Big score = the player's stations±transfers breakdown (same
-          // shorthand the leaderboard uses: "15+3" from the cutover on,
-          // "15-3" before), with the optimal's breakdown folded into the
-          // caption (.stats__label uppercases it).
+          // Player's stations±transfers, same "15+3"/"15-3" shorthand as the
+          // leaderboard; optimal in the caption.
           if (usesSumScoring(state.dateKey)) {
             $('stat-score').textContent = yourStops + '+' + yourTransfers;
             $('stat-label').textContent = 'óptima ' + optimalStops + '+' + optimalTransfers;

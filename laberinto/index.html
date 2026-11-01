@@ -222,22 +222,6 @@
         display: none;
       }
 
-      .stats-row {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-        margin-bottom: 1.1rem;
-      }
-
-      .stats-row p {
-        font-size: 0.9rem;
-        margin: 0;
-      }
-
-      .stats-row p strong {
-        font-variant-numeric: tabular-nums;
-      }
-
       .reveal__col h3 {
         color: var(--ink-soft);
         font-size: 0.68rem;
@@ -363,9 +347,9 @@
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>
 
-          <div class="stats-row">
-            <p id="stat-you"></p>
-            <p id="stat-optimal"></p>
+          <div class="stats">
+            <div class="stats__score" id="stat-score">0</div>
+            <div class="stats__label" id="stat-label"></div>
           </div>
 
           <div class="reveal__col">
@@ -1005,18 +989,16 @@
           var optimalStops = countStops(state.shortestPath);
           var optimalTransfers = countTransfers(state.shortestPath);
 
+          // Big score = the player's result, with the optimal folded into
+          // the caption (.stats__label uppercases it). The secondary dimension
+          // (the +transfers breakdown / transfer count) is dropped here for the
+          // compact single-number style - the route lists below still show it.
           if (usesSumScoring(state.dateKey)) {
-            // Score is stations + transfers; show the "15+3" breakdown next
-            // to the total it ranks as, matching the leaderboard shorthand.
-            $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '+' + yourTransfers + '</strong> = ' +
-              (yourStops + yourTransfers) + ' puntos';
-            $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '+' + optimalTransfers + '</strong> = ' +
-              (optimalStops + optimalTransfers) + ' puntos';
+            $('stat-score').textContent = yourStops + yourTransfers;
+            $('stat-label').textContent = 'puntos · óptima ' + (optimalStops + optimalTransfers);
           } else {
-            $('stat-you').innerHTML = 'Tú: <strong>' + yourStops + '</strong> ' + (yourStops === 1 ? 'parada' : 'paradas') +
-              ' (<strong>' + yourTransfers + '</strong> ' + (yourTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
-            $('stat-optimal').innerHTML = 'Ruta óptima: <strong>' + optimalStops + '</strong> ' + (optimalStops === 1 ? 'parada' : 'paradas') +
-              ' (<strong>' + optimalTransfers + '</strong> ' + (optimalTransfers === 1 ? 'transbordo' : 'transbordos') + ')';
+            $('stat-score').textContent = yourStops;
+            $('stat-label').textContent = (yourStops === 1 ? 'parada' : 'paradas') + ' · óptima ' + optimalStops;
           }
 
           renderAliasRow();

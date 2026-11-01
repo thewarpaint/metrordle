@@ -515,15 +515,17 @@
           return separator + MetroShared.formatMaxStreak(state.maxStreak);
         }
 
-        // Open-scale rating for the share text (🟥-🟪), tuned to Copo's own
-        // faster pace rather than Clasificador's tighter bands.
+        var RATING_BANDS = [
+          { max: 10, label: 'Terrible', square: '🟥' },
+          { max: 20, label: 'Mala', square: '🟧' },
+          { max: 30, label: 'Regular', square: '🟨' },
+          { max: 40, label: 'Buena', square: '🟩' },
+          { max: 50, label: 'Excelente', square: '🟦' },
+          { max: Infinity, label: 'Sobresaliente', square: '🟪' },
+        ];
+
         function getRating(score) {
-          if (score <= 10) return { label: 'Terrible', square: '🟥' };
-          if (score <= 20) return { label: 'Mala', square: '🟧' };
-          if (score <= 30) return { label: 'Regular', square: '🟨' };
-          if (score <= 40) return { label: 'Buena', square: '🟩' };
-          if (score <= 50) return { label: 'Excelente', square: '🟦' };
-          return { label: 'Sobresaliente', square: '🟪' };
+          return RATING_BANDS.find(function (band) { return score <= band.max; });
         }
 
         function buildShareText() {
@@ -654,10 +656,7 @@
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // "Seguir jugando sin guardar" is the only play-again; the start
-          // button never shows on the reveal (the deterministic replay was
-          // dropped - finish() still guards state.replay, now only reachable
-          // via start(true), which nothing calls).
+          // Practice is the only play-again; no replay button on the reveal.
           startBtn.hidden = true;
           shareBtn.hidden = false;
           practiceBtn.hidden = false;
@@ -883,8 +882,7 @@
         }
 
         board.addEventListener('click', onBoardClick);
-        // "Comenzar" - only shown before the day's first (and only) real round;
-        // hidden on the reveal, so start(true) is never reached.
+        // "Comenzar", shown only pre-round; hidden on the reveal.
         startBtn.addEventListener('click', function () { start(state.dayDone); });
         shareBtn.addEventListener('click', shareResult);
         practiceBtn.addEventListener('click', continuePractice);

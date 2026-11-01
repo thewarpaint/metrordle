@@ -808,24 +808,27 @@ input[type="text"]:disabled {
 }
 
 /* Big monospace result number + caption on a reveal screen (Metro
-   Crush's "N puntos", Clasificador's "N estaciones"); centered for a
-   reveal that isn't otherwise center-aligned. */
-.reveal__score {
+   Crush's "N puntos", Clasificador's "N estaciones", Memoria's
+   "N parejas"); centered for a reveal that isn't otherwise
+   center-aligned. */
+.stats {
+  text-align: center;
+}
+
+.stats__score {
   font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   font-size: 2.4rem;
   font-weight: 700;
   line-height: 1;
   margin-bottom: 0.2rem;
-  text-align: center;
 }
 
-.reveal__score-label {
+.stats__label {
   color: var(--ink-soft);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   margin-bottom: 1rem;
-  text-align: center;
   text-transform: uppercase;
 }
 

@@ -153,6 +153,7 @@
             <a href="#board-estaciones">Estaciones</a>
             <a href="#board-listas">Listas de estaciones</a>
             <a href="#board-avisos">Avisos</a>
+            <a href="#board-resultado">Resultado</a>
             <a href="#board-progreso">Progreso</a>
             <a href="#board-formularios">Formularios</a>
             <a href="#board-marcadores">Marcadores</a>
@@ -183,6 +184,12 @@
           <h2 class="design-board__title"><a href="#board-avisos">Avisos</a></h2>
           <p class="design-board__dek">Cómo cada juego anuncia el resultado de la ronda al terminar - éxito, fracaso, o solo "se acabó" cuando no hay ninguno de los dos - y la racha que suele acompañarlo.</p>
           <div id="notices-gallery"></div>
+        </div>
+
+        <div class="sign design-board" id="board-resultado">
+          <h2 class="design-board__title"><a href="#board-resultado">Resultado</a></h2>
+          <p class="design-board__dek">El puntaje y las estadísticas que resumen la ronda al terminar - el número grande y las fichas de valor bajo él.</p>
+          <div id="results-gallery"></div>
         </div>
 
         <div class="sign design-board" id="board-progreso">
@@ -668,6 +675,60 @@
           gallery.appendChild(buildExample(optimalPath, '<code>#optimal-path-list</code> · ruta óptima mostrada al terminar la ronda, Laberinto - numerada con un contador CSS (no un círculo como <code>.platform__rank</code>), con el mismo <code>.route-dot</code> de "Líneas" reutilizado por parada.'));
         }
 
+        function scoreBlock(num, label) {
+          var wrap = document.createElement('div');
+          wrap.className = 'stats';
+          var score = document.createElement('div');
+          score.className = 'stats__score';
+          score.textContent = num;
+          var lbl = document.createElement('div');
+          lbl.className = 'stats__label';
+          lbl.textContent = label;
+          wrap.appendChild(score);
+          wrap.appendChild(lbl);
+          return wrap;
+        }
+
+        function statBox(value, label) {
+          var box = document.createElement('div');
+          box.className = 'stat-box';
+          var v = document.createElement('div');
+          v.className = 'stat-box__value';
+          v.textContent = value;
+          var l = document.createElement('div');
+          l.className = 'stat-box__label';
+          l.textContent = label;
+          box.appendChild(v);
+          box.appendChild(l);
+          return box;
+        }
+
+        function statGrid(cols, boxes) {
+          var grid = document.createElement('div');
+          grid.className = 'stat-grid';
+          grid.style.setProperty('--cols', cols);
+          boxes.forEach(function (b) { grid.appendChild(b); });
+          return grid;
+        }
+
+        function renderResultsGallery() {
+          var gallery = document.getElementById('results-gallery');
+
+          gallery.appendChild(buildExample(scoreBlock('39', 'estaciones'),
+            '<code>.stats</code>/<code>.stats__score</code>/<code>.stats__label</code> · ✅ consolidado - el puntaje grande al terminar: número monoespaciado sobre una etiqueta chica en mayúsculas. Metro Crush ("N puntos"), Clasificador ("N estaciones") y Memoria ("N parejas").'));
+
+          gallery.appendChild(buildExample(statGrid(3, [
+            statBox('8', 'Grupos'),
+            statBox('×4', 'Mejor combo'),
+            statBox('5', 'Fila más larga'),
+          ]), '<code>.stat-grid</code>/<code>.stat-box</code> · ✅ consolidado - fichas "valor sobre etiqueta" bajo el puntaje. Metro Crush (3 columnas) y los totales de <code>/admin/</code> (2).'));
+
+          gallery.appendChild(buildExample(statGrid(2, [
+            statBox('7', 'Segundos ganados'),
+            statBox('4', 'Segundos perdidos'),
+          ]), '<code>.stat-grid</code> con <code>--cols: 2</code> · ✅ consolidado - los segundos ganados/perdidos del reloj elástico de Clasificador en modo difícil (<code>--cols</code> fija las columnas).'));
+        }
+
         function renderNoticesGallery() {
           var gallery = document.getElementById('notices-gallery');
 
@@ -1122,6 +1183,7 @@
         renderStationsGallery();
         renderStationListsGallery();
         renderNoticesGallery();
+        renderResultsGallery();
         renderProgressGallery();
         renderFormsGallery();
         renderLeaderboardsGallery();

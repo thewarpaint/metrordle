@@ -271,15 +271,6 @@
         padding: 1.1rem;
       }
 
-      .reveal__total {
-        margin: 0 0 1rem;
-      }
-
-      .reveal__total strong {
-        font-size: 1.1rem;
-        font-variant-numeric: tabular-nums;
-      }
-
       /* A compact chip + "× N" per line, same shape as Metro Crush's own
          .match-summary/.legend__chip (border-radius: 0 33% 0 0) -
          Clasificador's own bucket badges already use this corner-
@@ -399,7 +390,20 @@
         <div class="reveal" id="reveal" hidden>
           <div class="notice notice--info" id="reveal-banner"></div>
 
-          <p class="reveal__total" id="reveal-total"></p>
+          <div class="reveal__score" id="reveal-score">0</div>
+          <div class="reveal__score-label">estaciones</div>
+
+          <!-- Hard mode only: the elastic clock's seconds gained/lost. -->
+          <div class="stat-grid" id="reveal-stats" style="--cols: 2;" hidden>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-seconds-won">0</div>
+              <div class="stat-box__label">Segundos ganados</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-seconds-lost">0</div>
+              <div class="stat-box__label">Segundos perdidos</div>
+            </div>
+          </div>
 
           <div class="line-bars" id="line-bars"></div>
           <div class="station-grid-6" id="classified" aria-label="Estaciones clasificadas" hidden></div>
@@ -480,6 +484,8 @@
               correctByLine: parsed.correctByLine,
               classified: Array.isArray(parsed.classified) ? parsed.classified : null,
               mode: parsed.mode === 'hard' ? 'hard' : 'normal',
+              secondsWon: typeof parsed.secondsWon === 'number' ? parsed.secondsWon : 0,
+              secondsLost: typeof parsed.secondsLost === 'number' ? parsed.secondsLost : 0,
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
           } catch (e) {
@@ -487,13 +493,15 @@
           }
         }
 
-        function persistResult(dateKey, total, correctByLine, classified, mode, leaderboardSubmitted) {
+        function persistResult(dateKey, total, correctByLine, classified, mode, secondsWon, secondsLost, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               total: total,
               correctByLine: correctByLine,
               classified: classified,
               mode: mode,
+              secondsWon: secondsWon,
+              secondsLost: secondsLost,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
           } catch (e) {
@@ -614,6 +622,8 @@
               correctByLine: saved.correctByLine,
               classified: saved.classified,
               mode: saved.mode,
+              secondsWon: saved.secondsWon,
+              secondsLost: saved.secondsLost,
               leaderboardSubmitted: saved.leaderboardSubmitted,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
@@ -649,6 +659,8 @@
             total: 0,
             mode: 'normal',
             correctRun: 0,
+            secondsWon: 0,
+            secondsLost: 0,
             timeLeft: ROUND_SECONDS,
             timerId: null,
             streak: 0,
@@ -884,6 +896,7 @@
             if (state.mode === 'hard' && ++state.correctRun >= HARD_BONUS_RUN) {
               state.correctRun = 0;
               state.timeLeft += 1;
+              state.secondsWon += 1;
               pulseClock(1);
             }
 
@@ -900,6 +913,7 @@
             if (state.mode === 'hard') {
               state.correctRun = 0;
               state.timeLeft = Math.max(0, state.timeLeft - 1);
+              state.secondsLost += 1;
               pulseClock(-1);
               renderStatus();
               if (state.timeLeft <= 0) { endRound(); return; }
@@ -944,7 +958,7 @@
           state.timerId = null;
           state.status = 'done';
           state.leaderboardSubmitted = false;
-          persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, false);
+          persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, state.secondsWon, state.secondsLost, false);
           // "Won" here means a non-zero score - there's no puzzle to
           // actually win or lose, same convention as Metro Crush's own
           // STREAK_STORAGE_KEY (see its comment there).
@@ -976,7 +990,7 @@
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
-              persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, true);
+              persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, state.secondsWon, state.secondsLost, true);
               renderLeaderboard();
               // Best-effort, same as the leaderboard submission above -
               // never rejects, so this can't turn an otherwise-successful
@@ -1095,8 +1109,15 @@
             '¡Tiempo!',
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
-          els.revealTotal.innerHTML = 'Clasificaste <strong>' + state.total + '</strong>' +
-            (state.total === 1 ? ' estación' : ' estaciones') + ' en 60 segundos.';
+          els.revealScore.textContent = state.total;
+
+          // Seconds gained/lost only exist in hard mode's elastic clock.
+          var isHard = state.mode === 'hard';
+          els.revealStats.hidden = !isHard;
+          if (isHard) {
+            els.revealSecondsWon.textContent = state.secondsWon;
+            els.revealSecondsLost.textContent = state.secondsLost;
+          }
 
           // Pre-cut-line days have no state.classified - show counts instead.
           var showList = state.dateKey >= STATION_LIST_SINCE_DATE_KEY
@@ -1299,7 +1320,10 @@
             buckets: $('buckets'),
             reveal: $('reveal'),
             revealBanner: $('reveal-banner'),
-            revealTotal: $('reveal-total'),
+            revealScore: $('reveal-score'),
+            revealStats: $('reveal-stats'),
+            revealSecondsWon: $('reveal-seconds-won'),
+            revealSecondsLost: $('reveal-seconds-lost'),
             lineBars: $('line-bars'),
             classified: $('classified'),
             leaderboardRecord: $('leaderboard-record'),

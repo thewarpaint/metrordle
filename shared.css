@@ -807,13 +807,38 @@ input[type="text"]:disabled {
   margin-bottom: 1.1rem;
 }
 
+/* Big monospace result number + caption on a reveal screen (Metro
+   Crush's "N puntos", Clasificador's "N estaciones") - centered so it
+   reads the same in a reveal that isn't otherwise center-aligned.
+   Promoted from Metro Crush's page-local copy once Clasificador became
+   a second consumer. */
+.reveal__score {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+  text-align: center;
+}
+
+.reveal__score-label {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 /* Compact "value over label" stat tiles - originally Metro Crush's own
    page-local .reveal__stat*, promoted here once /admin/ needed the
    same look for its own site-wide totals (put shared styling in
    shared.css, not copied per page). .stat-grid's own --cols custom
    property (default 3, same "set it on the instance" pattern as Metro
    Crush's own .board's --cols) controls the column count - Metro
-   Crush keeps its original 3, /admin/ uses 2. */
+   Crush keeps its original 3, /admin/ uses 2, Clasificador's hard-mode
+   seconds-won/lost pair uses 2 as well. */
 .stat-grid {
   display: grid;
   gap: 0.5rem;

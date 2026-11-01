@@ -1282,7 +1282,10 @@
           // Up only while awaiting the mode choice on a fresh day; a saved
           // or debug game is already started, so it never shows there.
           els.startOverlay.hidden = state.started;
-          els.checkBtn.disabled = !state.started || state.gameOver;
+          // Hidden once the round's over (the reveal carries on below); disabled
+          // only while awaiting the mode choice before play begins.
+          els.checkBtn.hidden = state.gameOver;
+          els.checkBtn.disabled = !state.started;
 
           if (animate) flipAnimate();
         }

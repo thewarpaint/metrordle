@@ -220,22 +220,6 @@
         display: none;
       }
 
-      .stats-row {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-        margin-bottom: 1.1rem;
-      }
-
-      .stats-row p {
-        font-size: 0.9rem;
-        margin: 0;
-      }
-
-      .stats-row p strong {
-        font-variant-numeric: tabular-nums;
-      }
-
       /* Grid/pop-in in shared.css's .station-grid-6; only gap/margin differ. */
       .station-grid-6 {
         gap: 0.5rem;
@@ -307,9 +291,8 @@
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>
 
-          <div class="stats-row">
-            <p id="stat-you"></p>
-          </div>
+          <div class="reveal__score" id="reveal-score">0</div>
+          <div class="reveal__score-label">parejas</div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -1099,7 +1082,7 @@
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
 
-          $('stat-you').innerHTML = 'Parejas: <strong>' + state.score + '</strong>';
+          $('reveal-score').textContent = state.score;
 
           renderRevealIcons();
           renderAliasRow();

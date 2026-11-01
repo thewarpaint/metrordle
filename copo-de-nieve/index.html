@@ -157,6 +157,10 @@
           <div class="start-overlay" id="overlay">
             <div class="start-overlay__panel">
               <div class="notice notice--success" id="reveal-notice" hidden></div>
+              <div class="stats" id="reveal-score" hidden>
+                <div class="stats__score" id="reveal-score-num">0</div>
+                <div class="stats__label">especiales</div>
+              </div>
               <div class="station-grid-6" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
               <div class="leaderboard" id="leaderboard" hidden>
                 <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -202,6 +206,8 @@
         var boardStage = document.querySelector('.board-stage');
         var overlay = document.getElementById('overlay');
         var revealNotice = document.getElementById('reveal-notice');
+        var revealScore = document.getElementById('reveal-score');
+        var revealScoreNum = document.getElementById('reveal-score-num');
         var startBtn = document.getElementById('start-btn');
         var timeFill = document.getElementById('time-fill');
         var timeText = document.getElementById('time-text');
@@ -652,6 +658,8 @@
           MetroShared.renderNoticeBanner(revealNotice, 'notice--success', '¡Tiempo!',
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', '));
           revealNotice.hidden = false;
+          revealScoreNum.textContent = state.score;
+          revealScore.hidden = false;
           renderRevealIcons();
           leaderboardEl.hidden = false;
           renderAliasRow();
@@ -692,6 +700,7 @@
           timeFill.style.width = '100%'; // full bar at kickoff
           scoreText.textContent = '0';
           revealNotice.hidden = true;
+          revealScore.hidden = true;
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = false;
@@ -722,6 +731,7 @@
           state.endTime = performance.now() + saved.remainingMs;
           timeFill.style.width = (saved.remainingMs / ROUND_MS * 100) + '%';
           revealNotice.hidden = true;
+          revealScore.hidden = true;
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = true;
@@ -829,6 +839,7 @@
           if (state.oddCell) { state.oddCell.classList.remove('cell--odd'); state.oddCell = null; }
           overlay.hidden = true;
           revealNotice.hidden = true;
+          revealScore.hidden = true;
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           practiceBanner.hidden = true;

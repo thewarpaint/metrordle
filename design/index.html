@@ -677,11 +677,12 @@
 
         function scoreBlock(num, label) {
           var wrap = document.createElement('div');
+          wrap.className = 'stats';
           var score = document.createElement('div');
-          score.className = 'reveal__score';
+          score.className = 'stats__score';
           score.textContent = num;
           var lbl = document.createElement('div');
-          lbl.className = 'reveal__score-label';
+          lbl.className = 'stats__label';
           lbl.textContent = label;
           wrap.appendChild(score);
           wrap.appendChild(lbl);
@@ -714,7 +715,7 @@
           var gallery = document.getElementById('results-gallery');
 
           gallery.appendChild(buildExample(scoreBlock('39', 'estaciones'),
-            '<code>.reveal__score</code>/<code>.reveal__score-label</code> · ✅ consolidado - el puntaje grande al terminar: número monoespaciado sobre una etiqueta chica en mayúsculas. Metro Crush ("N puntos"), Clasificador ("N estaciones") y Memoria ("N parejas").'));
+            '<code>.stats</code>/<code>.stats__score</code>/<code>.stats__label</code> · ✅ consolidado - el puntaje grande al terminar: número monoespaciado sobre una etiqueta chica en mayúsculas. Metro Crush ("N puntos"), Clasificador ("N estaciones") y Memoria ("N parejas").'));
 
           gallery.appendChild(buildExample(statGrid(3, [
             statBox('8', 'Grupos'),

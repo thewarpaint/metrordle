@@ -172,6 +172,7 @@
               <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
               <button type="button" class="btn-secondary" id="share-btn" hidden>Compartir</button>
               <button type="button" class="btn-secondary" id="practice-btn" hidden>Seguir jugando sin guardar</button>
+              <div id="game-promo-slot"></div>
             </div>
           </div>
         </div>
@@ -221,6 +222,7 @@
         var leaderboardStatus = document.getElementById('leaderboard-status');
         var progressTrack = document.querySelector('.progress__track');
         var shareBtn = document.getElementById('share-btn');
+        var gamePromoSlot = document.getElementById('game-promo-slot');
         var practiceBtn = document.getElementById('practice-btn');
         var practiceBanner = document.getElementById('practice-banner');
         var endPracticeBtn = document.getElementById('end-practice-btn');
@@ -670,8 +672,18 @@
           practiceBtn.hidden = false;
           practiceBanner.hidden = true;
           progressTrack.hidden = false;
+          renderGamePromo();
           boardStage.classList.add('board-stage--done'); // card grows to fit the full grid
           overlay.hidden = false;
+        }
+
+        // "Sigue jugando hoy" promo - other games to try (uses the real
+        // calendar day, not a debug-simulated one). Same pattern as the
+        // other games' own renderGamePromo().
+        function renderGamePromo() {
+          var promo = MetroShared.buildGamePromo('copo-de-nieve', MetroShared.getDateKey(new Date()));
+          gamePromoSlot.innerHTML = '';
+          if (promo) gamePromoSlot.appendChild(promo);
         }
 
         function tick() {
@@ -701,6 +713,7 @@
           scoreText.textContent = '0';
           revealNotice.hidden = true;
           revealScore.hidden = true;
+          gamePromoSlot.innerHTML = '';
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = false;
@@ -732,6 +745,7 @@
           timeFill.style.width = (saved.remainingMs / ROUND_MS * 100) + '%';
           revealNotice.hidden = true;
           revealScore.hidden = true;
+          gamePromoSlot.innerHTML = '';
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           startBtn.hidden = true;
@@ -840,6 +854,7 @@
           overlay.hidden = true;
           revealNotice.hidden = true;
           revealScore.hidden = true;
+          gamePromoSlot.innerHTML = '';
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
           practiceBanner.hidden = true;

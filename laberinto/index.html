@@ -347,7 +347,7 @@
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>
 
-          <div class="stats">
+          <div class="stats" id="stats">
             <div class="stats__score" id="stat-score">0</div>
             <div class="stats__label" id="stat-label"></div>
           </div>
@@ -984,19 +984,23 @@
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ')
           );
 
-          var yourStops = countStops(state.path);
-          var yourTransfers = countTransfers(state.path);
-          var optimalStops = countStops(state.shortestPath);
-          var optimalTransfers = countTransfers(state.shortestPath);
+          // No score for a given-up game - only a completed route has one.
+          $('stats').hidden = !won;
+          if (won) {
+            var yourStops = countStops(state.path);
+            var yourTransfers = countTransfers(state.path);
+            var optimalStops = countStops(state.shortestPath);
+            var optimalTransfers = countTransfers(state.shortestPath);
 
-          // Player's stations±transfers, same "15+3"/"15-3" shorthand as the
-          // leaderboard; optimal in the caption.
-          if (usesSumScoring(state.dateKey)) {
-            $('stat-score').textContent = yourStops + '+' + yourTransfers;
-            $('stat-label').textContent = 'óptima ' + optimalStops + '+' + optimalTransfers;
-          } else {
-            $('stat-score').textContent = yourStops + '-' + yourTransfers;
-            $('stat-label').textContent = 'óptima ' + optimalStops + '-' + optimalTransfers;
+            // Player's stations±transfers, same "15+3"/"15-3" shorthand as the
+            // leaderboard; optimal in the caption.
+            if (usesSumScoring(state.dateKey)) {
+              $('stat-score').textContent = yourStops + '+' + yourTransfers;
+              $('stat-label').textContent = 'óptima ' + optimalStops + '+' + optimalTransfers;
+            } else {
+              $('stat-score').textContent = yourStops + '-' + yourTransfers;
+              $('stat-label').textContent = 'óptima ' + optimalStops + '-' + optimalTransfers;
+            }
           }
 
           renderAliasRow();

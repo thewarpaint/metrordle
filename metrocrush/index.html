@@ -83,12 +83,10 @@
         width: 1px;
       }
 
-      .legend {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
+      /* Today's 6 lines as a full-width .station-grid-6 (shared.css), same
+         6-up shape as Memoria's reveal grid. */
+      #legend {
         gap: 0.4rem;
-        justify-content: center;
         padding: 0 1.1rem 1rem;
       }
 
@@ -300,7 +298,7 @@
           </p>
         </div>
 
-        <div class="legend" id="legend"></div>
+        <div class="station-grid-6" id="legend"></div>
         <p class="sr-only" id="legend-sr"></p>
 
         <div class="progress" id="progress">
@@ -829,7 +827,7 @@
           var names = [];
           state.activeLines.forEach(function (line) {
             var chip = document.createElement('span');
-            chip.className = 'station station--chip legend__chip';
+            chip.className = 'station';
             chip.style.setProperty('--badge-bg', line.color);
             chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
@@ -1110,6 +1108,8 @@
           var interactive = state.status === 'playing' || state.status === 'practice';
           els.startOverlay.hidden = state.status !== 'ready';
           els.practiceBanner.hidden = state.status !== 'practice';
+          // Redundant on the reveal - the stats grid already shows the lines.
+          els.legend.hidden = state.status === 'done';
           els.board.classList.toggle('board--done', state.status === 'done');
 
           els.board.innerHTML = '';

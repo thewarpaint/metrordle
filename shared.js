@@ -1321,6 +1321,9 @@ function formatHighScoreRecord(record) {
 // variant (shared.css). {} on a parse failure.
 function buildStationMasks(svgText) {
   var out = {};
+  // Timed to gauge how long this blocks before game start - see if it's
+  // worth precomputing/caching rather than parsing the sprite each load.
+  var t0 = performance.now();
   try {
     var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
     var serializer = new XMLSerializer();
@@ -1338,6 +1341,7 @@ function buildStationMasks(svgText) {
       out[slug] = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
     }
   } catch (e) {}
+  console.debug('[MetroShared] buildStationMasks:', (performance.now() - t0).toFixed(1) + 'ms,', Object.keys(out).length, 'masks');
   return out;
 }
 

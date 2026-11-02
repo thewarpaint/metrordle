@@ -5,6 +5,205 @@
 // each game's own script, so there's no module system - everything hangs
 // off window.MetroShared instead of the global scope.
 
+// --- On-page console log panel (?debug=true only) -------------------
+// Phones have no DevTools console, so under debug mode we mirror
+// console.{log,debug,info,warn,error} and uncaught errors into a panel
+// at the end of the page, for observability during real mobile play.
+// Prod is untouched: nothing here runs unless debug mode is on. Set up
+// at the top of shared.js so the console hook is in place before any
+// MetroShared/game logging fires (all of which runs after this script's
+// own top-level does); entries logged before the panel mounts are
+// buffered and flushed in. isDebugMode/pad2/copyToClipboard are function
+// declarations (hoisted), so referencing them here is fine.
+(function initDebugLogPanel() {
+  if (!isDebugMode()) return;
+
+  var MAX_ENTRIES = 500;
+  var entries = [];
+  var listEl = null;
+  var countEl = null;
+
+  function formatArg(a) {
+    if (typeof a === 'string') return a;
+    if (a instanceof Error) return a.stack || (a.name + ': ' + a.message);
+    try { return JSON.stringify(a); } catch (e) { return String(a); }
+  }
+
+  function stamp(t) {
+    var d = new Date(t);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds())
+      + '.' + ('00' + d.getMilliseconds()).slice(-3);
+  }
+
+  function renderRow(entry) {
+    var row = document.createElement('div');
+    row.className = 'mdl-row mdl-row--' + entry.level;
+    var ts = document.createElement('span');
+    ts.className = 'mdl-ts';
+    ts.textContent = stamp(entry.time);
+    var lv = document.createElement('span');
+    lv.className = 'mdl-lv';
+    lv.textContent = entry.level;
+    var tx = document.createElement('span');
+    tx.className = 'mdl-tx';
+    tx.textContent = entry.text; // textContent, never innerHTML - log text is arbitrary
+    row.appendChild(ts);
+    row.appendChild(lv);
+    row.appendChild(tx);
+    listEl.appendChild(row);
+  }
+
+  function record(level, text) {
+    entries.push({ level: level, time: Date.now(), text: text });
+    if (entries.length > MAX_ENTRIES) entries.shift();
+    if (!listEl) return; // not mounted yet - flushed on mount
+    renderRow(entries[entries.length - 1]);
+    while (listEl.childNodes.length > MAX_ENTRIES) listEl.removeChild(listEl.firstChild);
+    if (countEl) countEl.textContent = '(' + entries.length + ')';
+    // Stick to the latest unless the reader has scrolled up into history.
+    if (listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 40) {
+      listEl.scrollTop = listEl.scrollHeight;
+    }
+  }
+
+  // Wrap each console method: call the original first (so desktop
+  // DevTools still works), then mirror into the panel. try/catch so a
+  // logging failure can never break the page.
+  ['log', 'debug', 'info', 'warn', 'error'].forEach(function (level) {
+    var original = (typeof console !== 'undefined' && console[level])
+      ? console[level].bind(console) : function () {};
+    console[level] = function () {
+      var args = Array.prototype.slice.call(arguments);
+      original.apply(null, args);
+      try { record(level, args.map(formatArg).join(' ')); } catch (e) { /* noop */ }
+    };
+  });
+
+  // Uncaught errors/rejections don't go through console.error on their
+  // own - exactly what you can't otherwise see on a phone.
+  window.addEventListener('error', function (e) {
+    var where = e.filename ? ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno : '';
+    try { record('error', 'Uncaught: ' + (e.message || formatArg(e.error)) + where); } catch (x) {}
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
+  });
+
+  function injectStyles() {
+    // position:fixed is deliberate, not cosmetic: body is a flex
+    // container on these pages (centering .wrap), so an in-flow child
+    // appended here would become a flex sibling of the game and reflow
+    // its board. Fixed takes the panel out of every page's layout flow
+    // entirely. Collapsible so it doesn't cover the game by default.
+    var css = [
+      '#metro-debug-log{position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#0d0d0f;color:#e6e6e6;border-top:2px solid #444;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+      '#metro-debug-log .mdl-head{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#17171b}',
+      '#metro-debug-log .mdl-toggle{cursor:pointer;user-select:none;flex:1;display:flex;align-items:center;gap:8px}',
+      '#metro-debug-log .mdl-title{font-weight:700}',
+      '#metro-debug-log .mdl-count{opacity:.6}',
+      '#metro-debug-log .mdl-caret{opacity:.6;margin-left:auto}',
+      '#metro-debug-log button{font:inherit;color:#e6e6e6;background:#2a2a30;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer}',
+      '#metro-debug-log button:active{background:#3a3a42}',
+      '#metro-debug-log .mdl-list{max-height:38vh;overflow:auto;padding:4px 0}',
+      '#metro-debug-log.mdl-collapsed .mdl-list,#metro-debug-log.mdl-collapsed .mdl-actions{display:none}',
+      '#metro-debug-log .mdl-row{display:flex;gap:8px;padding:2px 12px;white-space:pre-wrap;word-break:break-word;border-top:1px solid #1c1c22}',
+      '#metro-debug-log .mdl-ts{color:#7a7a85;flex:none}',
+      '#metro-debug-log .mdl-lv{flex:none;text-transform:uppercase;font-weight:700;width:3.2em}',
+      '#metro-debug-log .mdl-tx{flex:1;min-width:0}',
+      '#metro-debug-log .mdl-row--debug .mdl-lv,#metro-debug-log .mdl-row--log .mdl-lv{color:#8a8a95}',
+      '#metro-debug-log .mdl-row--info .mdl-lv{color:#5bb0ff}',
+      '#metro-debug-log .mdl-row--warn .mdl-lv{color:#ffc24b}',
+      '#metro-debug-log .mdl-row--error{background:#2a1416}',
+      '#metro-debug-log .mdl-row--error .mdl-lv{color:#ff6b6b}'
+    ].join('\n');
+    var style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function mount() {
+    if (listEl || !document.body) return;
+    injectStyles();
+
+    var panel = document.createElement('section');
+    panel.id = 'metro-debug-log';
+
+    var head = document.createElement('div');
+    head.className = 'mdl-head';
+
+    // Tapping the title/count toggles the log list open or shut.
+    var toggle = document.createElement('div');
+    toggle.className = 'mdl-toggle';
+    var title = document.createElement('span');
+    title.className = 'mdl-title';
+    title.textContent = '🐛 Debug log';
+    countEl = document.createElement('span');
+    countEl.className = 'mdl-count';
+    countEl.textContent = '(' + entries.length + ')';
+    var caret = document.createElement('span');
+    caret.className = 'mdl-caret';
+    toggle.appendChild(title);
+    toggle.appendChild(countEl);
+    toggle.appendChild(caret);
+    toggle.addEventListener('click', function () {
+      panel.classList.toggle('mdl-collapsed');
+      caret.textContent = panel.classList.contains('mdl-collapsed') ? '▴' : '▾';
+      if (!panel.classList.contains('mdl-collapsed')) listEl.scrollTop = listEl.scrollHeight;
+    });
+
+    var actions = document.createElement('div');
+    actions.className = 'mdl-actions';
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.textContent = 'copy';
+    copyBtn.addEventListener('click', function () {
+      var text = entries.map(function (e) {
+        return stamp(e.time) + ' [' + e.level + '] ' + e.text;
+      }).join('\n');
+      copyToClipboard(text);
+      copyBtn.textContent = 'copied';
+      setTimeout(function () { copyBtn.textContent = 'copy'; }, 1200);
+    });
+    var clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.textContent = 'clear';
+    clearBtn.addEventListener('click', function () {
+      entries = [];
+      listEl.textContent = '';
+      countEl.textContent = '(0)';
+    });
+    actions.appendChild(copyBtn);
+    actions.appendChild(clearBtn);
+
+    head.appendChild(toggle);
+    head.appendChild(actions);
+
+    listEl = document.createElement('div');
+    listEl.className = 'mdl-list';
+
+    panel.appendChild(head);
+    panel.appendChild(listEl);
+    // Start collapsed (just the title bar) so it never covers the game
+    // until the reader opens it; the live count still ticks underneath.
+    panel.classList.add('mdl-collapsed');
+    caret.textContent = '▴';
+    document.body.appendChild(panel);
+
+    // Flush anything logged before the panel existed.
+    entries.forEach(renderRow);
+    listEl.scrollTop = listEl.scrollHeight;
+  }
+
+  // shared.js runs at the end of <body>, so DOMContentLoaded hasn't
+  // fired yet - mounting on it means the game's own inline script has
+  // run first, keeping the panel genuinely last in the body.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mount);
+  } else {
+    mount();
+  }
+})();
+
 var LINES = [
   { id: '1', name: 'Línea 1', color: '#ec2a7b', textColor: '#ffffff', stations: ['Observatorio', 'Tacubaya', 'Juanacatlán', 'Chapultepec', 'Sevilla', 'Insurgentes', 'Cuauhtémoc', 'Balderas', 'Salto del Agua', 'Isabel la Católica', 'Pino Suárez', 'Merced', 'Candelaria', 'San Lázaro', 'Moctezuma', 'Balbuena', 'Boulevard Puerto Aéreo', 'Gómez Farías', 'Zaragoza', 'Pantitlán'] },
   { id: '2', name: 'Línea 2', color: '#0057a8', textColor: '#ffffff', stations: ['Cuatro Caminos', 'Panteones', 'Tacuba', 'Cuitláhuac', 'Popotla', 'Colegio Militar', 'Normal', 'San Cosme', 'Revolución', 'Hidalgo', 'Bellas Artes', 'Allende', 'Zócalo', 'Pino Suárez', 'San Antonio Abad', 'Chabacano', 'Viaducto', 'Xola', 'Villa de Cortés', 'Nativitas', 'Portales', 'Ermita', 'General Anaya', 'Tasqueña'] },
@@ -1321,6 +1520,9 @@ function formatHighScoreRecord(record) {
 // variant (shared.css). {} on a parse failure.
 function buildStationMasks(svgText) {
   var out = {};
+  // Timed to gauge how long this blocks before game start - see if it's
+  // worth precomputing/caching rather than parsing the sprite each load.
+  var t0 = performance.now();
   try {
     var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
     var serializer = new XMLSerializer();
@@ -1338,6 +1540,7 @@ function buildStationMasks(svgText) {
       out[slug] = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
     }
   } catch (e) {}
+  console.debug('[MetroShared] buildStationMasks:', (performance.now() - t0).toFixed(1) + 'ms,', Object.keys(out).length, 'masks');
   return out;
 }
 

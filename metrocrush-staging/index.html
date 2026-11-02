@@ -87,49 +87,18 @@
         width: 1px;
       }
 
-      .legend {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
+      /* Today's 6 lines as a full-width .station-grid-6 (shared.css), same
+         6-up shape as Memoria's reveal grid. */
+      #legend {
         gap: 0.4rem;
-        justify-content: center;
         padding: 0 1.1rem 1rem;
       }
 
-      .status-bar {
-        align-items: center;
-        background: var(--paper-well);
-        border-top: 1px solid var(--rule);
-        border-bottom: 1px solid var(--rule);
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem 1.1rem;
-      }
+      /* Shared .progress bar (shared.css) as the round's status strip. */
+      .progress { padding: 0.2rem 1.1rem 0.5rem; }
 
-      .status-bar[hidden] { display: none; }
-
-      .status-bar__text {
-        font-size: 0.82rem;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .status-bar__text--low { color: var(--danger); font-weight: 700; }
-
-      .timer-track {
-        background: var(--paper-well);
-        border-bottom: 1px solid var(--rule);
-        height: 0.35rem;
-        overflow: hidden;
-      }
-
-      .timer-track[hidden] { display: none; }
-
-      .timer-bar {
-        background: var(--line);
-        height: 100%;
-        transition: width 1s linear;
-        width: 100%;
-      }
+      .progress[hidden],
+      .progress__track[hidden] { display: none; }
 
       .board-wrap {
         padding: 1rem 1.1rem;
@@ -247,47 +216,24 @@
         100% { transform: translate(-50%, -160%) scale(1); opacity: 0; }
       }
 
+      /* The combo toast is the label row's centered middle column (between
+         time left and points); it takes the slack and ellipsises if long. */
       .toast {
         color: var(--ink-soft);
-        font-size: 0.8rem;
+        flex: 1;
         font-weight: 700;
-        height: 1.2rem;
-        margin: 0 0 0.2rem;
+        margin: 0;
+        min-width: 0;
+        overflow: hidden;
         text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .start-overlay {
-        align-items: center;
-        background: var(--paper-well);
-        display: flex;
-        inset: 0;
-        justify-content: center;
-        padding: 1.1rem;
-        position: absolute;
-      }
-
-      .start-overlay[hidden] { display: none; }
-
-      .start-overlay__panel {
-        max-width: 17rem;
-        text-align: center;
-        width: 100%;
-      }
-
-      .start-overlay__text {
-        color: var(--ink-soft);
-        font-size: 0.88rem;
-        line-height: 1.4;
-        margin: 0 0 1rem;
-      }
-
-      .start-overlay__text strong { color: var(--ink); }
-
-      .start-overlay__modes {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
+      /* Shared .start-overlay (shared.css) over this game's --paper-raised
+         .sign, but with the inset --paper-well shade instead of the shared
+         raised default - the only page-local delta left after promotion. */
+      .start-overlay { background: var(--paper-well); }
 
       .board--done .tile:not(.tile--empty) { opacity: 0.5; }
 
@@ -304,98 +250,24 @@
 
       .reveal[hidden] { display: none; }
 
-      .reveal__score {
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 2.4rem;
-        font-weight: 700;
-        line-height: 1;
-        margin-bottom: 0.2rem;
-      }
-
-      .reveal__score-label {
-        color: var(--ink-soft);
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        margin-bottom: 1rem;
-        text-transform: uppercase;
-      }
-
-      /* Per-line tile-match breakdown on the reveal screen, below the
-         .stat-grid above - reuses .legend__chip as-is (same colored
-         pictogram every active line already gets in the pre-round
-         legend) rather than inventing a second icon style for the same
-         thing. */
-      .match-summary { margin-bottom: 1.1rem; }
-
-      .match-summary[hidden] { display: none; }
-
-      .match-summary__title {
-        color: var(--ink-soft);
-        font-size: 0.6rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-      }
-
-      .match-summary__list {
+      /* Line chip beside its count, in the shared stats grid. Explicit chip
+         size so the stretched grid cell can't pull it tall. */
+      .stat-box--match {
         align-items: center;
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: 0.4rem;
         justify-content: center;
-        list-style: none;
-        margin: 0;
-        padding: 0;
       }
 
-      .match-summary__item {
-        align-items: center;
-        display: flex;
-        gap: 0.3rem;
-      }
-
-      .match-summary__count {
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 0.85rem;
-        font-weight: 700;
-      }
-
-      /* Metro Crush-only leaderboard styling: everything else
-         (.leaderboard__title, .leaderboard__row, etc., including
-         .leaderboard__score-badge - identical across every game with a
-         hard-mode badge) lives in shared.css. The number itself gets a
-         min-width + right-align rather than a fixed width - unlike
-         Metrordle/Metroguessr's always-one-digit attempts count, a
-         Metro Crush score can run to several digits, so a fixed width
-         would clip a big one, but with no width at all a short vs.
-         long score shifts the 🧠 badge's own column instead of just
-         the number. min-width covers up to firestore.rules' own 20000
-         ceiling for this collection (5 digits) before it has to grow
-         past that and shift the badge anyway. */
-      .leaderboard {
-        /* .reveal (this section's own parent, above) centers
-           everything by default - left-aligned here instead, same
-           fix Metroguessr's own leaderboard already needed for the
-           same reason (Memoria's own .reveal never centers to begin
-           with, so it never needed this), so alias names read like a
-           list rather than each floating in the middle of its row. */
-        text-align: left;
-      }
-
-      .leaderboard__score {
-        align-items: center;
-        display: flex;
-        gap: 0.35rem;
-      }
-
-      .leaderboard__score-number {
+      .stat-box--match .station--chip {
         flex: none;
-        font-variant-numeric: tabular-nums;
-        font-weight: 700;
-        min-width: 2.7rem;
-        text-align: right;
+        height: 1.8rem;
+      }
+
+      /* .reveal centers text; left-align the leaderboard so rows read as a
+         list (same delta Metroguessr needs). The rest is shared. */
+      .leaderboard {
+        text-align: left;
       }
     </style>
   </head>
@@ -430,18 +302,24 @@
           </p>
         </div>
 
-        <div class="legend" id="legend"></div>
+        <div class="station-grid-6" id="legend"></div>
         <p class="sr-only" id="legend-sr"></p>
 
-        <div class="status-bar" id="status-bar">
-          <span class="status-bar__text" id="status"></span>
+        <div class="progress" id="progress">
+          <div class="progress__track" id="progress-track">
+            <div class="progress__fill progress__fill--countdown" id="progress-fill" style="width: 100%"></div>
+          </div>
+          <div class="progress__label progress__label--split">
+            <span class="progress__count" id="mc-time">1:00</span>
+            <span class="toast" id="toast" aria-live="polite"></span>
+            <span id="mc-score">0 puntos</span>
+          </div>
         </div>
 
-        <div class="timer-track" id="timer-track" hidden>
-          <div class="timer-bar" id="timer-bar"></div>
+        <div class="practice-banner" id="practice-banner" hidden>
+          <span class="practice-banner__text">Modo práctica: este puntaje no se guarda.</span>
+          <button type="button" class="btn-secondary" id="end-practice-btn">Volver al resultado</button>
         </div>
-
-        <p class="toast" id="toast" aria-live="polite"></p>
 
         <div class="board-wrap" id="board-wrap">
           <div class="board" id="board" style="--cols: 7;"></div>
@@ -462,9 +340,12 @@
 
         <div class="reveal" id="reveal" hidden>
           <div class="notice notice--success" id="reveal-banner"></div>
-          <div class="reveal__score" id="reveal-score">0</div>
-          <div class="reveal__score-label">puntos</div>
-          <div class="stat-grid">
+          <div class="stats">
+            <div class="stats__score" id="reveal-score">0</div>
+            <div class="stats__label">puntos</div>
+          </div>
+          <!-- Round stats + per-line match tiles (appended) share this grid. -->
+          <div class="stat-grid" id="stat-grid">
             <div class="stat-box">
               <div class="stat-box__value" id="reveal-groups">0</div>
               <div class="stat-box__label">Grupos</div>
@@ -479,11 +360,6 @@
             </div>
           </div>
 
-          <div class="match-summary" id="match-summary" hidden>
-            <p class="match-summary__title">Coincidencias por línea</p>
-            <ul class="match-summary__list" id="match-summary-list"></ul>
-          </div>
-
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
             <p class="leaderboard__record" id="leaderboard-record" hidden></p>
@@ -493,6 +369,7 @@
           </div>
 
           <button type="button" class="btn-secondary" id="share-btn">Compartir</button>
+          <button type="button" class="btn-secondary" id="practice-btn">Seguir jugando sin guardar</button>
 
           <div id="game-promo-slot"></div>
         </div>
@@ -532,6 +409,7 @@
         // resolveStep() never cuts the slide short.
         var SWAP_MS = 180;
         var HINT_IDLE_MS = 5000;
+        var TOAST_MS = 5000; // combo toast auto-clears after this
         var HARD_MODE_MULTIPLIER = 2;
         var SHARE_URL = 'https://metrordle.com/metrocrush/';
         var LEADERBOARD_COLLECTION = 'metrocrush-leaderboard';
@@ -649,35 +527,32 @@
         var state = null;
         var debugDate = null;
 
+        // Staging-only in-place board renderer: build the 56 tiles once, then
+        // mutate them (vs prod rebuilding innerHTML each render). Icons are
+        // CSS masks (.station__icon--mask) swapped via one custom property,
+        // rather than per-tile <use> href rewrites - see STATION_MASKS below.
+        var boardBuilt = false;
+        var renderedId = [];
+        var STATION_MASKS = null; // {slug: mask url}, built from the sprite once
+
         // Shared by every .station consumer here (.tile and .legend__chip
         // alike) - relies entirely on shared.css's own .station__icon
         // sizing, no page-local svg-sizing override on top of it (that
         // used to double up with .legend__chip's own, shrinking its icon).
-        var SVG_NS = 'http://www.w3.org/2000/svg';
-        var XLINK_NS = 'http://www.w3.org/1999/xlink';
-
         function makeStationIcon(slug) {
           var wrap = document.createElement('span');
           wrap.className = 'station__icon';
           if (!slug) return wrap;
-          var svg = document.createElementNS(SVG_NS, 'svg');
+          var svgNS = 'http://www.w3.org/2000/svg';
+          var svg = document.createElementNS(svgNS, 'svg');
           svg.setAttribute('aria-hidden', 'true');
-          var use = document.createElementNS(SVG_NS, 'use');
-          use.setAttributeNS(XLINK_NS, 'href', '/station-icons.svg#' + slug);
+          var use = document.createElementNS(svgNS, 'use');
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
           use.setAttribute('href', '/station-icons.svg#' + slug);
           svg.appendChild(use);
           wrap.appendChild(svg);
           return wrap;
         }
-
-        // Staging-only: the board DOM is built once (buildBoardOnce) and
-        // then mutated in place by updateBoard, rather than torn down and
-        // rebuilt on every render. These track that one-time build and,
-        // per cell index, the line id currently painted there (so a tile's
-        // <use> icon + aria-label are only rewritten when its kind really
-        // changed). See render() below.
-        var boardBuilt = false;
-        var renderedId = [];
 
         function randomLine(rand) {
           return state.activeLines[Math.floor(rand() * state.activeLines.length)];
@@ -814,6 +689,7 @@
 
           if (state && state.timerId) clearInterval(state.timerId);
           if (state && state.idleTimer) clearTimeout(state.idleTimer);
+          if (state && state.toastTimerId) clearTimeout(state.toastTimerId);
 
           var saved = loadSavedResult(dateKey);
 
@@ -882,6 +758,7 @@
             matchCountsByLine: {},
             timeLeft: ROUND_SECONDS,
             timerId: null,
+            toastTimerId: null,
             idleTimer: null,
             hintCell: null,
             cascadeStep: 0,
@@ -962,7 +839,7 @@
           var names = [];
           state.activeLines.forEach(function (line) {
             var chip = document.createElement('span');
-            chip.className = 'station station--chip legend__chip';
+            chip.className = 'station';
             chip.style.setProperty('--badge-bg', line.color);
             chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
@@ -972,7 +849,18 @@
           els.legendSr.textContent = 'Líneas de hoy: ' + names.join(', ');
         }
 
-        function setToast(text) { els.toast.textContent = text; }
+        // Shows a combo/status message in the status row's middle slot,
+        // auto-clearing after TOAST_MS (or immediately on an empty text).
+        function setToast(text) {
+          els.toast.textContent = text;
+          if (state.toastTimerId) { clearTimeout(state.toastTimerId); state.toastTimerId = null; }
+          if (text) {
+            state.toastTimerId = setTimeout(function () {
+              els.toast.textContent = '';
+              state.toastTimerId = null;
+            }, TOAST_MS);
+          }
+        }
 
         function tileElementAt(r, c) {
           return els.board.children[r * COLS + c];
@@ -1105,15 +993,94 @@
         }
 
         function renderStatus() {
-          els.statusBar.hidden = state.status === 'done';
-          // Empty on the reveal screen - drop it out of flow (like the
-          // status bar) so its reserved line doesn't gap the result.
-          els.toast.hidden = state.status === 'done';
-          els.status.textContent = state.timeLeft + 's · ' + state.score +
-            (state.score === 1 ? ' punto' : ' puntos');
-          els.status.classList.toggle('status-bar__text--low', state.status === 'playing' && state.timeLeft <= 10);
-          els.timerTrack.hidden = state.status !== 'playing';
-          els.timerBar.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          els.progress.hidden = state.status === 'done';
+          // Show the track from the ready state on, behind the start
+          // overlay, so the board doesn't jump down when the round begins;
+          // the done reveal and practice (no countdown) hide it.
+          els.progressTrack.hidden = state.status === 'done' || state.status === 'practice';
+
+          if (state.status === 'practice') {
+            // Count-up clock + points since practice began (score minus the
+            // snapshot), not the real round's frozen stats.
+            var practicePoints = state.score - state.practiceSnapshot.score;
+            els.mcTime.textContent = formatClock((Date.now() - state.practiceStartedAt) / 1000);
+            els.mcScore.textContent = practicePoints + (practicePoints === 1 ? ' punto' : ' puntos');
+            return;
+          }
+
+          els.mcTime.textContent = formatClock(state.timeLeft);
+          els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
+          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+        }
+
+        // Keep swapping tiles past the reveal, no stakes - the real result
+        // was already submitted by endRound(), and practice never reaches
+        // persistResult()/submitScore(). Snapshot it first so endPractice()
+        // restores exactly what was submitted. Mirrors Memoria's own.
+        function continuePractice() {
+          if (!state || state.status !== 'done') return;
+          state.practiceSnapshot = {
+            score: state.score,
+            groupsFormed: state.groupsFormed,
+            maxCombo: state.maxCombo,
+            maxRunSeen: state.maxRunSeen,
+            matchCountsByLine: Object.assign({}, state.matchCountsByLine),
+          };
+          state.practiceStartedAt = Date.now();
+
+          // Fresh board - the real end board isn't kept and could be
+          // dead/mid-cascade; seeded off the moment (also feeds refills).
+          state.rand = MetroShared.createSeededRandom('metrordle-metrocrush-practice-' + state.dateKey + '-' + Date.now());
+          state.board = generateBoard(state.rand);
+          state.selected = null;
+          state.flagged = {};
+          state.hintCell = null;
+          state.cascadeStep = 0;
+          state.busy = false;
+          state.status = 'practice';
+
+          els.reveal.hidden = true;
+          expandBoard();
+          render();
+
+          // Keeps the elapsed clock ticking; never advances timeLeft or
+          // calls endRound() - nothing to lose by running forever.
+          state.practiceTimerId = setInterval(renderStatus, 1000);
+        }
+
+        function endPractice() {
+          if (!state || state.status !== 'practice') return;
+          if (state.practiceTimerId) clearInterval(state.practiceTimerId);
+          state.practiceTimerId = null;
+
+          var snap = state.practiceSnapshot;
+          if (snap) {
+            state.score = snap.score;
+            state.groupsFormed = snap.groupsFormed;
+            state.maxCombo = snap.maxCombo;
+            state.maxRunSeen = snap.maxRunSeen;
+            state.matchCountsByLine = snap.matchCountsByLine;
+            state.practiceSnapshot = null;
+          }
+          state.practiceStartedAt = null;
+          state.selected = null;
+          state.flagged = {};
+          state.busy = false;
+          state.status = 'done';
+
+          setToast('');
+          renderRevealStats();
+          els.reveal.hidden = false;
+          render();
+          collapseBoard(true);
+        }
+
+        // M:SS for the countdown.
+        function formatClock(totalSeconds) {
+          totalSeconds = Math.max(0, Math.floor(totalSeconds));
+          var minutes = Math.floor(totalSeconds / 60);
+          var seconds = totalSeconds % 60;
+          return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
         }
 
         // A plain selection change (selecting a tile, deselecting it,
@@ -1146,10 +1113,9 @@
           });
         }
 
-        // Builds the 56 tile buttons once and wires a single delegated
-        // click listener on the board (opt #2). Each button keeps a
-        // persistent .station__icon > svg > use (cached on btn._use) whose
-        // href updateBoard rewrites only when the tile's kind changes.
+        // Build the 56 tiles once + one delegated listener; each icon is a
+        // persistent .station__icon--mask span whose --station-mask
+        // setTileContentIcon swaps on change (cheaper than rewriting a <use>).
         function buildBoardOnce() {
           if (boardBuilt) return;
           els.board.innerHTML = '';
@@ -1159,15 +1125,11 @@
             btn.type = 'button';
             btn.className = 'station tile';
             btn.dataset.idx = i;
-            var wrap = document.createElement('span');
-            wrap.className = 'station__icon';
-            var svg = document.createElementNS(SVG_NS, 'svg');
-            svg.setAttribute('aria-hidden', 'true');
-            var use = document.createElementNS(SVG_NS, 'use');
-            svg.appendChild(use);
-            wrap.appendChild(svg);
-            btn.appendChild(wrap);
-            btn._use = use;
+            var icon = document.createElement('span');
+            icon.className = 'station__icon station__icon--mask';
+            icon.setAttribute('aria-hidden', 'true');
+            btn.appendChild(icon);
+            btn._icon = icon;
             els.board.appendChild(btn);
             renderedId.push(undefined);
           }
@@ -1175,8 +1137,8 @@
           boardBuilt = true;
         }
 
-        // Delegated board click (opt #2): a disabled tile never fires a
-        // click, and onTileClick keeps its own busy/status guards.
+        // Delegated click; a disabled tile never fires, and onTileClick keeps
+        // its own busy/status guards.
         function onBoardClick(e) {
           var btn = e.target.closest ? e.target.closest('button.tile') : null;
           if (!btn || btn.disabled) return;
@@ -1184,34 +1146,27 @@
           onTileClick(Math.floor(idx / COLS), idx % COLS);
         }
 
-        // Rewrites a tile's persistent <use> href + aria-label only when
-        // the line id painted there actually changed - during a cascade
-        // most cells get re-touched with the same id.
+        // Swap a tile's --station-mask + aria-label only when its line id
+        // changed (the silhouette inherits the tile's own --badge-ink color).
         function setTileContentIcon(btn, index, id, line) {
           if (renderedId[index] === id) return;
           renderedId[index] = id;
           if (id === null) {
-            btn._use.removeAttribute('href');
-            btn._use.removeAttributeNS(XLINK_NS, 'href');
+            btn._icon.style.removeProperty('--station-mask');
             btn.removeAttribute('aria-label');
             return;
           }
-          var href = '/station-icons.svg#' + line.icon;
-          btn._use.setAttribute('href', href);
-          btn._use.setAttributeNS(XLINK_NS, 'href', href);
+          btn._icon.style.setProperty('--station-mask', (STATION_MASKS && STATION_MASKS[line.icon]) || '');
           var r = Math.floor(index / COLS);
           var c = index % COLS;
           btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
         }
 
-        // In-place twin of the old render() board loop (opt #1): mutates
-        // the 56 existing buttons instead of recreating them. Transient
-        // animation classes (pop/drop/swap-in/shake) are stripped up front
-        // and the pop/drop ones re-applied after a single board reflow, so
-        // a reused node still restarts its animation the way a freshly
-        // created one used to.
+        // In-place twin of prod's render() board loop: mutate the existing
+        // tiles. Pop/drop classes are stripped then re-applied after one
+        // reflow so a reused node still restarts its animation.
         function updateBoard() {
-          var playing = state.status === 'playing';
+          var interactive = state.status === 'playing' || state.status === 'practice';
           var children = els.board.children;
           var pending = [];
           for (var r = 0; r < ROWS; r++) {
@@ -1235,17 +1190,10 @@
               var line = lineById(id);
               var flag = state.flagged[key(r, c)];
 
-              // Hard mode hides only the line's color (the actual
-              // "answer") until a tile is either mid-pop (part of a
-              // just-formed group) or the round is over - the station
-              // icon itself always stays visible, since that's what a
-              // player actually reads the board by. Colors also stay
-              // neutral during the pre-game preview regardless of mode,
-              // since the mode choice isn't made yet and revealing them
-              // then would let a player memorize the board before
-              // picking "difícil".
+              // Hard mode hides the line color until mid-pop or round end;
+              // also neutral during the pre-game preview (mode not chosen yet).
               var neutralColor = state.status === 'ready' ||
-                (state.mode === 'hard' && playing && flag !== 'pop');
+                (state.mode === 'hard' && interactive && flag !== 'pop');
 
               btn.classList.toggle('tile--neutral', neutralColor);
               if (neutralColor) {
@@ -1263,21 +1211,19 @@
               if (isSelected) btn.setAttribute('aria-pressed', 'true');
               else btn.removeAttribute('aria-pressed');
 
-              var isHint = !!(state.hintCell && state.hintCell[0] === r && state.hintCell[1] === c);
-              btn.classList.toggle('tile--hint', isHint);
+              btn.classList.toggle('tile--hint', !!(state.hintCell && state.hintCell[0] === r && state.hintCell[1] === c));
 
-              btn.disabled = !playing || state.busy;
+              btn.disabled = !interactive || state.busy;
 
-              // cascadeStep still holds the count of matches already
-              // resolved BEFORE this one at pop time (see resolveStep()),
-              // so + 1 is this match's own combo step.
+              // cascadeStep is the matches resolved before this one, so +1 is
+              // this match's own combo step.
               if (flag === 'pop') pending.push({ btn: btn, cls: 'tile--pop', scale: popScaleForCombo(state.cascadeStep + 1) });
               else if (flag === 'drop') pending.push({ btn: btn, cls: 'tile--drop', scale: null });
             }
           }
 
           if (pending.length) {
-            void els.board.offsetWidth; // one reflow so reused nodes restart the pop/drop animation
+            void els.board.offsetWidth; // one reflow so reused nodes restart the animation
             pending.forEach(function (p) {
               if (p.scale !== null) p.btn.style.setProperty('--pop-scale', String(p.scale));
               p.btn.classList.add(p.cls);
@@ -1289,6 +1235,9 @@
           renderStatus();
 
           els.startOverlay.hidden = state.status !== 'ready';
+          els.practiceBanner.hidden = state.status !== 'practice';
+          // Redundant on the reveal - the stats grid already shows the lines.
+          els.legend.hidden = state.status === 'done';
           els.board.classList.toggle('board--done', state.status === 'done');
 
           buildBoardOnce();
@@ -1301,7 +1250,7 @@
         }
 
         function onTileClick(r, c) {
-          if (state.status !== 'playing' || state.busy) return;
+          if ((state.status !== 'playing' && state.status !== 'practice') || state.busy) return;
 
           resetIdleTimer();
 
@@ -1375,7 +1324,7 @@
         // after the reveal screen already froze an earlier score into
         // reveal-score, which is exactly why the two used to disagree.
         function resolveStep() {
-          if (state.status !== 'playing') return;
+          if (state.status !== 'playing' && state.status !== 'practice') return;
 
           var result = findMatches(state.board);
 
@@ -1397,7 +1346,7 @@
           var popupOrigin = matchCentroid(result.matched);
 
           setTimeout(function () {
-            if (state.status !== 'playing') return;
+            if (state.status !== 'playing' && state.status !== 'practice') return;
 
             state.cascadeStep++;
             state.groupsFormed++;
@@ -1445,7 +1394,7 @@
         function finishMove() {
           state.flagged = {};
 
-          if (state.status === 'playing' && !hasAnyValidMove(state.board)) {
+          if ((state.status === 'playing' || state.status === 'practice') && !hasAnyValidMove(state.board)) {
             state.board = generateBoard(state.rand);
             setToast('Sin movimientos posibles — tablero revuelto.');
           }
@@ -1506,15 +1455,12 @@
           renderGamePromo('metrocrush');
         }
 
-        // The reveal's per-line tile-match breakdown, below the stat-grid
-        // above - sorted most-matched-first, since "what did I clear the
-        // most of" is the interesting read, not today's arbitrary legend
-        // order. A line nobody ever matched (count 0, or simply never
-        // added to matchCountsByLine) is left out entirely rather than
-        // shown as "× 0" - same "nothing to show, show nothing" instinct
-        // as buildStreakBadge()'s own N > 1 threshold in shared.js.
+        // Per-line match tiles, most-matched first; lines with 0 omitted.
         function renderMatchSummary() {
-          els.matchSummaryList.innerHTML = '';
+          // Clear only prior match tiles, not the 3 fixed stats in this grid.
+          var old = els.statGrid.querySelectorAll('.stat-box--match');
+          for (var i = 0; i < old.length; i++) old[i].remove();
+
           var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
             return state.matchCountsByLine[id] > 0;
           });
@@ -1524,25 +1470,24 @@
             var line = lineById(id);
             if (!line) return;
 
-            var li = document.createElement('li');
-            li.className = 'match-summary__item';
+            var box = document.createElement('div');
+            box.className = 'stat-box stat-box--match';
 
             var chip = document.createElement('span');
             chip.className = 'station station--chip legend__chip';
             chip.style.setProperty('--badge-bg', line.color);
             chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
-            li.appendChild(chip);
+            box.appendChild(chip);
 
-            var count = document.createElement('span');
-            count.className = 'match-summary__count';
-            count.textContent = '× ' + state.matchCountsByLine[id];
-            li.appendChild(count);
+            // "× NN", zero-padded so counts align; × avoids reading as a line id.
+            var count = document.createElement('div');
+            count.className = 'stat-box__value';
+            count.textContent = '× ' + String(state.matchCountsByLine[id]).padStart(2, '0');
+            box.appendChild(count);
 
-            els.matchSummaryList.appendChild(li);
+            els.statGrid.appendChild(box);
           });
-
-          els.matchSummary.hidden = lineIds.length === 0;
         }
 
         // Mounts the end screen's "sigue jugando hoy" component into this
@@ -1622,23 +1567,19 @@
         function renderAliasRow() {
           var alias = MetroShared.getAlias();
           if (alias) {
-            showAliasDisplay(alias);
+            hideAliasRow();
           } else {
             showAliasInput();
           }
         }
 
-        function showAliasDisplay(alias) {
+        function hideAliasRow() {
+          // The player's own highlighted row in the leaderboard below
+          // already identifies them, so once an alias is set there's
+          // nothing to show here.
           var el = els.leaderboardAliasRow;
+          el.hidden = true;
           el.innerHTML = '';
-
-          var label = document.createElement('span');
-          label.textContent = 'Jugando como: ';
-          var strong = document.createElement('strong');
-          strong.textContent = alias;
-          label.appendChild(strong);
-
-          el.appendChild(label);
         }
 
         function showAliasInput() {
@@ -1659,7 +1600,7 @@
           function save() {
             var normalized = MetroShared.setAlias(input.value);
             if (!normalized) return;
-            showAliasDisplay(normalized);
+            hideAliasRow();
             submitScore();
           }
 
@@ -1762,7 +1703,7 @@
                 if (entry.hardMode) badge.textContent = '🧠';
 
                 var number = document.createElement('span');
-                number.className = 'leaderboard__score-number';
+                number.className = 'leaderboard__score-number leaderboard__score-number--wide';
                 number.textContent = entry.score;
 
                 score.appendChild(badge);
@@ -1796,11 +1737,15 @@
           els = {
             legend: $('legend'),
             legendSr: $('legend-sr'),
-            statusBar: $('status-bar'),
-            status: $('status'),
-            timerTrack: $('timer-track'),
-            timerBar: $('timer-bar'),
+            progress: $('progress'),
+            progressTrack: $('progress-track'),
+            progressFill: $('progress-fill'),
+            mcTime: $('mc-time'),
+            mcScore: $('mc-score'),
             toast: $('toast'),
+            practiceBanner: $('practice-banner'),
+            endPracticeBtn: $('end-practice-btn'),
+            practiceBtn: $('practice-btn'),
             boardWrap: $('board-wrap'),
             board: $('board'),
             startOverlay: $('start-overlay'),
@@ -1812,8 +1757,7 @@
             revealGroups: $('reveal-groups'),
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
-            matchSummary: $('match-summary'),
-            matchSummaryList: $('match-summary-list'),
+            statGrid: $('stat-grid'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),
@@ -1828,6 +1772,8 @@
           els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
           els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
           els.shareBtn.addEventListener('click', shareResult);
+          els.practiceBtn.addEventListener('click', continuePractice);
+          els.endPracticeBtn.addEventListener('click', endPractice);
 
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;
@@ -1835,9 +1781,18 @@
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
 
-          startNewGame();
-          renderDateDebugLabel();
-          renderHighScoreRecord();
+          // Build the mask map from the sprite once, then start - so the
+          // board's first paint already has the silhouettes. Falls back to
+          // starting without them (icons just won't show) if the fetch fails.
+          fetch('/station-icons.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (text) { STATION_MASKS = MetroShared.buildStationMasks(text); })
+            .catch(function () { /* non-fatal */ })
+            .then(function () {
+              startNewGame();
+              renderDateDebugLabel();
+              renderHighScoreRecord();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', init);

@@ -248,45 +248,20 @@
 
       .reveal[hidden] { display: none; }
 
-      /* Per-line tile-match breakdown on the reveal screen, below the
-         .stat-grid above - reuses .legend__chip as-is (same colored
-         pictogram every active line already gets in the pre-round
-         legend) rather than inventing a second icon style for the same
-         thing. */
-      .match-summary { margin-bottom: 1.1rem; }
-
-      .match-summary[hidden] { display: none; }
-
-      .match-summary__title {
-        color: var(--ink-soft);
-        font-size: 0.6rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-      }
-
-      .match-summary__list {
+      /* Per-line match counts as a 3-col stat-grid: the colored line chip
+         (same legend pictogram) over its "×N" count. The chip needs an
+         explicit square size so the stretched grid cell can't pull it tall. */
+      #match-summary .stat-box {
         align-items: center;
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.6rem;
-        justify-content: center;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-
-      .match-summary__item {
-        align-items: center;
-        display: flex;
+        flex-direction: column;
         gap: 0.3rem;
+        justify-content: center;
       }
 
-      .match-summary__count {
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 0.85rem;
-        font-weight: 700;
+      #match-summary .station--chip {
+        flex: none;
+        height: 1.8rem;
       }
 
       /* .reveal centers text; left-align the leaderboard so rows read as a
@@ -384,10 +359,7 @@
             </div>
           </div>
 
-          <div class="match-summary" id="match-summary" hidden>
-            <p class="match-summary__title">Coincidencias por línea</p>
-            <ul class="match-summary__list" id="match-summary-list"></ul>
-          </div>
+          <div class="stat-grid" id="match-summary" style="--cols: 3;" hidden></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -1417,15 +1389,13 @@
           renderGamePromo('metrocrush');
         }
 
-        // The reveal's per-line tile-match breakdown, below the stat-grid
-        // above - sorted most-matched-first, since "what did I clear the
-        // most of" is the interesting read, not today's arbitrary legend
-        // order. A line nobody ever matched (count 0, or simply never
-        // added to matchCountsByLine) is left out entirely rather than
-        // shown as "× 0" - same "nothing to show, show nothing" instinct
-        // as buildStreakBadge()'s own N > 1 threshold in shared.js.
+        // The reveal's per-line tile-match breakdown as a 3-col stat-grid -
+        // sorted most-matched-first, since "what did I clear the most of" is
+        // the interesting read, not today's arbitrary legend order. A line
+        // nobody ever matched is left out entirely (same "show nothing"
+        // instinct as buildStreakBadge()'s N > 1 threshold in shared.js).
         function renderMatchSummary() {
-          els.matchSummaryList.innerHTML = '';
+          els.matchSummary.innerHTML = '';
           var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
             return state.matchCountsByLine[id] > 0;
           });
@@ -1435,22 +1405,24 @@
             var line = lineById(id);
             if (!line) return;
 
-            var li = document.createElement('li');
-            li.className = 'match-summary__item';
+            var box = document.createElement('div');
+            box.className = 'stat-box';
 
             var chip = document.createElement('span');
             chip.className = 'station station--chip legend__chip';
             chip.style.setProperty('--badge-bg', line.color);
             chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
-            li.appendChild(chip);
+            box.appendChild(chip);
 
-            var count = document.createElement('span');
-            count.className = 'match-summary__count';
-            count.textContent = '× ' + state.matchCountsByLine[id];
-            li.appendChild(count);
+            // "×N", not a bare count - a bare "12" under the chip would read
+            // as Línea 12 rather than "12 matches".
+            var count = document.createElement('div');
+            count.className = 'stat-box__value';
+            count.textContent = '×' + state.matchCountsByLine[id];
+            box.appendChild(count);
 
-            els.matchSummaryList.appendChild(li);
+            els.matchSummary.appendChild(box);
           });
 
           els.matchSummary.hidden = lineIds.length === 0;
@@ -1724,7 +1696,6 @@
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
             matchSummary: $('match-summary'),
-            matchSummaryList: $('match-summary-list'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),

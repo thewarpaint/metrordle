@@ -154,16 +154,6 @@
         padding: 0.5rem 1.1rem 0.7rem;
       }
 
-      /* The reveal banner sits directly in .sign (no padding of its own)
-         between the full-bleed headsign and the progress bar, so inset it
-         to the progress bar's edges and add a top gap - longhand leaves
-         .notice's own margin-bottom intact. */
-      #reveal-banner {
-        margin-top: 0.9rem;
-        margin-left: 1.1rem;
-        margin-right: 1.1rem;
-      }
-
       .platform {
         list-style: none;
         margin: 0;
@@ -452,8 +442,6 @@
           <span class="headsign__term headsign__term--end" id="term-end"></span>
         </div>
 
-        <div id="reveal-banner" hidden></div>
-
         <div class="progress" id="progress">
           <div class="progress__track">
             <div class="progress__fill" id="progress-fill"></div>
@@ -486,6 +474,8 @@
         </div>
 
         <div class="reveal" id="reveal" hidden>
+          <div id="reveal-banner" hidden></div>
+
           <div class="reveal__col" id="reveal-correct-col">
             <h3>Orden correcto</h3>
             <ol id="reveal-correct"></ol>

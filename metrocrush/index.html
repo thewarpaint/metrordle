@@ -248,10 +248,8 @@
 
       .reveal[hidden] { display: none; }
 
-      /* Per-line match tiles share the stats grid above: the colored line
-         chip (same legend pictogram) beside its "× NN" count on one line.
-         The chip needs an explicit square size so the stretched grid cell
-         can't pull it tall. */
+      /* Line chip beside its count, in the shared stats grid. Explicit chip
+         size so the stretched grid cell can't pull it tall. */
       .stat-box--match {
         align-items: center;
         display: flex;
@@ -344,8 +342,7 @@
             <div class="stats__score" id="reveal-score">0</div>
             <div class="stats__label">puntos</div>
           </div>
-          <!-- The 3 round stats and the per-line match tiles share one grid
-               (match tiles appended by renderMatchSummary). -->
+          <!-- Round stats + per-line match tiles (appended) share this grid. -->
           <div class="stat-grid" id="stat-grid">
             <div class="stat-box">
               <div class="stat-box__value" id="reveal-groups">0</div>
@@ -1389,14 +1386,9 @@
           renderGamePromo('metrocrush');
         }
 
-        // The reveal's per-line tile-match breakdown as a 3-col stat-grid -
-        // sorted most-matched-first, since "what did I clear the most of" is
-        // the interesting read, not today's arbitrary legend order. A line
-        // nobody ever matched is left out entirely (same "show nothing"
-        // instinct as buildStreakBadge()'s N > 1 threshold in shared.js).
+        // Per-line match tiles, most-matched first; lines with 0 omitted.
         function renderMatchSummary() {
-          // Append into the shared stats grid, after the 3 fixed stats -
-          // clear only previously-appended match tiles, not those.
+          // Clear only prior match tiles, not the 3 fixed stats in this grid.
           var old = els.statGrid.querySelectorAll('.stat-box--match');
           for (var i = 0; i < old.length; i++) old[i].remove();
 
@@ -1419,9 +1411,7 @@
             chip.appendChild(makeStationIcon(line.icon));
             box.appendChild(chip);
 
-            // "×NN" (zero-padded to 2 digits so every tile's count is the
-            // same width and the icon+count pairs line up); the × also keeps
-            // a bare number from reading as a line id (e.g. Línea 12).
+            // "× NN", zero-padded so counts align; × avoids reading as a line id.
             var count = document.createElement('div');
             count.className = 'stat-box__value';
             count.textContent = '× ' + String(state.matchCountsByLine[id]).padStart(2, '0');

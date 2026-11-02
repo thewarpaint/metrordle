@@ -527,12 +527,13 @@
         var state = null;
         var debugDate = null;
 
-        // Staging-only in-place board renderer: build the 56 tiles once,
-        // then mutate them, vs prod rebuilding innerHTML each render.
-        var SVG_NS = 'http://www.w3.org/2000/svg';
-        var XLINK_NS = 'http://www.w3.org/1999/xlink';
+        // Staging-only in-place board renderer: build the 56 tiles once, then
+        // mutate them (vs prod rebuilding innerHTML each render). Icons are
+        // CSS masks (.station__icon--mask) swapped via one custom property,
+        // rather than per-tile <use> href rewrites - see STATION_MASKS below.
         var boardBuilt = false;
         var renderedId = [];
+        var STATION_MASKS = null; // {slug: mask url}, built from the sprite once
 
         // Shared by every .station consumer here (.tile and .legend__chip
         // alike) - relies entirely on shared.css's own .station__icon
@@ -1113,7 +1114,8 @@
         }
 
         // Build the 56 tiles once + one delegated listener; each icon is a
-        // persistent <use> whose href setTileContentIcon rewrites on change.
+        // persistent .station__icon--mask span whose --station-mask
+        // setTileContentIcon swaps on change (cheaper than rewriting a <use>).
         function buildBoardOnce() {
           if (boardBuilt) return;
           els.board.innerHTML = '';
@@ -1123,15 +1125,11 @@
             btn.type = 'button';
             btn.className = 'station tile';
             btn.dataset.idx = i;
-            var wrap = document.createElement('span');
-            wrap.className = 'station__icon';
-            var svg = document.createElementNS(SVG_NS, 'svg');
-            svg.setAttribute('aria-hidden', 'true');
-            var use = document.createElementNS(SVG_NS, 'use');
-            svg.appendChild(use);
-            wrap.appendChild(svg);
-            btn.appendChild(wrap);
-            btn._use = use;
+            var icon = document.createElement('span');
+            icon.className = 'station__icon station__icon--mask';
+            icon.setAttribute('aria-hidden', 'true');
+            btn.appendChild(icon);
+            btn._icon = icon;
             els.board.appendChild(btn);
             renderedId.push(undefined);
           }
@@ -1148,19 +1146,17 @@
           onTileClick(Math.floor(idx / COLS), idx % COLS);
         }
 
-        // Rewrite a tile's <use> href + aria-label only when its line id changed.
+        // Swap a tile's --station-mask + aria-label only when its line id
+        // changed (the silhouette inherits the tile's own --badge-ink color).
         function setTileContentIcon(btn, index, id, line) {
           if (renderedId[index] === id) return;
           renderedId[index] = id;
           if (id === null) {
-            btn._use.removeAttribute('href');
-            btn._use.removeAttributeNS(XLINK_NS, 'href');
+            btn._icon.style.removeProperty('--station-mask');
             btn.removeAttribute('aria-label');
             return;
           }
-          var href = '/station-icons.svg#' + line.icon;
-          btn._use.setAttribute('href', href);
-          btn._use.setAttributeNS(XLINK_NS, 'href', href);
+          btn._icon.style.setProperty('--station-mask', (STATION_MASKS && STATION_MASKS[line.icon]) || '');
           var r = Math.floor(index / COLS);
           var c = index % COLS;
           btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
@@ -1785,9 +1781,18 @@
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
 
-          startNewGame();
-          renderDateDebugLabel();
-          renderHighScoreRecord();
+          // Build the mask map from the sprite once, then start - so the
+          // board's first paint already has the silhouettes. Falls back to
+          // starting without them (icons just won't show) if the fetch fails.
+          fetch('/station-icons.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (text) { STATION_MASKS = MetroShared.buildStationMasks(text); })
+            .catch(function () { /* non-fatal */ })
+            .then(function () {
+              startNewGame();
+              renderDateDebugLabel();
+              renderHighScoreRecord();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', init);

@@ -249,13 +249,13 @@
       .reveal[hidden] { display: none; }
 
       /* Per-line match counts as a 3-col stat-grid: the colored line chip
-         (same legend pictogram) over its "×N" count. The chip needs an
-         explicit square size so the stretched grid cell can't pull it tall. */
+         (same legend pictogram) beside its "×NN" count on one line. The chip
+         needs an explicit square size so the stretched grid cell can't pull
+         it tall. */
       #match-summary .stat-box {
         align-items: center;
         display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
+        gap: 0.4rem;
         justify-content: center;
       }
 
@@ -1415,11 +1415,12 @@
             chip.appendChild(makeStationIcon(line.icon));
             box.appendChild(chip);
 
-            // "×N", not a bare count - a bare "12" under the chip would read
-            // as Línea 12 rather than "12 matches".
+            // "×NN" (zero-padded to 2 digits so every tile's count is the
+            // same width and the icon+count pairs line up); the × also keeps
+            // a bare number from reading as a line id (e.g. Línea 12).
             var count = document.createElement('div');
             count.className = 'stat-box__value';
-            count.textContent = '×' + state.matchCountsByLine[id];
+            count.textContent = '×' + String(state.matchCountsByLine[id]).padStart(2, '0');
             box.appendChild(count);
 
             els.matchSummary.appendChild(box);

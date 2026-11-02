@@ -517,6 +517,7 @@
         var state = null;
         var els = {};
         var debugDate = null;
+        var STATION_MASKS = null; // {slug: mask url}, built from the sprite once
 
         function $(id) {
           return document.getElementById(id);
@@ -841,15 +842,12 @@
           var wrap = document.createElement('span');
           wrap.className = sizeClass;
           var slug = MetroShared.STATION_ICON_SLUGS[stationName];
-          if (slug) {
-            var svgNS = 'http://www.w3.org/2000/svg';
-            var svg = document.createElementNS(svgNS, 'svg');
-            svg.setAttribute('aria-hidden', 'true');
-            var use = document.createElementNS(svgNS, 'use');
-            use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
-            use.setAttribute('href', '/station-icons.svg#' + slug);
-            svg.appendChild(use);
-            wrap.appendChild(svg);
+          var mask = slug && STATION_MASKS ? STATION_MASKS[slug] : null;
+          if (mask) {
+            // Mask silhouette via one property - no external <use> to
+            // re-resolve on rebuild (what used to flash the icons blank).
+            wrap.classList.add('station__icon--mask');
+            wrap.style.setProperty('--station-mask', mask);
           } else {
             wrap.setAttribute('aria-hidden', 'true');
             wrap.textContent = '—';
@@ -1384,9 +1382,16 @@
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
 
-          startNewGame();
-          renderDateDebugLabel();
-          renderHighScoreRecord();
+          // Build the mask map from the sprite once, then start.
+          fetch('/station-icons.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (text) { STATION_MASKS = MetroShared.buildStationMasks(text); })
+            .catch(function () { /* icons fall back to "—" */ })
+            .then(function () {
+              startNewGame();
+              renderDateDebugLabel();
+              renderHighScoreRecord();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', init);

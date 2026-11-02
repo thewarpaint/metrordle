@@ -523,6 +523,14 @@
         var state = null;
         var debugDate = null;
 
+        // In-place board renderer: build the 56 tiles once, then mutate them
+        // (rather than rebuilding innerHTML each render). Icons are CSS masks
+        // (.station__icon--mask) swapped via one custom property, rather than
+        // per-tile <use> href rewrites - see STATION_MASKS below.
+        var boardBuilt = false;
+        var renderedId = [];
+        var STATION_MASKS = null; // {slug: mask url}, built from the sprite once
+
         // Shared by every .station consumer here (.tile and .legend__chip
         // alike) - relies entirely on shared.css's own .station__icon
         // sizing, no page-local svg-sizing override on top of it (that
@@ -1101,78 +1109,135 @@
           });
         }
 
+        // Build the 56 tiles once + one delegated listener; each icon is a
+        // persistent .station__icon--mask span whose --station-mask
+        // setTileContentIcon swaps on change (cheaper than rewriting a <use>).
+        function buildBoardOnce() {
+          if (boardBuilt) return;
+          els.board.innerHTML = '';
+          renderedId = [];
+          for (var i = 0; i < ROWS * COLS; i++) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'station tile';
+            btn.dataset.idx = i;
+            var icon = document.createElement('span');
+            icon.className = 'station__icon station__icon--mask';
+            icon.setAttribute('aria-hidden', 'true');
+            btn.appendChild(icon);
+            btn._icon = icon;
+            els.board.appendChild(btn);
+            renderedId.push(undefined);
+          }
+          els.board.addEventListener('click', onBoardClick);
+          boardBuilt = true;
+        }
+
+        // Delegated click; a disabled tile never fires, and onTileClick keeps
+        // its own busy/status guards.
+        function onBoardClick(e) {
+          var btn = e.target.closest ? e.target.closest('button.tile') : null;
+          if (!btn || btn.disabled) return;
+          var idx = +btn.dataset.idx;
+          onTileClick(Math.floor(idx / COLS), idx % COLS);
+        }
+
+        // Swap a tile's --station-mask + aria-label only when its line id
+        // changed (the silhouette inherits the tile's own --badge-ink color).
+        function setTileContentIcon(btn, index, id, line) {
+          if (renderedId[index] === id) return;
+          renderedId[index] = id;
+          if (id === null) {
+            btn._icon.style.removeProperty('--station-mask');
+            btn.removeAttribute('aria-label');
+            return;
+          }
+          btn._icon.style.setProperty('--station-mask', (STATION_MASKS && STATION_MASKS[line.icon]) || '');
+          var r = Math.floor(index / COLS);
+          var c = index % COLS;
+          btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
+        }
+
+        // In-place twin of prod's render() board loop: mutate the existing
+        // tiles. Pop/drop classes are stripped then re-applied after one
+        // reflow so a reused node still restarts its animation.
+        function updateBoard() {
+          var interactive = state.status === 'playing' || state.status === 'practice';
+          var children = els.board.children;
+          var pending = [];
+          for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+              var index = r * COLS + c;
+              var btn = children[index];
+              var id = state.board[r][c];
+
+              btn.classList.remove('tile--pop', 'tile--drop', 'tile--swap-in', 'tile--shake');
+
+              if (id === null) {
+                btn.classList.add('tile--empty');
+                btn.classList.remove('tile--neutral', 'tile--selected', 'tile--hint');
+                btn.removeAttribute('aria-pressed');
+                btn.disabled = true;
+                setTileContentIcon(btn, index, null, null);
+                continue;
+              }
+              btn.classList.remove('tile--empty');
+
+              var line = lineById(id);
+              var flag = state.flagged[key(r, c)];
+
+              // Hard mode hides the line color until mid-pop or round end;
+              // also neutral during the pre-game preview (mode not chosen yet).
+              var neutralColor = state.status === 'ready' ||
+                (state.mode === 'hard' && interactive && flag !== 'pop');
+
+              btn.classList.toggle('tile--neutral', neutralColor);
+              if (neutralColor) {
+                btn.style.removeProperty('--badge-bg');
+                btn.style.removeProperty('--badge-ink');
+              } else {
+                btn.style.setProperty('--badge-bg', line.color);
+                btn.style.setProperty('--badge-ink', line.textColor);
+              }
+
+              setTileContentIcon(btn, index, id, line);
+
+              var isSelected = !!(state.selected && state.selected[0] === r && state.selected[1] === c);
+              btn.classList.toggle('tile--selected', isSelected);
+              if (isSelected) btn.setAttribute('aria-pressed', 'true');
+              else btn.removeAttribute('aria-pressed');
+
+              btn.classList.toggle('tile--hint', !!(state.hintCell && state.hintCell[0] === r && state.hintCell[1] === c));
+
+              btn.disabled = !interactive || state.busy;
+
+              // cascadeStep is the matches resolved before this one, so +1 is
+              // this match's own combo step.
+              if (flag === 'pop') pending.push({ btn: btn, cls: 'tile--pop', scale: popScaleForCombo(state.cascadeStep + 1) });
+              else if (flag === 'drop') pending.push({ btn: btn, cls: 'tile--drop', scale: null });
+            }
+          }
+
+          if (pending.length) {
+            void els.board.offsetWidth; // one reflow so reused nodes restart the animation
+            pending.forEach(function (p) {
+              if (p.scale !== null) p.btn.style.setProperty('--pop-scale', String(p.scale));
+              p.btn.classList.add(p.cls);
+            });
+          }
+        }
+
         function render() {
           renderStatus();
 
-          // Practice plays exactly like a live round for interactivity.
-          var interactive = state.status === 'playing' || state.status === 'practice';
           els.startOverlay.hidden = state.status !== 'ready';
           els.practiceBanner.hidden = state.status !== 'practice';
           // Redundant on the reveal - the stats grid already shows the lines.
           els.legend.hidden = state.status === 'done';
           els.board.classList.toggle('board--done', state.status === 'done');
 
-          els.board.innerHTML = '';
-
-          for (var r = 0; r < ROWS; r++) {
-            for (var c = 0; c < COLS; c++) {
-              var id = state.board[r][c];
-              var btn = document.createElement('button');
-              btn.type = 'button';
-              btn.className = 'station tile';
-
-              if (id === null) {
-                btn.className += ' tile--empty';
-                btn.disabled = true;
-              } else {
-                var line = lineById(id);
-                var flag = state.flagged[key(r, c)];
-
-                // Hard mode hides only the line's color (the actual
-                // "answer") until a tile is either mid-pop (part of a
-                // just-formed group) or the round is over - the station
-                // icon itself always stays visible, since that's what a
-                // player actually reads the board by. Colors also stay
-                // neutral during the pre-game preview regardless of mode,
-                // since the mode choice isn't made yet and revealing them
-                // then would let a player memorize the board before
-                // picking "difícil".
-                var neutralColor = state.status === 'ready' ||
-                  (state.mode === 'hard' && interactive && flag !== 'pop');
-
-                if (neutralColor) {
-                  btn.className += ' tile--neutral';
-                } else {
-                  btn.style.setProperty('--badge-bg', line.color);
-                  btn.style.setProperty('--badge-ink', line.textColor);
-                }
-                btn.appendChild(makeStationIcon(line.icon));
-                btn.setAttribute('aria-label', line.name + ', fila ' + (r + 1) + ', columna ' + (c + 1));
-
-                if (flag) btn.className += ' tile--' + flag;
-                // cascadeStep still holds the count of matches already
-                // resolved BEFORE this one at pop time (see
-                // resolveStep()), so + 1 is this match's own combo step.
-                if (flag === 'pop') btn.style.setProperty('--pop-scale', String(popScaleForCombo(state.cascadeStep + 1)));
-
-                if (state.selected && state.selected[0] === r && state.selected[1] === c) {
-                  btn.className += ' tile--selected';
-                  btn.setAttribute('aria-pressed', 'true');
-                }
-
-                if (state.hintCell && state.hintCell[0] === r && state.hintCell[1] === c) {
-                  btn.className += ' tile--hint';
-                }
-
-                btn.disabled = !interactive || state.busy;
-                (function (rr, cc) {
-                  btn.addEventListener('click', function () { onTileClick(rr, cc); });
-                })(r, c);
-              }
-
-              els.board.appendChild(btn);
-            }
-          }
+          buildBoardOnce();
+          updateBoard();
 
           if (state.status === 'done') {
             renderAliasRow();
@@ -1712,9 +1777,18 @@
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
 
-          startNewGame();
-          renderDateDebugLabel();
-          renderHighScoreRecord();
+          // Build the mask map from the sprite once, then start - so the
+          // board's first paint already has the silhouettes. Falls back to
+          // starting without them (icons just won't show) if the fetch fails.
+          fetch('/station-icons.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (text) { STATION_MASKS = MetroShared.buildStationMasks(text); })
+            .catch(function () { /* non-fatal */ })
+            .then(function () {
+              startNewGame();
+              renderDateDebugLabel();
+              renderHighScoreRecord();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', init);

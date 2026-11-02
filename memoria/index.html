@@ -844,9 +844,8 @@
           var slug = MetroShared.STATION_ICON_SLUGS[stationName];
           var mask = slug && STATION_MASKS ? STATION_MASKS[slug] : null;
           if (mask) {
-            // CSS-mask silhouette (shared .station__icon--mask) set by one
-            // custom property - no external <use> to re-resolve when the
-            // board rebuilds, which is what used to flash the icons blank.
+            // Mask silhouette via one property - no external <use> to
+            // re-resolve on rebuild (what used to flash the icons blank).
             wrap.classList.add('station__icon--mask');
             wrap.style.setProperty('--station-mask', mask);
           } else {
@@ -1383,8 +1382,7 @@
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
 
-          // Icons are CSS masks; build the mask map from the sprite once,
-          // then start so the first board paint already has silhouettes.
+          // Build the mask map from the sprite once, then start.
           fetch('/station-icons.svg')
             .then(function (r) { return r.text(); })
             .then(function (text) { STATION_MASKS = MetroShared.buildStationMasks(text); })

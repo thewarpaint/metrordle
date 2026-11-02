@@ -248,45 +248,18 @@
 
       .reveal[hidden] { display: none; }
 
-      /* Per-line tile-match breakdown on the reveal screen, below the
-         .stat-grid above - reuses .legend__chip as-is (same colored
-         pictogram every active line already gets in the pre-round
-         legend) rather than inventing a second icon style for the same
-         thing. */
-      .match-summary { margin-bottom: 1.1rem; }
-
-      .match-summary[hidden] { display: none; }
-
-      .match-summary__title {
-        color: var(--ink-soft);
-        font-size: 0.6rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-      }
-
-      .match-summary__list {
+      /* Line chip beside its count, in the shared stats grid. Explicit chip
+         size so the stretched grid cell can't pull it tall. */
+      .stat-box--match {
         align-items: center;
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.6rem;
+        gap: 0.4rem;
         justify-content: center;
-        list-style: none;
-        margin: 0;
-        padding: 0;
       }
 
-      .match-summary__item {
-        align-items: center;
-        display: flex;
-        gap: 0.3rem;
-      }
-
-      .match-summary__count {
-        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-        font-size: 0.85rem;
-        font-weight: 700;
+      .stat-box--match .station--chip {
+        flex: none;
+        height: 1.8rem;
       }
 
       /* .reveal centers text; left-align the leaderboard so rows read as a
@@ -369,7 +342,8 @@
             <div class="stats__score" id="reveal-score">0</div>
             <div class="stats__label">puntos</div>
           </div>
-          <div class="stat-grid">
+          <!-- Round stats + per-line match tiles (appended) share this grid. -->
+          <div class="stat-grid" id="stat-grid">
             <div class="stat-box">
               <div class="stat-box__value" id="reveal-groups">0</div>
               <div class="stat-box__label">Grupos</div>
@@ -382,11 +356,6 @@
               <div class="stat-box__value" id="reveal-run">3</div>
               <div class="stat-box__label">Fila más larga</div>
             </div>
-          </div>
-
-          <div class="match-summary" id="match-summary" hidden>
-            <p class="match-summary__title">Coincidencias por línea</p>
-            <ul class="match-summary__list" id="match-summary-list"></ul>
           </div>
 
           <div class="leaderboard" id="leaderboard">
@@ -1417,15 +1386,12 @@
           renderGamePromo('metrocrush');
         }
 
-        // The reveal's per-line tile-match breakdown, below the stat-grid
-        // above - sorted most-matched-first, since "what did I clear the
-        // most of" is the interesting read, not today's arbitrary legend
-        // order. A line nobody ever matched (count 0, or simply never
-        // added to matchCountsByLine) is left out entirely rather than
-        // shown as "× 0" - same "nothing to show, show nothing" instinct
-        // as buildStreakBadge()'s own N > 1 threshold in shared.js.
+        // Per-line match tiles, most-matched first; lines with 0 omitted.
         function renderMatchSummary() {
-          els.matchSummaryList.innerHTML = '';
+          // Clear only prior match tiles, not the 3 fixed stats in this grid.
+          var old = els.statGrid.querySelectorAll('.stat-box--match');
+          for (var i = 0; i < old.length; i++) old[i].remove();
+
           var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
             return state.matchCountsByLine[id] > 0;
           });
@@ -1435,25 +1401,24 @@
             var line = lineById(id);
             if (!line) return;
 
-            var li = document.createElement('li');
-            li.className = 'match-summary__item';
+            var box = document.createElement('div');
+            box.className = 'stat-box stat-box--match';
 
             var chip = document.createElement('span');
             chip.className = 'station station--chip legend__chip';
             chip.style.setProperty('--badge-bg', line.color);
             chip.style.setProperty('--badge-ink', line.textColor);
             chip.appendChild(makeStationIcon(line.icon));
-            li.appendChild(chip);
+            box.appendChild(chip);
 
-            var count = document.createElement('span');
-            count.className = 'match-summary__count';
-            count.textContent = '× ' + state.matchCountsByLine[id];
-            li.appendChild(count);
+            // "× NN", zero-padded so counts align; × avoids reading as a line id.
+            var count = document.createElement('div');
+            count.className = 'stat-box__value';
+            count.textContent = '× ' + String(state.matchCountsByLine[id]).padStart(2, '0');
+            box.appendChild(count);
 
-            els.matchSummaryList.appendChild(li);
+            els.statGrid.appendChild(box);
           });
-
-          els.matchSummary.hidden = lineIds.length === 0;
         }
 
         // Mounts the end screen's "sigue jugando hoy" component into this
@@ -1723,8 +1688,7 @@
             revealGroups: $('reveal-groups'),
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
-            matchSummary: $('match-summary'),
-            matchSummaryList: $('match-summary-list'),
+            statGrid: $('stat-grid'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),

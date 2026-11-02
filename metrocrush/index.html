@@ -1420,7 +1420,7 @@
             // a bare number from reading as a line id (e.g. Línea 12).
             var count = document.createElement('div');
             count.className = 'stat-box__value';
-            count.textContent = '×' + String(state.matchCountsByLine[id]).padStart(2, '0');
+            count.textContent = '× ' + String(state.matchCountsByLine[id]).padStart(2, '0');
             box.appendChild(count);
 
             els.matchSummary.appendChild(box);

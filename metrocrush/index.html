@@ -248,18 +248,18 @@
 
       .reveal[hidden] { display: none; }
 
-      /* Per-line match counts as a 3-col stat-grid: the colored line chip
-         (same legend pictogram) beside its "×NN" count on one line. The chip
-         needs an explicit square size so the stretched grid cell can't pull
-         it tall. */
-      #match-summary .stat-box {
+      /* Per-line match tiles share the stats grid above: the colored line
+         chip (same legend pictogram) beside its "× NN" count on one line.
+         The chip needs an explicit square size so the stretched grid cell
+         can't pull it tall. */
+      .stat-box--match {
         align-items: center;
         display: flex;
         gap: 0.4rem;
         justify-content: center;
       }
 
-      #match-summary .station--chip {
+      .stat-box--match .station--chip {
         flex: none;
         height: 1.8rem;
       }
@@ -344,7 +344,9 @@
             <div class="stats__score" id="reveal-score">0</div>
             <div class="stats__label">puntos</div>
           </div>
-          <div class="stat-grid">
+          <!-- The 3 round stats and the per-line match tiles share one grid
+               (match tiles appended by renderMatchSummary). -->
+          <div class="stat-grid" id="stat-grid">
             <div class="stat-box">
               <div class="stat-box__value" id="reveal-groups">0</div>
               <div class="stat-box__label">Grupos</div>
@@ -358,8 +360,6 @@
               <div class="stat-box__label">Fila más larga</div>
             </div>
           </div>
-
-          <div class="stat-grid" id="match-summary" style="--cols: 3;" hidden></div>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -1395,7 +1395,11 @@
         // nobody ever matched is left out entirely (same "show nothing"
         // instinct as buildStreakBadge()'s N > 1 threshold in shared.js).
         function renderMatchSummary() {
-          els.matchSummary.innerHTML = '';
+          // Append into the shared stats grid, after the 3 fixed stats -
+          // clear only previously-appended match tiles, not those.
+          var old = els.statGrid.querySelectorAll('.stat-box--match');
+          for (var i = 0; i < old.length; i++) old[i].remove();
+
           var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
             return state.matchCountsByLine[id] > 0;
           });
@@ -1406,7 +1410,7 @@
             if (!line) return;
 
             var box = document.createElement('div');
-            box.className = 'stat-box';
+            box.className = 'stat-box stat-box--match';
 
             var chip = document.createElement('span');
             chip.className = 'station station--chip legend__chip';
@@ -1423,10 +1427,8 @@
             count.textContent = '× ' + String(state.matchCountsByLine[id]).padStart(2, '0');
             box.appendChild(count);
 
-            els.matchSummary.appendChild(box);
+            els.statGrid.appendChild(box);
           });
-
-          els.matchSummary.hidden = lineIds.length === 0;
         }
 
         // Mounts the end screen's "sigue jugando hoy" component into this
@@ -1696,7 +1698,7 @@
             revealGroups: $('reveal-groups'),
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
-            matchSummary: $('match-summary'),
+            statGrid: $('stat-grid'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),

@@ -94,18 +94,24 @@
     // container on these pages (centering .wrap), so an in-flow child
     // appended here would become a flex sibling of the game and reflow
     // its board. Fixed takes the panel out of every page's layout flow
-    // entirely. Collapsible so it doesn't cover the game by default.
+    // entirely. Hidden by default; shown via the 🐞 toggle by the gear.
     var css = [
       '#metro-debug-log{position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#0d0d0f;color:#e6e6e6;border-top:2px solid #444;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+      // The 🐞 toggle sits beside the gear: pushed to the far right of a
+      // flex .brand row (--push), or absolutely placed left of the
+      // absolute .topbar gear (--abs), with a fixed fallback.
+      '.mdl-bug{font-size:1.05rem;line-height:1;background:none;border:0;padding:0;margin:0;cursor:pointer;opacity:.55;-webkit-appearance:none;appearance:none}',
+      '.mdl-bug:hover,.mdl-bug:focus-visible,.mdl-bug--on{opacity:1}',
+      '.mdl-bug--push{margin-left:auto}',
+      '.mdl-bug--abs{position:absolute;top:max(0.85rem,env(safe-area-inset-top));right:2.7rem;z-index:5}',
+      '.mdl-bug--fixed{position:fixed;top:.5rem;right:.6rem;z-index:2147483001}',
       '#metro-debug-log .mdl-head{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#17171b}',
-      '#metro-debug-log .mdl-toggle{cursor:pointer;user-select:none;flex:1;display:flex;align-items:center;gap:8px}',
       '#metro-debug-log .mdl-title{font-weight:700}',
       '#metro-debug-log .mdl-count{opacity:.6}',
-      '#metro-debug-log .mdl-caret{opacity:.6;margin-left:auto}',
+      '#metro-debug-log .mdl-spacer{flex:1}',
       '#metro-debug-log button{font:inherit;color:#e6e6e6;background:#2a2a30;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer}',
       '#metro-debug-log button:active{background:#3a3a42}',
       '#metro-debug-log .mdl-list{max-height:38vh;overflow:auto;padding:4px 0}',
-      '#metro-debug-log.mdl-collapsed .mdl-list,#metro-debug-log.mdl-collapsed .mdl-actions{display:none}',
       '#metro-debug-log .mdl-row{display:flex;gap:8px;padding:2px 12px;white-space:pre-wrap;word-break:break-word;border-top:1px solid #1c1c22}',
       '#metro-debug-log .mdl-ts{color:#7a7a85;flex:none}',
       '#metro-debug-log .mdl-lv{flex:none;text-transform:uppercase;font-weight:700;width:3.2em}',
@@ -130,29 +136,14 @@
 
     var head = document.createElement('div');
     head.className = 'mdl-head';
-
-    // Tapping the title/count toggles the log list open or shut.
-    var toggle = document.createElement('div');
-    toggle.className = 'mdl-toggle';
     var title = document.createElement('span');
     title.className = 'mdl-title';
-    title.textContent = '🐛 Debug log';
+    title.textContent = '🐞 Debug log';
     countEl = document.createElement('span');
     countEl.className = 'mdl-count';
     countEl.textContent = '(' + entries.length + ')';
-    var caret = document.createElement('span');
-    caret.className = 'mdl-caret';
-    toggle.appendChild(title);
-    toggle.appendChild(countEl);
-    toggle.appendChild(caret);
-    toggle.addEventListener('click', function () {
-      panel.classList.toggle('mdl-collapsed');
-      caret.textContent = panel.classList.contains('mdl-collapsed') ? '▴' : '▾';
-      if (!panel.classList.contains('mdl-collapsed')) listEl.scrollTop = listEl.scrollHeight;
-    });
-
-    var actions = document.createElement('div');
-    actions.className = 'mdl-actions';
+    var spacer = document.createElement('span');
+    spacer.className = 'mdl-spacer';
     var copyBtn = document.createElement('button');
     copyBtn.type = 'button';
     copyBtn.textContent = 'copy';
@@ -172,22 +163,51 @@
       listEl.textContent = '';
       countEl.textContent = '(0)';
     });
-    actions.appendChild(copyBtn);
-    actions.appendChild(clearBtn);
-
-    head.appendChild(toggle);
-    head.appendChild(actions);
+    head.appendChild(title);
+    head.appendChild(countEl);
+    head.appendChild(spacer);
+    head.appendChild(copyBtn);
+    head.appendChild(clearBtn);
 
     listEl = document.createElement('div');
     listEl.className = 'mdl-list';
 
     panel.appendChild(head);
     panel.appendChild(listEl);
-    // Start collapsed (just the title bar) so it never covers the game
-    // until the reader opens it; the live count still ticks underneath.
-    panel.classList.add('mdl-collapsed');
-    caret.textContent = '▴';
+    // Hidden until the 🐞 toggle opens it; the count still ticks.
+    panel.style.display = 'none';
     document.body.appendChild(panel);
+
+    // A 🐞 toggle next to the gear: discreet, only here in debug mode.
+    var bug = document.createElement('button');
+    bug.type = 'button';
+    bug.className = 'mdl-bug';
+    bug.textContent = '🐞';
+    bug.title = 'Debug log';
+    bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
+    bug.setAttribute('aria-pressed', 'false');
+    bug.addEventListener('click', function () {
+      var open = panel.style.display === 'none';
+      panel.style.display = open ? '' : 'none';
+      bug.classList.toggle('mdl-bug--on', open);
+      bug.setAttribute('aria-pressed', open ? 'true' : 'false');
+      if (open) listEl.scrollTop = listEl.scrollHeight;
+    });
+
+    // Sit beside the gear: inside the absolute .topbar context on
+    // Metroguessr, pushed right on a flex .brand row elsewhere, or a
+    // fixed top-right fallback on a page with no settings gear.
+    var gear = document.querySelector('.brand__settings, .topbar__settings');
+    if (gear && gear.classList.contains('topbar__settings')) {
+      bug.classList.add('mdl-bug--abs');
+      gear.parentNode.insertBefore(bug, gear);
+    } else if (gear) {
+      bug.classList.add('mdl-bug--push');
+      gear.parentNode.insertBefore(bug, gear);
+    } else {
+      bug.classList.add('mdl-bug--fixed');
+      document.body.appendChild(bug);
+    }
 
     // Flush anything logged before the panel existed.
     entries.forEach(renderRow);

@@ -190,7 +190,7 @@
     themeBtn.className = 'toolbar-iconbtn';
     themeBtn.title = 'Tema claro/oscuro';
     themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
-    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌙'; } // icon of the mode it switches TO
+    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌑'; } // icon of the mode it switches TO
     themeBtn.addEventListener('click', function () {
       setThemeMode(isDark() ? 'light' : 'dark');
       renderThemeIcon();

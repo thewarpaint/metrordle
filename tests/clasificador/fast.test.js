@@ -138,15 +138,21 @@ async function main() {
     }
   });
 
-  test('station cards show the real station pictogram from /station-icons.svg', async () => {
+  test('station cards render the real station pictogram as a CSS-mask silhouette from /station-icons.svg', async () => {
     const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
     const page = await context.newPage();
     try {
       await page.goto(server.baseUrl + '/clasificador/?debug=true&date=' + FIXTURE_DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
-      const href = await page.$eval('.queue-card--active .queue-card__icon use', (el) => el.getAttribute('href'));
-      assert.strictEqual(href, '/station-icons.svg#pantitlan');
+      // Icons are mask silhouettes now (no <use>) - the active card's
+      // --station-mask must equal pantitlan's, built from the real sprite.
+      const expected = await page.evaluate(async () => {
+        const text = await (await fetch('/station-icons.svg')).text();
+        return MetroShared.buildStationMasks(text).pantitlan;
+      });
+      const mask = await page.$eval('.queue-card--active .queue-card__icon .station__icon--mask', (el) => el.style.getPropertyValue('--station-mask').trim());
+      assert.strictEqual(mask, expected, 'active card icon should be pantitlan\'s mask silhouette');
     } finally {
       await context.close();
     }
@@ -169,8 +175,12 @@ async function main() {
       assert.strictEqual(iconCount, 5, 'expected one .station-card icon per queued station');
       assert.strictEqual(await page.locator('#queue .queue-card__name').count(), 0, 'hard mode should show no station name at all');
 
-      const href = await page.$eval('.queue-active .station-card__icon use', (el) => el.getAttribute('href'));
-      assert.strictEqual(href, '/station-icons.svg#pantitlan', 'expected the known fixture\'s first active station icon');
+      const expected = await page.evaluate(async () => {
+        const text = await (await fetch('/station-icons.svg')).text();
+        return MetroShared.buildStationMasks(text).pantitlan;
+      });
+      const mask = await page.$eval('.queue-active .station-card__icon.station__icon--mask', (el) => el.style.getPropertyValue('--station-mask').trim());
+      assert.strictEqual(mask, expected, 'expected the known fixture\'s first active station icon (pantitlan mask)');
 
       // Línea 5 is one of Pantitlán's real lines among today's 6 - a
       // correct tap should still advance the queue same as normal mode.

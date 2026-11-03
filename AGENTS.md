@@ -418,7 +418,8 @@ about `//`/`/* */` comments in the actual game/test code.)
   page-local (the `.design-index` styles live in this page's own
   `<style>`, not `shared.css`). (A standalone sun/moon theme toggle
   lived here until it was removed; change the theme via `/configurar/`
-  or the shared debug toolbar's own toggle under `?debug=true`.) A "Líneas" board (the already-decided
+  or the shared toolbar's own light/dark toggle, which sits next to the
+  gear on every page - see "Site config" below.) A "Líneas" board (the already-decided
   `.line-bar__badge` (+ its `--sm` size, shown as its own example),
   Metroguessr's `.hint-line-badge`, plus the already-decided
   `.line-badge` and `.route-dot` - see "Shared infrastructure" below),
@@ -1460,6 +1461,13 @@ OS preference, `:root:not([data-theme="light"])` is what lets
 forced instead; `color-scheme` (native scrollbar/form-control chrome)
 mirrors the same three states, added alongside this feature since it's
 the first thing that actually exercises the override.
+
+Besides `/configurar/`, `shared.js`'s header toolbar renders a two-state
+light/dark toggle (☀️/🌑, the icon of the mode it switches TO) next to
+the ⚙️ gear on **every** page via the same `setThemeMode()` - a quick
+flip without opening settings. It's always visible (the toolbar's `🐞`
+debug-log half stays `?debug=true`-only); see shared.js's own
+`initToolbar` and `/design/`'s "Formularios"/toolbar notes.
 
 Any page-specific logic that branches on light/dark **must** check
 `MetroShared.getThemeMode()` (falling back to

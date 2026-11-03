@@ -139,11 +139,6 @@
         width: 2.6rem;
       }
 
-      .queue-card__icon svg {
-        height: 68%;
-        width: 68%;
-      }
-
       .queue-card__name {
         color: var(--ink-soft);
         flex: 1 1 auto;
@@ -584,17 +579,23 @@
           return { lines: lines, nextStation: nextStation };
         }
 
-        function makeStationIcon(name) {
+        var STATION_MASKS = null; // {slug: mask url}, built from the sprite once
+
+        // A sizeClass span painted as a CSS-mask silhouette (no <use> to
+        // re-resolve on every queue rebuild); "—" if the sprite isn't ready.
+        function makeIcon(name, sizeClass) {
+          var wrap = document.createElement('span');
+          wrap.className = sizeClass;
           var slug = MetroShared.STATION_ICON_SLUGS[name];
-          if (!slug) return null;
-          var svgNS = 'http://www.w3.org/2000/svg';
-          var svg = document.createElementNS(svgNS, 'svg');
-          svg.setAttribute('aria-hidden', 'true');
-          var use = document.createElementNS(svgNS, 'use');
-          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '/station-icons.svg#' + slug);
-          use.setAttribute('href', '/station-icons.svg#' + slug);
-          svg.appendChild(use);
-          return svg;
+          var mask = slug && STATION_MASKS ? STATION_MASKS[slug] : null;
+          if (mask) {
+            wrap.classList.add('station__icon--mask');
+            wrap.style.setProperty('--station-mask', mask);
+          } else {
+            wrap.setAttribute('aria-hidden', 'true');
+            wrap.textContent = '—';
+          }
+          return wrap;
         }
 
         var els = {};
@@ -767,8 +768,7 @@
 
           var icon = document.createElement('span');
           icon.className = 'queue-card__icon';
-          var svg = makeStationIcon(item.name);
-          if (svg) icon.appendChild(svg);
+          icon.appendChild(makeIcon(item.name, 'station__icon'));
           card.appendChild(icon);
 
           var name = document.createElement('span');
@@ -785,13 +785,7 @@
           var card = document.createElement('div');
           card.className = 'station-card queue-icon' + (isActive ? ' queue-icon--active queue-active' : '');
           card.dataset.id = item.id;
-
-          var icon = document.createElement('span');
-          icon.className = 'station-card__icon';
-          var svg = makeStationIcon(item.name);
-          if (svg) icon.appendChild(svg);
-          card.appendChild(icon);
-
+          card.appendChild(makeIcon(item.name, 'station-card__icon'));
           return card;
         }
 
@@ -1082,11 +1076,7 @@
               cell.classList.add('station-grid__cell--entering');
               cell.style.setProperty('--stagger-delay', (i * 0.03) + 's');
             }
-            var iconWrap = document.createElement('span');
-            iconWrap.className = 'station__icon';
-            var svg = makeStationIcon(entry.name);
-            if (svg) iconWrap.appendChild(svg);
-            cell.appendChild(iconWrap);
+            cell.appendChild(makeIcon(entry.name, 'station__icon'));
             els.classified.appendChild(cell);
           });
         }
@@ -1351,9 +1341,16 @@
             els.dateNextBtn.addEventListener('click', function () { shiftDebugDate(1); });
           }
 
-          startNewGame();
-          renderDateDebugLabel();
-          renderHighScoreRecord();
+          // Build the mask map from the sprite once, then start.
+          fetch('/station-icons.svg')
+            .then(function (r) { return r.text(); })
+            .then(function (text) { STATION_MASKS = MetroShared.buildStationMasks(text); })
+            .catch(function () { /* icons fall back to "—" */ })
+            .then(function () {
+              startNewGame();
+              renderDateDebugLabel();
+              renderHighScoreRecord();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', init);

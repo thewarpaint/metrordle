@@ -70,28 +70,49 @@
     }
   }
 
-  // Wrap each console method: call the original first (so desktop
-  // DevTools still works), then mirror into the panel. try/catch so a
-  // logging failure can never break the page.
-  ['log', 'debug', 'info', 'warn', 'error'].forEach(function (level) {
-    var original = (typeof console !== 'undefined' && console[level])
-      ? console[level].bind(console) : function () {};
-    console[level] = function () {
-      var args = Array.prototype.slice.call(arguments);
-      original.apply(null, args);
-      try { record(level, args.map(formatArg).join(' ')); } catch (e) { /* noop */ }
-    };
-  });
+  // Fail-safe: the whole setup is wrapped so a failure installing the
+  // hook can never throw out of the IIFE and abort shared.js before
+  // MetroShared is defined below. The deferred mount() is wrapped where
+  // it's scheduled; the per-call hooks guard record() too.
+  try {
+    // Wrap each console method: call the original first (so desktop
+    // DevTools still works), then mirror into the panel. try/catch so a
+    // logging failure can never break the page.
+    ['log', 'debug', 'info', 'warn', 'error'].forEach(function (level) {
+      var original = (typeof console !== 'undefined' && console[level])
+        ? console[level].bind(console) : function () {};
+      console[level] = function () {
+        var args = Array.prototype.slice.call(arguments);
+        original.apply(null, args);
+        try { record(level, args.map(formatArg).join(' ')); } catch (e) { /* noop */ }
+      };
+    });
 
-  // Uncaught errors/rejections don't go through console.error on their
-  // own - exactly what you can't otherwise see on a phone.
-  window.addEventListener('error', function (e) {
-    var where = e.filename ? ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno : '';
-    try { record('error', 'Uncaught: ' + (e.message || formatArg(e.error)) + where); } catch (x) {}
-  });
-  window.addEventListener('unhandledrejection', function (e) {
-    try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
-  });
+    // Uncaught errors/rejections don't go through console.error on their
+    // own - exactly what you can't otherwise see on a phone.
+    window.addEventListener('error', function (e) {
+      var where = e.filename ? ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno : '';
+      try { record('error', 'Uncaught: ' + (e.message || formatArg(e.error)) + where); } catch (x) {}
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
+    });
+
+    // shared.js runs at the end of <body>, so DOMContentLoaded hasn't
+    // fired yet - mounting on it means the game's own inline script has
+    // run first, keeping the panel genuinely last in the body. The
+    // deferred callback runs after this try exits, so it guards itself;
+    // the direct else-branch mount() is covered by this try.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () {
+        try { mount(); } catch (e) { /* best-effort */ }
+      });
+    } else {
+      mount();
+    }
+  } catch (e) {
+    /* debug panel is best-effort - never let it break the page */
+  }
 
   function mount() {
     if (listEl || !document.body) return;
@@ -177,15 +198,6 @@
     // Flush anything logged before the panel existed.
     entries.forEach(renderRow);
     listEl.scrollTop = listEl.scrollHeight;
-  }
-
-  // shared.js runs at the end of <body>, so DOMContentLoaded hasn't
-  // fired yet - mounting on it means the game's own inline script has
-  // run first, keeping the panel genuinely last in the body.
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', mount);
-  } else {
-    mount();
   }
 })();
 

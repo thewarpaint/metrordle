@@ -1585,16 +1585,11 @@ input[type="text"]:disabled {
   animation-duration: 0.001ms !important;
 }
 
-/* Debug log panel (MetroShared's own console mirror, shared.js). Only
-   ever rendered under ?debug=true, so these rules are inert for ordinary
-   players - the same "unused in prod on purpose" status as the .design-*
-   reference classes above. Its own dark palette (not the site tokens) so
-   it reads the same in either theme. position:fixed is load-bearing, not
-   cosmetic: body is a flex container on these pages (centering .wrap), so
-   an in-flow child appended to it would become a flex sibling of the game
-   and reflow its board - fixed keeps the panel out of every page's layout
-   flow. Hidden by default (shared.js sets display:none); the 🐞 toggle
-   shows it. */
+/* Debug log panel (shared.js's console mirror), only rendered under
+   ?debug=true - inert in prod, like the .design-* classes above. Own
+   dark palette so it reads in either theme. position:fixed is
+   load-bearing: body is a flex container here, so an in-flow child would
+   become a flex sibling of the game and reflow its board. */
 #metro-debug-log {
   position: fixed;
   left: 0;
@@ -1607,9 +1602,9 @@ input[type="text"]:disabled {
   font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* The 🐞 toggle sits beside the ⚙️ gear: pushed to the far right of a
-   flex .brand row (--push), absolutely placed left of the absolute
-   .topbar gear (--abs), or a fixed fallback on a page with no gear. */
+/* The 🐞 toggle sits beside the ⚙️ gear: pushed right on a flex .brand
+   row (--push), absolute left of Metroguessr's .topbar gear (--abs), or
+   fixed on a page with no gear (--fixed). */
 .mdl-bug {
   font-size: 1.05rem;
   line-height: 1;

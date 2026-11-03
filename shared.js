@@ -38,8 +38,7 @@
   function renderRow(entry) {
     var row = document.createElement('div');
     row.className = 'mdl-row mdl-row--' + entry.level;
-    // Timestamp + level on a meta line on top, so the message below gets
-    // the full width instead of being squeezed into a narrow column.
+    // Meta line (time + level) on top so the message below gets full width.
     var meta = document.createElement('div');
     meta.className = 'mdl-meta';
     var ts = document.createElement('span');
@@ -97,9 +96,8 @@
   function mount() {
     if (listEl || !document.body) return;
 
-    // Styles live in shared.css (.mdl-*/.mdl-bug*); they're inert for
-    // non-debug players since nothing renders this markup without
-    // ?debug=true, same as shared.css's own .design-* reference classes.
+    // Styles live in shared.css (.mdl-*/.mdl-bug*), inert without this
+    // debug-only markup.
     var panel = document.createElement('section');
     panel.id = 'metro-debug-log';
 
@@ -163,9 +161,7 @@
       if (open) listEl.scrollTop = listEl.scrollHeight;
     });
 
-    // Sit beside the gear: inside the absolute .topbar context on
-    // Metroguessr, pushed right on a flex .brand row elsewhere, or a
-    // fixed top-right fallback on a page with no settings gear.
+    // Place beside the gear (see .mdl-bug variants in shared.css).
     var gear = document.querySelector('.brand__settings, .topbar__settings');
     if (gear && gear.classList.contains('topbar__settings')) {
       bug.classList.add('mdl-bug--abs');

@@ -409,8 +409,7 @@
         var HINT_IDLE_MS = 5000;
         var TOAST_MS = 5000; // combo toast auto-clears after this
         var HARD_MODE_MULTIPLIER = 2;
-        // Hard mode: every HARD_BONUS_RUN valid moves in a row add a second
-        // to the clock; an invalid move subtracts one.
+        // Hard mode: this many valid moves in a row add a clock second; a miss subtracts one.
         var HARD_BONUS_RUN = 3;
         var SHARE_URL = 'https://metrordle.com/metrocrush/';
         var LEADERBOARD_COLLECTION = 'metrocrush-leaderboard';
@@ -1290,7 +1289,6 @@
             state.selected = null;
             state.busy = true;
             render();
-            // Hard mode: an invalid move resets the run and costs a second.
             if (state.mode === 'hard' && state.status === 'playing') {
               state.correctRun = 0;
               state.timeLeft = Math.max(0, state.timeLeft - 1);
@@ -1304,7 +1302,6 @@
           state.selected = null;
           state.busy = true;
           state.cascadeStep = 0;
-          // Hard mode: every HARD_BONUS_RUN valid moves in a row add a second.
           if (state.mode === 'hard' && state.status === 'playing' && ++state.correctRun >= HARD_BONUS_RUN) {
             state.correctRun = 0;
             state.timeLeft += 1;

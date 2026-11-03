@@ -173,7 +173,6 @@
 
     function setPanelOpen(open) {
       panel.style.display = open ? '' : 'none';
-      bug.classList.toggle('toolbar-iconbtn--on', open);
       bug.setAttribute('aria-pressed', open ? 'true' : 'false');
       if (open) listEl.scrollTop = listEl.scrollHeight;
     }
@@ -191,7 +190,7 @@
     themeBtn.className = 'toolbar-iconbtn';
     themeBtn.title = 'Tema claro/oscuro';
     themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
-    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌙'; } // icon of the mode it switches TO
+    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌑'; } // icon of the mode it switches TO
     themeBtn.addEventListener('click', function () {
       setThemeMode(isDark() ? 'light' : 'dark');
       renderThemeIcon();
@@ -209,8 +208,8 @@
 
     var tools = document.createElement('span');
     tools.className = 'toolbar-tools';
-    tools.appendChild(themeBtn);
     tools.appendChild(bug);
+    tools.appendChild(themeBtn);
 
     // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
     var gear = document.querySelector('.brand__settings, .topbar__settings');

@@ -89,48 +89,12 @@
     try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
   });
 
-  function injectStyles() {
-    // position:fixed is deliberate, not cosmetic: body is a flex
-    // container on these pages (centering .wrap), so an in-flow child
-    // appended here would become a flex sibling of the game and reflow
-    // its board. Fixed takes the panel out of every page's layout flow
-    // entirely. Hidden by default; shown via the 🐞 toggle by the gear.
-    var css = [
-      '#metro-debug-log{position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#0d0d0f;color:#e6e6e6;border-top:2px solid #444;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
-      // The 🐞 toggle sits beside the gear: pushed to the far right of a
-      // flex .brand row (--push), or absolutely placed left of the
-      // absolute .topbar gear (--abs), with a fixed fallback.
-      '.mdl-bug{font-size:1.05rem;line-height:1;background:none;border:0;padding:0;margin:0;cursor:pointer;opacity:.55;-webkit-appearance:none;appearance:none}',
-      '.mdl-bug:hover,.mdl-bug:focus-visible,.mdl-bug--on{opacity:1}',
-      '.mdl-bug--push{margin-left:auto}',
-      '.mdl-bug--abs{position:absolute;top:max(0.85rem,env(safe-area-inset-top));right:2.7rem;z-index:5}',
-      '.mdl-bug--fixed{position:fixed;top:.5rem;right:.6rem;z-index:2147483001}',
-      '#metro-debug-log .mdl-head{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#17171b}',
-      '#metro-debug-log .mdl-title{font-weight:700}',
-      '#metro-debug-log .mdl-count{opacity:.6}',
-      '#metro-debug-log .mdl-spacer{flex:1}',
-      '#metro-debug-log button{font:inherit;color:#e6e6e6;background:#2a2a30;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer}',
-      '#metro-debug-log button:active{background:#3a3a42}',
-      '#metro-debug-log .mdl-list{max-height:38vh;overflow:auto;padding:4px 0}',
-      '#metro-debug-log .mdl-row{display:flex;gap:8px;padding:2px 12px;white-space:pre-wrap;word-break:break-word;border-top:1px solid #1c1c22}',
-      '#metro-debug-log .mdl-ts{color:#7a7a85;flex:none}',
-      '#metro-debug-log .mdl-lv{flex:none;text-transform:uppercase;font-weight:700;width:3.2em}',
-      '#metro-debug-log .mdl-tx{flex:1;min-width:0}',
-      '#metro-debug-log .mdl-row--debug .mdl-lv,#metro-debug-log .mdl-row--log .mdl-lv{color:#8a8a95}',
-      '#metro-debug-log .mdl-row--info .mdl-lv{color:#5bb0ff}',
-      '#metro-debug-log .mdl-row--warn .mdl-lv{color:#ffc24b}',
-      '#metro-debug-log .mdl-row--error{background:#2a1416}',
-      '#metro-debug-log .mdl-row--error .mdl-lv{color:#ff6b6b}'
-    ].join('\n');
-    var style = document.createElement('style');
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
-
   function mount() {
     if (listEl || !document.body) return;
-    injectStyles();
 
+    // Styles live in shared.css (.mdl-*/.mdl-bug*); they're inert for
+    // non-debug players since nothing renders this markup without
+    // ?debug=true, same as shared.css's own .design-* reference classes.
     var panel = document.createElement('section');
     panel.id = 'metro-debug-log';
 

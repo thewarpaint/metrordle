@@ -581,10 +581,8 @@
 
         var STATION_MASKS = null; // {slug: mask url}, built from the sprite once
 
-        // Returns a sizeClass span painted as a CSS-mask silhouette (one
-        // --station-mask property, no external <use> to re-resolve on every
-        // queue rebuild - the queue re-renders on each placement). Falls
-        // back to "—" if the sprite isn't loaded or the station has no slug.
+        // A sizeClass span painted as a CSS-mask silhouette (no <use> to
+        // re-resolve on every queue rebuild); "—" if the sprite isn't ready.
         function makeIcon(name, sizeClass) {
           var wrap = document.createElement('span');
           wrap.className = sizeClass;

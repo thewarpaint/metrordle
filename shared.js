@@ -173,7 +173,6 @@
 
     function setPanelOpen(open) {
       panel.style.display = open ? '' : 'none';
-      bug.classList.toggle('toolbar-iconbtn--on', open);
       bug.setAttribute('aria-pressed', open ? 'true' : 'false');
       if (open) listEl.scrollTop = listEl.scrollHeight;
     }
@@ -209,8 +208,8 @@
 
     var tools = document.createElement('span');
     tools.className = 'toolbar-tools';
-    tools.appendChild(themeBtn);
     tools.appendChild(bug);
+    tools.appendChild(themeBtn);
 
     // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
     var gear = document.querySelector('.brand__settings, .topbar__settings');

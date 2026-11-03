@@ -38,17 +38,22 @@
   function renderRow(entry) {
     var row = document.createElement('div');
     row.className = 'mdl-row mdl-row--' + entry.level;
+    // Timestamp + level on a meta line on top, so the message below gets
+    // the full width instead of being squeezed into a narrow column.
+    var meta = document.createElement('div');
+    meta.className = 'mdl-meta';
     var ts = document.createElement('span');
     ts.className = 'mdl-ts';
     ts.textContent = stamp(entry.time);
     var lv = document.createElement('span');
     lv.className = 'mdl-lv';
     lv.textContent = entry.level;
-    var tx = document.createElement('span');
+    meta.appendChild(ts);
+    meta.appendChild(lv);
+    var tx = document.createElement('div');
     tx.className = 'mdl-tx';
     tx.textContent = entry.text; // textContent, never innerHTML - log text is arbitrary
-    row.appendChild(ts);
-    row.appendChild(lv);
+    row.appendChild(meta);
     row.appendChild(tx);
     listEl.appendChild(row);
   }

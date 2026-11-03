@@ -1688,29 +1688,28 @@ input[type="text"]:disabled {
 }
 
 #metro-debug-log .mdl-row {
+  padding: 3px 12px;
+  border-top: 1px solid #1c1c22;
+}
+
+#metro-debug-log .mdl-meta {
   display: flex;
   gap: 8px;
-  padding: 2px 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  border-top: 1px solid #1c1c22;
+  align-items: baseline;
 }
 
 #metro-debug-log .mdl-ts {
   color: #7a7a85;
-  flex: none;
 }
 
 #metro-debug-log .mdl-lv {
-  flex: none;
   text-transform: uppercase;
   font-weight: 700;
-  width: 3.2em;
 }
 
 #metro-debug-log .mdl-tx {
-  flex: 1;
-  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 #metro-debug-log .mdl-row--debug .mdl-lv,

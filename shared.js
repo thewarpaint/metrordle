@@ -37,20 +37,20 @@
 
   function renderRow(entry) {
     var row = document.createElement('div');
-    row.className = 'mdl-row mdl-row--' + entry.level;
+    row.className = 'toolbar-row toolbar-row--' + entry.level;
     // Meta line (time + level) on top so the message below gets full width.
     var meta = document.createElement('div');
-    meta.className = 'mdl-meta';
+    meta.className = 'toolbar-meta';
     var ts = document.createElement('span');
-    ts.className = 'mdl-ts';
+    ts.className = 'toolbar-ts';
     ts.textContent = stamp(entry.time);
     var lv = document.createElement('span');
-    lv.className = 'mdl-lv';
+    lv.className = 'toolbar-lv';
     lv.textContent = entry.level;
     meta.appendChild(ts);
     meta.appendChild(lv);
     var tx = document.createElement('div');
-    tx.className = 'mdl-tx';
+    tx.className = 'toolbar-tx';
     tx.textContent = entry.text; // textContent, never innerHTML - log text is arbitrary
     row.appendChild(meta);
     row.appendChild(tx);
@@ -114,21 +114,21 @@
   function mount() {
     if (listEl || !document.body) return;
 
-    // Styles live in shared.css (.mdl-*/.mdl-bug*), inert without this
+    // Styles live in shared.css (.toolbar-*), inert without this
     // debug-only markup.
     var panel = document.createElement('section');
     panel.id = 'metro-debug-log';
 
     var head = document.createElement('div');
-    head.className = 'mdl-head';
+    head.className = 'toolbar-head';
     var title = document.createElement('span');
-    title.className = 'mdl-title';
+    title.className = 'toolbar-title';
     title.textContent = '🐞 Debug log';
     countEl = document.createElement('span');
-    countEl.className = 'mdl-count';
+    countEl.className = 'toolbar-count';
     countEl.textContent = '(' + entries.length + ')';
     var spacer = document.createElement('span');
-    spacer.className = 'mdl-spacer';
+    spacer.className = 'toolbar-spacer';
     var copyBtn = document.createElement('button');
     copyBtn.type = 'button';
     copyBtn.textContent = 'copy';
@@ -150,7 +150,7 @@
     });
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'mdl-close';
+    closeBtn.className = 'toolbar-close';
     closeBtn.textContent = '✕';
     closeBtn.title = 'Cerrar';
     closeBtn.setAttribute('aria-label', 'Cerrar el registro de depuración');
@@ -163,7 +163,7 @@
     head.appendChild(closeBtn);
 
     listEl = document.createElement('div');
-    listEl.className = 'mdl-list';
+    listEl.className = 'toolbar-list';
 
     panel.appendChild(head);
     panel.appendChild(listEl);
@@ -173,7 +173,7 @@
 
     function setPanelOpen(open) {
       panel.style.display = open ? '' : 'none';
-      bug.classList.toggle('mdl-iconbtn--on', open);
+      bug.classList.toggle('toolbar-iconbtn--on', open);
       bug.setAttribute('aria-pressed', open ? 'true' : 'false');
       if (open) listEl.scrollTop = listEl.scrollHeight;
     }
@@ -188,7 +188,7 @@
     }
     var themeBtn = document.createElement('button');
     themeBtn.type = 'button';
-    themeBtn.className = 'mdl-iconbtn';
+    themeBtn.className = 'toolbar-iconbtn';
     themeBtn.title = 'Tema claro/oscuro';
     themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
     function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌙'; } // icon of the mode it switches TO
@@ -200,7 +200,7 @@
 
     var bug = document.createElement('button');
     bug.type = 'button';
-    bug.className = 'mdl-iconbtn';
+    bug.className = 'toolbar-iconbtn';
     bug.textContent = '🐞';
     bug.title = 'Debug log';
     bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
@@ -208,20 +208,20 @@
     bug.addEventListener('click', function () { setPanelOpen(panel.style.display === 'none'); });
 
     var tools = document.createElement('span');
-    tools.className = 'mdl-tools';
+    tools.className = 'toolbar-tools';
     tools.appendChild(themeBtn);
     tools.appendChild(bug);
 
-    // Right-align the cluster by the gear (see .mdl-tools variants in CSS).
+    // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
     var gear = document.querySelector('.brand__settings, .topbar__settings');
     if (gear && gear.classList.contains('topbar__settings')) {
-      tools.classList.add('mdl-tools--abs');
+      tools.classList.add('toolbar-tools--abs');
       gear.parentNode.insertBefore(tools, gear);
     } else if (gear) {
-      tools.classList.add('mdl-tools--push');
+      tools.classList.add('toolbar-tools--push');
       gear.parentNode.insertBefore(tools, gear);
     } else {
-      tools.classList.add('mdl-tools--fixed');
+      tools.classList.add('toolbar-tools--fixed');
       document.body.appendChild(tools);
     }
 

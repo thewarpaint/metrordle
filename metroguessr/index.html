@@ -238,7 +238,7 @@
         border-bottom: 1px solid var(--rule);
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: flex-start;
         gap: 0.3rem;
       }
 
@@ -251,7 +251,7 @@
         text-wrap: balance;
       }
 
-      /* .topbar is a centered column layout (see above), not a
+      /* .topbar is a left-aligned column layout (see above), not a
          .brand row like every other page's own settings link sits in
          - positioned in its top-right corner instead, same fixed
          positioning context .topbar itself already establishes. */
@@ -1054,6 +1054,7 @@
         function startGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
+          document.getElementById('game-title').textContent = 'Metrordle: Metroguessr #' + gameNumber;
           var target = pickTarget(dateKey, gameNumber);
           var saved = loadSavedState(dateKey);
 

@@ -1606,7 +1606,7 @@ input[type="text"]:disabled {
    cluster beside the ⚙️ gear: pushed right on a flex .brand row (--push),
    absolute left of Metroguessr's .topbar gear (--abs), or fixed on a page
    with no gear (--fixed). */
-.mdl-iconbtn {
+.toolbar-iconbtn {
   font-size: 1.05rem;
   line-height: 1;
   background: none;
@@ -1619,37 +1619,37 @@ input[type="text"]:disabled {
   appearance: none;
 }
 
-.mdl-iconbtn:hover,
-.mdl-iconbtn:focus-visible,
-.mdl-iconbtn--on {
+.toolbar-iconbtn:hover,
+.toolbar-iconbtn:focus-visible,
+.toolbar-iconbtn--on {
   opacity: 1;
 }
 
-.mdl-tools {
+.toolbar-tools {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.mdl-tools--push {
+.toolbar-tools--push {
   margin-left: auto;
 }
 
-.mdl-tools--abs {
+.toolbar-tools--abs {
   position: absolute;
   top: max(0.85rem, env(safe-area-inset-top));
   right: 2.6rem;
   z-index: 5;
 }
 
-.mdl-tools--fixed {
+.toolbar-tools--fixed {
   position: fixed;
   top: 0.5rem;
   right: 0.6rem;
   z-index: 2147483001;
 }
 
-#metro-debug-log .mdl-head {
+#metro-debug-log .toolbar-head {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1657,15 +1657,15 @@ input[type="text"]:disabled {
   background: #17171b;
 }
 
-#metro-debug-log .mdl-title {
+#metro-debug-log .toolbar-title {
   font-weight: 700;
 }
 
-#metro-debug-log .mdl-count {
+#metro-debug-log .toolbar-count {
   opacity: 0.6;
 }
 
-#metro-debug-log .mdl-spacer {
+#metro-debug-log .toolbar-spacer {
   flex: 1;
 }
 
@@ -1685,7 +1685,7 @@ input[type="text"]:disabled {
 
 /* Borderless ✕ in the header's top-right corner, distinct from the
    boxed copy/clear buttons. */
-#metro-debug-log .mdl-close {
+#metro-debug-log .toolbar-close {
   background: none;
   border: 0;
   padding: 0 2px;
@@ -1694,60 +1694,60 @@ input[type="text"]:disabled {
   color: #9a9aa3;
 }
 
-#metro-debug-log .mdl-close:hover,
-#metro-debug-log .mdl-close:active {
+#metro-debug-log .toolbar-close:hover,
+#metro-debug-log .toolbar-close:active {
   background: none;
   color: #e6e6e6;
 }
 
-#metro-debug-log .mdl-list {
+#metro-debug-log .toolbar-list {
   max-height: 38vh;
   overflow: auto;
   padding: 4px 0;
 }
 
-#metro-debug-log .mdl-row {
+#metro-debug-log .toolbar-row {
   padding: 3px 12px;
   border-top: 1px solid #1c1c22;
 }
 
-#metro-debug-log .mdl-meta {
+#metro-debug-log .toolbar-meta {
   display: flex;
   gap: 8px;
   align-items: baseline;
 }
 
-#metro-debug-log .mdl-ts {
+#metro-debug-log .toolbar-ts {
   color: #7a7a85;
 }
 
-#metro-debug-log .mdl-lv {
+#metro-debug-log .toolbar-lv {
   text-transform: uppercase;
   font-weight: 700;
 }
 
-#metro-debug-log .mdl-tx {
+#metro-debug-log .toolbar-tx {
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-#metro-debug-log .mdl-row--debug .mdl-lv,
-#metro-debug-log .mdl-row--log .mdl-lv {
+#metro-debug-log .toolbar-row--debug .toolbar-lv,
+#metro-debug-log .toolbar-row--log .toolbar-lv {
   color: #8a8a95;
 }
 
-#metro-debug-log .mdl-row--info .mdl-lv {
+#metro-debug-log .toolbar-row--info .toolbar-lv {
   color: #5bb0ff;
 }
 
-#metro-debug-log .mdl-row--warn .mdl-lv {
+#metro-debug-log .toolbar-row--warn .toolbar-lv {
   color: #ffc24b;
 }
 
-#metro-debug-log .mdl-row--error {
+#metro-debug-log .toolbar-row--error {
   background: #2a1416;
 }
 
-#metro-debug-log .mdl-row--error .mdl-lv {
+#metro-debug-log .toolbar-row--error .toolbar-lv {
   color: #ff6b6b;
 }

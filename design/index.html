@@ -98,23 +98,6 @@
         text-decoration: underline;
       }
 
-      .design-toolbar {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 0.8rem;
-      }
-
-      /* Single button showing the icon of the mode it switches TO - a sun
-         while dark (tap for light), a moon while light (tap for dark). */
-      .theme-toggle {
-        background: var(--paper-raised);
-        border: 1px solid var(--rule);
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-size: 1.1rem;
-        line-height: 1;
-        padding: 0.35rem 0.6rem;
-      }
     </style>
   </head>
 
@@ -129,10 +112,6 @@
         </svg>
         <span class="brand__text">Metrordle · Design</span>
         <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
-      </div>
-
-      <div class="design-toolbar">
-        <button type="button" class="theme-toggle" id="theme-toggle"></button>
       </div>
 
       <div class="sign">
@@ -1076,34 +1055,6 @@
           gallery.appendChild(buildExample(maxRow, '<code>.map-maximize-btn</code> · exploración, no consolidado todavía - Metroguessr, el botón redondo que maximiza el mapa (flota fijo sobre el mapa en la página real).'));
         }
 
-        // Single sun/moon toggle - reuses the site-wide theme store (see
-        // /configurar/), so a choice made here persists and applies
-        // everywhere. Shows the icon of the mode it switches TO (a sun
-        // while dark, a moon while light), resolving 'system' against the
-        // OS preference so the button always reflects what's on screen.
-        function setupThemeToggle() {
-          var btn = document.getElementById('theme-toggle');
-          if (!btn) return;
-          function isDark() {
-            var mode = MetroShared.getThemeMode();
-            if (mode === 'dark') return true;
-            if (mode === 'light') return false;
-            return window.matchMedia('(prefers-color-scheme: dark)').matches;
-          }
-          function sync() {
-            var dark = isDark();
-            btn.textContent = dark ? '☀️' : '🌙';
-            var label = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
-            btn.setAttribute('aria-label', label);
-            btn.setAttribute('title', label);
-          }
-          btn.addEventListener('click', function () {
-            MetroShared.setThemeMode(isDark() ? 'light' : 'dark');
-            sync();
-          });
-          sync();
-        }
-
         // The shared leaderboard component, all real shared.css classes.
         // Sample aliases hardcoded, rendered via .textContent like the real
         // leaderboards (AGENTS.md rendering-safety).
@@ -1194,7 +1145,6 @@
           gallery.appendChild(buildExample(meta, '<code>.leaderboard__record</code> / <code>.leaderboard__status</code> · ✅ consolidado - el récord histórico (Memoria/Metro Crush/Clasificador y <code>/admin/</code>), ahora una tarjeta dorada con la forma de una fila, mostrada sobre la tabla, y el aviso de "sin puntajes todavía / Firebase no disponible".'));
         }
 
-        setupThemeToggle();
         renderLinesGallery();
         renderStationsGallery();
         renderStationListsGallery();

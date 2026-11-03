@@ -37,20 +37,20 @@
 
   function renderRow(entry) {
     var row = document.createElement('div');
-    row.className = 'mdl-row mdl-row--' + entry.level;
+    row.className = 'toolbar-row toolbar-row--' + entry.level;
     // Meta line (time + level) on top so the message below gets full width.
     var meta = document.createElement('div');
-    meta.className = 'mdl-meta';
+    meta.className = 'toolbar-meta';
     var ts = document.createElement('span');
-    ts.className = 'mdl-ts';
+    ts.className = 'toolbar-ts';
     ts.textContent = stamp(entry.time);
     var lv = document.createElement('span');
-    lv.className = 'mdl-lv';
+    lv.className = 'toolbar-lv';
     lv.textContent = entry.level;
     meta.appendChild(ts);
     meta.appendChild(lv);
     var tx = document.createElement('div');
-    tx.className = 'mdl-tx';
+    tx.className = 'toolbar-tx';
     tx.textContent = entry.text; // textContent, never innerHTML - log text is arbitrary
     row.appendChild(meta);
     row.appendChild(tx);
@@ -114,21 +114,21 @@
   function mount() {
     if (listEl || !document.body) return;
 
-    // Styles live in shared.css (.mdl-*/.mdl-bug*), inert without this
+    // Styles live in shared.css (.toolbar-*), inert without this
     // debug-only markup.
     var panel = document.createElement('section');
     panel.id = 'metro-debug-log';
 
     var head = document.createElement('div');
-    head.className = 'mdl-head';
+    head.className = 'toolbar-head';
     var title = document.createElement('span');
-    title.className = 'mdl-title';
+    title.className = 'toolbar-title';
     title.textContent = '🐞 Debug log';
     countEl = document.createElement('span');
-    countEl.className = 'mdl-count';
+    countEl.className = 'toolbar-count';
     countEl.textContent = '(' + entries.length + ')';
     var spacer = document.createElement('span');
-    spacer.className = 'mdl-spacer';
+    spacer.className = 'toolbar-spacer';
     var copyBtn = document.createElement('button');
     copyBtn.type = 'button';
     copyBtn.textContent = 'copy';
@@ -148,14 +148,22 @@
       listEl.textContent = '';
       countEl.textContent = '(0)';
     });
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'toolbar-close';
+    closeBtn.textContent = '✕';
+    closeBtn.title = 'Cerrar';
+    closeBtn.setAttribute('aria-label', 'Cerrar el registro de depuración');
+    closeBtn.addEventListener('click', function () { setPanelOpen(false); });
     head.appendChild(title);
     head.appendChild(countEl);
     head.appendChild(spacer);
     head.appendChild(copyBtn);
     head.appendChild(clearBtn);
+    head.appendChild(closeBtn);
 
     listEl = document.createElement('div');
-    listEl.className = 'mdl-list';
+    listEl.className = 'toolbar-list';
 
     panel.appendChild(head);
     panel.appendChild(listEl);
@@ -163,33 +171,58 @@
     panel.style.display = 'none';
     document.body.appendChild(panel);
 
-    // A 🐞 toggle next to the gear: discreet, only here in debug mode.
+    function setPanelOpen(open) {
+      panel.style.display = open ? '' : 'none';
+      bug.classList.toggle('toolbar-iconbtn--on', open);
+      bug.setAttribute('aria-pressed', open ? 'true' : 'false');
+      if (open) listEl.scrollTop = listEl.scrollHeight;
+    }
+
+    // Debug controls next to the gear (debug mode only): a light/dark
+    // toggle and the 🐞 log toggle, in a right-aligned cluster.
+    function isDark() {
+      var m = getThemeMode();
+      if (m === 'dark') return true;
+      if (m === 'light') return false;
+      return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    var themeBtn = document.createElement('button');
+    themeBtn.type = 'button';
+    themeBtn.className = 'toolbar-iconbtn';
+    themeBtn.title = 'Tema claro/oscuro';
+    themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
+    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌙'; } // icon of the mode it switches TO
+    themeBtn.addEventListener('click', function () {
+      setThemeMode(isDark() ? 'light' : 'dark');
+      renderThemeIcon();
+    });
+    renderThemeIcon();
+
     var bug = document.createElement('button');
     bug.type = 'button';
-    bug.className = 'mdl-bug';
+    bug.className = 'toolbar-iconbtn';
     bug.textContent = '🐞';
     bug.title = 'Debug log';
     bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
     bug.setAttribute('aria-pressed', 'false');
-    bug.addEventListener('click', function () {
-      var open = panel.style.display === 'none';
-      panel.style.display = open ? '' : 'none';
-      bug.classList.toggle('mdl-bug--on', open);
-      bug.setAttribute('aria-pressed', open ? 'true' : 'false');
-      if (open) listEl.scrollTop = listEl.scrollHeight;
-    });
+    bug.addEventListener('click', function () { setPanelOpen(panel.style.display === 'none'); });
 
-    // Place beside the gear (see .mdl-bug variants in shared.css).
+    var tools = document.createElement('span');
+    tools.className = 'toolbar-tools';
+    tools.appendChild(themeBtn);
+    tools.appendChild(bug);
+
+    // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
     var gear = document.querySelector('.brand__settings, .topbar__settings');
     if (gear && gear.classList.contains('topbar__settings')) {
-      bug.classList.add('mdl-bug--abs');
-      gear.parentNode.insertBefore(bug, gear);
+      tools.classList.add('toolbar-tools--abs');
+      gear.parentNode.insertBefore(tools, gear);
     } else if (gear) {
-      bug.classList.add('mdl-bug--push');
-      gear.parentNode.insertBefore(bug, gear);
+      tools.classList.add('toolbar-tools--push');
+      gear.parentNode.insertBefore(tools, gear);
     } else {
-      bug.classList.add('mdl-bug--fixed');
-      document.body.appendChild(bug);
+      tools.classList.add('toolbar-tools--fixed');
+      document.body.appendChild(tools);
     }
 
     // Flush anything logged before the panel existed.

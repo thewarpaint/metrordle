@@ -1635,6 +1635,14 @@ input[type="text"]:disabled {
   margin-left: auto;
 }
 
+/* The cluster is inserted right before the gear, so it provides the only
+   margin-left:auto - drop the gear's own, or the two autos split the free
+   space and leave a gap between the cluster and the gear (visible when the
+   brand title is short, e.g. /admin/). */
+.toolbar-tools--push + .brand__settings {
+  margin-left: 0;
+}
+
 .toolbar-tools--abs {
   position: absolute;
   top: max(0.85rem, env(safe-area-inset-top));

@@ -5,19 +5,17 @@
 // each game's own script, so there's no module system - everything hangs
 // off window.MetroShared instead of the global scope.
 
-// --- On-page console log panel (?debug=true only) -------------------
-// Phones have no DevTools console, so under debug mode we mirror
-// console.{log,debug,info,warn,error} and uncaught errors into a panel
-// at the end of the page, for observability during real mobile play.
-// Prod is untouched: nothing here runs unless debug mode is on. Set up
-// at the top of shared.js so the console hook is in place before any
-// MetroShared/game logging fires (all of which runs after this script's
-// own top-level does); entries logged before the panel mounts are
-// buffered and flushed in. isDebugMode/pad2/copyToClipboard are function
-// declarations (hoisted), so referencing them here is fine.
-(function initDebugLogPanel() {
-  if (!isDebugMode()) return;
-
+// --- Header toolbar: light/dark toggle (every page) + debug log panel
+// (?debug=true only). The theme toggle sits next to the gear on every
+// page. Under debug mode we also mirror console.{log,debug,info,warn,
+// error} and uncaught errors into an on-page panel (phones have no
+// DevTools) with a 🐞 toggle. Set up at the top of shared.js so the
+// console hook (debug only) is in place before any MetroShared/game
+// logging fires. isDebugMode/pad2/copyToClipboard/getThemeMode/
+// setThemeMode are hoisted declarations, so referencing them here is fine.
+(function initToolbar() {
+  var debug = isDebugMode();
+  var mounted = false;
   var MAX_ENTRIES = 500;
   var entries = [];
   var listEl = null;
@@ -74,30 +72,33 @@
   // MetroShared is defined below (the deferred mount() is wrapped at its
   // scheduling site; the per-call hooks guard record()).
   try {
-    // Wrap each console method: call the original first (so desktop
-    // DevTools still works), then mirror into the panel. try/catch so a
-    // logging failure can never break the page.
-    ['log', 'debug', 'info', 'warn', 'error'].forEach(function (level) {
-      var original = (typeof console !== 'undefined' && console[level])
-        ? console[level].bind(console) : function () {};
-      console[level] = function () {
-        var args = Array.prototype.slice.call(arguments);
-        original.apply(null, args);
-        try { record(level, args.map(formatArg).join(' ')); } catch (e) { /* noop */ }
-      };
-    });
+    if (debug) {
+      // Wrap each console method: call the original first (so desktop
+      // DevTools still works), then mirror into the panel. try/catch so a
+      // logging failure can never break the page.
+      ['log', 'debug', 'info', 'warn', 'error'].forEach(function (level) {
+        var original = (typeof console !== 'undefined' && console[level])
+          ? console[level].bind(console) : function () {};
+        console[level] = function () {
+          var args = Array.prototype.slice.call(arguments);
+          original.apply(null, args);
+          try { record(level, args.map(formatArg).join(' ')); } catch (e) { /* noop */ }
+        };
+      });
 
-    // Uncaught errors/rejections don't go through console.error on their
-    // own - exactly what you can't otherwise see on a phone.
-    window.addEventListener('error', function (e) {
-      var where = e.filename ? ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno : '';
-      try { record('error', 'Uncaught: ' + (e.message || formatArg(e.error)) + where); } catch (x) {}
-    });
-    window.addEventListener('unhandledrejection', function (e) {
-      try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
-    });
+      // Uncaught errors/rejections don't go through console.error on their
+      // own - exactly what you can't otherwise see on a phone.
+      window.addEventListener('error', function (e) {
+        var where = e.filename ? ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno : '';
+        try { record('error', 'Uncaught: ' + (e.message || formatArg(e.error)) + where); } catch (x) {}
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
+      });
+    }
 
-    // Defer to DOMContentLoaded so the game's own inline script mounts
+    // Mount the toolbar (theme toggle always; panel only in debug).
+    // Deferred to DOMContentLoaded so the game's own inline script mounts
     // first and the panel lands last in the body. The deferred callback
     // runs after this try exits, so it carries its own guard.
     if (document.readyState === 'loading') {
@@ -112,73 +113,11 @@
   }
 
   function mount() {
-    if (listEl || !document.body) return;
+    if (mounted || !document.body) return;
+    mounted = true;
 
-    // Styles live in shared.css (.toolbar-*), inert without this
-    // debug-only markup.
-    var panel = document.createElement('section');
-    panel.id = 'metro-debug-log';
-
-    var head = document.createElement('div');
-    head.className = 'toolbar-head';
-    var title = document.createElement('span');
-    title.className = 'toolbar-title';
-    title.textContent = '🐞 Debug log';
-    countEl = document.createElement('span');
-    countEl.className = 'toolbar-count';
-    countEl.textContent = '(' + entries.length + ')';
-    var spacer = document.createElement('span');
-    spacer.className = 'toolbar-spacer';
-    var copyBtn = document.createElement('button');
-    copyBtn.type = 'button';
-    copyBtn.textContent = 'copy';
-    copyBtn.addEventListener('click', function () {
-      var text = entries.map(function (e) {
-        return stamp(e.time) + ' [' + e.level + '] ' + e.text;
-      }).join('\n');
-      copyToClipboard(text);
-      copyBtn.textContent = 'copied';
-      setTimeout(function () { copyBtn.textContent = 'copy'; }, 1200);
-    });
-    var clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.textContent = 'clear';
-    clearBtn.addEventListener('click', function () {
-      entries = [];
-      listEl.textContent = '';
-      countEl.textContent = '(0)';
-    });
-    var closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'toolbar-close';
-    closeBtn.textContent = '✕';
-    closeBtn.title = 'Cerrar';
-    closeBtn.setAttribute('aria-label', 'Cerrar el registro de depuración');
-    closeBtn.addEventListener('click', function () { setPanelOpen(false); });
-    head.appendChild(title);
-    head.appendChild(countEl);
-    head.appendChild(spacer);
-    head.appendChild(copyBtn);
-    head.appendChild(clearBtn);
-    head.appendChild(closeBtn);
-
-    listEl = document.createElement('div');
-    listEl.className = 'toolbar-list';
-
-    panel.appendChild(head);
-    panel.appendChild(listEl);
-    // Hidden until the 🐞 toggle opens it; the count still ticks.
-    panel.style.display = 'none';
-    document.body.appendChild(panel);
-
-    function setPanelOpen(open) {
-      panel.style.display = open ? '' : 'none';
-      bug.setAttribute('aria-pressed', open ? 'true' : 'false');
-      if (open) listEl.scrollTop = listEl.scrollHeight;
-    }
-
-    // Debug controls next to the gear (debug mode only): a light/dark
-    // toggle and the 🐞 log toggle, in a right-aligned cluster.
+    // Light/dark toggle - shown on every page. Styles live in shared.css
+    // (.toolbar-*). Shows the icon of the mode it switches TO.
     function isDark() {
       var m = getThemeMode();
       if (m === 'dark') return true;
@@ -190,26 +129,93 @@
     themeBtn.className = 'toolbar-iconbtn';
     themeBtn.title = 'Tema claro/oscuro';
     themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
-    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌑'; } // icon of the mode it switches TO
+    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌑'; }
     themeBtn.addEventListener('click', function () {
       setThemeMode(isDark() ? 'light' : 'dark');
       renderThemeIcon();
     });
     renderThemeIcon();
 
-    var bug = document.createElement('button');
-    bug.type = 'button';
-    bug.className = 'toolbar-iconbtn';
-    bug.textContent = '🐞';
-    bug.title = 'Debug log';
-    bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
-    bug.setAttribute('aria-pressed', 'false');
-    bug.addEventListener('click', function () { setPanelOpen(panel.style.display === 'none'); });
-
     var tools = document.createElement('span');
     tools.className = 'toolbar-tools';
-    tools.appendChild(bug);
     tools.appendChild(themeBtn);
+
+    // Debug mode only: the on-page console panel + its 🐞 toggle (placed
+    // before the theme toggle in the cluster).
+    if (debug) {
+      var panel = document.createElement('section');
+      panel.id = 'metro-debug-log';
+
+      var head = document.createElement('div');
+      head.className = 'toolbar-head';
+      var title = document.createElement('span');
+      title.className = 'toolbar-title';
+      title.textContent = '🐞 Debug log';
+      countEl = document.createElement('span');
+      countEl.className = 'toolbar-count';
+      countEl.textContent = '(' + entries.length + ')';
+      var spacer = document.createElement('span');
+      spacer.className = 'toolbar-spacer';
+      var copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.textContent = 'copy';
+      copyBtn.addEventListener('click', function () {
+        var text = entries.map(function (e) {
+          return stamp(e.time) + ' [' + e.level + '] ' + e.text;
+        }).join('\n');
+        copyToClipboard(text);
+        copyBtn.textContent = 'copied';
+        setTimeout(function () { copyBtn.textContent = 'copy'; }, 1200);
+      });
+      var clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.textContent = 'clear';
+      clearBtn.addEventListener('click', function () {
+        entries = [];
+        listEl.textContent = '';
+        countEl.textContent = '(0)';
+      });
+      var closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'toolbar-close';
+      closeBtn.textContent = '✕';
+      closeBtn.title = 'Cerrar';
+      closeBtn.setAttribute('aria-label', 'Cerrar el registro de depuración');
+      closeBtn.addEventListener('click', function () { setPanelOpen(false); });
+      head.appendChild(title);
+      head.appendChild(countEl);
+      head.appendChild(spacer);
+      head.appendChild(copyBtn);
+      head.appendChild(clearBtn);
+      head.appendChild(closeBtn);
+
+      listEl = document.createElement('div');
+      listEl.className = 'toolbar-list';
+
+      panel.appendChild(head);
+      panel.appendChild(listEl);
+      panel.style.display = 'none'; // hidden until the 🐞 toggle opens it
+      document.body.appendChild(panel);
+
+      var bug = document.createElement('button');
+      bug.type = 'button';
+      bug.className = 'toolbar-iconbtn';
+      bug.textContent = '🐞';
+      bug.title = 'Debug log';
+      bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
+      bug.setAttribute('aria-pressed', 'false');
+      var setPanelOpen = function (open) {
+        panel.style.display = open ? '' : 'none';
+        bug.setAttribute('aria-pressed', open ? 'true' : 'false');
+        if (open) listEl.scrollTop = listEl.scrollHeight;
+      };
+      bug.addEventListener('click', function () { setPanelOpen(panel.style.display === 'none'); });
+      tools.insertBefore(bug, themeBtn);
+
+      // Flush anything logged before the panel existed.
+      entries.forEach(renderRow);
+      listEl.scrollTop = listEl.scrollHeight;
+    }
 
     // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
     var gear = document.querySelector('.brand__settings, .topbar__settings');
@@ -223,10 +229,6 @@
       tools.classList.add('toolbar-tools--fixed');
       document.body.appendChild(tools);
     }
-
-    // Flush anything logged before the panel existed.
-    entries.forEach(renderRow);
-    listEl.scrollTop = listEl.scrollHeight;
   }
 })();
 

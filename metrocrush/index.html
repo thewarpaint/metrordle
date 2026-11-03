@@ -322,14 +322,16 @@
 
           <div class="start-overlay" id="start-overlay">
             <div class="start-overlay__panel">
-              <p class="start-overlay__text">
-                <strong>Modo difícil:</strong> las estaciones no muestran su
-                línea — solo se revelan un instante al formar un grupo.
-              </p>
               <div class="start-overlay__modes">
                 <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
                 <button type="button" class="btn-secondary" id="start-hard-btn">Jugar modo difícil</button>
               </div>
+              <p class="start-overlay__text">
+                <strong>Modo difícil:</strong> las estaciones no muestran su
+                línea — solo se revelan un instante al formar un grupo.
+                Además, 3 jugadas acertadas seguidas suman 1 segundo al
+                reloj y una jugada fallida resta 1.
+              </p>
             </div>
           </div>
         </div>
@@ -407,6 +409,8 @@
         var HINT_IDLE_MS = 5000;
         var TOAST_MS = 5000; // combo toast auto-clears after this
         var HARD_MODE_MULTIPLIER = 2;
+        // Hard mode: this many valid moves in a row add a clock second; a miss subtracts one.
+        var HARD_BONUS_RUN = 3;
         var SHARE_URL = 'https://metrordle.com/metrocrush/';
         var LEADERBOARD_COLLECTION = 'metrocrush-leaderboard';
         var LEADERBOARD_SIZE = 5;
@@ -758,6 +762,7 @@
             idleTimer: null,
             hintCell: null,
             cascadeStep: 0,
+            correctRun: 0,
             maxCombo: 1,
             maxRunSeen: 3,
             streak: 0,
@@ -1006,7 +1011,8 @@
 
           els.mcTime.textContent = formatClock(state.timeLeft);
           els.mcScore.textContent = state.score + (state.score === 1 ? ' punto' : ' puntos');
-          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          // Clamp: hard-mode bonus seconds can push timeLeft past ROUND_SECONDS.
+          els.progressFill.style.width = Math.min(100, state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
         // Keep swapping tiles past the reveal, no stakes - the real result
@@ -1283,6 +1289,12 @@
             state.selected = null;
             state.busy = true;
             render();
+            if (state.mode === 'hard' && state.status === 'playing') {
+              state.correctRun = 0;
+              state.timeLeft = Math.max(0, state.timeLeft - 1);
+              renderStatus();
+              if (state.timeLeft <= 0) { endRound(); return; }
+            }
             flashInvalid(a, b);
             return;
           }
@@ -1290,6 +1302,11 @@
           state.selected = null;
           state.busy = true;
           state.cascadeStep = 0;
+          if (state.mode === 'hard' && state.status === 'playing' && ++state.correctRun >= HARD_BONUS_RUN) {
+            state.correctRun = 0;
+            state.timeLeft += 1;
+            renderStatus();
+          }
           render();
           animateSwapIn(a, rectB, rectA);
           animateSwapIn(b, rectA, rectB);

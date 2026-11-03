@@ -70,10 +70,9 @@
     }
   }
 
-  // Fail-safe: the whole setup is wrapped so a failure installing the
-  // hook can never throw out of the IIFE and abort shared.js before
-  // MetroShared is defined below. The deferred mount() is wrapped where
-  // it's scheduled; the per-call hooks guard record() too.
+  // Fail-safe: a setup failure here must never abort shared.js before
+  // MetroShared is defined below (the deferred mount() is wrapped at its
+  // scheduling site; the per-call hooks guard record()).
   try {
     // Wrap each console method: call the original first (so desktop
     // DevTools still works), then mirror into the panel. try/catch so a
@@ -98,11 +97,9 @@
       try { record('error', 'Unhandled rejection: ' + formatArg(e.reason)); } catch (x) {}
     });
 
-    // shared.js runs at the end of <body>, so DOMContentLoaded hasn't
-    // fired yet - mounting on it means the game's own inline script has
-    // run first, keeping the panel genuinely last in the body. The
-    // deferred callback runs after this try exits, so it guards itself;
-    // the direct else-branch mount() is covered by this try.
+    // Defer to DOMContentLoaded so the game's own inline script mounts
+    // first and the panel lands last in the body. The deferred callback
+    // runs after this try exits, so it carries its own guard.
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function () {
         try { mount(); } catch (e) { /* best-effort */ }

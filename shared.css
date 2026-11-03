@@ -337,6 +337,10 @@ a {
 
 .start-overlay__text strong { color: var(--ink); }
 
+/* When the copy sits below the mode buttons (Metro Crush) rather than
+   above them, it needs breathing room off the button it explains. */
+.start-overlay__modes + .start-overlay__text { margin-top: 1rem; }
+
 .start-overlay__modes {
   display: flex;
   flex-direction: column;

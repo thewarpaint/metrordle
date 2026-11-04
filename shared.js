@@ -780,8 +780,7 @@ function buildGamePromo(currentGameKey, dateKey) {
   grid.className = 'game-promo__grid';
   suggestions.forEach(function (game) { grid.appendChild(buildGameCard(game, false)); });
 
-  // A card like the rest (no glyph/sub), spanning both columns, linking
-  // to the full games index.
+  // Full games index, as a card spanning both columns (no glyph/sub).
   var all = document.createElement('a');
   all.className = 'game-promo__card game-promo__all';
   all.href = '/juegos/';

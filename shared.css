@@ -790,8 +790,7 @@ input[type="text"]:disabled {
   line-height: 1.3;
 }
 
-/* The "Todos los juegos" card: same look as a game card, but spanning
-   both columns with just its centered name (no glyph/sub). */
+/* The "Todos los juegos" card: spans both columns, name centered. */
 .game-promo__all {
   align-items: center;
   grid-column: 1 / -1;

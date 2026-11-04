@@ -668,13 +668,13 @@ function getGameNumberForDateKey(dateKey, startDateKey) {
 // each page's own storageKeyFor()), which is what makes a single
 // shared isGamePlayedToday() possible below instead of one per game.
 var SUGGESTABLE_GAMES = [
-  { key: 'metrordle', href: '/', name: 'Metrordle', glyph: '🚇', sub: 'Ordena la línea →' },
-  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '🃏', sub: 'Parejas en 60 segundos →' },
-  { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación →' },
-  { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Encuentra la ruta →' },
-  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Forma filas de 3 →' },
-  { key: 'clasificador', href: '/clasificador/', name: 'Clasificador', glyph: '🪣', sub: 'Clasifica las estaciones →' },
-  { key: 'copo-de-nieve', href: '/copo-de-nieve/', name: 'Copo de nieve', glyph: '❄️', sub: 'Encuentra la única →' },
+  { key: 'metrordle', href: '/', name: 'Metrordle', glyph: '🚇', sub: 'Ordena cinco estaciones de la misma línea →' },
+  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '🃏', sub: 'Haz parejas del nombre de la estación con su logo →' },
+  { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación en el mapa →' },
+  { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Navega la red para llegar a tu destino →' },
+  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Junta tres o más estaciones →' },
+  { key: 'clasificador', href: '/clasificador/', name: 'Clasificador', glyph: '🪣', sub: 'Mueve las estaciones a la línea correcta →' },
+  { key: 'copo-de-nieve', href: '/copo-de-nieve/', name: 'Copo de nieve', glyph: '❄️', sub: 'Encuentra la estación que no es como el resto →' },
 ];
 
 // Whether `gameKey` already has a completed result for `dateKey`, read
@@ -779,6 +779,18 @@ function buildGamePromo(currentGameKey, dateKey) {
   var grid = document.createElement('div');
   grid.className = 'game-promo__grid';
   suggestions.forEach(function (game) { grid.appendChild(buildGameCard(game, false)); });
+
+  // Full games index, as a card spanning both columns (no glyph/sub).
+  var all = document.createElement('a');
+  all.className = 'game-promo__card game-promo__all';
+  all.href = '/juegos/';
+  var allGlyphs = SUGGESTABLE_GAMES.map(function (g) { return g.glyph; }).join('');
+  var allName = document.createElement('span');
+  allName.className = 'game-promo__name';
+  allName.textContent = allGlyphs + ' Todos los juegos';
+  all.appendChild(allName);
+  grid.appendChild(all);
+
   section.appendChild(grid);
 
   return section;

@@ -790,6 +790,14 @@ input[type="text"]:disabled {
   line-height: 1.3;
 }
 
+/* The "Todos los juegos" card: spans both columns, name centered. */
+.game-promo__all {
+  align-items: center;
+  grid-column: 1 / -1;
+  justify-content: center;
+  text-align: center;
+}
+
 /* Daily leaderboard (Firestore-backed) - shared by every game that has
    one (Metrordle, Laberinto, Memoria, Metroguessr, Metro Crush). The
    badge+number combined score display (Metrordle/Metro Crush/

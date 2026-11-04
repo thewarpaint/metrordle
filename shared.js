@@ -781,6 +781,12 @@ function buildGamePromo(currentGameKey, dateKey) {
   suggestions.forEach(function (game) { grid.appendChild(buildGameCard(game, false)); });
   section.appendChild(grid);
 
+  var all = document.createElement('a');
+  all.className = 'game-promo__all';
+  all.href = '/juegos/';
+  all.textContent = 'Todos los juegos';
+  section.appendChild(all);
+
   return section;
 }
 

@@ -785,9 +785,10 @@ function buildGamePromo(currentGameKey, dateKey) {
   var all = document.createElement('a');
   all.className = 'game-promo__card game-promo__all';
   all.href = '/juegos/';
+  var allGlyphs = SUGGESTABLE_GAMES.map(function (g) { return g.glyph; }).join('');
   var allName = document.createElement('span');
   allName.className = 'game-promo__name';
-  allName.textContent = 'Todos los juegos';
+  allName.textContent = allGlyphs + ' Todos los juegos';
   all.appendChild(allName);
   grid.appendChild(all);
 

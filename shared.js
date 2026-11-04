@@ -779,13 +779,19 @@ function buildGamePromo(currentGameKey, dateKey) {
   var grid = document.createElement('div');
   grid.className = 'game-promo__grid';
   suggestions.forEach(function (game) { grid.appendChild(buildGameCard(game, false)); });
-  section.appendChild(grid);
 
+  // A card like the rest (no glyph/sub), spanning both columns, linking
+  // to the full games index.
   var all = document.createElement('a');
-  all.className = 'game-promo__all';
+  all.className = 'game-promo__card game-promo__all';
   all.href = '/juegos/';
-  all.textContent = 'Todos los juegos';
-  section.appendChild(all);
+  var allName = document.createElement('span');
+  allName.className = 'game-promo__name';
+  allName.textContent = 'Todos los juegos';
+  all.appendChild(allName);
+  grid.appendChild(all);
+
+  section.appendChild(grid);
 
   return section;
 }

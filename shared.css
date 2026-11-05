@@ -162,8 +162,7 @@ a {
   color: var(--ink-soft);
 }
 
-/* With the favicon as the home mark, the title drops the "Metrordle ·"
-   prefix and takes the game-title look (Overpass 800), just smaller. */
+/* Favicon-equipped headers: the title takes the game-title look, smaller. */
 .brand:has(.brand__home) .brand__text {
   font-family: 'Overpass', sans-serif;
   font-size: 1.1rem;

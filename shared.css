@@ -162,6 +162,18 @@ a {
   color: var(--ink-soft);
 }
 
+/* With the favicon as the home mark, the title drops the "Metrordle ·"
+   prefix and takes the game-title look (Overpass 800), just smaller. */
+.brand:has(.brand__home) .brand__text {
+  font-family: 'Overpass', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  text-transform: none;
+  color: var(--ink);
+}
+
 /* Links to /configurar/ from every game's own header - pushed to the
    far right of the (flex) .brand row via margin-left: auto rather than
    needing its own wrapper. Emoji-only like the site's other

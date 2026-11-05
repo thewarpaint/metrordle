@@ -780,14 +780,18 @@ function buildGamePromo(currentGameKey, dateKey) {
   grid.className = 'game-promo__grid';
   suggestions.forEach(function (game) { grid.appendChild(buildGameCard(game, false)); });
 
-  // Full games index, as a card spanning both columns (no glyph/sub).
+  // Full games index, as a card (no glyph/sub). It fills the row's empty
+  // column beside a single suggestion, but spans both columns otherwise.
   var all = document.createElement('a');
   all.className = 'game-promo__card game-promo__all';
+  if (suggestions.length !== 1) all.classList.add('game-promo__all--wide');
   all.href = '/juegos/';
   var allGlyphs = SUGGESTABLE_GAMES.map(function (g) { return g.glyph; }).join('');
   var allName = document.createElement('span');
   allName.className = 'game-promo__name';
-  allName.textContent = allGlyphs + ' Todos los juegos';
+  allName.appendChild(document.createTextNode(allGlyphs));
+  allName.appendChild(document.createElement('br'));
+  allName.appendChild(document.createTextNode('Todos los juegos'));
   all.appendChild(allName);
   grid.appendChild(all);
 

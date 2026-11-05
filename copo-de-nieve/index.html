@@ -84,32 +84,14 @@
       @keyframes diff-pop { 50% { transform: scale(1.18); } }
       @keyframes diff-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
-      /* Hard-mode elastic clock cue: flash the time and float a +1/−1 so the
-         bonus/penalty isn't lost against the countdown (mirrors Clasificador). */
-      .clock { position: relative; display: inline-block; }
-      #time-text { display: inline-block; transition: transform 0.15s ease, color 0.15s ease; }
-      #time-text.clock--up { color: var(--ok); transform: scale(1.3); }
-      #time-text.clock--down { color: var(--danger); transform: scale(1.3); }
-      .clock__delta {
-        position: absolute; left: 50%; bottom: 100%; margin-bottom: 0.2rem;
-        pointer-events: none; opacity: 0;
-      }
-      .clock__delta--show { animation: clock-delta-rise 0.7s ease forwards; }
-      @keyframes clock-delta-rise {
-        0% { opacity: 0; transform: translate(-50%, 0.2rem); }
-        25% { opacity: 1; }
-        100% { opacity: 0; transform: translate(-50%, -1rem); }
-      }
-
       /* The start/result overlay reuses shared .start-overlay over the
          board. On the results screen (.board-stage--done) the overlay drops
          to normal flow and the board is hidden, so the card grows to fit the
          full found-stations grid and the page scrolls - instead of the grid
          being clipped inside the fixed-height board area. */
       .start-overlay { background: var(--paper-raised); }
-      /* The overlay doubles as the reveal, so the pre-round mode picker is
-         hidden there - but .start-overlay__modes sets display:flex, which beats
-         the [hidden] attribute's own display:none, so make it explicit. */
+      /* .start-overlay__modes sets display:flex, so [hidden] alone won't hide
+         the mode picker when the overlay doubles as the reveal. */
       #start-modes[hidden] { display: none; }
       .board-stage--done #board { display: none; }
       /* In the result state the overlay IS the card's full-width content,
@@ -162,7 +144,7 @@
           <div class="progress">
             <div class="progress__track"><div class="progress__fill" id="time-fill"></div></div>
             <div class="progress__label progress__label--split">
-              <span class="clock"><b id="time-text">1:00</b><span class="clock__delta" id="time-delta" aria-hidden="true"></span></span>
+              <span class="clock"><b class="clock__time" id="time-text">1:00</b><span class="clock__delta" id="time-delta" aria-hidden="true"></span></span>
               <span><b id="score-text">0</b> aciertos</span>
             </div>
           </div>
@@ -230,8 +212,7 @@
         'use strict';
 
         var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000;
-        // Hard mode only: every HARD_BONUS_RUN correct taps in a row add a
-        // second to the clock; a wrong tap subtracts one (ending at 0).
+        // Hard mode: this many correct taps in a row add a clock second; a wrong tap subtracts one.
         var HARD_BONUS_RUN = 5;
         // Difficulty ramp (t in pickOdd): flat at 0 for the first RAMP_FLAT
         // finds, then climbs linearly to 1 over the next RAMP_SPAN.
@@ -408,13 +389,12 @@
             renderScoreText();
             flash(cell, 'cell--hit');
             nextRound();
-            // Hard mode: a run of correct taps earns clock seconds (real play
-            // only - practice has no countdown).
+            // Hard mode (real play only - practice has no countdown): a run earns a second.
             if (state.running && state.mode === 'hard' && ++state.correctRun >= HARD_BONUS_RUN) {
               state.correctRun = 0;
               state.endTime += 1000;
               state.secondsWon += 1;
-              pulseClock(1);
+              MetroShared.pulseClock(timeText, timeDelta, 1);
             }
           } else {
             flash(cell, 'cell--wrong');
@@ -423,28 +403,10 @@
               state.correctRun = 0;
               state.endTime -= 1000;
               state.secondsLost += 1;
-              pulseClock(-1);
+              MetroShared.pulseClock(timeText, timeDelta, -1);
               if (state.endTime - performance.now() <= 0) { finish(); return; }
             }
           }
-        }
-
-        // Hard-mode cue: flash the time and float a +1/−1 so the bonus/penalty
-        // isn't lost against the running countdown. tick() only sets textContent,
-        // so the toggled class survives the next frame.
-        function pulseClock(delta) {
-          var up = delta > 0;
-          var numCls = up ? 'clock--up' : 'clock--down';
-          timeText.classList.remove('clock--up', 'clock--down');
-          void timeText.offsetWidth;
-          timeText.classList.add(numCls);
-          setTimeout(function () { timeText.classList.remove(numCls); }, 300);
-
-          timeDelta.textContent = (up ? '+' : '−') + '1';
-          timeDelta.className = 'clock__delta attempt-chip attempt-chip--' + (up ? 'good' : 'bad');
-          void timeDelta.offsetWidth;
-          timeDelta.classList.add('clock__delta--show');
-          setTimeout(function () { timeDelta.classList.remove('clock__delta--show'); }, 700);
         }
 
         // In practice the score column counts points since practice began

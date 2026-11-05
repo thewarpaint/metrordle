@@ -696,6 +696,24 @@ input[type="text"]:disabled {
 .attempt-chip--mid { background: var(--warn); color: var(--warn-ink); }
 .attempt-chip--good { background: var(--ok); color: var(--ok-ink); }
 
+/* Hard-mode elastic-clock cue (Clasificador, Copo de nieve): flash the time
+   green/red and float a +1/−1 .attempt-chip so the bonus/penalty isn't lost
+   against the running countdown. Driven by MetroShared.pulseClock(). */
+.clock { position: relative; display: inline-block; }
+.clock__time { display: inline-block; transition: transform 0.15s ease, color 0.15s ease; }
+.clock__time.clock--up { color: var(--ok); transform: scale(1.3); }
+.clock__time.clock--down { color: var(--danger); transform: scale(1.3); }
+.clock__delta {
+  position: absolute; left: 50%; bottom: 100%; margin-bottom: 0.2rem;
+  pointer-events: none; opacity: 0;
+}
+.clock__delta--show { animation: clock-delta-rise 0.7s ease forwards; }
+@keyframes clock-delta-rise {
+  0% { opacity: 0; transform: translate(-50%, 0.2rem); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -1rem); }
+}
+
 /* "Nothing's saved, keep playing" banner past a timed game's reveal (its
    track hidden - no countdown). Memoria + Metro Crush continuePractice(). */
 .practice-banner {

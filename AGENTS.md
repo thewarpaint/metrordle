@@ -776,8 +776,10 @@ about `//`/`/* */` comments in the actual game/test code.)
   Clasificador's own `HARD_BONUS_RUN` (5): every 5 correct taps in a row
   add a second to the clock (adjusting `state.endTime`, since the timer
   is `performance.now()`-based, not a per-second `timeLeft`), each wrong
-  tap subtracts one (ending the round if it hits 0), with a `pulseClock()`
-  +1/−1 cue reusing the shared `.attempt-chip` (same as Clasificador's).
+  tap subtracts one (ending the round if it hits 0), with the shared
+  `MetroShared.pulseClock()` +1/−1 cue (promoted from Clasificador's own
+  page-local copy once this became its second consumer - the `.clock*`
+  CSS and the JS helper both live in shared now).
   The `timeFill` width is clamped to 100% since a bonus-fed `endTime` can
   run past `ROUND_MS`. `state.secondsWon`/`secondsLost` are shown as a
   two-tile `.stat-grid` on the hard-mode reveal (same as Clasificador),
@@ -895,7 +897,10 @@ are impossible without a debug override.
   (both from a shared `buildGameCard` - see "Game suggestions" below),
   `renderNoticeBanner(el,
   variantClass, title, bodyText)` for every game's own end-of-round
-  `.notice` banner (see `/design/`'s own "Avisos" bullet above), and
+  `.notice` banner (see `/design/`'s own "Avisos" bullet above),
+  `pulseClock(timeEl, deltaEl, delta)` for the hard-mode elastic-clock
+  +1/−1 cue (Clasificador + Copo de nieve, paired with the shared
+  `.clock*` CSS below), and
   the site-wide config object (`loadConfig`/`saveConfig`/`getThemeMode`/
   `applyThemeMode`/`setThemeMode` - see "Site config" below), and
   `buildStationMasks(svgText)`, which turns the fetched station-icon sprite
@@ -1090,7 +1095,14 @@ are impossible without a debug override.
   (next to `.progress__fill--countdown`) since `/design/`'s own Progreso
   board renders the real classes - Metrordle is their only consumer so far,
   but the band tokens (`--danger`/`--warn`/`--ok`) are site-wide and the
-  design page shows them directly, so page-local was the wrong home.
+  design page shows them directly, so page-local was the wrong home. The
+  hard-mode elastic-clock cue lives here too now - `.clock`/`.clock__time`
+  (`.clock--up`/`--down`) + `.clock__delta`/`--show` + the
+  `clock-delta-rise` keyframe, driven by `MetroShared.pulseClock()` and
+  reusing an `.attempt-chip` for the floating +1/−1 - promoted from
+  Clasificador's own page-local copy once Copo de nieve became its
+  second consumer (the only difference had been the time element's id,
+  now the shared `.clock__time` class).
   `.practice-banner`/`.practice-banner__text` (the "keep playing, nothing's
   saved" in-round banner shown past a timed game's reveal - Memoria's and
   Metro Crush's own `continuePractice()`) also live here now, promoted from

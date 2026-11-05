@@ -190,7 +190,16 @@ about `//`/`/* */` comments in the actual game/test code.)
   to form rows of 3+ of the same line before a 60-second timer runs out,
   Bejeweled-style, with a normal/hard mode toggle (hard hides each
   tile's line color, revealing it only mid-pop) and cascading combos.
-  Its status strip is the shared `.progress` bar (shared.css, same as
+  Hard mode also makes the clock elastic, the same mechanic as
+  Clasificador's/Copo de nieve's own (`HARD_BONUS_RUN` 3, `state.correctRun`):
+  every 3 valid moves in a row add a second, each invalid move subtracts
+  one (ending the round if it hits 0), with the shared
+  `MetroShared.pulseClock()` +1/−1 cue and `state.secondsWon`/`secondsLost`
+  shown as a two-tile `.stat-grid` on the hard-mode reveal (same as the
+  other two; `secondsWon`/`secondsLost` persist in the saved result for a
+  reload). `.progress__fill` is clamped to 100% since a bonus-fed
+  `timeLeft` can run past `ROUND_SECONDS`. Normal mode keeps the flat
+  countdown. Its status strip is the shared `.progress` bar (shared.css, same as
   Memoria): the track fills with the time remaining and a three-slot
   `.progress__label--split` row reads the time left (m:ss) on the left,
   points on the right, and the combo toast (`setToast()`) centered
@@ -899,8 +908,8 @@ are impossible without a debug override.
   variantClass, title, bodyText)` for every game's own end-of-round
   `.notice` banner (see `/design/`'s own "Avisos" bullet above),
   `pulseClock(timeEl, deltaEl, delta)` for the hard-mode elastic-clock
-  +1/−1 cue (Clasificador + Copo de nieve, paired with the shared
-  `.clock*` CSS below), and
+  +1/−1 cue (Clasificador, Copo de nieve, Metro Crush, paired with the
+  shared `.clock*` CSS below), and
   the site-wide config object (`loadConfig`/`saveConfig`/`getThemeMode`/
   `applyThemeMode`/`setThemeMode` - see "Site config" below), and
   `buildStationMasks(svgText)`, which turns the fetched station-icon sprite
@@ -1102,7 +1111,7 @@ are impossible without a debug override.
   reusing an `.attempt-chip` for the floating +1/−1 - promoted from
   Clasificador's own page-local copy once Copo de nieve became its
   second consumer (the only difference had been the time element's id,
-  now the shared `.clock__time` class).
+  now the shared `.clock__time` class), with Metro Crush its third.
   `.practice-banner`/`.practice-banner__text` (the "keep playing, nothing's
   saved" in-round banner shown past a timed game's reveal - Memoria's and
   Metro Crush's own `continuePractice()`) also live here now, promoted from

@@ -251,6 +251,14 @@
         text-wrap: balance;
       }
 
+      /* Favicon home link beside the title (the topbar is a column, so the
+         two need their own row to sit side by side). */
+      .topbar__head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
       /* .topbar is a left-aligned column layout (see above), not a
          .brand row like every other page's own settings link sits in
          - positioned in its top-right corner instead, same fixed
@@ -550,7 +558,12 @@
 
     <div class="topbar">
       <a class="topbar__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
-      <h1 id="game-title">Metrordle: Metroguessr</h1>
+      <div class="topbar__head">
+        <a class="brand__home" href="/juegos/" aria-label="Todos los juegos" title="Todos los juegos">
+          <img class="brand__mark" src="/favicon.png" alt="" width="20" height="20">
+        </a>
+        <h1 id="game-title">Metrordle: Metroguessr</h1>
+      </div>
       <div class="date-row" id="date-row" hidden>
         <button type="button" class="btn-secondary btn-secondary--chev btn-secondary--chev-sm" id="date-prev" aria-label="Día anterior" data-chev="left"></button>
         <span class="date-debug-label" id="date-debug-label"></span>

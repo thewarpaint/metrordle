@@ -790,12 +790,16 @@ input[type="text"]:disabled {
   line-height: 1.3;
 }
 
-/* The "Todos los juegos" card: spans both columns, name centered. */
+/* The "Todos los juegos" card: name centered. Half-width beside a lone
+   suggestion; --wide spans both columns (2 or 0 suggestions). */
 .game-promo__all {
   align-items: center;
-  grid-column: 1 / -1;
   justify-content: center;
   text-align: center;
+}
+
+.game-promo__all--wide {
+  grid-column: 1 / -1;
 }
 
 /* Daily leaderboard (Firestore-backed) - shared by every game that has

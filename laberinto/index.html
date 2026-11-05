@@ -316,7 +316,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1 id="game-title">Metrordle: Laberinto</h1>
+          <h1 id="game-title">Laberinto</h1>
           <p class="dek" id="intro-dek">
             Salta de estación en estación hasta llegar al destino. Busca la ruta con menos estaciones posible.
           </p>
@@ -809,7 +809,7 @@
         function render() {
           if (!state) return;
 
-          $('game-title').textContent = 'Metrordle: Laberinto #' + state.gameNumber;
+          $('game-title').textContent = 'Laberinto #' + state.gameNumber;
           $('term-start').textContent = state.origin;
           $('term-end').textContent = state.destination;
 

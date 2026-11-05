@@ -323,7 +323,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1 id="game-title">Metrordle: Clasificador</h1>
+          <h1 id="game-title">Clasificador</h1>
           <p class="dek">
             Clasifica cada estación en su línea antes de que se acabe el tiempo. Tienes 60 segundos.
           </p>
@@ -613,7 +613,7 @@
               queue: [],
               timerId: null,
             };
-            $('game-title').textContent = 'Metrordle: Clasificador #' + state.gameNumber;
+            $('game-title').textContent = 'Clasificador #' + state.gameNumber;
             // submitScore() itself checks state.leaderboardSubmitted and
             // no-ops if it's already true, so this is only ever a real
             // retry when an earlier attempt is known to have failed (or
@@ -650,7 +650,7 @@
             maxStreak: 0,
           };
 
-          $('game-title').textContent = 'Metrordle: Clasificador #' + state.gameNumber;
+          $('game-title').textContent = 'Clasificador #' + state.gameNumber;
           renderButtons();
           render();
         }

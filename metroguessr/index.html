@@ -562,7 +562,7 @@
         <a class="brand__home" href="/juegos/" aria-label="Todos los juegos" title="Todos los juegos">
           <img class="brand__mark" src="/favicon.png" alt="" width="20" height="20">
         </a>
-        <h1 id="game-title">Metrordle: Metroguessr</h1>
+        <h1 id="game-title">Metroguessr</h1>
       </div>
       <div class="date-row" id="date-row" hidden>
         <button type="button" class="btn-secondary btn-secondary--chev btn-secondary--chev-sm" id="date-prev" aria-label="Día anterior" data-chev="left"></button>
@@ -1067,7 +1067,7 @@
         function startGame() {
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday(debugDate));
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, START_DATE_KEY);
-          document.getElementById('game-title').textContent = 'Metrordle: Metroguessr #' + gameNumber;
+          document.getElementById('game-title').textContent = 'Metroguessr #' + gameNumber;
           var target = pickTarget(dateKey, gameNumber);
           var saved = loadSavedState(dateKey);
 
@@ -1155,7 +1155,7 @@
             leaderboardSubmitted: saved ? saved.leaderboardSubmitted : false,
           };
 
-          $('game-title').textContent = 'Metrordle: Metroguessr #' + gameNumber;
+          $('game-title').textContent = 'Metroguessr #' + gameNumber;
           renderDateDebugLabel();
 
           var pos = stationByName[target];

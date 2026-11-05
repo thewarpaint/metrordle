@@ -250,7 +250,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1 id="game-title">Metrordle: Memoria</h1>
+          <h1 id="game-title">Memoria</h1>
           <p class="dek">
             Haz la mayor cantidad de pares de íconos y nombres de estaciones del Metro de CDMX en 60 segundos.
             Cada acierto descubre un nuevo par de cartas.
@@ -896,7 +896,7 @@
         function render() {
           if (!state) return;
 
-          $('game-title').textContent = 'Metrordle: Memoria #' + state.gameNumber;
+          $('game-title').textContent = 'Memoria #' + state.gameNumber;
 
           var playing = state.status === 'playing';
           var practicing = state.status === 'practice';

@@ -359,14 +359,13 @@
               <div class="stat-box__value" id="reveal-run">3</div>
               <div class="stat-box__label">Fila más larga</div>
             </div>
-          </div>
-          <!-- Hard mode only: the elastic clock's seconds gained/lost. -->
-          <div class="stat-grid" id="elastic-stats" style="--cols: 2;" hidden>
-            <div class="stat-box">
+            <!-- Hard mode only; per-line match tiles insert before these, so
+                 the seconds sit last in the one shared grid (even spacing). -->
+            <div class="stat-box stat-box--elastic" id="stat-seconds-won" hidden>
               <div class="stat-box__value" id="reveal-seconds-won">0</div>
               <div class="stat-box__label">Segundos ganados</div>
             </div>
-            <div class="stat-box">
+            <div class="stat-box stat-box--elastic" id="stat-seconds-lost" hidden>
               <div class="stat-box__value" id="reveal-seconds-lost">0</div>
               <div class="stat-box__label">Segundos perdidos</div>
             </div>
@@ -1491,7 +1490,8 @@
           els.revealCombo.textContent = '×' + state.maxCombo;
           els.revealRun.textContent = String(state.maxRunSeen);
           var showElastic = state.mode === 'hard';
-          els.elasticStats.hidden = !showElastic;
+          els.statSecondsWon.hidden = !showElastic;
+          els.statSecondsLost.hidden = !showElastic;
           if (showElastic) {
             els.revealSecondsWon.textContent = String(state.secondsWon);
             els.revealSecondsLost.textContent = String(state.secondsLost);
@@ -1502,9 +1502,12 @@
 
         // Per-line match tiles, most-matched first; lines with 0 omitted.
         function renderMatchSummary() {
-          // Clear only prior match tiles, not the 3 fixed stats in this grid.
+          // Clear only prior match tiles, not the fixed/elastic stats here.
           var old = els.statGrid.querySelectorAll('.stat-box--match');
           for (var i = 0; i < old.length; i++) old[i].remove();
+          // Insert before the hard-mode seconds tiles so they stay last in
+          // this one shared grid (even spacing); null anchor => append.
+          var anchor = els.statGrid.querySelector('.stat-box--elastic');
 
           var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {
             return state.matchCountsByLine[id] > 0;
@@ -1531,7 +1534,7 @@
             count.textContent = '× ' + String(state.matchCountsByLine[id]).padStart(2, '0');
             box.appendChild(count);
 
-            els.statGrid.appendChild(box);
+            els.statGrid.insertBefore(box, anchor);
           });
         }
 
@@ -1804,7 +1807,8 @@
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
             statGrid: $('stat-grid'),
-            elasticStats: $('elastic-stats'),
+            statSecondsWon: $('stat-seconds-won'),
+            statSecondsLost: $('stat-seconds-lost'),
             revealSecondsWon: $('reveal-seconds-won'),
             revealSecondsLost: $('reveal-seconds-lost'),
             leaderboardAliasRow: $('leaderboard-alias-row'),

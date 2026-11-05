@@ -246,6 +246,14 @@
 
       .reveal[hidden] { display: none; }
 
+      /* 6-col base so the 3-up stat rows (span 2 = 1/3) and the hard-mode
+         seconds row (span 3 = 1/2) share one grid. #stat-seconds-won forces
+         its own row (col 1) so a non-multiple-of-3 line count can't strand it. */
+      #stat-grid { --cols: 6; }
+      #stat-grid .stat-box { grid-column: span 2; }
+      #stat-grid .stat-box--elastic { grid-column: span 3; }
+      #stat-grid #stat-seconds-won { grid-column: 1 / span 3; }
+
       /* Line chip beside its count, in the shared stats grid. Explicit chip
          size so the stretched grid cell can't pull it tall. */
       .stat-box--match {

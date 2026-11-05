@@ -767,10 +767,29 @@ about `//`/`/* */` comments in the actual game/test code.)
   cards all show one station pictogram except one, randomly placed, with
   a different one - the "única y especial" station (the game's snowflake
   theme); tapping it deals a fresh pair (`nextRound()`) and scores a
-  point. The goal is to find as many as possible in 60 s. A wrong tap
-  just flashes the card (`cell--wrong`) - no time penalty (there was a
-  1.5 s one once; dropped). The deal sequence is **deterministic per
-  day** like every other game: all per-round randomness (which two icons,
+  point. The goal is to find as many as possible in 60 s. In normal mode
+  a wrong tap just flashes the card (`cell--wrong`) - no time penalty
+  (there was a flat 1.5 s one once; dropped). Has a normal/hard mode
+  toggle now, chosen Metro-Crush/Clasificador-style via two buttons in
+  the start overlay (`start(mode)`) with the hard-mode explanation below
+  them. Hard mode makes the 60 s clock elastic, the same mechanic as
+  Clasificador's own `HARD_BONUS_RUN` (5): every 5 correct taps in a row
+  add a second to the clock (adjusting `state.endTime`, since the timer
+  is `performance.now()`-based, not a per-second `timeLeft`), each wrong
+  tap subtracts one (ending the round if it hits 0), with a `pulseClock()`
+  +1/−1 cue reusing the shared `.attempt-chip` (same as Clasificador's).
+  The `timeFill` width is clamped to 100% since a bonus-fed `endTime` can
+  run past `ROUND_MS`. `state.secondsWon`/`secondsLost` are shown as a
+  two-tile `.stat-grid` on the hard-mode reveal (same as Clasificador),
+  and `hardMode` is submitted as a display-only leaderboard field (🧠
+  badge) + a `🧠 Modo difícil` share-text line. `state.mode`/
+  `secondsWon`/`secondsLost` persist in both the in-progress
+  (`persistProgress`) and finished (`persistResult`) saves, so a resumed
+  hard round keeps its elastic clock and the reveal keeps its stats. The
+  board is icon-only in both modes (already its design), so hard mode
+  adds no name-hiding the way Clasificador's does. The deal sequence is
+  **deterministic per day** like every other game: all per-round
+  randomness (which two icons,
   where the odd one lands, the difficulty-ramp choices) routes through one
   seeded stream, `MetroShared.createSeededRandom('metrordle-copo-de-nieve-'
   + dateKey)`, reseeded at each `start()` - so every player gets the same
@@ -1240,10 +1259,15 @@ added to lock the fix in.
   (500) rather than tightly.
 - Copo de nieve: highest score, descending - same shape as Memoria's/
   Metro Crush's/Clasificador's own. `score` is how many "special"
-  stations were tapped in the 60-second round; no `hardMode` field (no
-  mode toggle). Open-ended and faster-paced than Clasificador (pure
-  tapping, no per-placement delay), so its Firestore rule bounds `score`
-  at a generous 1000.
+  stations were tapped in the 60-second round. Open-ended and
+  faster-paced than Clasificador (pure tapping, no per-placement delay),
+  so its Firestore rule bounds `score` at a generous 1000. Has a
+  display-only `hardMode` field now (🧠 badge, not part of `orderBySpecs`,
+  same as Clasificador's own) - but, unlike Clasificador's, it's an
+  *optional* field in `firestore.rules` (it shipped after the collection
+  did, so a stale cached client still submitting without it mustn't be
+  rejected - same optional-field reasoning as Laberinto's own `score`;
+  deploy the rule before/with the code).
 
 ### High score records
 

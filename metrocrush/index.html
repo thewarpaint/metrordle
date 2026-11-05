@@ -306,7 +306,10 @@
             <div class="progress__fill progress__fill--countdown" id="progress-fill" style="width: 100%"></div>
           </div>
           <div class="progress__label progress__label--split">
-            <span class="progress__count" id="mc-time">1:00</span>
+            <span class="progress__count clock">
+              <span class="clock__time" id="mc-time">1:00</span>
+              <span class="clock__delta" id="clock-delta" aria-hidden="true"></span>
+            </span>
             <span class="toast" id="toast" aria-live="polite"></span>
             <span id="mc-score">0 puntos</span>
           </div>
@@ -355,6 +358,17 @@
             <div class="stat-box">
               <div class="stat-box__value" id="reveal-run">3</div>
               <div class="stat-box__label">Fila más larga</div>
+            </div>
+          </div>
+          <!-- Hard mode only: the elastic clock's seconds gained/lost. -->
+          <div class="stat-grid" id="elastic-stats" style="--cols: 2;" hidden>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-seconds-won">0</div>
+              <div class="stat-box__label">Segundos ganados</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-seconds-lost">0</div>
+              <div class="stat-box__label">Segundos perdidos</div>
             </div>
           </div>
 
@@ -499,6 +513,8 @@
               // just renders nothing for it, same "missing => nothing
               // shown" convention as a pre-streak-field leaderboard entry.
               matchCountsByLine: (parsed.matchCountsByLine && typeof parsed.matchCountsByLine === 'object') ? parsed.matchCountsByLine : {},
+              secondsWon: typeof parsed.secondsWon === 'number' ? parsed.secondsWon : 0,
+              secondsLost: typeof parsed.secondsLost === 'number' ? parsed.secondsLost : 0,
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
           } catch (e) {
@@ -506,7 +522,7 @@
           }
         }
 
-        function persistResult(dateKey, score, mode, groupsFormed, maxCombo, maxRunSeen, matchCountsByLine, leaderboardSubmitted) {
+        function persistResult(dateKey, score, mode, groupsFormed, maxCombo, maxRunSeen, matchCountsByLine, secondsWon, secondsLost, leaderboardSubmitted) {
           try {
             localStorage.setItem(storageKeyFor(dateKey), JSON.stringify({
               score: score,
@@ -515,6 +531,8 @@
               maxCombo: maxCombo,
               maxRunSeen: maxRunSeen,
               matchCountsByLine: matchCountsByLine,
+              secondsWon: secondsWon,
+              secondsLost: secondsLost,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
           } catch (e) {
@@ -716,6 +734,8 @@
               maxCombo: saved.maxCombo,
               maxRunSeen: saved.maxRunSeen,
               matchCountsByLine: saved.matchCountsByLine,
+              secondsWon: saved.secondsWon,
+              secondsLost: saved.secondsLost,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
               leaderboardSubmitted: saved.leaderboardSubmitted,
@@ -763,6 +783,8 @@
             hintCell: null,
             cascadeStep: 0,
             correctRun: 0,
+            secondsWon: 0,
+            secondsLost: 0,
             maxCombo: 1,
             maxRunSeen: 3,
             streak: 0,
@@ -1292,6 +1314,8 @@
             if (state.mode === 'hard' && state.status === 'playing') {
               state.correctRun = 0;
               state.timeLeft = Math.max(0, state.timeLeft - 1);
+              state.secondsLost += 1;
+              MetroShared.pulseClock(els.mcTime, els.clockDelta, -1);
               renderStatus();
               if (state.timeLeft <= 0) { endRound(); return; }
             }
@@ -1305,6 +1329,8 @@
           if (state.mode === 'hard' && state.status === 'playing' && ++state.correctRun >= HARD_BONUS_RUN) {
             state.correctRun = 0;
             state.timeLeft += 1;
+            state.secondsWon += 1;
+            MetroShared.pulseClock(els.mcTime, els.clockDelta, 1);
             renderStatus();
           }
           render();
@@ -1464,6 +1490,12 @@
           els.revealGroups.textContent = String(state.groupsFormed);
           els.revealCombo.textContent = '×' + state.maxCombo;
           els.revealRun.textContent = String(state.maxRunSeen);
+          var showElastic = state.mode === 'hard';
+          els.elasticStats.hidden = !showElastic;
+          if (showElastic) {
+            els.revealSecondsWon.textContent = String(state.secondsWon);
+            els.revealSecondsLost.textContent = String(state.secondsLost);
+          }
           renderMatchSummary();
           renderGamePromo('metrocrush');
         }
@@ -1529,7 +1561,7 @@
           // actually win or lose, see STREAK_STORAGE_KEY's own comment.
           state.streak = MetroShared.updateStreakForResult(STREAK_STORAGE_KEY, state.dateKey, state.score > 0);
           state.maxStreak = MetroShared.loadStreak(STREAK_STORAGE_KEY).max;
-          persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, false);
+          persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, state.secondsWon, state.secondsLost, false);
           renderRevealStats();
           els.reveal.hidden = false;
           submitScore();
@@ -1560,7 +1592,7 @@
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
-              persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, true);
+              persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, state.secondsWon, state.secondsLost, true);
               renderLeaderboard();
               // Best-effort, same as the leaderboard submission above -
               // never rejects, so this can't turn an otherwise-successful
@@ -1754,6 +1786,7 @@
             progressTrack: $('progress-track'),
             progressFill: $('progress-fill'),
             mcTime: $('mc-time'),
+            clockDelta: $('clock-delta'),
             mcScore: $('mc-score'),
             toast: $('toast'),
             practiceBanner: $('practice-banner'),
@@ -1771,6 +1804,9 @@
             revealCombo: $('reveal-combo'),
             revealRun: $('reveal-run'),
             statGrid: $('stat-grid'),
+            elasticStats: $('elastic-stats'),
+            revealSecondsWon: $('reveal-seconds-won'),
+            revealSecondsLost: $('reveal-seconds-lost'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardRecord: $('leaderboard-record'),
             leaderboardList: $('leaderboard-list'),

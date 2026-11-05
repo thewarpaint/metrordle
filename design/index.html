@@ -794,13 +794,31 @@
           ]));
           gallery.appendChild(buildExample(crush, '<code>.progress__label--split</code> · ✅ consolidado - misma fila con un tercer hueco al centro: tiempo a la izquierda, puntos a la derecha y el aviso de combo en medio (el <code>.toast</code> centrado es propio de la página), Metro Crush.'));
 
-          // Clasificador: two-slot split label (time left / classified count).
+          // Clasificador: two-slot split label (time left / classified count),
+          // live-demoing the hard-mode elastic-clock cue - every 3s it flips a
+          // +1/−1 pulseClock badge and jumps the fill to exercise both animations.
           var clasi = progressBar('45%');
+          var clasiFill = clasi.querySelector('.progress__fill');
+          var clasiTime = document.createElement('span');
+          clasiTime.className = 'clock__time';
+          clasiTime.textContent = '0:27';
+          var clasiDelta = document.createElement('span');
+          clasiDelta.className = 'clock__delta';
+          var clasiClock = document.createElement('span');
+          clasiClock.className = 'progress__count clock';
+          clasiClock.appendChild(clasiTime);
+          clasiClock.appendChild(clasiDelta);
           clasi.appendChild(splitLabel([
-            splitSlot('0:27', { count: true }),
+            clasiClock,
             splitSlot('12 correctas'),
           ]));
-          gallery.appendChild(buildExample(clasi, '<code>.progress__label--split</code> · ✅ consolidado - misma fila de dos extremos que Memoria: tiempo restante a la izquierda, estaciones clasificadas a la derecha, Clasificador.'));
+          var clasiUp = false;
+          setInterval(function () {
+            clasiUp = !clasiUp;
+            MetroShared.pulseClock(clasiTime, clasiDelta, clasiUp ? 1 : -1);
+            clasiFill.style.width = clasiUp ? '60%' : '30%';
+          }, 3000);
+          gallery.appendChild(buildExample(clasi, '<code>.clock</code>/<code>.clock__delta</code> + <code>MetroShared.pulseClock()</code> · ✅ consolidado - el aviso del reloj elástico en modo difícil (Clasificador, Copo de nieve, Metro Crush): la hora parpadea verde/roja y un distintivo +1/−1 sube y se desvanece. Aquí se alterna cada 3s para mostrar la animación.'));
 
           // Metrordle: two-slot split label (attempts left / per-guess x/5
           // chips), base fill (stepwise per guess, no --countdown). The real

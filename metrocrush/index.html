@@ -246,9 +246,8 @@
 
       .reveal[hidden] { display: none; }
 
-      /* 6-col base so the 3-up stat rows (span 2 = 1/3) and the hard-mode
-         seconds row (span 3 = 1/2) share one grid. #stat-seconds-won forces
-         its own row (col 1) so a non-multiple-of-3 line count can't strand it. */
+      /* 6-col base: stat tiles span 2 (1/3), seconds span 3 (1/2); won pinned
+         to col 1 so it always starts its own row. */
       #stat-grid { --cols: 6; }
       #stat-grid .stat-box { grid-column: span 2; }
       #stat-grid .stat-box--elastic { grid-column: span 3; }
@@ -367,8 +366,7 @@
               <div class="stat-box__value" id="reveal-run">3</div>
               <div class="stat-box__label">Fila más larga</div>
             </div>
-            <!-- Hard mode only; per-line match tiles insert before these, so
-                 the seconds sit last in the one shared grid (even spacing). -->
+            <!-- Hard mode only; match tiles insert before these, keeping them last. -->
             <div class="stat-box stat-box--elastic" id="stat-seconds-won" hidden>
               <div class="stat-box__value" id="reveal-seconds-won">0</div>
               <div class="stat-box__label">Segundos ganados</div>
@@ -1510,11 +1508,10 @@
 
         // Per-line match tiles, most-matched first; lines with 0 omitted.
         function renderMatchSummary() {
-          // Clear only prior match tiles, not the fixed/elastic stats here.
+          // Clear prior match tiles only, keep the fixed/elastic stats.
           var old = els.statGrid.querySelectorAll('.stat-box--match');
           for (var i = 0; i < old.length; i++) old[i].remove();
-          // Insert before the hard-mode seconds tiles so they stay last in
-          // this one shared grid (even spacing); null anchor => append.
+          // Insert before the seconds tiles so they stay last; null => append.
           var anchor = els.statGrid.querySelector('.stat-box--elastic');
 
           var lineIds = Object.keys(state.matchCountsByLine).filter(function (id) {

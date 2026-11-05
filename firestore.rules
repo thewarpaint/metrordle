@@ -230,21 +230,26 @@ service cloud.firestore {
     // copo-de-nieve-leaderboard/{dateKey}/entries/{aliasId} - score-based
     // like Metro Crush's/Clasificador's own: a single descending score (how
     // many "special" stations a player tapped in the 60-second round),
-    // open-ended so the bound is generous rather than tight. No hardMode
-    // field - this game has no mode toggle. streak is display-only (see
-    // Memoria's own comment above) and can legitimately be 0 on a scoreless
-    // round, same as Metro Crush's/Clasificador's own.
+    // open-ended so the bound is generous rather than tight. hardMode is
+    // display-only (the 🧠 badge, not part of ranking) and OPTIONAL - it
+    // shipped after the collection did, so a stale cached client still
+    // submitting without it must not be rejected (same optional-field
+    // reasoning as Laberinto's own `score`; deploy this rule before/with
+    // the code). streak is display-only (see Memoria's own comment above)
+    // and can legitimately be 0 on a scoreless round, same as Metro
+    // Crush's/Clasificador's own.
     match /copo-de-nieve-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.score is int &&
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 1000 &&
+        (!('hardMode' in request.resource.data) || request.resource.data.hardMode is bool) &&
         request.resource.data.streak is int &&
         request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&

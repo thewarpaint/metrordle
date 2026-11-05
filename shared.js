@@ -888,6 +888,26 @@ function renderNoticeBanner(el, variantClass, title, bodyText) {
   el.appendChild(textEl);
 }
 
+// Hard-mode elastic-clock cue (Clasificador, Copo de nieve): flash timeEl
+// green/red and float a +N/−N .attempt-chip over deltaEl, so a bonus/penalty
+// second isn't lost against the countdown. Pairs with the .clock* CSS in
+// shared.css; the games only set textContent, so the toggled classes survive
+// the next render/tick.
+function pulseClock(timeEl, deltaEl, delta) {
+  var up = delta > 0;
+  var numCls = up ? 'clock--up' : 'clock--down';
+  timeEl.classList.remove('clock--up', 'clock--down');
+  void timeEl.offsetWidth;
+  timeEl.classList.add(numCls);
+  setTimeout(function () { timeEl.classList.remove(numCls); }, 300);
+
+  deltaEl.textContent = (up ? '+' : '−') + Math.abs(delta);
+  deltaEl.className = 'clock__delta attempt-chip attempt-chip--' + (up ? 'good' : 'bad');
+  void deltaEl.offsetWidth;
+  deltaEl.classList.add('clock__delta--show');
+  setTimeout(function () { deltaEl.classList.remove('clock__delta--show'); }, 700);
+}
+
 // The "🔥 × N" streak badge every leaderboard row that tracks a streak
 // uses (Metrordle/Laberinto/Memoria's own leaderboards, and /admin/'s
 // matching column for those same three collections) - a streak of 0 or
@@ -1615,6 +1635,7 @@ window.MetroShared = {
   formatMaxStreak: formatMaxStreak,
   buildStreakBadge: buildStreakBadge,
   renderNoticeBanner: renderNoticeBanner,
+  pulseClock: pulseClock,
   normalizeAlias: normalizeAlias,
   aliasDocId: aliasDocId,
   getAlias: getAlias,

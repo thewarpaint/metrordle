@@ -90,6 +90,9 @@
          full found-stations grid and the page scrolls - instead of the grid
          being clipped inside the fixed-height board area. */
       .start-overlay { background: var(--paper-raised); }
+      /* .start-overlay__modes sets display:flex, so [hidden] alone won't hide
+         the mode picker when the overlay doubles as the reveal. */
+      #start-modes[hidden] { display: none; }
       .board-stage--done #board { display: none; }
       /* In the result state the overlay IS the card's full-width content,
          not a small centered start panel - so drop the shared 18rem panel
@@ -141,7 +144,7 @@
           <div class="progress">
             <div class="progress__track"><div class="progress__fill" id="time-fill"></div></div>
             <div class="progress__label progress__label--split">
-              <span><b id="time-text">1:00</b></span>
+              <span class="clock"><b class="clock__time" id="time-text">1:00</b><span class="clock__delta" id="time-delta" aria-hidden="true"></span></span>
               <span><b id="score-text">0</b> aciertos</span>
             </div>
           </div>
@@ -161,6 +164,17 @@
                 <div class="stats__score" id="reveal-score-num">0</div>
                 <div class="stats__label">estaciones</div>
               </div>
+              <!-- Hard mode only: the elastic clock's seconds gained/lost. -->
+              <div class="stat-grid" id="reveal-stats" style="--cols: 2;" hidden>
+                <div class="stat-box">
+                  <div class="stat-box__value" id="reveal-seconds-won">0</div>
+                  <div class="stat-box__label">Segundos ganados</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-box__value" id="reveal-seconds-lost">0</div>
+                  <div class="stat-box__label">Segundos perdidos</div>
+                </div>
+              </div>
               <div class="station-grid-6" id="reveal-icons" aria-label="Estaciones encontradas" hidden></div>
               <div class="leaderboard" id="leaderboard" hidden>
                 <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -169,7 +183,13 @@
                 <ol class="leaderboard__list" id="leaderboard-list"></ol>
                 <p class="leaderboard__status" id="leaderboard-status" hidden></p>
               </div>
-              <button type="button" class="btn-primary" id="start-btn" disabled>Cargando…</button>
+              <div class="start-overlay__modes" id="start-modes">
+                <button type="button" class="btn-primary" id="start-normal-btn" disabled>Jugar modo normal</button>
+                <button type="button" class="btn-secondary" id="start-hard-btn" disabled>Jugar modo difícil</button>
+              </div>
+              <p class="start-overlay__text" id="start-text">
+                <strong>Modo difícil:</strong> el reloj es dinámico: 5 aciertos seguidos suman 1 segundo al reloj, pero cada error resta 1.
+              </p>
               <button type="button" class="btn-secondary" id="share-btn" hidden>Compartir</button>
               <button type="button" class="btn-secondary" id="practice-btn" hidden>Seguir jugando sin guardar</button>
               <div id="game-promo-slot"></div>
@@ -192,6 +212,8 @@
         'use strict';
 
         var SIZE = 7, COUNT = SIZE * SIZE, ROUND_MS = 60000;
+        // Hard mode: this many correct taps in a row add a clock second; a wrong tap subtracts one.
+        var HARD_BONUS_RUN = 5;
         // Difficulty ramp (t in pickOdd): flat at 0 for the first RAMP_FLAT
         // finds, then climbs linearly to 1 over the next RAMP_SPAN.
         var RAMP_FLAT = 15;
@@ -209,9 +231,16 @@
         var revealNotice = document.getElementById('reveal-notice');
         var revealScore = document.getElementById('reveal-score');
         var revealScoreNum = document.getElementById('reveal-score-num');
-        var startBtn = document.getElementById('start-btn');
+        var startModes = document.getElementById('start-modes');
+        var startText = document.getElementById('start-text');
+        var startNormalBtn = document.getElementById('start-normal-btn');
+        var startHardBtn = document.getElementById('start-hard-btn');
+        var revealStats = document.getElementById('reveal-stats');
+        var revealSecondsWon = document.getElementById('reveal-seconds-won');
+        var revealSecondsLost = document.getElementById('reveal-seconds-lost');
         var timeFill = document.getElementById('time-fill');
         var timeText = document.getElementById('time-text');
+        var timeDelta = document.getElementById('time-delta');
         var scoreText = document.getElementById('score-text');
         var revealIcons = document.getElementById('reveal-icons');
         var gameNum = document.getElementById('game-num');
@@ -283,7 +312,8 @@
           prevMajor: -1, prevOdd: -1, prevIndex: -1, oddIconIdx: -1, found: [],
           dateKey: '', gameNumber: 0, leaderboardSubmitted: false, streak: 0, maxStreak: 0,
           practice: false, practiceStartedAt: 0, practiceSnapshot: null, practiceTimerId: 0,
-          replay: false, dayDone: false };
+          replay: false, dayDone: false,
+          mode: 'normal', correctRun: 0, secondsWon: 0, secondsLost: 0 };
 
         // Per-day seeded stream, so every player (and every same-day replay)
         // gets the identical sequence of deals - and thus the same difficulty
@@ -359,8 +389,23 @@
             renderScoreText();
             flash(cell, 'cell--hit');
             nextRound();
+            // Hard mode (real play only - practice has no countdown): a run earns a second.
+            if (state.running && state.mode === 'hard' && ++state.correctRun >= HARD_BONUS_RUN) {
+              state.correctRun = 0;
+              state.endTime += 1000;
+              state.secondsWon += 1;
+              MetroShared.pulseClock(timeText, timeDelta, 1);
+            }
           } else {
-            flash(cell, 'cell--wrong'); // just feedback - no time penalty
+            flash(cell, 'cell--wrong');
+            // Hard mode: a wrong tap costs a second and can end the round.
+            if (state.running && state.mode === 'hard') {
+              state.correctRun = 0;
+              state.endTime -= 1000;
+              state.secondsLost += 1;
+              MetroShared.pulseClock(timeText, timeDelta, -1);
+              if (state.endTime - performance.now() <= 0) { finish(); return; }
+            }
           }
         }
 
@@ -457,6 +502,9 @@
             localStorage.setItem(storageKeyFor(state.dateKey), JSON.stringify({
               score: state.score,
               found: state.found,
+              mode: state.mode,
+              secondsWon: state.secondsWon,
+              secondsLost: state.secondsLost,
               leaderboardSubmitted: !!state.leaderboardSubmitted,
             }));
           } catch (e) { /* localStorage unavailable - just won't reload the reveal */ }
@@ -471,6 +519,9 @@
               status: 'playing',
               score: state.score,
               found: state.found,
+              mode: state.mode,
+              secondsWon: state.secondsWon,
+              secondsLost: state.secondsLost,
               remainingMs: Math.max(0, Math.round(state.endTime - performance.now())),
             }));
           } catch (e) { /* no resume if storage is unavailable */ }
@@ -488,6 +539,9 @@
             var parsed = JSON.parse(raw);
             if (!parsed || typeof parsed.score !== 'number' || !Array.isArray(parsed.found)) return null;
             return { score: parsed.score, found: parsed.found, leaderboardSubmitted: !!parsed.leaderboardSubmitted,
+              mode: parsed.mode === 'hard' ? 'hard' : 'normal',
+              secondsWon: typeof parsed.secondsWon === 'number' ? parsed.secondsWon : 0,
+              secondsLost: typeof parsed.secondsLost === 'number' ? parsed.secondsLost : 0,
               status: parsed.status, remainingMs: parsed.remainingMs };
           } catch (e) { return null; }
         }
@@ -500,8 +554,8 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          // streak is display-only, never part of orderBySpecs.
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, streak: state.streak }, {})
+          // streak and hardMode are display-only, never part of orderBySpecs.
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult();
@@ -538,7 +592,8 @@
 
         function buildShareText() {
           var rating = getRating(state.score);
-          return 'Metrordle: Copo de nieve #' + state.gameNumber + '\n\n' +
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
+          return 'Metrordle: Copo de nieve #' + state.gameNumber + '\n' + hardModeLine + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Encontradas: ' + state.score + '\n' +
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
@@ -568,7 +623,7 @@
           var requestId = ++leaderboardRequestId;
           var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
 
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['streak'], myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['hardMode', 'streak'], myAliasId: myAliasId })
             .then(function (entries) {
               if (!state || state.dateKey !== dateKey) return;
               if (requestId !== leaderboardRequestId) return;
@@ -597,6 +652,7 @@
                 score.className = 'leaderboard__score';
                 var badge = document.createElement('span');
                 badge.className = 'leaderboard__score-badge';
+                if (entry.hardMode) badge.textContent = '🧠';
                 var number = document.createElement('span');
                 number.className = 'leaderboard__score-number leaderboard__score-number--wide';
                 number.textContent = entry.score;
@@ -662,12 +718,19 @@
           revealNotice.hidden = false;
           revealScoreNum.textContent = state.score;
           revealScore.hidden = false;
+          var showStats = state.mode === 'hard';
+          revealStats.hidden = !showStats;
+          if (showStats) {
+            revealSecondsWon.textContent = state.secondsWon;
+            revealSecondsLost.textContent = state.secondsLost;
+          }
           renderRevealIcons();
           leaderboardEl.hidden = false;
           renderAliasRow();
           renderLeaderboard();
-          // Practice is the only play-again; no replay button on the reveal.
-          startBtn.hidden = true;
+          // Practice is the only play-again; the mode picker is pre-round only.
+          startModes.hidden = true;
+          startText.hidden = true;
           shareBtn.hidden = false;
           practiceBtn.hidden = false;
           practiceBanner.hidden = true;
@@ -691,14 +754,18 @@
           if (remaining <= 0) { finish(); return; }
           var secs = Math.ceil(remaining / 1000);
           timeText.textContent = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
-          timeFill.style.width = (remaining / ROUND_MS * 100) + '%';
+          timeFill.style.width = Math.min(100, remaining / ROUND_MS * 100) + '%';
           state.rafId = requestAnimationFrame(tick);
         }
 
-        function start(isReplay) {
+        function start(mode) {
           if (!ICONS.length) return;
           state.running = true;
-          state.replay = !!isReplay; // a replay plays the same board but counts for nothing
+          state.replay = false;
+          state.mode = mode === 'hard' ? 'hard' : 'normal';
+          state.correctRun = 0;
+          state.secondsWon = 0;
+          state.secondsLost = 0;
           state.score = 0;
           state.found = [];
           state.leaderboardSubmitted = false;
@@ -713,10 +780,12 @@
           scoreText.textContent = '0';
           revealNotice.hidden = true;
           revealScore.hidden = true;
+          revealStats.hidden = true;
           gamePromoSlot.innerHTML = '';
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
-          startBtn.hidden = false;
+          startModes.hidden = false;
+          startText.hidden = false;
           shareBtn.hidden = true;
           practiceBtn.hidden = true;
           practiceBanner.hidden = true;
@@ -725,9 +794,8 @@
           overlay.hidden = true;
           nextRound();
           state.rafId = requestAnimationFrame(tick);
-          // A replay is ephemeral: skip autosave/persist so it can't overwrite
-          // the day's official saved result (or resume on reload).
-          if (!state.replay) { startSaveTimer(); persistProgress(); }
+          startSaveTimer();
+          persistProgress();
         }
 
         // The deal sequence is a pure function of day + score, so replaying
@@ -737,18 +805,24 @@
           rng = MetroShared.createSeededRandom('metrordle-copo-de-nieve-' + state.dateKey);
           state.found = saved.found.slice();
           state.leaderboardSubmitted = false;
+          state.mode = saved.mode === 'hard' ? 'hard' : 'normal';
+          state.correctRun = 0;
+          state.secondsWon = saved.secondsWon || 0;
+          state.secondsLost = saved.secondsLost || 0;
           state.prevMajor = state.prevOdd = state.prevIndex = -1;
           for (var k = 0; k <= saved.score; k++) { state.score = k; nextRound(); }
           state.score = saved.score;
           scoreText.textContent = state.score;
           state.endTime = performance.now() + saved.remainingMs;
-          timeFill.style.width = (saved.remainingMs / ROUND_MS * 100) + '%';
+          timeFill.style.width = Math.min(100, saved.remainingMs / ROUND_MS * 100) + '%';
           revealNotice.hidden = true;
           revealScore.hidden = true;
+          revealStats.hidden = true;
           gamePromoSlot.innerHTML = '';
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
-          startBtn.hidden = true;
+          startModes.hidden = true;
+          startText.hidden = true;
           shareBtn.hidden = true;
           practiceBtn.hidden = true;
           practiceBanner.hidden = true;
@@ -848,12 +922,17 @@
           state.practiceSnapshot = null;
           state.score = 0;
           state.found = [];
+          state.mode = 'normal';
+          state.correctRun = 0;
+          state.secondsWon = 0;
+          state.secondsLost = 0;
           state.leaderboardSubmitted = false;
           state.prevMajor = state.prevOdd = state.prevIndex = -1;
           if (state.oddCell) { state.oddCell.classList.remove('cell--odd'); state.oddCell = null; }
           overlay.hidden = true;
           revealNotice.hidden = true;
           revealScore.hidden = true;
+          revealStats.hidden = true;
           gamePromoSlot.innerHTML = '';
           revealIcons.hidden = true;
           leaderboardEl.hidden = true;
@@ -889,6 +968,9 @@
             var s = MetroShared.loadStreak(STREAK_STORAGE_KEY);
             state.score = saved.score;
             state.found = saved.found;
+            state.mode = saved.mode;
+            state.secondsWon = saved.secondsWon;
+            state.secondsLost = saved.secondsLost;
             state.leaderboardSubmitted = saved.leaderboardSubmitted;
             state.streak = s.count;
             state.maxStreak = s.max;
@@ -902,14 +984,17 @@
             timeFill.style.width = '100%';
             void timeFill.offsetWidth;
             timeFill.style.transition = '';
-            startBtn.disabled = false;
-            startBtn.textContent = 'Comenzar';
+            startModes.hidden = false;
+            startText.hidden = false;
+            startNormalBtn.disabled = false;
+            startHardBtn.disabled = false;
           }
         }
 
         board.addEventListener('click', onBoardClick);
-        // "Comenzar", shown only pre-round; hidden on the reveal.
-        startBtn.addEventListener('click', function () { start(state.dayDone); });
+        // Mode picker, shown only pre-round; hidden on the reveal.
+        startNormalBtn.addEventListener('click', function () { start('normal'); });
+        startHardBtn.addEventListener('click', function () { start('hard'); });
         shareBtn.addEventListener('click', shareResult);
         practiceBtn.addEventListener('click', continuePractice);
         endPracticeBtn.addEventListener('click', endPractice);

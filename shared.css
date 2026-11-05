@@ -141,6 +141,19 @@ a {
   display: block;
 }
 
+/* The favicon doubles as a home link to /juegos/ in the header. */
+.brand__home {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  border-radius: 0.3rem;
+}
+
+.brand__home:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .brand__text {
   font-size: 0.72rem;
   font-weight: 700;

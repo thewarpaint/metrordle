@@ -548,18 +548,31 @@ about `//`/`/* */` comments in the actual game/test code.)
   Metroguessr's own `.reveal__line`/`.reveal__banner`/`.reveal__station`
   (no card at all - just bold win/lose-colored text sitting inline with
   the station name) joined this consolidation too: it's the shared
-  `.notice` now, same as the other five. `#reveal-station` is gone - on
-  a **loss**, its station name is folded into `.notice__text` right
-  after the streak line ("🔥 Racha: N días. La estación era: X."); on a
-  **win** that line is dropped entirely (`showReveal()`'s own comment) -
-  the player just guessed the station themselves, so naming it back is
-  redundant. `tests/lib/metroguessr-helpers.js`'s own `revealedTarget()`
-  no longer reads the banner at all (a win's text doesn't carry the
-  station name to read) - it derives the target from the reveal's own
-  station-icon badge instead (`window.__mgIconMarkerEl`, set by the
-  Leaflet test stub), reverse-looking-up `MetroShared.STATION_ICON_SLUGS`
-  from the badge's `<use>` href - a source of truth independent of win/
-  loss, and of the banner's own wording either way. (Metrordle's own
+  `.notice` now, same as the other five. The end screen itself was later
+  reworked: instead of the reveal sitting as a bottom sheet over the live
+  map, the round-over state (`body.round-over`, set in `showReveal()`,
+  cleared for a fresh round in `finishStartingGame()`) **hides the map**
+  and lets the reveal flow as a normal page (the sheet's own
+  `position:fixed`/`max-height`/inner-scroll are dropped; `html,body`'s
+  own `overflow:hidden` is relaxed so the page scrolls as a whole). The
+  correct station is shown as its own icon-and-name display
+  (`#reveal-station` - a `.station` badge colored by its line, built by
+  the shared `paintStationBadge()` the map's own target marker also uses,
+  plus the name) in place of the map, on **both** win and loss - so the
+  banner no longer names the station on a loss, it's just the streak line
+  now. An "Explorar el mapa" button (`#view-map-btn`) opens the map
+  fullscreen again (reusing the existing `.map-maximized` state - map
+  shown, reveal hidden), and the floating `.map-maximize-btn` becomes the
+  ✕ that closes back to this view (it's hidden on the end screen until
+  then, since the in-flow button is how you open the map there; it stays
+  the ⛶/✕ toggle while actually playing). `setMapMaximized()` calls
+  `map.invalidateSize()` when opening, since the map was `display:none`.
+  `tests/lib/metroguessr-helpers.js`'s own `revealedTarget()` reads the
+  target off the map's own station-icon badge (`window.__mgIconMarkerEl`,
+  set by the Leaflet test stub), reverse-looking-up
+  `MetroShared.STATION_ICON_SLUGS` from the badge's `<use>` href - a
+  source of truth independent of win/loss, and of the banner's own
+  wording. (Metrordle's own
   compact status line, once an `.status-bar__text[data-tone]` that turned
   win/lose-colored and was cataloged here via a `.design-notice-status`
   stand-in, is gone - it's now the neutral shared `.progress` bar, see

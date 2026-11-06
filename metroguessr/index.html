@@ -383,6 +383,35 @@
 
       body.map-maximized .panel { display: none; }
 
+      /* End screen (round over): hide the map, let the reveal flow as a normal
+         page; "Explorar el mapa" surfaces the map on demand. */
+      body.round-over { overflow-y: auto; }
+      body.round-over .map-stage { display: none; }
+
+      body.round-over .panel {
+        /* relative + z-index:0 keeps it below the fixed topbar; left static it
+           keeps the base z-index:500 and swallows the topbar's clicks. */
+        position: relative;
+        z-index: 0;
+        background: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        border-top: none;
+        box-shadow: none;
+      }
+
+      body.round-over .panel__inner {
+        max-height: none;
+        padding-top: calc(var(--topbar-h, 4.5rem) + 0.6rem); /* clear the fixed topbar */
+      }
+
+      body.round-over .reveal { flex: none; overflow: visible; }
+
+      /* On the end screen the in-flow button opens the map; the floating one
+         is only the ✕ to close it. */
+      body.round-over:not(.map-maximized) .map-maximize-btn { display: none; }
+      body.round-over.map-maximized .map-stage { display: block; }
+
       .guess-form {
         display: flex;
         flex-direction: column;
@@ -457,6 +486,23 @@
         gap: 0.15rem;
       }
       .reveal[hidden] { display: none; }
+
+      /* The correct station (icon + name), shown in place of the hidden map. */
+      .reveal-station {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0.1rem 0 0.5rem;
+      }
+      .reveal-station[hidden] { display: none; }
+      .reveal-station__icon { width: 3.4rem; }
+      .reveal-station__name {
+        font-family: 'Overpass', sans-serif;
+        font-weight: 800;
+        font-size: 1.2rem;
+      }
+      .view-map-btn { margin: 0.2rem 0 0.8rem; }
 
       /* .leaderboard* styling itself lives in shared.css, common to every
          game with a leaderboard - these are just this page's own deltas,
@@ -590,6 +636,13 @@
 
         <div class="reveal" id="reveal" hidden>
           <div id="reveal-banner"></div>
+
+          <div class="reveal-station" id="reveal-station" hidden>
+            <div class="reveal-station__icon"><div class="station" id="reveal-station-badge"></div></div>
+            <div class="reveal-station__name" id="reveal-station-name"></div>
+          </div>
+
+          <button type="button" class="btn-secondary btn-secondary--sm view-map-btn" id="view-map-btn">🗺️ Explorar el mapa</button>
 
           <div class="leaderboard" id="leaderboard">
             <h2 class="leaderboard__title">Mejores 5 puntajes hoy</h2>
@@ -885,6 +938,23 @@
           return svg;
         }
 
+        // Fills a .station badge (map target marker + reveal display) with the
+        // station's line color and pictogram.
+        function paintStationBadge(el, name, line) {
+          el.innerHTML = '';
+          if (line) {
+            el.style.setProperty('--badge-bg', line.color);
+            el.style.setProperty('--badge-ink', line.textColor);
+          }
+          var svg = buildStationIconEl(name);
+          if (svg) {
+            var wrap = document.createElement('span');
+            wrap.className = 'station__icon';
+            wrap.appendChild(svg);
+            el.appendChild(wrap);
+          }
+        }
+
         // An explicit /configurar/ choice overrides the OS preference for
         // every other piece of styling on this page (shared.css's own
         // [data-theme] rules) - the map tile style needs to follow the
@@ -1126,6 +1196,8 @@
           // from the very first guess.
           setMapMaximized(false);
           $('map-maximize-btn').hidden = false;
+          // Back to the live-map layout (a done-day restore re-adds it via showReveal()).
+          document.body.classList.remove('round-over');
 
           var dateKey = pendingGameSetup.dateKey;
           var gameNumber = pendingGameSetup.gameNumber;
@@ -1432,19 +1504,7 @@
             interactive: false,
           }).addTo(map);
           var iconEl = targetIconMarker.getElement();
-          if (iconEl) {
-            if (line) {
-              iconEl.style.setProperty('--badge-bg', line.color);
-              iconEl.style.setProperty('--badge-ink', line.textColor);
-            }
-            var svg = buildStationIconEl(state.target);
-            if (svg) {
-              var iconWrap = document.createElement('span');
-              iconWrap.className = 'station__icon';
-              iconWrap.appendChild(svg);
-              iconEl.appendChild(iconWrap);
-            }
-          }
+          if (iconEl) paintStationBadge(iconEl, state.target, line);
 
           setLabelsVisible(true);
           setMapInteractive(true);
@@ -1463,15 +1523,21 @@
 
           var reveal = $('reveal');
           reveal.hidden = false;
-          // On a win the player just guessed the station themselves - no
-          // need to repeat it back. Only a loss names it.
           var streakLine = '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '.';
           MetroShared.renderNoticeBanner(
             $('reveal-banner'),
             won ? 'notice--success' : 'notice--error',
             won ? '¡Correcto!' : 'Se acabaron los intentos',
-            won ? streakLine : streakLine + ' La estación era: ' + state.target + '.'
+            streakLine
           );
+
+          // Shown in the reveal (icon + name) now, so the banner needn't name it.
+          paintStationBadge($('reveal-station-badge'), state.target, line);
+          $('reveal-station-name').textContent = state.target;
+          $('reveal-station').hidden = false;
+
+          // Hide the map; the reveal flows as the page (round-over CSS).
+          document.body.classList.add('round-over');
 
           renderAliasRow();
           renderLeaderboard();
@@ -1577,6 +1643,8 @@
           var label = maximized ? 'Minimizar mapa' : 'Ampliar mapa';
           btn.setAttribute('aria-label', label);
           btn.setAttribute('title', label);
+          // Map was display:none on the end screen; Leaflet must re-measure.
+          if (maximized) map.invalidateSize(false);
           recenterMapOnTarget();
         }
 
@@ -1995,6 +2063,8 @@
         $('hint-btn').addEventListener('click', useHint);
 
         $('map-maximize-btn').addEventListener('click', toggleMapMaximized);
+
+        $('view-map-btn').addEventListener('click', function () { setMapMaximized(true); });
 
         $('mode-normal-btn').addEventListener('click', function () { resolveModeChoice('normal'); });
         $('mode-hard-btn').addEventListener('click', function () { resolveModeChoice('hard'); });

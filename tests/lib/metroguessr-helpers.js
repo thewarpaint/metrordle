@@ -69,11 +69,8 @@ async function playToReveal(page) {
   }
 }
 
-// Reads the target back off the reveal's own station-icon badge
-// (window.__mgIconMarkerEl, set by the Leaflet stub - see its own
-// comment) rather than the banner text, which only names the station
-// on a loss now (a win's own guess already said it - see
-// showReveal()'s own comment).
+// Reads the target off the map's station-icon badge (window.__mgIconMarkerEl,
+// set by the Leaflet stub) - the banner no longer names the station.
 function revealedTarget(page) {
   return page.evaluate(() => {
     var el = window.__mgIconMarkerEl;

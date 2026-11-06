@@ -266,10 +266,11 @@
         position: absolute;
         top: max(0.85rem, env(safe-area-inset-top));
         right: 1rem;
-        font-size: 1.05rem;
+        display: inline-flex;
+        align-items: center;
         line-height: 1;
         text-decoration: none;
-        opacity: 0.7;
+        opacity: 1;
       }
 
       .topbar__settings:hover,
@@ -556,7 +557,7 @@
     <button type="button" class="map-maximize-btn" id="map-maximize-btn" hidden aria-label="Ampliar mapa" title="Ampliar mapa">⛶</button>
 
     <div class="topbar">
-      <a class="topbar__settings" href="/configurar/" aria-label="Configuración" title="Configuración">⚙️</a>
+      <a class="topbar__settings" href="/configurar/" aria-label="Configuración" title="Configuración"></a>
       <div class="topbar__head">
         <a class="brand__home" href="/juegos/" aria-label="Todos los juegos" title="Todos los juegos">
           <img class="brand__mark" src="/favicon.png" alt="" width="20" height="20">

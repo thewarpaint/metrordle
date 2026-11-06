@@ -82,6 +82,25 @@ test('every game has a doc, and no game doc outlives its page', () => {
   }
 });
 
+test('each game folder carries an AGENTS.md pointing to its canonical doc', () => {
+  const gamesDir = path.join(DOCS_DIR, 'games');
+  const gameDocs = fs.readdirSync(gamesDir).filter((f) => f.endsWith('.md') && f !== 'index.md');
+  for (const doc of gameDocs) {
+    const slug = doc.replace(/\.md$/, '');
+    // Only games with their own folder get a directory-scoped stub
+    // (metrordle lives at the repo root; utility-pages is a shared doc).
+    if (slug === 'metrordle' || slug === 'utility-pages') continue;
+    if (!fs.existsSync(path.join(REPO_ROOT, slug, 'index.html'))) continue;
+    const stubPath = path.join(REPO_ROOT, slug, 'AGENTS.md');
+    assert.ok(fs.existsSync(stubPath), slug + '/ has no AGENTS.md pointer (see step 2 of the docs split)');
+    const stub = fs.readFileSync(stubPath, 'utf8');
+    assert.ok(
+      stub.includes('docs/games/' + slug + '.md'),
+      slug + '/AGENTS.md should point to its canonical doc docs/games/' + slug + '.md'
+    );
+  }
+});
+
 (async () => {
   const failed = await runAll();
   process.exitCode = failed ? 1 : 0;

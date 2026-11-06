@@ -45,7 +45,9 @@ ops page, which is English.
 
 ## Map (`docs/` is the system of record)
 
-Read the relevant doc before touching that area.
+Read the relevant doc before touching that area. Each game that has its
+own folder also carries a one-line `AGENTS.md` pointing back to its doc,
+so the right notes surface when you work in that folder.
 
 **Games** (`docs/games/`)
 - `docs/games/index.md` - catalog of every game + status

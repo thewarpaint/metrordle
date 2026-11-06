@@ -1068,6 +1068,33 @@
           maxBtn.textContent = '⛶';
           maxRow.appendChild(maxBtn);
           gallery.appendChild(buildExample(maxRow, '<code>.map-maximize-btn</code> · exploración, no consolidado todavía - Metroguessr, el botón redondo que maximiza el mapa (flota fijo sobre el mapa en la página real).'));
+
+          // The header toolbar icons, built from the same source shared.js
+          // injects on every page (MetroShared.buildToolbarIcon), so this
+          // catalog can't drift from the real icons.
+          var iconsRow = buildRow();
+          iconsRow.style.alignItems = 'center';
+          var tools = document.createElement('span');
+          tools.className = 'toolbar-tools';
+          var bugBtn = document.createElement('button');
+          bugBtn.type = 'button';
+          bugBtn.className = 'toolbar-iconbtn';
+          bugBtn.innerHTML = MetroShared.buildToolbarIcon('bug');
+          tools.appendChild(bugBtn);
+          var themeBtn = document.createElement('button');
+          themeBtn.type = 'button';
+          themeBtn.className = 'toolbar-iconbtn';
+          themeBtn.innerHTML = MetroShared.buildToolbarIcon('moon');
+          tools.appendChild(themeBtn);
+          iconsRow.appendChild(tools);
+          var gearLink = document.createElement('a');
+          gearLink.className = 'brand__settings';
+          gearLink.href = '/configurar/';
+          gearLink.setAttribute('aria-label', 'Configuración');
+          gearLink.style.marginLeft = '0'; // real cluster right-aligns it; inline here
+          gearLink.innerHTML = MetroShared.buildToolbarIcon('gear');
+          iconsRow.appendChild(gearLink);
+          gallery.appendChild(buildExample(iconsRow, '<code>.toolbar-iconbtn</code>/<code>.brand__settings</code> · ✅ consolidado - íconos monocromáticos de la barra superior (🐞 depuración, ☀️/🌑 tema, ⚙️ ajustes), <code>stroke: currentColor</code> para leerse en ambos temas. Una sola fuente: <code>MetroShared.buildToolbarIcon</code> los inyecta en todas las páginas, antes se repetía el <code>&lt;svg&gt;</code> del engrane en 14 archivos.'));
         }
 
         // The shared leaderboard component, all real shared.css classes.

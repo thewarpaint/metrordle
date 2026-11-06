@@ -1670,10 +1670,15 @@ input[type="text"]:disabled {
   line-height: 1;
   background: none;
   border: 0;
-  padding: 0;
+  /* Horizontal padding widens the tap target so the icons aren't crowded. */
+  padding: 0.25rem 0.3rem;
   margin: 0;
   cursor: pointer;
   opacity: 1;
+  /* A plain <button> doesn't inherit color the way the gear <a> does (global
+     `a` rule), so its currentColor fell back to the UA default (blue on some
+     platforms). Inherit --ink to match. */
+  color: inherit;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -1689,17 +1694,20 @@ input[type="text"]:disabled {
 
 /* shared.js injects the gear icon (same source as the theme/bug icons), so
    reserve its box - the link renders empty until then, but stays sized and
-   clickable. */
+   clickable. Horizontal padding matches the toolbar buttons' bigger tap area. */
 .brand__settings,
 .topbar__settings {
   min-width: 1.15rem;
   min-height: 1.15rem;
+  padding: 0.25rem 0.3rem;
 }
 
 .toolbar-tools {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  /* Small gap - each control's own horizontal padding carries most of the
+     separation now. */
+  gap: 0.15rem;
 }
 
 .toolbar-tools--push {

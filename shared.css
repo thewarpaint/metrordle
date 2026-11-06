@@ -180,7 +180,8 @@ a {
    visible text. */
 .brand__settings {
   margin-left: auto;
-  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
   text-decoration: none;
   opacity: 0.7;
@@ -1664,7 +1665,8 @@ input[type="text"]:disabled {
    absolute left of Metroguessr's .topbar gear (--abs), or fixed on a page
    with no gear (--fixed). */
 .toolbar-iconbtn {
-  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
   background: none;
   border: 0;
@@ -1674,6 +1676,15 @@ input[type="text"]:disabled {
   opacity: 1;
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* Monochromatic toolbar/settings icons, sized uniformly. */
+.toolbar-iconbtn svg,
+.brand__settings svg,
+.topbar__settings svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
 }
 
 .toolbar-tools {

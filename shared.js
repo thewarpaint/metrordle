@@ -124,12 +124,23 @@
       if (m === 'light') return false;
       return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
+    // Monochromatic line icons (Feather/Lucide); stroke: currentColor reads on
+    // both themes. Static markup, so innerHTML is safe.
+    function svgIcon(inner) {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"'
+        + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+    }
+    var ICON_SUN = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    var ICON_MOON = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    var ICON_BUG = '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>';
+
     var themeBtn = document.createElement('button');
     themeBtn.type = 'button';
     themeBtn.className = 'toolbar-iconbtn';
     themeBtn.title = 'Tema claro/oscuro';
     themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
-    function renderThemeIcon() { themeBtn.textContent = isDark() ? '☀️' : '🌑'; }
+    // Shows the icon of the mode it switches TO (sun = go light, moon = go dark).
+    function renderThemeIcon() { themeBtn.innerHTML = svgIcon(isDark() ? ICON_SUN : ICON_MOON); }
     themeBtn.addEventListener('click', function () {
       setThemeMode(isDark() ? 'light' : 'dark');
       renderThemeIcon();
@@ -200,7 +211,7 @@
       var bug = document.createElement('button');
       bug.type = 'button';
       bug.className = 'toolbar-iconbtn';
-      bug.textContent = '🐞';
+      bug.innerHTML = svgIcon(ICON_BUG);
       bug.title = 'Debug log';
       bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
       bug.setAttribute('aria-pressed', 'false');

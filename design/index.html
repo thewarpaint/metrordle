@@ -1069,9 +1069,8 @@
           maxRow.appendChild(maxBtn);
           gallery.appendChild(buildExample(maxRow, '<code>.map-maximize-btn</code> · exploración, no consolidado todavía - Metroguessr, el botón redondo que maximiza el mapa (flota fijo sobre el mapa en la página real).'));
 
-          // The header toolbar icons, built from the same source shared.js
-          // injects on every page (MetroShared.buildToolbarIcon), so this
-          // catalog can't drift from the real icons.
+          // Built from MetroShared.buildToolbarIcon - the same source
+          // shared.js injects everywhere, so this can't drift from the real icons.
           var iconsRow = buildRow();
           iconsRow.style.alignItems = 'center';
           var tools = document.createElement('span');

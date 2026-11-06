@@ -13,10 +13,8 @@
 // console hook (debug only) is in place before any MetroShared/game
 // logging fires. isDebugMode/pad2/copyToClipboard/getThemeMode/
 // setThemeMode are hoisted declarations, so referencing them here is fine.
-// Toolbar/settings icons - one source for both initToolbar (below) and the
-// /design catalog (via MetroShared.buildToolbarIcon). Monochromatic line
-// icons (Feather/Lucide); stroke: currentColor reads on both themes. Static
-// markup, so innerHTML is safe.
+// Toolbar/settings icons - one source for initToolbar and the /design catalog
+// (MetroShared.buildToolbarIcon). stroke: currentColor reads on both themes.
 function svgIcon(inner) {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"'
     + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
@@ -236,10 +234,8 @@ function buildToolbarIcon(name) {
       listEl.scrollTop = listEl.scrollHeight;
     }
 
-    // Put every toolbar icon in one cluster: move the gear into .toolbar-tools
-    // (as its last icon) so all three share the same gap, instead of leaving
-    // the gear a separate .brand/.topbar child spaced by that row's own wider
-    // gap (see .toolbar-tools variants in CSS).
+    // Move the gear into .toolbar-tools (as its last icon) so all three icons
+    // share one container/gap, not the gear's own wider .brand/.topbar gap.
     var gear = document.querySelector('.brand__settings, .topbar__settings');
     if (gear) {
       gear.innerHTML = buildToolbarIcon('gear');

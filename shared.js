@@ -236,15 +236,17 @@ function buildToolbarIcon(name) {
       listEl.scrollTop = listEl.scrollHeight;
     }
 
-    // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
+    // Put every toolbar icon in one cluster: move the gear into .toolbar-tools
+    // (as its last icon) so all three share the same gap, instead of leaving
+    // the gear a separate .brand/.topbar child spaced by that row's own wider
+    // gap (see .toolbar-tools variants in CSS).
     var gear = document.querySelector('.brand__settings, .topbar__settings');
-    if (gear) gear.innerHTML = buildToolbarIcon('gear');
-    if (gear && gear.classList.contains('topbar__settings')) {
-      tools.classList.add('toolbar-tools--abs');
+    if (gear) {
+      gear.innerHTML = buildToolbarIcon('gear');
+      tools.classList.add(gear.classList.contains('topbar__settings')
+        ? 'toolbar-tools--abs' : 'toolbar-tools--push');
       gear.parentNode.insertBefore(tools, gear);
-    } else if (gear) {
-      tools.classList.add('toolbar-tools--push');
-      gear.parentNode.insertBefore(tools, gear);
+      tools.appendChild(gear);
     } else {
       tools.classList.add('toolbar-tools--fixed');
       document.body.appendChild(tools);

@@ -33,6 +33,7 @@ const FILES = [
   'shared/high-score-record.test.js',
   'security/csp.test.js',
   'meta/sw-cache-version.test.js',
+  'meta/agents-doc.test.js',
 ];
 
 let failed = 0;

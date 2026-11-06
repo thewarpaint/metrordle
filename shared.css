@@ -1714,16 +1714,21 @@ input[type="text"]:disabled {
   margin-left: auto;
 }
 
-/* Drop the gear's own margin-left:auto - with the cluster's, two autos
-   would split the free space and leave a gap (seen on short titles). */
-.toolbar-tools--push + .brand__settings {
+/* The gear is now a cluster child, so drop its own positioning/margin
+   (.brand__settings' margin-left:auto, .topbar__settings' page-local
+   absolute) and let it flow inside .toolbar-tools like the other icons -
+   the cluster itself handles placement. */
+.toolbar-tools .brand__settings,
+.toolbar-tools .topbar__settings {
+  position: static;
   margin-left: 0;
+  inset: auto;
 }
 
 .toolbar-tools--abs {
   position: absolute;
   top: max(0.85rem, env(safe-area-inset-top));
-  right: 2.6rem;
+  right: 1rem;
   z-index: 5;
 }
 

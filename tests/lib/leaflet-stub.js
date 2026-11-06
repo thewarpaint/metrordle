@@ -54,6 +54,7 @@ window.L = (function () {
           window.__mgLastPanByOffset = { x: offset[0], y: offset[1] };
           return obj;
         },
+        invalidateSize: function () { return obj; },
       };
       window.__mgMap = obj;
       return obj;

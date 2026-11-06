@@ -121,7 +121,7 @@ async function main() {
     }
   });
 
-  test('five wrong guesses end the round as a loss, with the station name in the shared .notice banner and the history chips hidden', async () => {
+  test('five wrong guesses end the round as a loss, showing the correct station (icon + name), hiding the map, and hiding the history chips', async () => {
     const DATE = '2026-09-22';
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
     const page = await context.newPage();
@@ -137,15 +137,21 @@ async function main() {
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the round should be over');
       assert.strictEqual(await page.locator('.pip--used, .pip--win').count() >= 1, true, 'expects at least one used pip');
 
-      // The station name lives in .notice__text, alongside the streak -
-      // not its own separate element.
+      // The correct station gets its own icon + name display now; the
+      // banner carries just the streak and no longer names it.
       assert.strictEqual(await page.locator('#reveal-banner').count(), 1, 'expected exactly one .notice banner');
       const bodyText = await page.locator('#reveal-banner .notice__text').textContent();
-      assert.ok(bodyText.includes('La estación era:'), 'expected the station name in the notice text, got: ' + bodyText);
+      assert.ok(!bodyText.includes('La estación era:'), 'the banner should no longer name the station, got: ' + bodyText);
+      assert.strictEqual(await page.locator('#reveal-station').isVisible(), true, 'the correct-station display should show');
+      assert.ok((await page.locator('#reveal-station-name').textContent()).trim().length > 0, 'the station name should be shown');
+      assert.strictEqual(await page.locator('#reveal-station-badge .station__icon svg').count(), 1, 'the station icon should be shown');
 
-      // The distance/direction history chips have nothing left to add
-      // once the round ends - the wrapper hides, freeing space for the
-      // now-unlocked map.
+      // The end screen hides the map and flows as a normal page.
+      assert.strictEqual(await page.evaluate(() => document.body.classList.contains('round-over')), true, 'the end screen should hide the map (round-over)');
+      assert.strictEqual(await page.locator('#leaflet-map').isVisible(), false, 'the map should be hidden on the end screen');
+
+      // The distance/direction history chips have nothing left to add once
+      // the round ends - the wrapper hides.
       assert.strictEqual(await page.locator('#history-scroll').isVisible(), false, 'history-scroll should hide once the round ends');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
@@ -615,7 +621,8 @@ async function main() {
 
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'the fifth burned attempt (via hint) should end the round');
       assert.strictEqual(await page.locator('#reveal-banner .notice__title').textContent(), 'Se acabaron los intentos');
-      assert.strictEqual(await page.locator('#reveal-banner .notice__text').textContent(), '🔥 Racha: 0 días. La estación era: ' + target + '.');
+      assert.strictEqual(await page.locator('#reveal-banner .notice__text').textContent(), '🔥 Racha: 0 días.');
+      assert.strictEqual(await page.locator('#reveal-station-name').textContent(), target, 'the correct station is named in its own display, not the banner');
 
       // The line hint's own badge marker should be cleaned up once the
       // round ends, same as the plain live marker it was pinned on top
@@ -630,7 +637,7 @@ async function main() {
     }
   });
 
-  test('the maximize button is available throughout the whole round (not just once it ends), hides the bottom sheet without touching the map, and resets on a fresh day', async () => {
+  test('the maximize button hides the sheet mid-round; on the end screen the map is hidden and "Explorar el mapa" opens it fullscreen, with the ✕ closing back; a fresh day resets', async () => {
     const DATE = '2027-03-05';
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
@@ -656,24 +663,35 @@ async function main() {
       await playToReveal(page);
       await page.waitForTimeout(200);
 
-      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'should still be available once the round ends');
-      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'the sheet should still be showing before maximizing');
+      // Once the round ends the layout flips: the map is hidden and the
+      // floating button is gone - "Explorar el mapa" opens the map
+      // fullscreen instead, and the floating button comes back as the ✕
+      // that closes to the end screen.
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), false, 'the floating button is hidden on the end screen');
+      assert.strictEqual(await page.locator('#leaflet-map').isVisible(), false, 'the map is hidden on the end screen');
+      assert.strictEqual(await page.locator('#view-map-btn').isVisible(), true, '"Explorar el mapa" should be offered instead');
+
+      await page.click('#view-map-btn');
+      assert.strictEqual(await page.locator('#leaflet-map').isVisible(), true, 'exploring should show the map fullscreen');
+      assert.strictEqual(await page.locator('.panel').isVisible(), false, 'and hide the reveal page');
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'the ✕ close button should show over the map');
+      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '✕');
 
       await page.click('#map-maximize-btn');
-      assert.strictEqual(await page.locator('.panel').isVisible(), false, 'maximizing post-reveal should still hide the bottom sheet');
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'the ✕ should close back to the end screen');
+      assert.strictEqual(await page.locator('#leaflet-map').isVisible(), false, 'with the map hidden again');
 
-      // Leaving the map maximized and then moving to a different day
-      // (a fresh, in-progress round) should reset the sheet back to
-      // visible and the button back to its normal "ampliar" state -
-      // see finishStartingGame()'s own setMapMaximized(false) reset.
-      // The button itself staying available is covered by the very
-      // first assertion above, re-running against this new day.
+      // Moving to a different day (a fresh, in-progress round) resets back
+      // to the live-map layout: sheet visible, map visible, floating
+      // button available again as ⛶ - see finishStartingGame()'s own
+      // round-over removal + setMapMaximized(false) reset.
       await page.click('#date-prev');
       await page.waitForTimeout(200);
 
-      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'a fresh day should un-maximize the sheet');
-      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'a fresh, in-progress day should keep the button available');
-      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶', 'and reset back to its un-maximized icon');
+      assert.strictEqual(await page.locator('.panel').isVisible(), true, 'a fresh day should show the sheet');
+      assert.strictEqual(await page.locator('#leaflet-map').isVisible(), true, 'and the live map');
+      assert.strictEqual(await page.locator('#map-maximize-btn').isVisible(), true, 'with the floating button available again');
+      assert.strictEqual(await page.locator('#map-maximize-btn').textContent(), '⛶', 'reset back to its un-maximized icon');
     } finally {
       await context.close();
     }

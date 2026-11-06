@@ -22,8 +22,11 @@ ops page, which is English.
 - **Deterministic per calendar day.** Every game derives its puzzle from
   a seeded RNG (`MetroShared.createSeededRandom('<salt>-' + dateKey)`), so
   everyone gets the same puzzle and replays need a `?debug=true` override.
-- **Keep code comments succinct** - the non-obvious why, not the what.
-  (This file and `docs/` prose are the exception; they stay thorough.)
+- **Keep code comments succinct and useful** - explain the non-obvious
+  why, not the what, and don't let a comment sprawl past what a reader
+  actually needs. (This file and `docs/` prose are the exception - they
+  stay thorough; this rule is about `//` / `/* */` comments in the actual
+  game/test code.)
 - **Put styling shared by 2+ pages in `shared.css`,** never copy-pasted
   per page - check for an existing shared rule first. See `docs/shared.md`.
 - **Bump `CACHE_NAME` in `sw.js` on any change to a precached asset**

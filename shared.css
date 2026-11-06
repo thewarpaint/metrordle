@@ -1670,10 +1670,13 @@ input[type="text"]:disabled {
   line-height: 1;
   background: none;
   border: 0;
-  padding: 0;
+  padding: 0.25rem 0.3rem; /* widens the tap target */
   margin: 0;
   cursor: pointer;
   opacity: 1;
+  /* Inherit --ink: a <button> misses the global `a` color rule, so
+     currentColor was falling back to the UA default (blue on some platforms). */
+  color: inherit;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -1687,35 +1690,38 @@ input[type="text"]:disabled {
   display: block;
 }
 
-/* shared.js injects the gear icon (same source as the theme/bug icons), so
-   reserve its box - the link renders empty until then, but stays sized and
-   clickable. */
+/* Reserve the gear's box so it stays sized/clickable before shared.js
+   injects its icon; padding matches the toolbar buttons. */
 .brand__settings,
 .topbar__settings {
   min-width: 1.15rem;
   min-height: 1.15rem;
+  padding: 0.25rem 0.3rem;
 }
 
 .toolbar-tools {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.15rem; /* small - each control's padding carries most of the spacing */
 }
 
 .toolbar-tools--push {
   margin-left: auto;
 }
 
-/* Drop the gear's own margin-left:auto - with the cluster's, two autos
-   would split the free space and leave a gap (seen on short titles). */
-.toolbar-tools--push + .brand__settings {
+/* Gear is now a cluster child: drop its own margin/positioning so it flows
+   with the other icons (the cluster handles placement). */
+.toolbar-tools .brand__settings,
+.toolbar-tools .topbar__settings {
+  position: static;
   margin-left: 0;
+  inset: auto;
 }
 
 .toolbar-tools--abs {
   position: absolute;
   top: max(0.85rem, env(safe-area-inset-top));
-  right: 2.6rem;
+  right: 1rem;
   z-index: 5;
 }
 

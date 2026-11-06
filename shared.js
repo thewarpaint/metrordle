@@ -13,6 +13,22 @@
 // console hook (debug only) is in place before any MetroShared/game
 // logging fires. isDebugMode/pad2/copyToClipboard/getThemeMode/
 // setThemeMode are hoisted declarations, so referencing them here is fine.
+// Toolbar/settings icons - one source for initToolbar and the /design catalog
+// (MetroShared.buildToolbarIcon). stroke: currentColor reads on both themes.
+function svgIcon(inner) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+}
+var TOOLBAR_ICON_PATHS = {
+  sun: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+  moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  bug: '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>'
+};
+function buildToolbarIcon(name) {
+  return svgIcon(TOOLBAR_ICON_PATHS[name] || '');
+}
+
 (function initToolbar() {
   var debug = isDebugMode();
   var mounted = false;
@@ -124,24 +140,13 @@
       if (m === 'light') return false;
       return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
-    // Monochromatic line icons (Feather/Lucide); stroke: currentColor reads on
-    // both themes. Static markup, so innerHTML is safe.
-    function svgIcon(inner) {
-      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"'
-        + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
-    }
-    var ICON_SUN = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-    var ICON_MOON = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-    var ICON_GEAR = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>';
-    var ICON_BUG = '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>';
-
     var themeBtn = document.createElement('button');
     themeBtn.type = 'button';
     themeBtn.className = 'toolbar-iconbtn';
     themeBtn.title = 'Tema claro/oscuro';
     themeBtn.setAttribute('aria-label', 'Cambiar entre tema claro y oscuro');
     // Shows the icon of the mode it switches TO (sun = go light, moon = go dark).
-    function renderThemeIcon() { themeBtn.innerHTML = svgIcon(isDark() ? ICON_SUN : ICON_MOON); }
+    function renderThemeIcon() { themeBtn.innerHTML = buildToolbarIcon(isDark() ? 'sun' : 'moon'); }
     themeBtn.addEventListener('click', function () {
       setThemeMode(isDark() ? 'light' : 'dark');
       renderThemeIcon();
@@ -212,7 +217,7 @@
       var bug = document.createElement('button');
       bug.type = 'button';
       bug.className = 'toolbar-iconbtn';
-      bug.innerHTML = svgIcon(ICON_BUG);
+      bug.innerHTML = buildToolbarIcon('bug');
       bug.title = 'Debug log';
       bug.setAttribute('aria-label', 'Mostrar u ocultar el registro de depuración');
       bug.setAttribute('aria-pressed', 'false');
@@ -229,15 +234,15 @@
       listEl.scrollTop = listEl.scrollHeight;
     }
 
-    // Right-align the cluster by the gear (see .toolbar-tools variants in CSS).
+    // Move the gear into .toolbar-tools (as its last icon) so all three icons
+    // share one container/gap, not the gear's own wider .brand/.topbar gap.
     var gear = document.querySelector('.brand__settings, .topbar__settings');
-    if (gear) gear.innerHTML = svgIcon(ICON_GEAR);
-    if (gear && gear.classList.contains('topbar__settings')) {
-      tools.classList.add('toolbar-tools--abs');
+    if (gear) {
+      gear.innerHTML = buildToolbarIcon('gear');
+      tools.classList.add(gear.classList.contains('topbar__settings')
+        ? 'toolbar-tools--abs' : 'toolbar-tools--push');
       gear.parentNode.insertBefore(tools, gear);
-    } else if (gear) {
-      tools.classList.add('toolbar-tools--push');
-      gear.parentNode.insertBefore(tools, gear);
+      tools.appendChild(gear);
     } else {
       tools.classList.add('toolbar-tools--fixed');
       document.body.appendChild(tools);
@@ -1625,6 +1630,7 @@ window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
   buildStationMasks: buildStationMasks,
+  buildToolbarIcon: buildToolbarIcon,
   STATION_COORDS: STATION_COORDS,
   hashStringToInt: hashStringToInt,
   createSeededRandom: createSeededRandom,

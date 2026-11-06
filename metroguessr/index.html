@@ -383,19 +383,14 @@
 
       body.map-maximized .panel { display: none; }
 
-      /* --- end screen (round over) ---
-         Flip from "bottom sheet floating over the live map" to a normal
-         flowing page: hide the map, let the reveal be the page itself (which
-         can scroll as a whole, vs. the sheet's own inner scroll box), and
-         surface the map only on demand via "Explorar el mapa". */
+      /* End screen (round over): hide the map, let the reveal flow as a normal
+         page; "Explorar el mapa" surfaces the map on demand. */
       body.round-over { overflow-y: auto; }
       body.round-over .map-stage { display: none; }
 
       body.round-over .panel {
-        /* position: relative + z-index:0 (not static) so the panel sits in a
-           stacking context BELOW the fixed topbar - otherwise it keeps the
-           base rule's z-index:500 and covers the topbar's own controls
-           (date-nav, etc.), swallowing their clicks. */
+        /* relative + z-index:0 keeps it below the fixed topbar; left static it
+           keeps the base z-index:500 and swallows the topbar's clicks. */
         position: relative;
         z-index: 0;
         background: none;
@@ -412,8 +407,8 @@
 
       body.round-over .reveal { flex: none; overflow: visible; }
 
-      /* "Explorar el mapa" opens the map fullscreen; the floating button is
-         then only the ✕ that closes back to this view. */
+      /* On the end screen the in-flow button opens the map; the floating one
+         is only the ✕ to close it. */
       body.round-over:not(.map-maximized) .map-maximize-btn { display: none; }
       body.round-over.map-maximized .map-stage { display: block; }
 
@@ -492,8 +487,7 @@
       }
       .reveal[hidden] { display: none; }
 
-      /* The correct station, shown on the end screen (icon colored by its
-         line + name) in place of the now-hidden map. */
+      /* The correct station (icon + name), shown in place of the hidden map. */
       .reveal-station {
         display: flex;
         flex-direction: column;
@@ -944,9 +938,8 @@
           return svg;
         }
 
-        // Fills a .station badge (the map's target marker and the reveal's
-        // own station display both use this) with the station's line color
-        // and pictogram.
+        // Fills a .station badge (map target marker + reveal display) with the
+        // station's line color and pictogram.
         function paintStationBadge(el, name, line) {
           el.innerHTML = '';
           if (line) {
@@ -1203,8 +1196,7 @@
           // from the very first guess.
           setMapMaximized(false);
           $('map-maximize-btn').hidden = false;
-          // Back to the live-map layout (a done-day restore re-adds this
-          // right away via showReveal() below).
+          // Back to the live-map layout (a done-day restore re-adds it via showReveal()).
           document.body.classList.remove('round-over');
 
           var dateKey = pendingGameSetup.dateKey;
@@ -1539,14 +1531,12 @@
             streakLine
           );
 
-          // The correct station, now shown in the reveal (icon + name) in
-          // place of the map - so the banner no longer needs to name it.
+          // Shown in the reveal (icon + name) now, so the banner needn't name it.
           paintStationBadge($('reveal-station-badge'), state.target, line);
           $('reveal-station-name').textContent = state.target;
           $('reveal-station').hidden = false;
 
-          // Hide the map and let the reveal flow as the page; "Explorar el
-          // mapa" brings the map back fullscreen (see the round-over CSS).
+          // Hide the map; the reveal flows as the page (round-over CSS).
           document.body.classList.add('round-over');
 
           renderAliasRow();
@@ -1653,8 +1643,7 @@
           var label = maximized ? 'Minimizar mapa' : 'Ampliar mapa';
           btn.setAttribute('aria-label', label);
           btn.setAttribute('title', label);
-          // On the end screen the map was display:none until now, so Leaflet
-          // needs to re-measure its container before recentering.
+          // Map was display:none on the end screen; Leaflet must re-measure.
           if (maximized) map.invalidateSize(false);
           recenterMapOnTarget();
         }

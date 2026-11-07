@@ -245,8 +245,7 @@ function buildToolbarIcon(name) {
       gear.parentNode.insertBefore(tools, gear);
       tools.appendChild(gear);
     } else if (brand) {
-      // Gearless .brand page (just /configurar/, which needs no self-link to
-      // itself): still anchor the toolbar inline in the brand row, not floating.
+      // Gearless .brand page (only /configurar/): anchor inline, not floating.
       tools.classList.add('toolbar-tools--push');
       brand.appendChild(tools);
     } else {

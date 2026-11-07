@@ -14,10 +14,11 @@
   `/sopa-de-metros/` prototype, the one game still outside that list.
   Linked from each game page's footer: a `<p class="credit">`
   `<a href="/juegos/">Todos los juegos</a>` link (on `/`, `/laberinto/`,
-  `/memoria/`, `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, and
-  the unreferenced `/metrocrush-staging/`) - a plain `color: inherit`
-  link (shared.css's global `a` rule), matching `/configurar/`'s own
-  in-`.credit` "← Volver a Metrordle" link. On the first five it
+  `/memoria/`, `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`,
+  `/configurar/`, and the unreferenced `/metrocrush-staging/`) - a plain
+  `color: inherit` link (shared.css's global `a` rule). `/configurar/`
+  used to read "← Volver a Metrordle" (→ `/`); it now matches the games,
+  for header/footer parity. On the first five it
   replaced the old "Basado en el trazado real..." credit line; Copo had
   no footer before, so it just gained one. Metroguessr has no such
   footer (full-bleed map layout), so it stays unlinked for now.

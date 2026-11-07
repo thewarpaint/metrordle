@@ -237,12 +237,17 @@ function buildToolbarIcon(name) {
     // Move the gear into .toolbar-tools (as its last icon) so all three icons
     // share one container/gap, not the gear's own wider .brand/.topbar gap.
     var gear = document.querySelector('.brand__settings, .topbar__settings');
+    var brand = document.querySelector('.brand');
     if (gear) {
       gear.innerHTML = buildToolbarIcon('gear');
       tools.classList.add(gear.classList.contains('topbar__settings')
         ? 'toolbar-tools--abs' : 'toolbar-tools--push');
       gear.parentNode.insertBefore(tools, gear);
       tools.appendChild(gear);
+    } else if (brand) {
+      // Gearless .brand page (only /configurar/): anchor inline, not floating.
+      tools.classList.add('toolbar-tools--push');
+      brand.appendChild(tools);
     } else {
       tools.classList.add('toolbar-tools--fixed');
       document.body.appendChild(tools);

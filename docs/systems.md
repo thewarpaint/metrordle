@@ -59,7 +59,11 @@ attach one to. `/admin/` and `/purge/` are the only exceptions worth
 noting: `/admin/` still gets the link (harmless, even though it's
 itself unlinked from any game's nav); `/purge/` doesn't, since it's
 deliberately self-contained with no `shared.css`/`shared.js` at all
-(see its own bullet above).
+(see its own bullet above). `/configurar/` carries the gear too,
+pointing at itself - not for navigation (you're already there) but so
+`shared.js`'s header toolbar (the light/dark toggle, plus the debug 🐞)
+anchors inline in the `.brand` row like every other page, instead of
+floating fixed (`toolbar-tools--fixed`) for lack of an anchor.
 
 All settings live in one `'metrordle:config'` localStorage key holding
 a plain object - `MetroShared.loadConfig()`/`saveConfig(partialConfig)`

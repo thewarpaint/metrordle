@@ -1671,10 +1671,10 @@ var TRANSFER_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 var STREAK_KEY_SUFFIX = ':streak';
 var TRANSFER_DAILY_KEEP_DAYS = 7;
 var DATED_KEY_RE = /:\d{4}-\d{2}-\d{2}$/; // a <game>:YYYY-MM-DD daily state
-// Keep the serialized snapshot under the transfers/{id} rules cap (50000),
+// Keep the serialized snapshot under the transfers/{id} rules cap (100000),
 // with margin. JS string length is an upper bound on Firestore's size(), so
 // staying under this guarantees the write passes.
-var TRANSFER_MAX_DATA_CHARS = 45000;
+var TRANSFER_MAX_DATA_CHARS = 95000;
 
 // Today minus the keep window, as 'YYYY-MM-DD' (which sorts chronologically).
 function transferDateCutoff() {

@@ -139,8 +139,8 @@ async function main() {
       await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
-      // Six recent (in-window) daily states of ~12KB each = ~72KB, well over
-      // the cap - even after the keep-window prune, the snapshot must shrink.
+      // Six recent (in-window) daily states of ~18KB each = ~108KB, over the
+      // cap - even after the keep-window prune, the snapshot must shrink.
       const result = await page.evaluate(() => {
         function dk(offset) {
           var d = new Date(); d.setDate(d.getDate() + offset);
@@ -149,7 +149,7 @@ async function main() {
         }
         localStorage.clear();
         localStorage.setItem('metrordle:streak', JSON.stringify({ count: 5, max: 9, lastResultDate: dk(0) }));
-        var big = 'x'.repeat(12000);
+        var big = 'x'.repeat(18000);
         for (var i = 1; i <= 6; i++) localStorage.setItem('metrocrush:' + dk(-i), JSON.stringify({ blob: big }));
         var snap = MetroShared.exportLocalData();
         return {
@@ -160,7 +160,7 @@ async function main() {
         };
       });
 
-      assert.ok(result.chars <= 45000, 'the snapshot must be capped under the rules size limit, got ' + result.chars);
+      assert.ok(result.chars <= 95000, 'the snapshot must be capped under the rules size limit, got ' + result.chars);
       assert.ok(result.keptStreak, 'undated keys (streak/alias/config) are always kept, never dropped for size');
       assert.ok(result.hasNewest, 'the newest daily state is kept');
       assert.ok(!result.hasOldest, 'the oldest daily state is dropped first to fit under the cap');

@@ -50,6 +50,26 @@
         font-size: 0.95rem;
         font-weight: 800;
         margin: 0 0 0.7rem;
+        scroll-margin-top: 1rem;
+      }
+
+      /* Each header links to itself so a section (e.g. how to install the
+         app) can be shared by URL - styled as the heading, not a link, with
+         a subtle "#" cue on hover/focus. */
+      .config-section__anchor {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .config-section__anchor:hover,
+      .config-section__anchor:focus-visible {
+        text-decoration: underline;
+      }
+
+      .config-section__anchor:hover::after,
+      .config-section__anchor:focus-visible::after {
+        content: ' #';
+        opacity: 0.5;
       }
 
       .theme-options {
@@ -138,7 +158,7 @@
         </div>
 
         <div class="config-section">
-          <h2 class="config-section__title">Apariencia</h2>
+          <h2 class="config-section__title" id="apariencia"><a class="config-section__anchor" href="#apariencia">Apariencia</a></h2>
           <div class="theme-options" id="theme-options" role="group" aria-label="Modo de apariencia">
             <button type="button" class="mode-option" id="theme-option-light" data-mode="light" aria-pressed="false">
               <span class="mode-option__title">Claro</span>
@@ -156,7 +176,7 @@
         </div>
 
         <div class="config-section">
-          <h2 class="config-section__title">Accesibilidad</h2>
+          <h2 class="config-section__title" id="accesibilidad"><a class="config-section__anchor" href="#accesibilidad">Accesibilidad</a></h2>
           <!-- A two-way group, same shape as the theme picker above
                (role="group", one .mode-option per choice, this page's
                own [aria-pressed="true"] highlight) - a single on/off
@@ -184,7 +204,7 @@
         </div>
 
         <div class="config-section">
-          <h2 class="config-section__title">Alias</h2>
+          <h2 class="config-section__title" id="alias"><a class="config-section__anchor" href="#alias">Alias</a></h2>
           <p class="dek">
             Aparece en las tablas de posiciones de todos los juegos. Cambiarlo no mueve tus puntajes ya guardados - seguirán apareciendo bajo tu alias anterior.
           </p>
@@ -196,7 +216,7 @@
         </div>
 
         <div class="config-section">
-          <h2 class="config-section__title">Instalar app y transferir datos</h2>
+          <h2 class="config-section__title" id="instalar-app"><a class="config-section__anchor" href="#instalar-app">Instalar app y transferir datos</a></h2>
           <p class="dek">
             Al instalar Metrordle en la pantalla de inicio, iOS le da su propio espacio y tus rachas pueden quedarse en el navegador. Genera un código en el dispositivo anterior, instala la app y restáuralo adentro para conservar rachas, alias y preferencias.
           </p>

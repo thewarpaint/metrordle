@@ -193,3 +193,40 @@ puzzle without waiting for it, and makes `submitScore()` a no-op site-wide
 so date-nav testing never pollutes the real leaderboards. `?date=YYYY-MM-DD`
 also works standalone (validated by regex, falls back to real "today" if
 malformed).
+
+## PWA install & data transfer
+
+All personal progress lives in localStorage (alias `metrordle:alias`,
+config `metrordle:config`, per-game streaks `<game>:streak`, per-day game
+states, notice flags). When the site is installed as a PWA, **iOS gives
+the standalone app a storage sandbox separate from Safari**, so streaks
+look wiped after "Agregar a inicio" (Android usually shares storage, but
+the feature still helps move between devices). Leaderboard scores (keyed by
+`aliasDocId`) and global records (`records/{gameKey}`) already live in
+Firestore, so restoring the **alias** reassociates them - only the
+localStorage-only data has to travel.
+
+The transfer API lives in `shared.js`:
+- `exportLocalData()` - snapshots every app-owned localStorage key (minus
+  the dev-only `metrordle:leaderboard-fallback:*`).
+- `createTransfer()` - writes the snapshot (as a JSON string) to a new
+  `transfers/{id}` doc (`id` = random base62, the user-facing code) and
+  resolves the id. See `docs/firebase.md` for the collection + rules.
+- `restoreTransfer(id)` - fetches the doc and **merges** into localStorage,
+  never regressing: streaks keep the higher `count`/`max` (via
+  `loadStreak`/`saveStreak`), config lets local choices win, the alias is
+  adopted only if none is set, and every other key is filled only when
+  absent. Rejects expired (`createdAt` > ~7 days) / missing / corrupt docs.
+- `isStandalonePWA()` / `getDeferredInstallPrompt()` - detect the installed
+  app and hold Android's `beforeinstallprompt` for `/configurar`'s button.
+
+UI: **`/configurar`** (which now loads the Firebase SDK, with the same
+Firebase-allowing CSP as the game pages) hosts the full flow - an install
+button, "generate code" (shows the code + a `?restore=<id>` link + copy
+buttons), and a "restore with a code" field. On top of that, `shared.js`
+runs `initDataTransferBanner()` on every page: a `?restore=<id>` link
+(tapped inside the app) auto-restores and reloads via a bottom
+`.transfer-banner`; a just-installed standalone app with empty storage gets
+a gentle nudge toward `/configurar`. The manifest `start_url` is a static
+`/`, so a per-user id can't ride into the installed app automatically - the
+typed code is the reliable path, the link is the convenience path.

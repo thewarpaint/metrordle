@@ -19,6 +19,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // transfers/{id}: one-shot "move my data to the installed PWA" token
+    // (MetroShared.createTransfer()/restoreTransfer()). `data` is the
+    // localStorage snapshot as a JSON string so size() can bound it (~50KB,
+    // well under the 1MB cap); it's the player's own data, read by its
+    // unguessable id. Immutable; expiry is enforced client-side off
+    // createdAt for now (a TTL/cleanup to delete stale tokens is a follow-up).
+    match /transfers/{id} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasOnly(['data', 'schema', 'createdAt']) &&
+        request.resource.data.schema is int &&
+        request.resource.data.data is string &&
+        request.resource.data.data.size() <= 50000 &&
+        request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+
     // memoria-leaderboard/{dateKey}/entries/{aliasId}. streak (display
     // -only, the 🔥 flag on /tablero/ - see getTopLeaderboardScores()'s
     // own comment in shared.js on why it's never part of orderBySpecs)

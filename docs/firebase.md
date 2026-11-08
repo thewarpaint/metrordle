@@ -13,3 +13,14 @@
   `match` block per leaderboard collection, validating shape/type/bounds
   only (no login system exists, so these can't verify a human played
   fair - accepted tradeoff for a casual leaderboard).
+- **`transfers/{id}`** - a non-leaderboard collection for the PWA
+  data-transfer feature (see `docs/systems.md` → "PWA install & data
+  transfer"). One doc per snapshot, keyed by a random unguessable id that
+  doubles as the user-facing code: `allow read: if true` (read-by-id),
+  shape-validated `create` (`data` is a JSON-string snapshot capped at
+  ~50KB, plus `schema`/`createdAt`), `update`/`delete` denied. Like any
+  rules change here it's a **manual deploy and must land before (or with)
+  the code** - a `create` with an unexpected key fails `hasOnly` →
+  `permission-denied` until the rules ship. Expiry is enforced client-side
+  off `createdAt` (~7 days); actually deleting stale tokens (a Firestore
+  TTL policy on `createdAt`, or a scheduled cleanup) is a follow-up.

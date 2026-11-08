@@ -31,6 +31,7 @@ const FILES = [
   'status/status.test.js',
   'shared/leaderboard-query.test.js',
   'shared/high-score-record.test.js',
+  'shared/transfer.test.js',
   'security/csp.test.js',
   'meta/sw-cache-version.test.js',
   'meta/agents-doc.test.js',

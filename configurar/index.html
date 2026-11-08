@@ -5,11 +5,13 @@
   <head>
     <meta charset="utf-8">
     <!--
-      Tighter than the game pages' CSP (see index.html) since this page
-      loads no Firebase SDK and renders no user-controlled data at all -
-      defense-in-depth only.
+      Same Firebase-allowing CSP as the game pages (see index.html): this
+      page now loads the Firebase SDK for the data-transfer feature (see the
+      "Instalar app y transferir datos" section). Defense-in-depth only -
+      every value rendered here comes from the player's own device or a
+      transfer code they typed, never another user's content.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>Configuración · Metrordle 🚇</title>
@@ -82,6 +84,40 @@
 
       .alias-notice--error {
         color: var(--danger);
+      }
+
+      .transfer-step {
+        font-family: 'Overpass', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 800;
+        margin: 1.2rem 0 0.5rem;
+      }
+
+      .transfer-result[hidden] {
+        display: none;
+      }
+
+      .transfer-result {
+        margin-top: 0.7rem;
+      }
+
+      .transfer-code {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        word-break: break-all;
+        margin: 0 0 0.6rem;
+        padding: 0.6rem 0.75rem;
+        background: var(--paper-well);
+        border-radius: 0.4rem;
+      }
+
+      .transfer-result__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.9rem;
       }
     </style>
   </head>
@@ -158,6 +194,34 @@
           </div>
           <p class="alias-notice" id="alias-notice" aria-live="polite" hidden></p>
         </div>
+
+        <div class="config-section">
+          <h2 class="config-section__title">Instalar app y transferir datos</h2>
+          <p class="dek">
+            Al instalar Metrordle en la pantalla de inicio, iOS le da su propio espacio y tus rachas pueden quedarse en el navegador. Genera un código en el dispositivo anterior, instala la app y restáuralo adentro para conservar rachas, alias y preferencias.
+          </p>
+
+          <button type="button" class="btn-secondary" id="install-btn">Instalar app</button>
+          <p class="alias-notice" id="install-hint" aria-live="polite" hidden></p>
+
+          <h3 class="transfer-step">1 · Genera tu código (donde ya jugabas)</h3>
+          <button type="button" class="btn-primary" id="transfer-generate-btn">Generar código de transferencia</button>
+          <div class="transfer-result" id="transfer-result" hidden>
+            <p class="transfer-code" id="transfer-code" aria-live="polite"></p>
+            <div class="transfer-result__actions">
+              <button type="button" class="btn-secondary" id="transfer-copy-code">Copiar código</button>
+              <button type="button" class="btn-secondary" id="transfer-copy-link">Copiar liga</button>
+            </div>
+            <p class="dek">Instálala, ábrela y pega el código abajo (o abre la liga dentro de la app). Caduca en 7 días; cualquiera con el código puede leer esta copia.</p>
+          </div>
+
+          <h3 class="transfer-step">2 · Restaura tu código (en la app instalada)</h3>
+          <div class="leaderboard__alias" id="restore-row">
+            <input type="text" id="restore-input" maxlength="40" placeholder="Pega tu código" aria-label="Código de transferencia" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="btn-primary" id="restore-btn">Restaurar</button>
+          </div>
+          <p class="alias-notice" id="restore-notice" aria-live="polite" hidden></p>
+        </div>
       </div>
 
       <p class="credit">
@@ -165,6 +229,9 @@
       </p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
@@ -246,6 +313,111 @@
         aliasInput.addEventListener('keydown', function (e) {
           if (e.key === 'Enter') saveAlias();
         });
+
+        // --- Install app + data transfer ---------------------------------
+        var installBtn = document.getElementById('install-btn');
+        var installHint = document.getElementById('install-hint');
+
+        function showInstallHint(text, isError) {
+          installHint.textContent = text;
+          installHint.className = 'alias-notice ' + (isError ? 'alias-notice--error' : 'alias-notice--success');
+          installHint.hidden = false;
+        }
+
+        if (MetroShared.isStandalonePWA()) {
+          installBtn.textContent = 'App ya instalada';
+          installBtn.disabled = true;
+        }
+        installBtn.addEventListener('click', function () {
+          var prompt = MetroShared.getDeferredInstallPrompt();
+          if (prompt && prompt.prompt) {
+            prompt.prompt();
+          } else {
+            showInstallHint('En iPhone: toca Compartir y luego "Agregar a inicio". En Android: menú ⋮ y "Instalar app".', false);
+          }
+        });
+
+        var generateBtn = document.getElementById('transfer-generate-btn');
+        var resultBox = document.getElementById('transfer-result');
+        var codeEl = document.getElementById('transfer-code');
+        var copyCodeBtn = document.getElementById('transfer-copy-code');
+        var copyLinkBtn = document.getElementById('transfer-copy-link');
+        var currentCode = '';
+
+        function flashButton(btn, text) {
+          if (btn.dataset && btn.dataset.busy) return;
+          var original = btn.textContent;
+          btn.textContent = text;
+          if (btn.dataset) btn.dataset.busy = '1';
+          setTimeout(function () {
+            btn.textContent = original;
+            if (btn.dataset) delete btn.dataset.busy;
+          }, 1500);
+        }
+
+        generateBtn.addEventListener('click', function () {
+          generateBtn.disabled = true;
+          generateBtn.textContent = 'Generando…';
+          MetroShared.createTransfer().then(function (id) {
+            currentCode = id;
+            codeEl.textContent = id;
+            resultBox.hidden = false;
+            generateBtn.textContent = 'Generar otro código';
+            generateBtn.disabled = false;
+          }).catch(function () {
+            generateBtn.textContent = 'Generar código de transferencia';
+            generateBtn.disabled = false;
+            showInstallHint('No se pudo generar el código. Revisa tu conexión e inténtalo de nuevo.', true);
+          });
+        });
+
+        copyCodeBtn.addEventListener('click', function () {
+          if (!currentCode) return;
+          MetroShared.copyToClipboard(currentCode).then(function () { flashButton(copyCodeBtn, '¡Copiado!'); });
+        });
+        copyLinkBtn.addEventListener('click', function () {
+          if (!currentCode) return;
+          var link = window.location.origin + '/?restore=' + currentCode;
+          MetroShared.copyToClipboard(link).then(function () { flashButton(copyLinkBtn, '¡Copiada!'); });
+        });
+
+        var restoreInput = document.getElementById('restore-input');
+        var restoreBtn = document.getElementById('restore-btn');
+        var restoreNotice = document.getElementById('restore-notice');
+        var RESTORE_MSG = {
+          'not-found': 'No encontramos ese código. Revísalo e inténtalo de nuevo.',
+          'expired': 'Ese código ya expiró. Genera uno nuevo desde el dispositivo anterior.',
+          'firebase-unavailable': 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.',
+          'corrupt': 'Ese código está dañado. Genera uno nuevo.',
+          'error': 'Algo salió mal. Inténtalo de nuevo.',
+          'empty': 'Escribe un código antes de restaurar.',
+        };
+
+        function showRestoreNotice(text, isError) {
+          restoreNotice.textContent = text;
+          restoreNotice.className = 'alias-notice ' + (isError ? 'alias-notice--error' : 'alias-notice--success');
+          restoreNotice.hidden = false;
+        }
+
+        function doRestore() {
+          var code = restoreInput.value.trim();
+          if (!code) { showRestoreNotice(RESTORE_MSG.empty, true); return; }
+          restoreBtn.disabled = true;
+          restoreBtn.textContent = 'Restaurando…';
+          MetroShared.restoreTransfer(code).then(function (res) {
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = 'Restaurar';
+            if (res.restored) {
+              showRestoreNotice('¡Listo! Restauramos tus datos. Recargando…', false);
+              setTimeout(function () { window.location.reload(); }, 1000);
+            } else {
+              showRestoreNotice(RESTORE_MSG[res.reason] || RESTORE_MSG.error, true);
+            }
+          });
+        }
+
+        restoreBtn.addEventListener('click', doRestore);
+        restoreInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doRestore(); });
       })();
     </script>
   </body>

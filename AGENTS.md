@@ -73,7 +73,7 @@ so the right notes surface when you work in that folder.
 - `docs/leaderboards.md` - per-game ranking, high-score records, losses,
   streaks
 - `docs/systems.md` - game suggestions, site config (theme/motion/alias),
-  debug mode, rendering safety
+  debug mode, rendering safety, PWA install & data transfer
 - `docs/testing.md` - the Playwright suite, the credential swap, the
   `serviceWorkers: 'block'` gotcha
 - `docs/contributing.md` - git workflow, `CACHE_NAME` = PR number

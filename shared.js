@@ -1655,6 +1655,322 @@ function buildStationMasks(svgText) {
   return out;
 }
 
+// ---- PWA install data transfer -------------------------------------------
+// Every bit of personal progress on this site lives in localStorage (the
+// alias, config, each game's streak + daily states, a few notice flags).
+// When the site is installed as a PWA, iOS hands the standalone app a
+// storage sandbox SEPARATE from Safari, so the player's streaks look wiped
+// after "Agregar a inicio". These helpers snapshot all app-owned keys into a
+// one-shot, expiring transfers/{id} Firestore doc, shown to the player as a
+// code + link, and merge it back on the new device. Leaderboard scores and
+// records already live in Firestore keyed by the alias, so restoring the
+// alias reassociates them - only the localStorage-only data has to travel.
+
+var TRANSFER_SCHEMA = 1;
+var TRANSFER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // one-shot tokens expire
+var TRANSFER_ID_LENGTH = 14;
+var TRANSFER_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+var STREAK_KEY_SUFFIX = ':streak';
+
+// A snapshot of every localStorage key the app owns, minus the dev-only
+// leaderboard fallback (a local Firestore stand-in, never real progress).
+function exportLocalData() {
+  var out = {};
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var key = localStorage.key(i);
+      if (key && key.indexOf(LEADERBOARD_FALLBACK_PREFIX) !== 0) {
+        out[key] = localStorage.getItem(key);
+      }
+    }
+  } catch (e) {
+    // localStorage unavailable (private mode, etc.) - nothing to export.
+  }
+  return out;
+}
+
+// A random, unguessable id - it's both the Firestore doc id and the "code"
+// the player types on the new device, so anyone with it can read that one
+// snapshot (hence the length + expiry, see TRANSFER_MAX_AGE_MS).
+function randomTransferId() {
+  var id = '';
+  try {
+    var bytes = new Uint8Array(TRANSFER_ID_LENGTH);
+    (window.crypto || window.msCrypto).getRandomValues(bytes);
+    for (var i = 0; i < bytes.length; i++) {
+      id += TRANSFER_ID_ALPHABET[bytes[i] % TRANSFER_ID_ALPHABET.length];
+    }
+  } catch (e) {
+    for (var j = 0; j < TRANSFER_ID_LENGTH; j++) {
+      id += TRANSFER_ID_ALPHABET[Math.floor(Math.random() * TRANSFER_ID_ALPHABET.length)];
+    }
+  }
+  return id;
+}
+
+// Writes a snapshot of all app data to transfers/{id} and resolves the id.
+// Rejects when Firebase isn't reachable so the caller can say so plainly.
+function createTransfer() {
+  if (!firebaseReady()) {
+    return Promise.reject(new Error('firebase-unavailable'));
+  }
+  var id = randomTransferId();
+  return firebase.firestore().collection('transfers').doc(id).set({
+    schema: TRANSFER_SCHEMA,
+    data: JSON.stringify(exportLocalData()),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }).then(function () { return id; });
+}
+
+// 'YYYY-MM-DD' strings compare lexicographically, so this is just the later
+// of two dates (either may be null/empty).
+function laterDateKey(a, b) {
+  if (!a) return b || null;
+  if (!b) return a;
+  return a >= b ? a : b;
+}
+
+// Merge one incoming streak, keeping the higher count/max so restoring never
+// regresses a streak already built on this device (the common case is a
+// fresh install where the local side is just {count:0}).
+function mergeStreakKey(key, incomingRaw) {
+  try {
+    var theirs = JSON.parse(incomingRaw);
+    if (!theirs || typeof theirs.count !== 'number') return false;
+    if (typeof theirs.max !== 'number') theirs.max = theirs.count;
+    var mine = loadStreak(key);
+    saveStreak(key, {
+      count: Math.max(mine.count, theirs.count),
+      max: Math.max(mine.max, theirs.max),
+      lastResultDate: laterDateKey(mine.lastResultDate, theirs.lastResultDate),
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Merge config so a setting already chosen on THIS device wins; the snapshot
+// only fills what isn't set here. Re-applies theme/motion immediately.
+function mergeConfigData(incomingRaw) {
+  try {
+    var theirs = JSON.parse(incomingRaw);
+    if (!theirs || typeof theirs !== 'object') return false;
+    var merged = Object.assign({}, theirs, loadConfig());
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(merged));
+    applyThemeMode(getThemeMode());
+    applyReducedMotion(getReducedMotion());
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Merges a snapshot into localStorage and returns how many keys were
+// written. Streaks keep the higher value; config lets local choices win;
+// the alias is adopted only if none is set here; every other key (daily
+// states, notice flags) is filled only when absent, so progress already made
+// on this device is never clobbered.
+function mergeImportedData(data) {
+  var written = 0;
+  Object.keys(data).forEach(function (key) {
+    var incoming = data[key];
+    if (typeof incoming !== 'string') return;
+    var isStreak = key.length >= STREAK_KEY_SUFFIX.length &&
+      key.lastIndexOf(STREAK_KEY_SUFFIX) === key.length - STREAK_KEY_SUFFIX.length;
+    if (isStreak) {
+      if (mergeStreakKey(key, incoming)) written++;
+    } else if (key === CONFIG_STORAGE_KEY) {
+      if (mergeConfigData(incoming)) written++;
+    } else if (key === ALIAS_STORAGE_KEY) {
+      if (!getAlias()) { setAlias(incoming); written++; }
+    } else {
+      try {
+        if (localStorage.getItem(key) === null) {
+          localStorage.setItem(key, incoming);
+          written++;
+        }
+      } catch (e) {
+        // localStorage unavailable - skip this key.
+      }
+    }
+  });
+  return written;
+}
+
+// Fetches transfers/{id} and merges it into localStorage. Resolves
+// { restored: true, keys: n } on success, or { restored: false, reason }
+// ('empty' | 'firebase-unavailable' | 'not-found' | 'expired' | 'corrupt'
+// | 'error') so the caller can show a precise message. Never rejects.
+function restoreTransfer(id) {
+  var cleanId = String(id || '').trim();
+  if (!cleanId) return Promise.resolve({ restored: false, reason: 'empty' });
+  if (!firebaseReady()) return Promise.resolve({ restored: false, reason: 'firebase-unavailable' });
+
+  return firebase.firestore().collection('transfers').doc(cleanId).get()
+    .then(function (snap) {
+      if (!snap.exists) return { restored: false, reason: 'not-found' };
+      var doc = snap.data();
+      var createdMs = doc.createdAt && doc.createdAt.toMillis ? doc.createdAt.toMillis() : 0;
+      if (createdMs && (Date.now() - createdMs) > TRANSFER_MAX_AGE_MS) {
+        return { restored: false, reason: 'expired' };
+      }
+      var data;
+      try {
+        data = JSON.parse(doc.data);
+      } catch (e) {
+        return { restored: false, reason: 'corrupt' };
+      }
+      if (!data || typeof data !== 'object') return { restored: false, reason: 'corrupt' };
+      return { restored: true, keys: mergeImportedData(data) };
+    })
+    .catch(function () { return { restored: false, reason: 'error' }; });
+}
+
+// True when running as an installed PWA (its own storage on iOS), not a
+// browser tab - the case where a just-installed app starts data-less.
+function isStandalonePWA() {
+  try {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Android fires beforeinstallprompt; stash it so /configurar's install button
+// can call .prompt() later. iOS fires nothing (install is a manual Share
+// menu step), so a null here just means "show the iOS instructions instead".
+var deferredInstallPrompt = null;
+try {
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+} catch (e) { /* no window event support - ignore */ }
+
+function getDeferredInstallPrompt() {
+  return deferredInstallPrompt;
+}
+
+// True when this device has no progress yet - no alias and every streak at
+// zero. Used to decide whether a just-installed standalone app should nudge
+// the player to restore (see initDataTransferBanner below).
+var TRANSFER_GAME_KEYS = ['metrordle', 'metroguessr', 'memoria', 'laberinto', 'metrocrush', 'clasificador', 'copo-de-nieve'];
+
+function storageLooksEmpty() {
+  if (getAlias()) return false;
+  for (var i = 0; i < TRANSFER_GAME_KEYS.length; i++) {
+    if (loadStreak(TRANSFER_GAME_KEYS[i] + STREAK_KEY_SUFFIX).count > 0) return false;
+  }
+  return true;
+}
+
+var RESTORE_ERROR_TEXT = {
+  'not-found': 'No encontramos ese código. Revísalo e inténtalo de nuevo.',
+  'expired': 'Ese código ya expiró. Genera uno nuevo desde el dispositivo anterior.',
+  'firebase-unavailable': 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.',
+  'corrupt': 'Ese código está dañado. Genera uno nuevo.',
+  'error': 'Algo salió mal. Inténtalo de nuevo.',
+  'empty': 'Escribe un código válido.',
+};
+
+function removeTransferBanner(host) {
+  if (host && host.parentNode) host.parentNode.removeChild(host);
+}
+
+// A self-contained card pinned to the bottom of the page (see .transfer-banner
+// in shared.css) - needs no per-page mount point, so it works on every page.
+// `actions` is a list of <a>/<button> nodes for the bottom row.
+function showTransferBanner(variantClass, title, text, actions) {
+  var host = document.createElement('div');
+  host.className = 'transfer-banner';
+  var notice = document.createElement('div');
+  notice.className = 'notice ' + variantClass;
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'notice__title';
+  titleEl.textContent = title;
+  notice.appendChild(titleEl);
+
+  if (text) {
+    var textEl = document.createElement('div');
+    textEl.className = 'notice__text';
+    textEl.textContent = text;
+    notice.appendChild(textEl);
+  }
+  if (actions && actions.length) {
+    var row = document.createElement('div');
+    row.className = 'transfer-banner__actions';
+    for (var i = 0; i < actions.length; i++) row.appendChild(actions[i]);
+    notice.appendChild(row);
+  }
+
+  host.appendChild(notice);
+  if (document.body) document.body.appendChild(host);
+  return host;
+}
+
+function makeTransferDismissButton(label) {
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = label || 'Cerrar';
+  btn.addEventListener('click', function () {
+    var host = btn.closest ? btn.closest('.transfer-banner') : btn.parentNode;
+    while (host && !(host.className && host.className.indexOf('transfer-banner') !== -1)) host = host.parentNode;
+    removeTransferBanner(host);
+  });
+  return btn;
+}
+
+function stripRestoreParam() {
+  try {
+    var url = new URL(window.location.href);
+    url.searchParams.delete('restore');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  } catch (e) {
+    // history/URL unsupported - harmless, the param just stays in the bar.
+  }
+}
+
+// Runs on every page once shared.js loads. A ?restore=<id> link (tapped
+// inside the installed app) auto-restores and reloads; otherwise a just-
+// installed standalone app with no data yet gets a gentle nudge toward
+// /configurar, where the manual code field lives.
+function initDataTransferBanner() {
+  var restoreId = '';
+  try {
+    restoreId = new URLSearchParams(window.location.search).get('restore') || '';
+  } catch (e) { restoreId = ''; }
+
+  if (restoreId) {
+    var pending = showTransferBanner('notice--info', 'Restaurando tus datos…', '', null);
+    restoreTransfer(restoreId).then(function (res) {
+      removeTransferBanner(pending);
+      stripRestoreParam();
+      if (res.restored) {
+        showTransferBanner('notice--success', '¡Datos restaurados!', 'Recargando…', null);
+        setTimeout(function () { window.location.reload(); }, 900);
+      } else {
+        showTransferBanner('notice--error', 'No se pudo restaurar',
+          RESTORE_ERROR_TEXT[res.reason] || RESTORE_ERROR_TEXT.error, [makeTransferDismissButton()]);
+      }
+    });
+    return;
+  }
+
+  var onConfigurar = false;
+  try { onConfigurar = window.location.pathname.indexOf('/configurar') === 0; } catch (e) {}
+  if (!onConfigurar && isStandalonePWA() && firebaseReady() && storageLooksEmpty()) {
+    var link = document.createElement('a');
+    link.href = '/configurar/';
+    link.textContent = 'Restaurar';
+    showTransferBanner('notice--info', '¿Ya jugabas en este teléfono?',
+      'Si tenías rachas en el navegador, tráelas con tu código de transferencia.',
+      [link, makeTransferDismissButton('Ahora no')]);
+  }
+}
+
 window.MetroShared = {
   LINES: LINES,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
@@ -1704,4 +2020,17 @@ window.MetroShared = {
   updateHighScoreRecord: updateHighScoreRecord,
   getHighScoreRecord: getHighScoreRecord,
   formatHighScoreRecord: formatHighScoreRecord,
+  exportLocalData: exportLocalData,
+  createTransfer: createTransfer,
+  restoreTransfer: restoreTransfer,
+  isStandalonePWA: isStandalonePWA,
+  getDeferredInstallPrompt: getDeferredInstallPrompt,
 };
+
+// shared.js loads at the end of <body>, so the DOM is ready - but guard
+// anyway for any page that loads it earlier.
+if (document.body) {
+  initDataTransferBanner();
+} else {
+  document.addEventListener('DOMContentLoaded', initDataTransferBanner);
+}

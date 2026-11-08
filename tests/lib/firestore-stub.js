@@ -111,6 +111,12 @@ const FIRESTORE_STUB_JS = `
                 var data = docStore()[path];
                 return Promise.resolve({ exists: !!data, data: function () { return wrapDocData(data); } });
               },
+              // createTransfer()'s own shape - a plain single-document
+              // write to the same flat doc store get() reads from.
+              set: function (data) {
+                docStore()[path] = data;
+                return Promise.resolve();
+              },
             };
           },
         };

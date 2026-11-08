@@ -649,6 +649,46 @@ input[type="text"]:disabled {
   margin-top: 0.2rem;
 }
 
+/* Fixed install/restore prompt (see MetroShared's data-transfer helpers in
+   shared.js) - a self-contained card pinned to the bottom so it needs no
+   per-page mount point. Holds a .notice; used for the ?restore= link result
+   and the fresh-install "restore your streak" nudge. */
+.transfer-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 28rem;
+  z-index: 1200;
+}
+
+.transfer-banner .notice {
+  margin-bottom: 0;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.transfer-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.transfer-banner__actions a,
+.transfer-banner__actions button {
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 0.7rem;
+  text-decoration: none;
+}
+
 /* Progress bar - a rounded track that fills as a round advances, over a
    small label. Sopa de metros uses it for "N / M palabras"; Memoria for a
    split "time left / pairs matched" row (--split). Each page positions the

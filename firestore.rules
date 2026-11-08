@@ -21,7 +21,7 @@ service cloud.firestore {
 
     // transfers/{id}: one-shot "move my data to the installed PWA" token
     // (MetroShared.createTransfer()/restoreTransfer()). `data` is the
-    // localStorage snapshot as a JSON string so size() can bound it (~50KB,
+    // localStorage snapshot as a JSON string so size() can bound it (~100KB,
     // well under the 1MB cap); it's the player's own data, read by its
     // unguessable id. Immutable; expiry is enforced client-side off
     // createdAt for now (a TTL/cleanup to delete stale tokens is a follow-up).
@@ -32,7 +32,7 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly(['data', 'schema', 'createdAt']) &&
         request.resource.data.schema is int &&
         request.resource.data.data is string &&
-        request.resource.data.data.size() <= 50000 &&
+        request.resource.data.data.size() <= 100000 &&
         request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;

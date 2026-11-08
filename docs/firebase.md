@@ -18,7 +18,7 @@
   transfer"). One doc per snapshot, keyed by a random unguessable id that
   doubles as the user-facing code: `allow read: if true` (read-by-id),
   shape-validated `create` (`data` is a JSON-string snapshot capped at
-  ~50KB, plus `schema`/`createdAt`), `update`/`delete` denied. The client
+  ~100KB, plus `schema`/`createdAt`), `update`/`delete` denied. The client
   prunes old daily-state keys from the snapshot (see `exportLocalData` in
   `shared.js`) so a long-time player's history stays under the cap. Like any
   rules change here it's a **manual deploy and must land before (or with)

@@ -1671,6 +1671,9 @@ var TRANSFER_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 var STREAK_KEY_SUFFIX = ':streak';
 var TRANSFER_DAILY_KEEP_DAYS = 7;
 var DATED_KEY_RE = /:\d{4}-\d{2}-\d{2}$/; // a <game>:YYYY-MM-DD daily state
+// Cap the serialized snapshot under the transfers/{id} rules limit (100000).
+// JS string length upper-bounds Firestore's size(), so this guarantees it.
+var TRANSFER_MAX_DATA_CHARS = 95000;
 
 // Today minus the keep window, as 'YYYY-MM-DD' (which sorts chronologically).
 function transferDateCutoff() {
@@ -1679,11 +1682,9 @@ function transferDateCutoff() {
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 
-// A snapshot of the app's localStorage (minus the dev-only leaderboard
-// fallback). Daily states pile up one key per day forever, so prune dated
-// keys to the recent window or a long history blows past the transfers/{id}
-// size cap; undated keys (streaks, alias, config) are kept in full, and the
-// streak an old daily state fed carries over in its own key anyway.
+// Snapshot of the app's localStorage (minus the dev-only leaderboard
+// fallback), pruning dated daily-state keys older than the keep window -
+// they pile up one-per-day forever; the streak they fed lives in its own key.
 function exportLocalData() {
   var out = {};
   var cutoff = transferDateCutoff();
@@ -1696,6 +1697,14 @@ function exportLocalData() {
     }
   } catch (e) {
     // localStorage unavailable (private mode, etc.) - nothing to export.
+  }
+  // Even within the window a heavy player can exceed the cap, so drop daily
+  // states oldest-first until it fits - undated keys (streaks/config) stay.
+  var dated = [];
+  Object.keys(out).forEach(function (k) { if (DATED_KEY_RE.test(k)) dated.push(k); });
+  dated.sort(function (a, b) { return a.slice(a.length - 10) < b.slice(b.length - 10) ? -1 : 1; });
+  while (dated.length && JSON.stringify(out).length > TRANSFER_MAX_DATA_CHARS) {
+    delete out[dated.shift()];
   }
   return out;
 }
@@ -1726,14 +1735,16 @@ function createTransfer() {
     return Promise.reject(new Error('firebase-unavailable'));
   }
   var id = randomTransferId();
+  var data = JSON.stringify(exportLocalData());
+  console.log('[Transfer] createTransfer', 'transfers/' + id, 'snapshot chars:', data.length);
   return firebase.firestore().collection('transfers').doc(id).set({
     schema: TRANSFER_SCHEMA,
-    data: JSON.stringify(exportLocalData()),
+    data: data,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   }).then(function () { return id; })
     .catch(function (err) {
       // Log the real code/message - the UI only shows a generic message.
-      console.error('[Transfer] createTransfer FAILED:', 'transfers/' + id,
+      console.error('[Transfer] createTransfer FAILED:', 'transfers/' + id, 'snapshot chars:', data.length,
         '\n  code:', err && err.code, '\n  message:', err && err.message,
         '\n  (permission-denied usually = transfers/{id} rules not deployed)',
         '\n  full error:', err);

@@ -23,9 +23,8 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex">
 
-    <title>Admin · Metrordle 🚇</title>
+    <title>Tablero · Metrordle 🚇</title>
 
     <link rel="icon" href="/favicon.png">
 
@@ -94,7 +93,7 @@
         display: none;
       }
 
-      /* .leaderboard* is shared (see shared.css); these are /admin/'s
+      /* .leaderboard* is shared (see shared.css); these are /tablero/'s
          deltas - stacked boards drop the bottom margins, rank runs wider. */
       .leaderboard__list { margin: 0; }
       .leaderboard__rank { width: 1.8rem; }
@@ -142,7 +141,7 @@
         <a class="brand__home" href="/juegos/" aria-label="Todos los juegos" title="Todos los juegos">
           <img class="brand__mark" src="/favicon.png" alt="" width="20" height="20">
         </a>
-        <span class="brand__text">Admin</span>
+        <span class="brand__text">Tablero</span>
         <a class="brand__settings" href="/configurar/" aria-label="Configuración" title="Configuración"></a>
       </div>
 
@@ -261,7 +260,7 @@
         // How many entries to fetch per game/day - well above any
         // realistic daily count for this site, so the result is
         // effectively "every entry that day." Unlike each game's own
-        // reveal screen, this admin view shows the full leaderboard, not
+        // reveal screen, this tablero view shows the full leaderboard, not
         // just a top N - and the unique-users stat below needs every
         // entry anyway, to count distinct aliases across the whole day
         // rather than just whoever made each game's own top slice.
@@ -499,7 +498,7 @@
         }
 
         // Bumped on every date change so a slow response for a date the
-        // admin has already navigated away from can't paint over the
+        // tablero has already navigated away from can't paint over the
         // date they're now looking at - same guard shape as each game's
         // own renderLeaderboard()/leaderboardRequestId.
         var renderToken = 0;
@@ -583,7 +582,7 @@
 
               // Same site-wide alias every game's own leaderboard already
               // highlights its own row by (metrordle:alias, shared across
-              // all games) - admin has no "current game" of its own, but
+              // all games) - tablero has no "current game" of its own, but
               // the same alias still identifies "you" across every one of
               // these per-game boards.
               var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());

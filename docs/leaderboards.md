@@ -28,7 +28,7 @@ any document missing that field from the query's results entirely (no
 error, just fewer rows) - ordering server-side by every field in
 `orderBySpecs` would silently drop any entry submitted before a later
 field existed on that collection. This isn't hypothetical - it's
-exactly what broke `/admin/`'s Metroguessr leaderboard the day
+exactly what broke `/tablero/`'s Metroguessr leaderboard the day
 `hardMode` was added to its `orderBySpecs`: every entry from earlier
 that same day (before that field existed on writes) vanished from
 every query ordering by it, with nothing visibly erroring anywhere.
@@ -77,7 +77,7 @@ added to lock the fix in.
   still writing without it, isn't rejected; the `score` field shipped
   after the rule originally did, so its deploy was the follow-up that
   stopped the cutover-day `permission-denied` writes (rules are a manual
-  deploy - see the `firestore.rules` bullet). `/admin/`'s own Laberinto
+  deploy - see the `firestore.rules` bullet). `/tablero/`'s own Laberinto
   board now branches the same way per shown date
   (`LABERINTO_SCORING_CUTOVER_DATE_KEY`): on/after the cutover it ranks by
   the single `score` and shows "15+3", before it the old
@@ -135,7 +135,7 @@ error). `getHighScoreRecord(gameKey)` + `formatHighScoreRecord()`
 (`'🏆 N por alias · #N · date'`) render it in two places: each
 game's own reveal-screen leaderboard (`.leaderboard__record`, a golden
 row-shaped card on top of the list, shared markup/CSS - see
-`shared.css`) and `/admin/`'s matching board, both
+`shared.css`) and `/tablero/`'s matching board, both
 loading it once (no date dimension to re-fetch on date-nav) rather than
 per-render like the per-day leaderboard lists above. Clasificador's own
 `records/clasificador` was seeded from its real leaderboard's own
@@ -164,7 +164,7 @@ before this shipped) is treated as `false` by `compareByOrderSpecs()`
 submitted on a win in the first place (see "Submission pattern"
 below). `renderLeaderboard()`'s own row-building renders a bare `-`
 for `entry.lost`'s score number instead of the (constant, so
-meaningless to actually show) attempts count - `/admin/`'s matching
+meaningless to actually show) attempts count - `/tablero/`'s matching
 `GAMES` entries do the same in their own `scoreCell()`. A loss also
 resets that game's streak to 0 (see "Streaks" below) and now submits
 `streak: 0` rather than skipping submission altogether, which is why
@@ -221,7 +221,7 @@ this is no longer a single page's own thing) reading **`🔥 × N` when
 `N > 1`, nothing otherwise** (a streak of 0 or 1 isn't yet "a streak"
 worth calling out), always returned (even empty) so a row's score
 column still lands in the same spot whether or not it has one.
-`/admin/`'s own `renderGame()` appends one to every row for all seven
+`/tablero/`'s own `renderGame()` appends one to every row for all seven
 collections now; Metrordle's, Laberinto's, Memoria's, Metroguessr's,
 Clasificador's, and Copo de nieve's own `renderLeaderboard()` do the same
 on their own in-page leaderboards (only Metro Crush's own leaderboard

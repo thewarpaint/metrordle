@@ -18,5 +18,5 @@ Player-facing games first, then the internal/utility pages.
 
 ## Utility & internal pages
 
-`/juegos` (games index), `/admin`, `/design`, `/configurar`, `/status`,
+`/juegos` (games index), `/tablero`, `/design`, `/configurar`, `/status`,
 `/purge`, `/map` - see [utility-pages.md](utility-pages.md).

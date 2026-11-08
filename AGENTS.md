@@ -59,7 +59,7 @@ so the right notes surface when you work in that folder.
 - `docs/games/clasificador.md` - `/clasificador/` sort stations into lines
 - `docs/games/copo-de-nieve.md` - `/copo-de-nieve/` find the odd station
 - `docs/games/sopa-de-metros.md` - `/sopa-de-metros/` word search (prototype)
-- `docs/games/utility-pages.md` - `/juegos` `/admin` `/design` `/configurar`
+- `docs/games/utility-pages.md` - `/juegos` `/tablero` `/design` `/configurar`
   `/status` `/purge` `/map`
 
 **Shared infrastructure**

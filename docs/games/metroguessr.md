@@ -50,7 +50,7 @@
   the number). The score itself is a bare digit with no "intento(s)"
   suffix (dropped since the rank/badge/number layout already makes it
   obvious what it counts) in a fixed single-digit-width column, same
-  convention as Metrordle's and `/admin/`'s own leaderboards - together
+  convention as Metrordle's and `/tablero/`'s own leaderboards - together
   with the badge's own fixed width, this lines every row up into a
   table-like grid regardless of how many emoji a given row's badge
   holds.

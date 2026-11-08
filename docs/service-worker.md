@@ -16,13 +16,13 @@
   the directory (`/metroguessr/`) and its `index.html`** - Metroguessr
   shipped without either for several PRs before this was caught; when
   adding a new game, add both paths here (and bump `CACHE_NAME`) in the
-  same PR that ships it. `/admin/` is precached too now (though not a
+  same PR that ships it. `/tablero/` is precached too now (though not a
   game route and still unlinked from any game's nav), as is `/juegos/`
-  (the player-facing games index) - so a change to `admin/index.html` or
+  (the player-facing games index) - so a change to `tablero/index.html` or
   `juegos/index.html` needs a `CACHE_NAME` bump like any other precached
   asset, which `tests/meta/sw-cache-version.test.js` now enforces (it
   derives its watched set straight from `PRECACHE_URLS`, and pins
-  admin's membership so dropping it fails loudly). `/design/` and
+  tablero's membership so dropping it fails loudly). `/design/` and
   `/map/` are still deliberately excluded (not player-facing routes),
   and `/purge/` is excluded because it "must never itself be cached" -
   don't add those. `/status/` is the opposite

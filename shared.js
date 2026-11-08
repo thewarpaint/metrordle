@@ -932,7 +932,7 @@ function pulseClock(timeEl, deltaEl, delta) {
 }
 
 // The "🔥 × N" streak badge every leaderboard row that tracks a streak
-// uses (Metrordle/Laberinto/Memoria's own leaderboards, and /admin/'s
+// uses (Metrordle/Laberinto/Memoria's own leaderboards, and /tablero/'s
 // matching column for those same three collections) - a streak of 0 or
 // 1 isn't yet "a streak" worth calling out, so this still returns a
 // span (for the column's own fixed-width alignment, see
@@ -1366,7 +1366,7 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
 // the last slot so the list still holds at most `limitCount` rows (e.g.
 // limitCount 5, the caller's own alias actually ranked #7: returns
 // #1-4 plus #7, not #1-5). A page's own on-page leaderboard uses this so
-// a player can always find themselves on the board; /admin/'s own,
+// a player can always find themselves on the board; /tablero/'s own,
 // uncapped view (limitCount far past any real day's entry count) has
 // nothing to guarantee - everyone's already shown - so it never passes
 // this option.
@@ -1404,7 +1404,7 @@ function rankAndSelect(entries, orderBySpecs, limitCount, myAliasId) {
 
 // The one place that turns an entry into the '#N' text a row actually
 // shows - every one of the 6 leaderboard-rendering pages (5 games +
-// /admin/) should call this instead of reading entry.rank directly.
+// /tablero/) should call this instead of reading entry.rank directly.
 // Guards against exactly the bug that shipped once already: a hand-
 // authored test/fixture array (or any other caller that bypasses the
 // real getTopLeaderboardScores()/rankAndSelect() above) that forgets to
@@ -1542,7 +1542,7 @@ function updateHighScoreRecord(gameKey, score, alias, dateKey, gameNumber) {
     });
 }
 
-// Plain read for display (e.g. /admin/'s own stat tiles) - never part of
+// Plain read for display (e.g. /tablero/'s own stat tiles) - never part of
 // a transaction, so safe to call as often as needed. Resolves null both
 // when Firebase isn't reachable and when the record simply doesn't
 // exist yet (no score has ever been submitted for that game) - a caller
@@ -1592,7 +1592,7 @@ function formatRecordDateLabel(dateKey) {
 }
 
 // One shared renderer for a getHighScoreRecord() result, used by
-// /admin/ and by Memoria's/Metro Crush's own reveal screens alike -
+// /tablero/ and by Memoria's/Metro Crush's own reveal screens alike -
 // '🏆 Récord: 39 por 🐱 · #23 · 20 sep 2026', or the same line with the
 // trailing date dropped entirely (not "· Invalid Date") when
 // formatRecordDateLabel() can't make sense of record.dateKey.

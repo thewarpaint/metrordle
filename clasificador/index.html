@@ -398,7 +398,7 @@
       </div>
 
       <p class="credit">
-        <a href="/juegos/">Todos los juegos</a>
+        <a href="/juegos/">Todos los juegos</a> · <a href="/tablero/">Tablero</a>
       </p>
     </div>
 
@@ -943,7 +943,7 @@
           if (!alias) return;
 
           // streak and hardMode are submitted purely for display (see
-          // /admin/'s own 🔥/🧠 badges) - neither is part of
+          // /tablero/'s own 🔥/🧠 badges) - neither is part of
           // orderBySpecs, so ranking is unaffected either way.
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, hardMode: state.mode === 'hard', streak: state.streak }, {})
             .then(function () {

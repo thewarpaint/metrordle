@@ -96,7 +96,7 @@
   Also now tracks an all-time high score (`records/clasificador`, same
   `MetroShared.updateHighScoreRecord()`/`getHighScoreRecord()` pattern
   as Memoria's/Metro Crush's own, rendered next to the leaderboard and
-  on `/admin/`'s own board the same way too - see "High score records"
+  on `/tablero/`'s own board the same way too - see "High score records"
   below), seeded from the real leaderboard's own highest entry to date
   rather than starting empty, so it isn't orphaned once a genuinely
   higher score eventually overwrites it.
@@ -105,10 +105,10 @@
   Laberinto/Metroguessr/Metro Crush (`MetroShared.getGameNumberForDateKey(
   dateKey, START_DATE_KEY)`, set on `#game-title` in `startNewGame()`'s
   own two branches) - `START_DATE_KEY` is `'2026-10-10'`, the day this
-  shipped, so that day is game #1. `/admin/`'s own `startDateKey` for
+  shipped, so that day is game #1. `/tablero/`'s own `startDateKey` for
   this collection was already `'2026-10-10'` from when the leaderboard
   itself shipped (see "Leaderboards" below) - it needed no change here,
-  since admin's `#N` badge is computed purely from `startDateKey` and
+  since tablero's `#N` badge is computed purely from `startDateKey` and
   today's date, not from anything this game's own page submits. Now also
   in this game's own share text (`buildShareText()`), same `#N` spot as
   Metro Crush's own.

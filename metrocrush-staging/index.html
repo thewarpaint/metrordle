@@ -373,7 +373,7 @@
       </div>
 
       <p class="credit">
-        <a href="/juegos/">Todos los juegos</a>
+        <a href="/juegos/">Todos los juegos</a> · <a href="/tablero/">Tablero</a>
       </p>
     </div>
 
@@ -1535,7 +1535,7 @@
           var alias = MetroShared.getAlias();
           if (!alias) return;
 
-          // streak is submitted purely for display (see /admin/'s own
+          // streak is submitted purely for display (see /tablero/'s own
           // 🔥 badge) - never part of orderBySpecs, so a query's
           // ranking/results are identical whether or not a given entry
           // (old or new) happens to have it. Can legitimately be 0 (a
@@ -1632,7 +1632,7 @@
         // silently stayed empty for every real entry until extraFields
         // actually asked for it. streak is submitted for this collection
         // too (see endRound()'s own updateStreakForResult() call) and was
-        // already shown on /admin/'s own cross-game view, but - until
+        // already shown on /tablero/'s own cross-game view, but - until
         // now - never on this page's own leaderboard, unlike Metrordle/
         // Laberinto/Memoria; also needs extraFields, same reasoning as
         // hardMode above.

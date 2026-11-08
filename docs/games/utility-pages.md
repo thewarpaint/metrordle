@@ -13,7 +13,7 @@
   `SUGGESTABLE_GAMES` (seven now that Copo de nieve joined) - not the
   `/sopa-de-metros/` prototype, the one game still outside that list.
   Linked from each game page's footer: a `<p class="credit">` holding
-  `<a href="/tablero/">Tablero</a> · <a href="/juegos/">Todos los juegos</a>`
+  `<a href="/juegos/">Todos los juegos</a> · <a href="/tablero/">Tablero</a>`
   (an interpunct `·` between the two) on `/`, `/laberinto/`, `/memoria/`,
   `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, `/configurar/`, and
   the unreferenced `/metrocrush-staging/` - plain `color: inherit` links
@@ -26,11 +26,11 @@
   footer (full-bleed map layout), so it stays unlinked for now.
 
 - **`/tablero/`** - read-only cross-game leaderboard browser (was
-  `/admin/`; renamed). Still `noindex`, but now linked from every footer
-  page's `.credit` (the `Tablero` link - see the juegos bullet above), so
-  it's no longer unreferenced. Precached (`sw.js`'s own `PRECACHE_URLS`),
-  so a change to its `index.html` needs a `CACHE_NAME` bump - see the
-  `sw.js` bullet.
+  `/admin/`; renamed). Now a player-facing page: linked from every footer
+  page's `.credit` (the `Tablero` link - see the juegos bullet above) and
+  indexable (the old `noindex` was dropped). Precached (`sw.js`'s own
+  `PRECACHE_URLS`), so a change to its `index.html` needs a `CACHE_NAME`
+  bump - see the `sw.js` bullet.
   Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each
   game's own "Ver este día en ___" deep link too) - shows only today's

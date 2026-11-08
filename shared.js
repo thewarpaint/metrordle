@@ -1709,6 +1709,7 @@ function randomTransferId() {
 // Rejects when Firebase isn't reachable so the caller can say so plainly.
 function createTransfer() {
   if (!firebaseReady()) {
+    console.warn('[Transfer] createTransfer skipped - Firebase not ready', firebaseStatusForLog());
     return Promise.reject(new Error('firebase-unavailable'));
   }
   var id = randomTransferId();
@@ -1716,7 +1717,16 @@ function createTransfer() {
     schema: TRANSFER_SCHEMA,
     data: JSON.stringify(exportLocalData()),
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  }).then(function () { return id; });
+  }).then(function () { return id; })
+    .catch(function (err) {
+      // A permission-denied here almost always means firestore.rules'
+      // transfers/{id} block hasn't been deployed yet (see docs/firebase.md).
+      console.error('[Transfer] createTransfer FAILED:', 'transfers/' + id,
+        '\n  code:', err && err.code, '\n  message:', err && err.message,
+        '\n  (permission-denied usually = transfers/{id} rules not deployed)',
+        '\n  full error:', err);
+      throw err;
+    });
 }
 
 // 'YYYY-MM-DD' strings compare lexicographically, so this is just the later
@@ -1802,7 +1812,10 @@ function mergeImportedData(data) {
 function restoreTransfer(id) {
   var cleanId = String(id || '').trim();
   if (!cleanId) return Promise.resolve({ restored: false, reason: 'empty' });
-  if (!firebaseReady()) return Promise.resolve({ restored: false, reason: 'firebase-unavailable' });
+  if (!firebaseReady()) {
+    console.warn('[Transfer] restoreTransfer skipped - Firebase not ready', firebaseStatusForLog());
+    return Promise.resolve({ restored: false, reason: 'firebase-unavailable' });
+  }
 
   return firebase.firestore().collection('transfers').doc(cleanId).get()
     .then(function (snap) {
@@ -1821,7 +1834,12 @@ function restoreTransfer(id) {
       if (!data || typeof data !== 'object') return { restored: false, reason: 'corrupt' };
       return { restored: true, keys: mergeImportedData(data) };
     })
-    .catch(function () { return { restored: false, reason: 'error' }; });
+    .catch(function (err) {
+      console.error('[Transfer] restoreTransfer FAILED:', 'transfers/' + cleanId,
+        '\n  code:', err && err.code, '\n  message:', err && err.message,
+        '\n  full error:', err);
+      return { restored: false, reason: 'error' };
+    });
 }
 
 // True when running as an installed PWA (its own storage on iOS), not a

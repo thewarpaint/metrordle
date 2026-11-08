@@ -104,6 +104,8 @@
       .board-stage--done .start-overlay__panel { max-width: none; }
       #reveal-notice { margin-bottom: 0.6rem; }
       #leaderboard { margin-top: 1rem; text-align: left; }
+      /* Score is a 60s tap count (~2 digits); size the points column to it. */
+      #leaderboard-list { --score-number-width: 1.6rem; }
 
       /* Grid/pop-in in shared.css's .station-grid-6; only sizing differs.
          Unrestricted height - the overlay scrolls if it outgrows the board. */

@@ -98,6 +98,10 @@
       .leaderboard__list { margin: 0; }
       .leaderboard__rank { width: 1.8rem; }
       .leaderboard__status { margin: 0; }
+      /* Per-game points-column width (see --score-number-width in shared.css);
+         Metro Crush keeps the wide fallback, the smaller-score games tighten. */
+      #clasificador-list { --score-number-width: 1.8rem; }
+      #copo-de-nieve-list { --score-number-width: 1.6rem; }
 
       .admin-loading {
         align-items: center;

@@ -1025,7 +1025,10 @@ input[type="text"]:disabled {
 }
 
 .leaderboard__score-number--wide {
-  min-width: 2.7rem;
+  /* Fixed (not min-) width so multi-digit scores right-align into one
+     column: every row's number occupies the same box, keeping the
+     seconds and streak columns after it aligned down the list. */
+  width: 2.7rem;
 }
 
 /* The "🔥 × N" streak badge (see MetroShared.buildStreakBadge() in

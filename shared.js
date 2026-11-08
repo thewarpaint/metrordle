@@ -1669,17 +1669,32 @@ var TRANSFER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // one-shot tokens expire
 var TRANSFER_ID_LENGTH = 14;
 var TRANSFER_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 var STREAK_KEY_SUFFIX = ':streak';
+var TRANSFER_DAILY_KEEP_DAYS = 7;
+var DATED_KEY_RE = /:\d{4}-\d{2}-\d{2}$/; // a <game>:YYYY-MM-DD daily state
 
-// A snapshot of every localStorage key the app owns, minus the dev-only
-// leaderboard fallback (a local Firestore stand-in, never real progress).
+// Today minus TRANSFER_DAILY_KEEP_DAYS, as a 'YYYY-MM-DD' key (strings in
+// that format compare chronologically), for pruning old daily states below.
+function transferDateCutoff() {
+  var d = new Date();
+  d.setDate(d.getDate() - TRANSFER_DAILY_KEEP_DAYS);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+// A snapshot of the app's localStorage, minus the dev-only leaderboard
+// fallback. Daily game states pile up one key per day and are never pruned,
+// so a long-time player's full history easily blows past the transfers/{id}
+// size cap - keep the undated keys (streaks, alias, config) in full, but only
+// the last few days of daily states. Old daily results aren't needed on the
+// new device, and the streak they fed carries over in its own key.
 function exportLocalData() {
   var out = {};
+  var cutoff = transferDateCutoff();
   try {
     for (var i = 0; i < localStorage.length; i++) {
       var key = localStorage.key(i);
-      if (key && key.indexOf(LEADERBOARD_FALLBACK_PREFIX) !== 0) {
-        out[key] = localStorage.getItem(key);
-      }
+      if (!key || key.indexOf(LEADERBOARD_FALLBACK_PREFIX) === 0) continue;
+      if (DATED_KEY_RE.test(key) && key.slice(key.length - 10) < cutoff) continue;
+      out[key] = localStorage.getItem(key);
     }
   } catch (e) {
     // localStorage unavailable (private mode, etc.) - nothing to export.

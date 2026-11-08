@@ -1672,20 +1672,18 @@ var STREAK_KEY_SUFFIX = ':streak';
 var TRANSFER_DAILY_KEEP_DAYS = 7;
 var DATED_KEY_RE = /:\d{4}-\d{2}-\d{2}$/; // a <game>:YYYY-MM-DD daily state
 
-// Today minus TRANSFER_DAILY_KEEP_DAYS, as a 'YYYY-MM-DD' key (strings in
-// that format compare chronologically), for pruning old daily states below.
+// Today minus the keep window, as 'YYYY-MM-DD' (which sorts chronologically).
 function transferDateCutoff() {
   var d = new Date();
   d.setDate(d.getDate() - TRANSFER_DAILY_KEEP_DAYS);
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 
-// A snapshot of the app's localStorage, minus the dev-only leaderboard
-// fallback. Daily game states pile up one key per day and are never pruned,
-// so a long-time player's full history easily blows past the transfers/{id}
-// size cap - keep the undated keys (streaks, alias, config) in full, but only
-// the last few days of daily states. Old daily results aren't needed on the
-// new device, and the streak they fed carries over in its own key.
+// A snapshot of the app's localStorage (minus the dev-only leaderboard
+// fallback). Daily states pile up one key per day forever, so prune dated
+// keys to the recent window or a long history blows past the transfers/{id}
+// size cap; undated keys (streaks, alias, config) are kept in full, and the
+// streak an old daily state fed carries over in its own key anyway.
 function exportLocalData() {
   var out = {};
   var cutoff = transferDateCutoff();
@@ -1734,8 +1732,7 @@ function createTransfer() {
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   }).then(function () { return id; })
     .catch(function (err) {
-      // A permission-denied here almost always means firestore.rules'
-      // transfers/{id} block hasn't been deployed yet (see docs/firebase.md).
+      // Log the real code/message - the UI only shows a generic message.
       console.error('[Transfer] createTransfer FAILED:', 'transfers/' + id,
         '\n  code:', err && err.code, '\n  message:', err && err.message,
         '\n  (permission-denied usually = transfers/{id} rules not deployed)',

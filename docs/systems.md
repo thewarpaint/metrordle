@@ -211,9 +211,11 @@ The transfer API lives in `shared.js`:
   the dev-only `metrordle:leaderboard-fallback:*`). Undated keys (streaks,
   alias, config, flags) are kept in full; dated daily-state keys
   (`<game>:YYYY-MM-DD`) are pruned to the last `TRANSFER_DAILY_KEEP_DAYS`
-  (7), since they accumulate one-per-day forever and would otherwise blow a
-  long-time player's snapshot past the `transfers/{id}` size cap (the streak
-  they fed is preserved separately).
+  (7), since they accumulate one-per-day forever (the streak they fed is
+  preserved separately). As a hard guarantee, the serialized snapshot is
+  then capped under `TRANSFER_MAX_DATA_CHARS` (dropping daily states
+  oldest-first) so a heavy player's write can never exceed the
+  `transfers/{id}` size cap - no rules change needed.
 - `createTransfer()` - writes the snapshot (as a JSON string) to a new
   `transfers/{id}` doc (`id` = random base62, the user-facing code) and
   resolves the id. See `docs/firebase.md` for the collection + rules.

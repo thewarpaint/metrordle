@@ -1669,17 +1669,30 @@ var TRANSFER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // one-shot tokens expire
 var TRANSFER_ID_LENGTH = 14;
 var TRANSFER_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 var STREAK_KEY_SUFFIX = ':streak';
+var TRANSFER_DAILY_KEEP_DAYS = 7;
+var DATED_KEY_RE = /:\d{4}-\d{2}-\d{2}$/; // a <game>:YYYY-MM-DD daily state
 
-// A snapshot of every localStorage key the app owns, minus the dev-only
-// leaderboard fallback (a local Firestore stand-in, never real progress).
+// Today minus the keep window, as 'YYYY-MM-DD' (which sorts chronologically).
+function transferDateCutoff() {
+  var d = new Date();
+  d.setDate(d.getDate() - TRANSFER_DAILY_KEEP_DAYS);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+// A snapshot of the app's localStorage (minus the dev-only leaderboard
+// fallback). Daily states pile up one key per day forever, so prune dated
+// keys to the recent window or a long history blows past the transfers/{id}
+// size cap; undated keys (streaks, alias, config) are kept in full, and the
+// streak an old daily state fed carries over in its own key anyway.
 function exportLocalData() {
   var out = {};
+  var cutoff = transferDateCutoff();
   try {
     for (var i = 0; i < localStorage.length; i++) {
       var key = localStorage.key(i);
-      if (key && key.indexOf(LEADERBOARD_FALLBACK_PREFIX) !== 0) {
-        out[key] = localStorage.getItem(key);
-      }
+      if (!key || key.indexOf(LEADERBOARD_FALLBACK_PREFIX) === 0) continue;
+      if (DATED_KEY_RE.test(key) && key.slice(key.length - 10) < cutoff) continue;
+      out[key] = localStorage.getItem(key);
     }
   } catch (e) {
     // localStorage unavailable (private mode, etc.) - nothing to export.
@@ -1709,6 +1722,7 @@ function randomTransferId() {
 // Rejects when Firebase isn't reachable so the caller can say so plainly.
 function createTransfer() {
   if (!firebaseReady()) {
+    console.warn('[Transfer] createTransfer skipped - Firebase not ready', firebaseStatusForLog());
     return Promise.reject(new Error('firebase-unavailable'));
   }
   var id = randomTransferId();
@@ -1716,7 +1730,15 @@ function createTransfer() {
     schema: TRANSFER_SCHEMA,
     data: JSON.stringify(exportLocalData()),
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  }).then(function () { return id; });
+  }).then(function () { return id; })
+    .catch(function (err) {
+      // Log the real code/message - the UI only shows a generic message.
+      console.error('[Transfer] createTransfer FAILED:', 'transfers/' + id,
+        '\n  code:', err && err.code, '\n  message:', err && err.message,
+        '\n  (permission-denied usually = transfers/{id} rules not deployed)',
+        '\n  full error:', err);
+      throw err;
+    });
 }
 
 // 'YYYY-MM-DD' strings compare lexicographically, so this is just the later
@@ -1802,7 +1824,10 @@ function mergeImportedData(data) {
 function restoreTransfer(id) {
   var cleanId = String(id || '').trim();
   if (!cleanId) return Promise.resolve({ restored: false, reason: 'empty' });
-  if (!firebaseReady()) return Promise.resolve({ restored: false, reason: 'firebase-unavailable' });
+  if (!firebaseReady()) {
+    console.warn('[Transfer] restoreTransfer skipped - Firebase not ready', firebaseStatusForLog());
+    return Promise.resolve({ restored: false, reason: 'firebase-unavailable' });
+  }
 
   return firebase.firestore().collection('transfers').doc(cleanId).get()
     .then(function (snap) {
@@ -1821,7 +1846,12 @@ function restoreTransfer(id) {
       if (!data || typeof data !== 'object') return { restored: false, reason: 'corrupt' };
       return { restored: true, keys: mergeImportedData(data) };
     })
-    .catch(function () { return { restored: false, reason: 'error' }; });
+    .catch(function (err) {
+      console.error('[Transfer] restoreTransfer FAILED:', 'transfers/' + cleanId,
+        '\n  code:', err && err.code, '\n  message:', err && err.message,
+        '\n  full error:', err);
+      return { restored: false, reason: 'error' };
+    });
 }
 
 // True when running as an installed PWA (its own storage on iOS), not a

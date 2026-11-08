@@ -31,14 +31,24 @@ async function main() {
       await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
-      // Seed the "old device": alias, config, two streaks, a daily state.
-      await page.evaluate(() => {
+      // Seed the "old device": alias, config, two streaks, a RECENT daily
+      // state (within the keep window) and an OLD one (must be pruned from
+      // the snapshot so a long history can't blow past the size cap).
+      const recentDailyKey = await page.evaluate(() => {
+        function dk(offset) {
+          var d = new Date(); d.setDate(d.getDate() + offset);
+          var p = function (n) { return String(n).padStart(2, '0'); };
+          return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+        }
         localStorage.clear();
         localStorage.setItem('metrordle:alias', 'Eduardo');
         localStorage.setItem('metrordle:config', JSON.stringify({ mode: 'dark', reducedMotion: true }));
         localStorage.setItem('metrordle:streak', JSON.stringify({ count: 9, max: 12, lastResultDate: '2026-11-08' }));
         localStorage.setItem('metrocrush:streak', JSON.stringify({ count: 3, max: 3, lastResultDate: '2026-11-07' }));
-        localStorage.setItem('metrocrush:2026-11-08', JSON.stringify({ score: 420 }));
+        var recent = 'metrocrush:' + dk(-2);
+        localStorage.setItem(recent, JSON.stringify({ score: 420 }));
+        localStorage.setItem('metrocrush:2020-01-01', JSON.stringify({ score: 999 })); // old -> pruned
+        return recent;
       });
 
       const code = await page.evaluate(() => MetroShared.createTransfer());
@@ -54,21 +64,24 @@ async function main() {
       const res = await page.evaluate((id) => MetroShared.restoreTransfer(id), code);
       assert.strictEqual(res.restored, true, 'restore should succeed: ' + JSON.stringify(res));
 
-      const after = await page.evaluate(() => ({
+      const after = await page.evaluate((recent) => ({
         alias: localStorage.getItem('metrordle:alias'),
         config: JSON.parse(localStorage.getItem('metrordle:config')),
         metrordleStreak: JSON.parse(localStorage.getItem('metrordle:streak')),
         metrocrushStreak: JSON.parse(localStorage.getItem('metrocrush:streak')),
-        daily: localStorage.getItem('metrocrush:2026-11-08'),
-      }));
+        recentDaily: localStorage.getItem(recent),
+        oldDaily: localStorage.getItem('metrocrush:2020-01-01'),
+      }), recentDailyKey);
 
       assert.strictEqual(after.alias, 'Eduardo', 'alias should be adopted (the fresh device had none)');
       assert.deepStrictEqual(after.metrordleStreak, { count: 9, max: 12, lastResultDate: '2026-11-08' },
         'a streak the device lacked should be restored verbatim');
       assert.deepStrictEqual(after.metrocrushStreak, { count: 5, max: 7, lastResultDate: '2026-11-09' },
         'the HIGHER local metrocrush streak must be kept - restore merges by max, never regresses');
-      assert.strictEqual(after.daily, JSON.stringify({ score: 420 }),
-        'a daily state missing on the device should be filled from the snapshot');
+      assert.strictEqual(after.recentDaily, JSON.stringify({ score: 420 }),
+        'a recent daily state (within the keep window) should be filled from the snapshot');
+      assert.strictEqual(after.oldDaily, null,
+        'an old daily state should be pruned from the snapshot, never restored - this is what bounds the payload size');
       assert.strictEqual(after.config.mode, 'dark', 'config should be adopted from the snapshot on a fresh device');
 
       assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));

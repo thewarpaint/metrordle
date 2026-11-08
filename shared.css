@@ -1025,7 +1025,12 @@ input[type="text"]:disabled {
 }
 
 .leaderboard__score-number--wide {
-  min-width: 2.7rem;
+  /* Fixed (not min-) width so scores right-align into one column, keeping
+     the seconds and streak columns after them aligned down the list. The
+     width is per-game (scores differ by orders of magnitude): each page
+     sets --score-number-width on its own list - Metro Crush's up-to-5-digit
+     score is the widest, so it's the fallback. */
+  width: var(--score-number-width, 2.7rem);
 }
 
 /* The "🔥 × N" streak badge (see MetroShared.buildStreakBadge() in
@@ -1043,6 +1048,32 @@ input[type="text"]:disabled {
   min-width: 3rem;
   text-align: left;
 }
+
+/* Hard-mode elastic-clock seconds (see MetroShared.buildSecondsBadge()),
+   shown inside the score cell: +X won in green, −Y lost in red. Fixed-width
+   column, reserved in every row (hard or normal, present or not) so the
+   streak badge after it stays aligned down the list. */
+.leaderboard__seconds {
+  display: inline-flex;
+  flex: none;
+  width: 3.4rem;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Each value is at most "+99"/"−99" (2 digits), right-aligned in a fixed
+   narrow slot so 1- and 2-digit numbers don't jitter the column. */
+.leaderboard__seconds-won,
+.leaderboard__seconds-lost {
+  flex: none;
+  width: 1.5rem;
+  text-align: right;
+}
+
+.leaderboard__seconds-won { color: var(--ok); }
+.leaderboard__seconds-lost { color: var(--danger); }
 
 .leaderboard__status {
   color: var(--ink-soft);

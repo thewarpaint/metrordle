@@ -98,6 +98,10 @@
       .leaderboard__list { margin: 0; }
       .leaderboard__rank { width: 1.8rem; }
       .leaderboard__status { margin: 0; }
+      /* Per-game points-column width (see --score-number-width in shared.css);
+         Metro Crush keeps the wide fallback, the smaller-score games tighten. */
+      #clasificador-list { --score-number-width: 1.8rem; }
+      #copo-de-nieve-list { --score-number-width: 1.6rem; }
 
       .admin-loading {
         align-items: center;
@@ -401,7 +405,8 @@
             // in the hard-mode multiplier), so it has to be named here
             // too, or its own scoreCell's entry.hardMode read below stays
             // silently undefined for every real entry.
-            extraFields: ['streak', 'hardMode'],
+            extraFields: ['streak', 'hardMode', 'secondsWon', 'secondsLost'],
+            secondsBadge: true,
             href: '/metrocrush/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -425,7 +430,8 @@
             collection: 'clasificador-leaderboard',
             startDateKey: '2026-10-10',
             orderBySpecs: [['score', 'desc']],
-            extraFields: ['streak', 'hardMode'],
+            extraFields: ['streak', 'hardMode', 'secondsWon', 'secondsLost'],
+            secondsBadge: true,
             href: '/clasificador/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -449,7 +455,8 @@
             collection: 'copo-de-nieve-leaderboard',
             startDateKey: '2026-10-26',
             orderBySpecs: [['score', 'desc']],
-            extraFields: ['streak'],
+            extraFields: ['streak', 'secondsWon', 'secondsLost'],
+            secondsBadge: true,
             href: '/copo-de-nieve/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
@@ -599,9 +606,15 @@
                 name.className = 'leaderboard__alias-name';
                 name.textContent = entry.alias;
 
+                var scoreEl = game.scoreCell(entry, dateKey);
+                // Hard-mode elastic-clock games show +won/−lost seconds inside
+                // the score cell (see MetroShared.buildSecondsBadge()).
+                if (game.secondsBadge) {
+                  scoreEl.appendChild(MetroShared.buildSecondsBadge(entry.secondsWon, entry.secondsLost));
+                }
                 li.appendChild(rank);
                 li.appendChild(name);
-                li.appendChild(game.scoreCell(entry, dateKey));
+                li.appendChild(scoreEl);
                 li.appendChild(MetroShared.buildStreakBadge(entry.streak));
                 gameEls.list.appendChild(li);
               });

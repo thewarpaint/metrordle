@@ -302,6 +302,9 @@
         margin: 0 0 1.2rem;
       }
 
+      /* Score is a station count (up to ~3 digits); size the points column to it. */
+      #leaderboard-list { --score-number-width: 1.8rem; }
+
     </style>
   </head>
 
@@ -945,7 +948,15 @@
           // streak and hardMode are submitted purely for display (see
           // /tablero/'s own 🔥/🧠 badges) - neither is part of
           // orderBySpecs, so ranking is unaffected either way.
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.total, hardMode: state.mode === 'hard', streak: state.streak }, {})
+          var fields = { score: state.total, hardMode: state.mode === 'hard', streak: state.streak };
+          // secondsWon/secondsLost only exist in hard mode (the elastic clock),
+          // so submit them only then; firestore.rules keeps both optional
+          // (deploy the rule first).
+          if (state.mode === 'hard') {
+            fields.secondsWon = state.secondsWon;
+            fields.secondsLost = state.secondsLost;
+          }
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.total, state.correctByLine, state.classified, state.mode, state.secondsWon, state.secondsLost, true);
@@ -1175,7 +1186,7 @@
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['hardMode', 'streak'], myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['hardMode', 'streak', 'secondsWon', 'secondsLost'], myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1219,6 +1230,7 @@
 
                 score.appendChild(badge);
                 score.appendChild(number);
+                score.appendChild(MetroShared.buildSecondsBadge(entry.secondsWon, entry.secondsLost));
 
                 li.appendChild(rank);
                 li.appendChild(name);

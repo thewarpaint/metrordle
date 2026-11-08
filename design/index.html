@@ -1170,7 +1170,7 @@
           gallery.appendChild(buildExample(list([
             row({ rank: 1, alias: 'comborey', score: badgeScore('4820', 'wide', '🧠'), streak: 5 }),
             row({ rank: 2, alias: 'novato', score: badgeScore('310', 'wide', ''), streak: 0 }),
-          ]), '<code>.leaderboard__score-number--wide</code> · ✅ consolidado - misma celda pero con <code>min-width</code> para los puntajes de varios dígitos de Metro Crush y Clasificador, así el distintivo no se corre con un número más largo.'));
+          ]), '<code>.leaderboard__score-number--wide</code> · ✅ consolidado - misma celda pero con <code>width</code> fijo para los puntajes de varios dígitos de Metro Crush, Clasificador y Copo de nieve: cada número ocupa la misma caja alineada a la derecha, así los segundos y la racha de cada fila quedan en columna. El ancho es por juego (<code>--score-number-width</code> en la lista; el valor por defecto cubre el puntaje más largo, el de Metro Crush).'));
 
           // 4: the record and status lines.
           var meta = document.createElement('div');

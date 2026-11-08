@@ -115,6 +115,32 @@ added to lock the fix in.
   rejected - same optional-field reasoning as Laberinto's own `score`;
   deploy the rule before/with the code).
 
+### Hard-mode elastic-clock seconds
+
+The three elastic-clock games (Metro Crush, Clasificador, Copo de nieve -
+hard mode's clock gains/loses seconds as you play) now also show
+`secondsWon`/`secondsLost` on each leaderboard row, inside the score cell:
+`+X` in green, `−Y` in red (`MetroShared.buildSecondsBadge()` in
+`shared.js`, styled in `shared.css`). Each chip only shows when its value
+is a positive number, so there's no `+0`/`−0` noise.
+
+Both are **display-only** (never in `orderBySpecs`), so like `streak`/
+`hintsUsed` they must be named in each game's `getTopLeaderboardScores()`
+`extraFields` (and `/tablero/`'s per-game entry, which also carries a
+`secondsBadge: true` flag `renderGame()` reads) or they read `undefined`
+on the entry. `submitScore()` only includes them in **hard mode** (the
+clock is flat in normal mode), so normal-mode entries stay exactly as
+before, and an entry from before this shipped simply has neither field -
+`buildSecondsBadge()` renders nothing in both cases.
+
+In `firestore.rules`, `secondsWon`/`secondsLost` are **optional** fields
+(bounded `0..300`) on all three collections - only hard-mode rounds send
+them, and older entries lack them, so a stale cached client must not be
+rejected. As always, **this rule is a manual deploy that must land before
+(or with) the code** - until it does, a hard-mode submission carrying the
+new keys fails `hasOnly` against the old rule and is rejected
+(`permission-denied`).
+
 ## High score records
 
 Memoria, Metro Crush, Clasificador, and Copo de nieve - the games ranked

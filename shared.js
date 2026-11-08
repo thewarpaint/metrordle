@@ -948,6 +948,30 @@ function buildStreakBadge(streak) {
   return span;
 }
 
+// Seconds won/lost on the hard-mode elastic clock (Metro Crush,
+// Clasificador, Copo de nieve), shown inside the leaderboard score cell:
+// +X in green, −Y in red. Always returns the span (often empty) so rows
+// lay out the same; a normal-mode entry, or one from before this field
+// shipped, has undefined values and renders nothing. Each chip only shows
+// when its value is a positive number (no "+0"/"−0" noise).
+function buildSecondsBadge(secondsWon, secondsLost) {
+  var span = document.createElement('span');
+  span.className = 'leaderboard__seconds';
+  if (typeof secondsWon === 'number' && secondsWon > 0) {
+    var won = document.createElement('span');
+    won.className = 'leaderboard__seconds-won';
+    won.textContent = '+' + secondsWon;
+    span.appendChild(won);
+  }
+  if (typeof secondsLost === 'number' && secondsLost > 0) {
+    var lost = document.createElement('span');
+    lost.className = 'leaderboard__seconds-lost';
+    lost.textContent = '−' + secondsLost; // U+2212 minus, not a hyphen
+    span.appendChild(lost);
+  }
+  return span;
+}
+
 function copyViaExecCommand(text) {
   var textarea = document.createElement('textarea');
   textarea.value = text;
@@ -1658,6 +1682,7 @@ window.MetroShared = {
   formatStreak: formatStreak,
   formatMaxStreak: formatMaxStreak,
   buildStreakBadge: buildStreakBadge,
+  buildSecondsBadge: buildSecondsBadge,
   renderNoticeBanner: renderNoticeBanner,
   pulseClock: pulseClock,
   normalizeAlias: normalizeAlias,

@@ -10,8 +10,8 @@ browser would.
 Memoria (`memoria/`) has the fullest coverage; Metroguessr
 (`metroguessr/`) has core-mechanics + leaderboard coverage; Laberinto
 (`laberinto/`) has a puzzle-difficulty check alongside its leaderboard
-coverage; the main game (`metrordle/`) and the admin leaderboard
-browser (`admin/`) have leaderboard coverage only so far;
+coverage; the main game (`metrordle/`) and the tablero leaderboard
+browser (`tablero/`) have leaderboard coverage only so far;
 Metro Crush (`metrocrush/`) has none committed yet - still only the
 ad-hoc scratchpad checks used during development. `configurar/` covers
 the site-wide settings page (`/configurar/`). `security/` and `shared/`
@@ -55,7 +55,7 @@ npm run test:metrordle-leaderboard  # the main game's leaderboard checks (~10s)
 npm run test:metroguessr  # Metroguessr's core-mechanics checks (~15s)
 npm run test:metroguessr-theme  # Metroguessr's map-tile/theme-override checks (~10s)
 npm run test:metroguessr-leaderboard  # Metroguessr's leaderboard checks (~10s)
-npm run test:admin  # the /admin/ leaderboard browser checks (~10s)
+npm run test:tablero  # the /tablero/ leaderboard browser checks (~10s)
 npm run test:configurar  # the /configurar/ settings page checks (~10s)
 npm run test:leaderboard-query  # getTopLeaderboardScores()'s real Firestore query logic (~10s)
 npm run test:csp  # Content-Security-Policy checks, every page (~10s)
@@ -133,7 +133,7 @@ covering the leaderboard section on the real `/memoria/` page (its own
   shows next to the leaderboard title, formatted by the shared
   `MetroShared.formatHighScoreRecord()`, and stays hidden - not "🏆
   Récord: undefined" - when there's no record yet, same coverage shape
-  as `/admin/`'s own test for this.
+  as `/tablero/`'s own test for this.
 
 None of this exercises a real Firestore submission landing and rendering
 (sorted, tie-broken, highlighting the current player's row) end to end,
@@ -261,7 +261,7 @@ suffix on hard-mode ones:
   the real sort logic behind that ordering is covered by
   `shared/leaderboard-query.test.js` instead.
 - Each row shows a "🔥 × N" streak badge (stubbed `getTopLeaderboardScores()`
-  data, `N > 1` only), same as `/admin/`'s own copy of this check.
+  data, `N > 1` only), same as `/tablero/`'s own copy of this check.
 
 Same real-Firestore-submission coverage gap as Memoria's leaderboard
 test, for the same reason.
@@ -394,7 +394,7 @@ way the other games' own tests do):
   shows next to the leaderboard title, formatted by the shared
   `MetroShared.formatHighScoreRecord()`, and stays hidden - not "🏆
   Récord: undefined" - when there's no record yet, same coverage shape
-  as `/admin/`'s own test for this.
+  as `/tablero/`'s own test for this.
 
 **`metrocrush/selection.test.js`** covers the "Metro Crush flickers
 every time a station is selected" bug report: `onTileClick()`'s own
@@ -469,7 +469,7 @@ hard mode toggle:
   the alias row's own display text, and confirming `leaderboardSubmitted`
   is persisted `true` afterward.
 
-**`admin/admin.test.js`** covers `/admin/`, the read-only cross-game
+**`tablero/tablero.test.js`** covers `/tablero/`, the read-only cross-game
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads every game's own collection):
 - The date picker (the same prev/next chevrons as each game's own
@@ -589,7 +589,7 @@ environment can't reach a real Firestore project at all), this one
 fakes just enough of the Firestore compat SDK's query surface itself
 (`tests/lib/firestore-stub.js`) to run the real query-building code
 against realistic Firestore semantics. Specifically reproduces the bug
-that broke `/admin/`'s Metroguessr leaderboard in production: an entry
+that broke `/tablero/`'s Metroguessr leaderboard in production: an entry
 submitted before a later `orderBySpecs` field (e.g. `hardMode`) existed
 on that collection has no such field at all, and Firestore's own
 `.orderBy(field)` silently **excludes** any document missing that
@@ -633,7 +633,7 @@ than stretching `tests/lib/firestore-stub.js` to cover both:
   reachable Firebase, same as the rest of the leaderboard API.
 - `formatHighScoreRecord()` renders the one shared `'🏆 Récord: 39 por
   🐱 · #23 · 20 sep 2026'` line (es-MX, matching the rest of the site's
-  own copy/UI language) used by `/admin/` and by Memoria's/Metro Crush's
+  own copy/UI language) used by `/tablero/` and by Memoria's/Metro Crush's
   own reveal screens (see below), including that `dateKey` is parsed as
   a local calendar date (not a UTC instant) so a timezone behind UTC
   can't show the day before.
@@ -654,7 +654,7 @@ tag every page carries (defense-in-depth alongside the app's actual XSS
 mitigation - every leaderboard alias render uses `textContent`, never
 `innerHTML`, see each `*/leaderboard.test.js` above):
 - Every page (`/`, `/memoria/`, `/laberinto/`, `/metroguessr/`,
-  `/metrocrush/`, `/admin/`, `/configurar/`, `/purge/`) loads with zero
+  `/metrocrush/`, `/tablero/`, `/configurar/`, `/purge/`) loads with zero
   `securitypolicyviolation` events and zero page errors - a policy
   that's too strict would otherwise silently break the page's own
   inline `<script>`, its embedded font, the Firebase SDK, or (for

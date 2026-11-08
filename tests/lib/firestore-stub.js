@@ -5,7 +5,7 @@
 // just enough to exercise MetroShared.getTopLeaderboardScores()'s REAL
 // query-construction logic in shared.js against realistic Firestore
 // query semantics, most importantly the one that silently broke
-// /admin/'s Metroguessr leaderboard in production: .orderBy(field)
+// /tablero/'s Metroguessr leaderboard in production: .orderBy(field)
 // EXCLUDES any document missing that field entirely from the results -
 // no error, just fewer rows - rather than treating a missing field as
 // some default/low value.
@@ -19,7 +19,7 @@
 // nothing about whether the query itself is correct.
 //
 // Installed via route-interception of shared.js (same technique
-// tests/admin/admin.test.js's own stubLeaderboardData() uses) so the
+// tests/tablero/tablero.test.js's own stubLeaderboardData() uses) so the
 // REAL getTopLeaderboardScores() runs, calling into this fake
 // window.firebase instead of a replacement for the function itself.
 

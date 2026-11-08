@@ -11,7 +11,7 @@
 // renderLeaderboard() comment). This is the exact bug class that shipped
 // twice for this one page already - the 🧠 badge silently never showed
 // for any real entry until extraFields named it, and the 🔥 streak
-// badge (shown on every OTHER game's own leaderboard, and on /admin/'s
+// badge (shown on every OTHER game's own leaderboard, and on /tablero/'s
 // cross-game view of this same collection) was simply never added to
 // this page's own renderLeaderboard() at all until now. Locking both in
 // here.

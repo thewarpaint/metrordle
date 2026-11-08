@@ -110,17 +110,17 @@ async function main() {
     );
   });
 
-  // /admin/ is precached deliberately (it was excluded before), so a
-  // change to admin/index.html must bump CACHE_NAME like any other
+  // /tablero/ is precached deliberately (it was excluded before), so a
+  // change to tablero/index.html must bump CACHE_NAME like any other
   // precached asset. The real-diff check above enforces that for free -
-  // but only while admin actually stays in PRECACHE_URLS. This pins that
-  // membership, so quietly dropping admin from the precache list (which
+  // but only while tablero actually stays in PRECACHE_URLS. This pins that
+  // membership, so quietly dropping tablero from the precache list (which
   // would silently stop the check above from watching it) fails here.
-  test("sw.js's PRECACHE_URLS includes /admin/ and its index.html", async () => {
+  test("sw.js's PRECACHE_URLS includes /tablero/ and its index.html", async () => {
     const swSource = fs.readFileSync(path.join(REPO_ROOT, 'sw.js'), 'utf8');
     const urls = extractPrecacheUrls(swSource);
-    assert.ok(urls.includes('/admin/'), "expected '/admin/' in PRECACHE_URLS");
-    assert.ok(urls.includes('/admin/index.html'), "expected '/admin/index.html' in PRECACHE_URLS");
+    assert.ok(urls.includes('/tablero/'), "expected '/tablero/' in PRECACHE_URLS");
+    assert.ok(urls.includes('/tablero/index.html'), "expected '/tablero/index.html' in PRECACHE_URLS");
   });
 
   test('self-test: flags a precached file changing without a CACHE_NAME bump', async () => {

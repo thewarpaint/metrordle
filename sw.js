@@ -33,8 +33,8 @@ var PRECACHE_URLS = [
   '/configurar/index.html',
   '/status/',
   '/status/index.html',
-  '/admin/',
-  '/admin/index.html',
+  '/tablero/',
+  '/tablero/index.html',
   // Assets
   '/apple-touch-icon.png',
   '/favicon.png',

@@ -1706,7 +1706,7 @@
           // right since every entry that predates this only ever
           // submitted on a win in the first place. hintsUsed/streak are
           // submitted too, purely for display (this page's own 🪄 badge,
-          // /admin/'s own 🔥 one) - ranking itself only ever needs
+          // /tablero/'s own 🔥 one) - ranking itself only ever needs
           // attempts/lost/hardMode.
           var fields = { attempts: state.attempts, hardMode: state.mode === 'hard', lost: !state.won, hintsUsed: state.hintsUsed, streak: state.streak };
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})

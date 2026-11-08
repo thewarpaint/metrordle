@@ -20,7 +20,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // memoria-leaderboard/{dateKey}/entries/{aliasId}. streak (display
-    // -only, the 🔥 flag on /admin/ - see getTopLeaderboardScores()'s
+    // -only, the 🔥 flag on /tablero/ - see getTopLeaderboardScores()'s
     // own comment in shared.js on why it's never part of orderBySpecs)
     // can legitimately be 0 here, unlike the other three - Memoria
     // submits on every completed round, win or lose, unlike Metrordle/
@@ -283,7 +283,7 @@ service cloud.firestore {
     // itself is: a plain fact about the record, not a value that should
     // ever change if this collection gets a new reader later that
     // doesn't already carry each game's own START_DATE_KEY around like
-    // /admin/'s own GAMES array does today.
+    // /tablero/'s own GAMES array does today.
     match /records/{gameKey} {
       allow read: if true;
 

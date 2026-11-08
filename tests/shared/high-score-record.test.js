@@ -184,7 +184,7 @@ async function main() {
     }
   });
 
-  test('formatHighScoreRecord() renders the shared "🏆 Récord: N por alias · #N · date" line used by /admin/ and by Memoria\'s/Metro Crush\'s/Clasificador\'s own reveal screens', async () => {
+  test('formatHighScoreRecord() renders the shared "🏆 Récord: N por alias · #N · date" line used by /tablero/ and by Memoria\'s/Metro Crush\'s/Clasificador\'s own reveal screens', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];

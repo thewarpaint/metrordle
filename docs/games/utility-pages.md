@@ -12,21 +12,25 @@
   a `CACHE_NAME` bump); loads no Firebase. Lists all of
   `SUGGESTABLE_GAMES` (seven now that Copo de nieve joined) - not the
   `/sopa-de-metros/` prototype, the one game still outside that list.
-  Linked from each game page's footer: a `<p class="credit">`
-  `<a href="/juegos/">Todos los juegos</a>` link (on `/`, `/laberinto/`,
-  `/memoria/`, `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`,
-  `/configurar/`, and the unreferenced `/metrocrush-staging/`) - a plain
-  `color: inherit` link (shared.css's global `a` rule). `/configurar/`
-  used to read "← Volver a Metrordle" (→ `/`); it now matches the games,
-  for header/footer parity. On the first five it
+  Linked from each game page's footer: a `<p class="credit">` holding
+  `<a href="/tablero/">Tablero</a> · <a href="/juegos/">Todos los juegos</a>`
+  (an interpunct `·` between the two) on `/`, `/laberinto/`, `/memoria/`,
+  `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, `/configurar/`, and
+  the unreferenced `/metrocrush-staging/` - plain `color: inherit` links
+  (shared.css's global `a` rule). `/configurar/` used to read "← Volver a
+  Metrordle" (→ `/`); it now matches the games, for header/footer parity.
+  The `Tablero` link was added alongside the existing "Todos los juegos"
+  one (every footer page but `/tablero/` itself gets it). On the first five it
   replaced the old "Basado en el trazado real..." credit line; Copo had
   no footer before, so it just gained one. Metroguessr has no such
   footer (full-bleed map layout), so it stays unlinked for now.
 
-- **`/admin/`** - read-only cross-game leaderboard browser (not linked
-  from any game's nav, `noindex`). Precached (`sw.js`'s own
-  `PRECACHE_URLS`) despite being unlinked, so a change to its
-  `index.html` needs a `CACHE_NAME` bump - see the `sw.js` bullet.
+- **`/tablero/`** - read-only cross-game leaderboard browser (was
+  `/admin/`; renamed). Still `noindex`, but now linked from every footer
+  page's `.credit` (the `Tablero` link - see the juegos bullet above), so
+  it's no longer unreferenced. Precached (`sw.js`'s own `PRECACHE_URLS`),
+  so a change to its `index.html` needs a `CACHE_NAME` bump - see the
+  `sw.js` bullet.
   Same prev/next date-nav as the
   games' own `?debug=true` mode, gated behind that same param (each
   game's own "Ver este día en ___" deep link too) - shows only today's
@@ -37,7 +41,7 @@
   submitted result, not deduped by alias).
 
 - **`/design/`** - a visual-language reference (not linked from any
-  game's nav, `noindex`, same as `/admin/`): side-by-side examples of
+  game's nav, `noindex`, same as `/tablero/`): side-by-side examples of
   how a Metro line or a station is shown today - most of them still
   competing, un-redrawn copies of each game's own `<style>` block
   (pulled as-is, not hand-approximated), pending a decision; four
@@ -249,7 +253,7 @@
   `.design-map-maximize-btn` stands in). Two shared.css primitives the
   first pass also skipped are shown directly (✅ consolidado, no
   stand-in): `.btn-secondary--chev`/`.btn-secondary--chev-sm` (the
-  `?debug=true` date-nav chevrons every game and `/admin/` use - a
+  `?debug=true` date-nav chevrons every game and `/tablero/` use - a
   square icon variant of `.btn-secondary`, see "Shared infrastructure"
   below) and `.debug-mode-toggle` (the small normal/hard toggle on that
   same debug row). `.btn-secondary--chev` gets a second example too, for
@@ -285,7 +289,7 @@
   than being hand-copied, so the examples can't silently drift from the
   real palette. Deliberately left out of `sw.js`'s own `PRECACHE_URLS`
   (not a player-facing game route - same reasoning that used to apply to
-  `/admin/`, which is precached now, so `/map/` is its closest still-
+  `/tablero/`, which is precached now, so `/map/` is its closest still-
   excluded peer).
 
 - **`/configurar/`** - site-wide settings page, linked from every game's
@@ -296,7 +300,7 @@
   without a new page or a new localStorage key.
 
 - **`/status/`** - a read-only ops health check (not linked from any
-  game's nav, `noindex`, same as `/admin/`/`/design/`), but unlike
+  game's nav, `noindex`, same as `/tablero/`/`/design/`), but unlike
   `/design/` (and `/map/`), deliberately precached (`sw.js`'s own `PRECACHE_URLS`) so
   it's reachable even when the network is the very thing being
   diagnosed. An internal/ops page, not player-facing, so its copy is
@@ -328,8 +332,8 @@
   from a *broken* cache.
 
 - **`/map/`** - an internal diagnostic page (not linked from any game's
-  nav and `noindex` - same as `/admin/`/`/design/` - and not precached,
-  same as `/design/` (`/admin/` is precached now); English
+  nav and `noindex` - same as `/tablero/`/`/design/` - and not precached,
+  same as `/design/` (`/tablero/` is precached now); English
   copy like `/status/`). Plots every `MetroShared.STATION_COORDS` station
   on the same OpenFreeMap/Leaflet map Metroguessr uses, draws each
   `MetroShared.LINES` line as a polyline through its stations in the

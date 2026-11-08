@@ -2,7 +2,7 @@
 
 - **`shared.js`** - `window.MetroShared`: date-key/seeded-RNG helpers,
   streak tracking (localStorage, also submitted to each game's own
-  leaderboard for `/admin/`'s 🔥 display - see "Streaks" below), alias
+  leaderboard for `/tablero/`'s 🔥 display - see "Streaks" below), alias
   helpers, the leaderboard API (`submitLeaderboardScore`/
   `getTopLeaderboardScores`, collection- and field-shape-agnostic - see
   "Leaderboards" below), clipboard/share
@@ -84,11 +84,11 @@
   Memoria), `.leaderboard__score-number` the number beside a badge with
   `--narrow` (single-digit attempts: Metrordle, Metroguessr) and `--wide`
   (multi-digit score: Metro Crush, Clasificador) width modifiers - every
-  game's reveal leaderboard and `/admin/` build from these, cataloged in
+  game's reveal leaderboard and `/tablero/` build from these, cataloged in
   `/design/`'s own "Marcadores" board; the only page-local leaderboard CSS
   left is genuine deltas - Metroguessr's compact-sheet font sizing + widened
   3-emoji badge, Metro Crush's/Metroguessr's `text-align: left` (their
-  `.reveal` centers), and `/admin/`'s tighter margins/wider rank),
+  `.reveal` centers), and `/tablero/`'s tighter margins/wider rank),
   `.line-badge` - a line
   indicator, colored by line via `--badge-bg`/`--badge-ink` falling
   back to the site-wide `--line`/`--line-ink` tokens, used by

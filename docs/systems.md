@@ -55,8 +55,8 @@ end and muted (`.game-promo__card--played`) but still enabled - see the
 from a small ⚙️ in every other page's header - `.brand__settings` for
 every `.brand`-based page, `.topbar__settings` for Metroguessr's own
 full-viewport `.topbar` layout instead, since it has no `.brand` row to
-attach one to. `/admin/` and `/purge/` are the only exceptions worth
-noting: `/admin/` still gets the link (harmless, even though it's
+attach one to. `/tablero/` and `/purge/` are the only exceptions worth
+noting: `/tablero/` still gets the link (harmless, even though it's
 itself unlinked from any game's nav); `/purge/` doesn't, since it's
 deliberately self-contained with no `shared.css`/`shared.js` at all
 (see its own bullet above). `/configurar/` has no gear of its own - a

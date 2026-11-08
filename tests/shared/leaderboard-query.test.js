@@ -6,7 +6,7 @@
 // reproduce a real Firestore behavior no other test here exercises:
 // .orderBy(field) EXCLUDES a document missing that field entirely from
 // the results, rather than erroring or treating it as a default value.
-// That's exactly what silently broke /admin/'s Metroguessr leaderboard
+// That's exactly what silently broke /tablero/'s Metroguessr leaderboard
 // in production once hardMode was added to its orderBySpecs - every
 // entry submitted before that (with no hardMode field at all) vanished
 // from every query that ordered by it, with no error anywhere.
@@ -37,9 +37,9 @@
 // but it says nothing about whether the query itself is correct, which
 // is what this file is for.
 //
-// Loads /admin/ as the host page purely because it's the simplest
+// Loads /tablero/ as the host page purely because it's the simplest
 // existing caller of getTopLeaderboardScores() for an arbitrary
-// collection/date - nothing here is specific to /admin/ itself.
+// collection/date - nothing here is specific to /tablero/ itself.
 
 const assert = require('assert');
 const { chromium } = require('playwright');
@@ -78,7 +78,7 @@ async function main() {
     page.on('pageerror', (e) => errors.push(e.message));
     try {
       await installFirestoreStub(page, FIXTURE);
-      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       const rows = page.locator('#metroguessr-list .leaderboard__row');
@@ -117,7 +117,7 @@ async function main() {
     page.on('pageerror', (e) => errors.push(e.message));
     try {
       await installFirestoreStub(page, FIXTURE);
-      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       const withExtraField = await page.evaluate((dateKey) => {
@@ -173,7 +173,7 @@ async function main() {
     page.on('pageerror', (e) => errors.push(e.message));
     try {
       await installFirestoreStub(page, FIXTURE);
-      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       const rows = page.locator('#metrordle-list .leaderboard__row');
@@ -217,7 +217,7 @@ async function main() {
     page.on('pageerror', (e) => errors.push(e.message));
     try {
       await installFirestoreStub(page, FIXTURE);
-      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       const query = (myAliasId) => page.evaluate(({ dateKey, myAliasId }) => {
@@ -253,14 +253,14 @@ async function main() {
     // build already-correctly-ranked data instead of hand-writing a
     // .rank value (or forgetting to), which is exactly what shipped the
     // "#undefined" rendering bug once already (see shared.js's own
-    // formatRank() comment, and tests/admin/admin.test.js's own
+    // formatRank() comment, and tests/tablero/tablero.test.js's own
     // regression test for the rendering side of this).
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
 
       const selected = await page.evaluate(() => {
@@ -297,7 +297,7 @@ async function main() {
     // it as a ranking tiebreak the way Metrordle/Metroguessr do. That's
     // exactly what let this slip through once already: entry.hardMode
     // was read for the 🧠 badge on both this page's own leaderboard and
-    // /admin/'s, but neither call ever named it in extraFields, so it
+    // /tablero/'s, but neither call ever named it in extraFields, so it
     // came back undefined for every real entry and the badge silently
     // never showed.
     const DATE = '2027-01-12';
@@ -316,7 +316,7 @@ async function main() {
     page.on('pageerror', (e) => errors.push(e.message));
     try {
       await installFirestoreStub(page, FIXTURE);
-      await page.goto(server.baseUrl + '/admin/?date=' + DATE, { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       const withExtraField = await page.evaluate((dateKey) => {

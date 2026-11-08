@@ -13,7 +13,7 @@ itself exercised as the "Firebase unreachable degrades gracefully" case
 in every leaderboard test.
 
 **A `page.route('**/shared.js', ...)` patch (the trick every "real
-data" leaderboard/admin test uses to fake `getTopLeaderboardScores()`/
+data" leaderboard/tablero test uses to fake `getTopLeaderboardScores()`/
 `submitLeaderboardScore()`) stops working across a `page.reload()`
 unless the context is created with `serviceWorkers: 'block'`.** Every
 real page here registers `sw.js`, which precaches `/shared.js` - once

@@ -891,12 +891,12 @@ input[type="text"]:disabled {
 }
 
 /* Compact "value over label" stat tiles - originally Metro Crush's own
-   page-local .reveal__stat*, promoted here once /admin/ needed the
+   page-local .reveal__stat*, promoted here once /tablero/ needed the
    same look for its own site-wide totals (put shared styling in
    shared.css, not copied per page). .stat-grid's own --cols custom
    property (default 3, same "set it on the instance" pattern as Metro
    Crush's own .board's --cols) controls the column count - Metro
-   Crush keeps its original 3, /admin/ uses 2, Clasificador's hard-mode
+   Crush keeps its original 3, /tablero/ uses 2, Clasificador's hard-mode
    seconds-won/lost pair uses 2 as well. */
 .stat-grid {
   display: grid;
@@ -1030,7 +1030,7 @@ input[type="text"]:disabled {
 
 /* The "🔥 × N" streak badge (see MetroShared.buildStreakBadge() in
    shared.js) that Metrordle/Laberinto/Memoria/Metro Crush's own
-   leaderboards and /admin/'s matching columns render for those four
+   leaderboards and /tablero/'s matching columns render for those four
    collections (Metroguessr's own leaderboard doesn't yet - nothing
    architectural stops it, just hasn't been asked for) - always present
    (empty text or not) so a row's score column lands in the same spot
@@ -1059,7 +1059,7 @@ input[type="text"]:disabled {
    shared.js) - these games ranked by a raw score rather than a fixed
    day's puzzle outcome, so it's worth calling out in its own golden
    card (a row-shaped rounded rectangle on top of the leaderboard list)
-   rather than folding into the leaderboard title. Shared by /admin/'s
+   rather than folding into the leaderboard title. Shared by /tablero/'s
    own boards and by these games' own reveal-screen leaderboards. */
 .leaderboard__record {
   align-items: center;

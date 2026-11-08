@@ -1,6 +1,6 @@
 'use strict';
 
-// Covers /admin/, the read-only cross-game leaderboard browser: the same
+// Covers /tablero/, the read-only cross-game leaderboard browser: the same
 // prev/next date-nav each game's own ?debug=true mode uses (see
 // index.html's #date-debug), gated behind that same param (so is each
 // game's own "Ver este día en ___" deep link) - both hidden by default,
@@ -8,7 +8,7 @@
 // (metrordle-leaderboard, laberinto-leaderboard, memoria-leaderboard,
 // metroguessr-leaderboard, clasificador-leaderboard), each reusing that
 // game's own collection/orderBySpecs/score-formatting - see
-// admin/index.html's GAMES array - plus the shared
+// tablero/index.html's GAMES array - plus the shared
 // MetroShared.buildStreakBadge() (shared.js) 🔥 × N badge (N > 1 only)
 // every one of those five games' rows gets - also used by Metrordle/
 // Laberinto/Memoria's own in-page leaderboards (see
@@ -85,7 +85,7 @@ async function main() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#date-debug').isVisible(), false, 'the date picker should be hidden without ?debug=true');
@@ -116,7 +116,7 @@ async function main() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await page.goto(server.baseUrl + '/admin/?debug=true', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?debug=true', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#date-debug').isVisible(), true, 'the date picker should be visible under ?debug=true');
@@ -138,7 +138,7 @@ async function main() {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {
-      await page.goto(server.baseUrl + '/admin/?debug=true', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/?debug=true', { waitUntil: 'networkidle' });
       await page.waitForTimeout(300);
 
       const initialLabel = await page.locator('#date-debug-label').textContent();
@@ -181,7 +181,7 @@ async function main() {
     page.on('pageerror', (e) => errors.push(e.message));
     try {
       await stubLeaderboardData(page, SAMPLE_DATA);
-      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       // Metrordle: badge (left) + fixed-width number (right), per row -
@@ -272,7 +272,7 @@ async function main() {
     page.on('console', (msg) => { if (msg.type() === 'warning') warnings.push(msg.text()); });
     try {
       await stubLeaderboardData(page, SAMPLE_DATA);
-      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       const metrordleRows = page.locator('#metrordle-list .leaderboard__row');
@@ -314,7 +314,7 @@ async function main() {
         `;
         await route.fulfill({ response, body: patched, headers: { 'content-type': 'application/javascript', 'cache-control': 'no-store' } });
       });
-      await page.goto(server.baseUrl + '/admin/', { waitUntil: 'networkidle' });
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#memoria-record').isVisible(), true, 'Memoria has a real record - should show');

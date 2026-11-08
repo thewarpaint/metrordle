@@ -41,7 +41,7 @@ async function plantSavedGame(page, dateKey, attempts, won, mode, leaderboardSub
 
 // Captures the fields object a submission would actually send, without
 // needing a real (unreachable in this sandbox) Firestore project -
-// same route-interception trick tests/admin/admin.test.js uses for
+// same route-interception trick tests/tablero/tablero.test.js uses for
 // getTopLeaderboardScores(), applied to submitLeaderboardScore() instead.
 async function stubSubmit(page) {
   await page.route('**/shared.js', async (route) => {

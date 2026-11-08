@@ -1044,6 +1044,21 @@ input[type="text"]:disabled {
   text-align: left;
 }
 
+/* Hard-mode elastic-clock seconds (see MetroShared.buildSecondsBadge()),
+   shown inside the score cell: +X won in green, −Y lost in red. Empty for
+   normal mode / pre-feature entries, so it takes no space then. */
+.leaderboard__seconds {
+  display: inline-flex;
+  flex: none;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard__seconds-won { color: var(--ok); }
+.leaderboard__seconds-lost { color: var(--danger); }
+
 .leaderboard__status {
   color: var(--ink-soft);
   font-size: 0.82rem;

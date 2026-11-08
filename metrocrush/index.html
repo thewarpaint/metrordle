@@ -1594,7 +1594,15 @@
           // (old or new) happens to have it. Can legitimately be 0 (a
           // 0-point round still submits and resets it), same bound as
           // Memoria's own leaderboard rule.
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, hardMode: state.mode === 'hard', streak: state.streak }, {})
+          var fields = { score: state.score, hardMode: state.mode === 'hard', streak: state.streak };
+          // secondsWon/secondsLost only exist in hard mode (the elastic clock),
+          // so submit them only then - normal-mode entries stay unchanged, and
+          // firestore.rules keeps both optional (deploy the rule first).
+          if (state.mode === 'hard') {
+            fields.secondsWon = state.secondsWon;
+            fields.secondsLost = state.secondsLost;
+          }
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.mode, state.groupsFormed, state.maxCombo, state.maxRunSeen, state.matchCountsByLine, state.secondsWon, state.secondsLost, true);
@@ -1714,7 +1722,7 @@
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId, extraFields: ['hardMode', 'streak'] })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { myAliasId: myAliasId, extraFields: ['hardMode', 'streak', 'secondsWon', 'secondsLost'] })
             .then(function (entries) {
               if (!state || state.dateKey !== dateKey) return;
               if (requestId !== leaderboardRequestId) return;
@@ -1758,6 +1766,7 @@
 
                 score.appendChild(badge);
                 score.appendChild(number);
+                score.appendChild(MetroShared.buildSecondsBadge(entry.secondsWon, entry.secondsLost));
 
                 li.appendChild(rank);
                 li.appendChild(name);

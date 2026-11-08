@@ -175,7 +175,7 @@ service cloud.firestore {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'secondsWon', 'secondsLost', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -183,6 +183,11 @@ service cloud.firestore {
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 20000 &&
         request.resource.data.hardMode is bool &&
+        // secondsWon/secondsLost: hard-mode elastic clock, display-only and
+        // OPTIONAL (only hard-mode rounds send them, older entries lack them).
+        // Deploy this rule before the code, or the new keys are rejected.
+        (!('secondsWon' in request.resource.data) || (request.resource.data.secondsWon is int && request.resource.data.secondsWon >= 0 && request.resource.data.secondsWon <= 300)) &&
+        (!('secondsLost' in request.resource.data) || (request.resource.data.secondsLost is int && request.resource.data.secondsLost >= 0 && request.resource.data.secondsLost <= 300)) &&
         request.resource.data.streak is int &&
         request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&
@@ -210,7 +215,7 @@ service cloud.firestore {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'secondsWon', 'secondsLost', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -218,6 +223,10 @@ service cloud.firestore {
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 500 &&
         request.resource.data.hardMode is bool &&
+        // secondsWon/secondsLost: hard-mode elastic clock, optional (see Metro
+        // Crush's block above). Deploy this rule before the code.
+        (!('secondsWon' in request.resource.data) || (request.resource.data.secondsWon is int && request.resource.data.secondsWon >= 0 && request.resource.data.secondsWon <= 300)) &&
+        (!('secondsLost' in request.resource.data) || (request.resource.data.secondsLost is int && request.resource.data.secondsLost >= 0 && request.resource.data.secondsLost <= 300)) &&
         request.resource.data.streak is int &&
         request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&
@@ -242,7 +251,7 @@ service cloud.firestore {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'secondsWon', 'secondsLost', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
@@ -250,6 +259,10 @@ service cloud.firestore {
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 1000 &&
         (!('hardMode' in request.resource.data) || request.resource.data.hardMode is bool) &&
+        // secondsWon/secondsLost: hard-mode elastic clock, optional (see Metro
+        // Crush's block above). Deploy this rule before the code.
+        (!('secondsWon' in request.resource.data) || (request.resource.data.secondsWon is int && request.resource.data.secondsWon >= 0 && request.resource.data.secondsWon <= 300)) &&
+        (!('secondsLost' in request.resource.data) || (request.resource.data.secondsLost is int && request.resource.data.secondsLost >= 0 && request.resource.data.secondsLost <= 300)) &&
         request.resource.data.streak is int &&
         request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&

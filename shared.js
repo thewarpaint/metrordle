@@ -1656,15 +1656,13 @@ function buildStationMasks(svgText) {
 }
 
 // ---- PWA install data transfer -------------------------------------------
-// Every bit of personal progress on this site lives in localStorage (the
-// alias, config, each game's streak + daily states, a few notice flags).
-// When the site is installed as a PWA, iOS hands the standalone app a
-// storage sandbox SEPARATE from Safari, so the player's streaks look wiped
-// after "Agregar a inicio". These helpers snapshot all app-owned keys into a
-// one-shot, expiring transfers/{id} Firestore doc, shown to the player as a
-// code + link, and merge it back on the new device. Leaderboard scores and
-// records already live in Firestore keyed by the alias, so restoring the
-// alias reassociates them - only the localStorage-only data has to travel.
+// An installed PWA gets storage separate from Safari on iOS, so progress
+// looks wiped after "Agregar a inicio". These helpers snapshot all
+// app-owned localStorage into a one-shot, expiring transfers/{id} doc
+// (shown as a code + link) and merge it back on the new device. Scores and
+// records are already in Firestore keyed by the alias, so restoring the
+// alias reassociates them - only localStorage-only data has to travel.
+// See docs/systems.md -> "PWA install & data transfer".
 
 var TRANSFER_SCHEMA = 1;
 var TRANSFER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // one-shot tokens expire
@@ -1689,9 +1687,8 @@ function exportLocalData() {
   return out;
 }
 
-// A random, unguessable id - it's both the Firestore doc id and the "code"
-// the player types on the new device, so anyone with it can read that one
-// snapshot (hence the length + expiry, see TRANSFER_MAX_AGE_MS).
+// The doc id doubles as the code the player types, and anyone with it can
+// read that snapshot - so it's random/unguessable, and short-lived.
 function randomTransferId() {
   var id = '';
   try {

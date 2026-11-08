@@ -649,10 +649,9 @@ input[type="text"]:disabled {
   margin-top: 0.2rem;
 }
 
-/* Fixed install/restore prompt (see MetroShared's data-transfer helpers in
-   shared.js) - a self-contained card pinned to the bottom so it needs no
-   per-page mount point. Holds a .notice; used for the ?restore= link result
-   and the fresh-install "restore your streak" nudge. */
+/* Install/restore prompt (MetroShared data-transfer helpers in shared.js) -
+   a .notice card pinned to the bottom, so it needs no per-page mount point.
+   Used for the ?restore= link result and the fresh-install restore nudge. */
 .transfer-banner {
   position: fixed;
   left: 50%;

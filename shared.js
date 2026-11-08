@@ -1671,9 +1671,8 @@ var TRANSFER_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 var STREAK_KEY_SUFFIX = ':streak';
 var TRANSFER_DAILY_KEEP_DAYS = 7;
 var DATED_KEY_RE = /:\d{4}-\d{2}-\d{2}$/; // a <game>:YYYY-MM-DD daily state
-// Keep the serialized snapshot under the transfers/{id} rules cap (100000),
-// with margin. JS string length is an upper bound on Firestore's size(), so
-// staying under this guarantees the write passes.
+// Cap the serialized snapshot under the transfers/{id} rules limit (100000).
+// JS string length upper-bounds Firestore's size(), so this guarantees it.
 var TRANSFER_MAX_DATA_CHARS = 95000;
 
 // Today minus the keep window, as 'YYYY-MM-DD' (which sorts chronologically).
@@ -1683,11 +1682,9 @@ function transferDateCutoff() {
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 
-// A snapshot of the app's localStorage (minus the dev-only leaderboard
-// fallback). Daily states pile up one key per day forever, so prune dated
-// keys to the recent window or a long history blows past the transfers/{id}
-// size cap; undated keys (streaks, alias, config) are kept in full, and the
-// streak an old daily state fed carries over in its own key anyway.
+// Snapshot of the app's localStorage (minus the dev-only leaderboard
+// fallback), pruning dated daily-state keys older than the keep window -
+// they pile up one-per-day forever; the streak they fed lives in its own key.
 function exportLocalData() {
   var out = {};
   var cutoff = transferDateCutoff();
@@ -1701,9 +1698,8 @@ function exportLocalData() {
   } catch (e) {
     // localStorage unavailable (private mode, etc.) - nothing to export.
   }
-  // Hard size guarantee: even within the keep window a heavy player can
-  // exceed the size cap, so drop daily states oldest-first until the
-  // serialized snapshot fits. Undated keys (streaks/alias/config) always stay.
+  // Even within the window a heavy player can exceed the cap, so drop daily
+  // states oldest-first until it fits - undated keys (streaks/config) stay.
   var dated = [];
   Object.keys(out).forEach(function (k) { if (DATED_KEY_RE.test(k)) dated.push(k); });
   dated.sort(function (a, b) { return a.slice(a.length - 10) < b.slice(b.length - 10) ? -1 : 1; });

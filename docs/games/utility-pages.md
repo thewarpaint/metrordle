@@ -15,8 +15,8 @@
   Linked from each game page's footer: a `<p class="credit">` holding
   `<a href="/juegos/">Todos los juegos</a> · <a href="/tablero/">Tablero</a>`
   (an interpunct `·` between the two) on `/`, `/laberinto/`, `/memoria/`,
-  `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, `/configurar/`, and
-  the unreferenced `/metrocrush-staging/` - plain `color: inherit` links
+  `/clasificador/`, `/metrocrush/`, `/copo-de-nieve/`, and `/configurar/` -
+  plain `color: inherit` links
   (shared.css's global `a` rule). `/configurar/` used to read "← Volver a
   Metrordle" (→ `/`); it now matches the games, for header/footer parity.
   The `Tablero` link was added alongside the existing "Todos los juegos"

@@ -187,18 +187,19 @@ the exact policy and its documented `'unsafe-inline'` tradeoff).
 
 ## Debug mode
 
-`?debug=true` on any game page reveals a prev/next date-nav
+A `debug` query param on any game page (just its presence - `?debug`,
+`?debug=true`, `?debug=1` all count) reveals a prev/next date-nav
 (`MetroShared.getEffectiveToday`/`getDateKey`) to preview any day's
 puzzle without waiting for it, and makes `submitScore()` a no-op site-wide
 so date-nav testing never pollutes the real leaderboards. `?date=YYYY-MM-DD`
 also works standalone (validated by regex, falls back to real "today" if
 malformed).
 
-`MetroShared.isDebugMode()` returns true for either `?debug=true` **or** a
-persisted flag (`metrordle:debug`), which `/configurar`'s "Modo depuración"
-toggle sets via `setDebugMode()` / reads via `getStoredDebugMode()`. The
-persisted path exists because the installed PWA can't edit its URL to add
-`?debug=true`. It's read with a literal key (not `loadConfig()`) because
+`MetroShared.isDebugMode()` returns true for the `debug` param (any value)
+**or** a persisted flag (`metrordle:debug`), which `/configurar`'s "Modo
+depuración" toggle sets via `setDebugMode()` / reads via
+`getStoredDebugMode()`. The persisted path exists because the installed PWA
+can't edit its URL to add `?debug`. It's read with a literal key (not `loadConfig()`) because
 `isDebugMode()` runs in `initToolbar` at the top of `shared.js`, before
 `CONFIG_STORAGE_KEY` is assigned further down.
 

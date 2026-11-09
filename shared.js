@@ -664,7 +664,8 @@ function getPreviousDateKey(dateKey) {
 
 function isDebugMode() {
   try {
-    if (new URL(window.location.href).searchParams.get('debug') === 'true') return true;
+    // Presence of ?debug is enough, whatever its value (?debug, ?debug=1, ...).
+    if (new URL(window.location.href).searchParams.has('debug')) return true;
   } catch (e) { /* fall through to the stored flag */ }
   return getStoredDebugMode();
 }

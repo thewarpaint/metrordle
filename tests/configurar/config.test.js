@@ -362,6 +362,23 @@ async function main() {
     }
   });
 
+  test('URL debug detection is presence-based: ?debug with no value (or any value) enables debug mode', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/?debug', { waitUntil: 'networkidle' });
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), true, '?debug with no value should enable debug');
+
+      await page.goto(server.baseUrl + '/metrocrush/?debug=false', { waitUntil: 'networkidle' });
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), true, 'presence of ?debug enables it regardless of value - even =false');
+
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), false, 'no debug param and no stored flag -> off');
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

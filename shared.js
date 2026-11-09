@@ -29,6 +29,14 @@ function buildToolbarIcon(name) {
   return svgIcon(TOOLBAR_ICON_PATHS[name] || '');
 }
 
+// Debug mode has three states (see debugRunMode() further down): 'off'
+// (normal), 'dry' (date-nav on, nothing persisted), 'live' (date-nav on,
+// scores STILL persisted - for debugging persistence itself). Set by a
+// ?debug URL param (presence = dry) or /configurar's toggle, stored here.
+// Read with a literal key, not loadConfig(), since debugRunMode() runs in
+// initToolbar below before CONFIG_STORAGE_KEY is assigned further down.
+var DEBUG_STORAGE_KEY = 'metrordle:debug';
+
 (function initToolbar() {
   var debug = isDebugMode();
   var mounted = false;
@@ -655,12 +663,57 @@ function getPreviousDateKey(dateKey) {
 // its ?debug=true date-nav buttons, which takes priority over ?date= and
 // lets the two be combined) and passes it in explicitly.
 
-function isDebugMode() {
+var DEBUG_RUN_MODES = ['off', 'dry', 'live'];
+
+// Resolves the active debug state: 'off' | 'dry' | 'live'. The stored
+// setting (from /configurar) wins; otherwise a ?debug URL param (presence is
+// enough, any value) means 'dry' - the safe legacy entry that never
+// persists. 'live' is reachable only via the stored toggle.
+function debugRunMode() {
   try {
-    return new URL(window.location.href).searchParams.get('debug') === 'true';
+    var stored = localStorage.getItem(DEBUG_STORAGE_KEY);
+    if (stored === 'dry' || stored === 'live') return stored;
+  } catch (e) { /* fall through to the URL param */ }
+  try {
+    if (new URL(window.location.href).searchParams.has('debug')) return 'dry';
+  } catch (e) { /* no URL access - treat as off */ }
+  return 'off';
+}
+
+// True in either debug state - gates date-nav, the 🐞 log panel, skipped
+// start overlays, etc. (everything but score persistence).
+function isDebugMode() {
+  return debugRunMode() !== 'off';
+}
+
+// True ONLY in dry-run debug - the one state where score submission is
+// skipped. Normal play and live-run debug both persist.
+function isDryRun() {
+  return debugRunMode() === 'dry';
+}
+
+// The persisted setting as /configurar renders it: 'off' | 'dry' | 'live'
+// (ignores the URL param, which the toggle doesn't control).
+function getStoredDebugMode() {
+  try {
+    var stored = localStorage.getItem(DEBUG_STORAGE_KEY);
+    return (stored === 'dry' || stored === 'live') ? stored : 'off';
   } catch (e) {
-    return false;
+    return 'off';
   }
+}
+
+// Persist the debug state - what /configurar's toggle calls. 'off' clears
+// the key; 'dry'/'live' store it. Returns the normalized value.
+function setDebugMode(mode) {
+  var normalized = DEBUG_RUN_MODES.indexOf(mode) === -1 ? 'off' : mode;
+  try {
+    if (normalized === 'off') localStorage.removeItem(DEBUG_STORAGE_KEY);
+    else localStorage.setItem(DEBUG_STORAGE_KEY, normalized);
+  } catch (e) {
+    // localStorage unavailable - the toggle just won't persist this session.
+  }
+  return normalized;
 }
 
 function getEffectiveToday(debugDate) {
@@ -2027,6 +2080,9 @@ window.MetroShared = {
   buildGamePromo: buildGamePromo,
   buildAllGamesGrid: buildAllGamesGrid,
   isDebugMode: isDebugMode,
+  isDryRun: isDryRun,
+  getStoredDebugMode: getStoredDebugMode,
+  setDebugMode: setDebugMode,
   getEffectiveToday: getEffectiveToday,
   prefersReducedMotion: prefersReducedMotion,
   copyViaExecCommand: copyViaExecCommand,

@@ -548,7 +548,7 @@
         function submitScore() {
           if (state.leaderboardSubmitted) return;
           if (state.replay) return; // a replay never submits - can't overwrite the day's result
-          if (MetroShared.isDebugMode()) return; // never pollute the real board from date-nav
+          if (MetroShared.isDryRun()) return; // never pollute the real board from date-nav
           var alias = MetroShared.getAlias();
           if (!alias) return;
 

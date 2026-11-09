@@ -327,6 +327,67 @@ async function main() {
     }
   });
 
+  const debugState = (page) => page.evaluate(() => ({
+    stored: localStorage.getItem('metrordle:debug'),
+    debug: MetroShared.isDebugMode(),
+    dry: MetroShared.isDryRun(),
+  }));
+
+  test('the "Modo depuración" three-way toggle (Normal / sin envío / con envío) drives isDebugMode()+isDryRun(), persists, and applies site-wide', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      // Default: Normal (off) - not debug, not dry, no stored key.
+      assert.strictEqual(await page.locator('#debug-option-off').getAttribute('aria-pressed'), 'true', '"Normal" should be the default');
+      assert.deepStrictEqual(await debugState(page), { stored: null, debug: false, dry: false });
+
+      // Dry run: debug on, submission skipped.
+      await page.click('#debug-option-dry');
+      assert.strictEqual(await page.locator('#debug-option-dry').getAttribute('aria-pressed'), 'true');
+      assert.deepStrictEqual(await debugState(page), { stored: 'dry', debug: true, dry: true }, 'dry: debug UI on, dry-run on (no persist)');
+
+      // Live run: debug on, but NOT dry - submission still happens.
+      await page.click('#debug-option-live');
+      assert.strictEqual(await page.locator('#debug-option-live').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.locator('#debug-option-dry').getAttribute('aria-pressed'), 'false');
+      assert.deepStrictEqual(await debugState(page), { stored: 'live', debug: true, dry: false }, 'live: debug UI on, but NOT dry - scores still persist');
+
+      // Survives a reload, rendered from the stored value.
+      await page.reload({ waitUntil: 'networkidle' });
+      assert.strictEqual(await page.locator('#debug-option-live').getAttribute('aria-pressed'), 'true', 'should still read as live after a reload');
+
+      // Applies site-wide: a game page with no URL param sees live-run debug.
+      await page.goto(server.baseUrl + '/metrocrush/', { waitUntil: 'networkidle' });
+      assert.deepStrictEqual(await debugState(page), { stored: 'live', debug: true, dry: false }, 'live-run debug applies on any page, no URL param needed');
+
+      // Back to Normal: clears the key.
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.click('#debug-option-off');
+      assert.deepStrictEqual(await debugState(page), { stored: null, debug: false, dry: false }, 'Normal removeItem()s the key');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('a ?debug URL param (presence, any value) means dry-run debug - the safe legacy entry that never persists', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/?debug', { waitUntil: 'networkidle' });
+      assert.deepStrictEqual(await debugState(page), { stored: null, debug: true, dry: true }, '?debug (no value) -> dry-run debug');
+
+      await page.goto(server.baseUrl + '/metrocrush/?debug=false', { waitUntil: 'networkidle' });
+      assert.deepStrictEqual(await debugState(page), { stored: null, debug: true, dry: true }, 'presence enables dry-run regardless of value - even =false');
+
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      assert.deepStrictEqual(await debugState(page), { stored: null, debug: false, dry: false }, 'no param, no stored value -> off');
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

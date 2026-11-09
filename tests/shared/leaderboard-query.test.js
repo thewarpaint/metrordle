@@ -336,6 +336,45 @@ async function main() {
     }
   });
 
+  test('submitLeaderboardScore() rejects with a machine-readable .code - firebase-unavailable when the SDK never loaded (so a caller can log WHY, since Firefox stacks omit the message)', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    try {
+      // No Firestore stub: the SDK can't load (gstatic unreachable here), so
+      // firebaseReady() is false - the submit should reject firebase-unavailable.
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+      const result = await page.evaluate(() => {
+        return MetroShared.submitLeaderboardScore('metrordle-leaderboard', '2027-01-01', 'Ana', { attempts: 3 }, {})
+          .then(function () { return { code: null }; }, function (err) { return { code: err && err.code, message: err && err.message }; });
+      });
+      assert.strictEqual(result.code, 'firebase-unavailable', 'no reachable Firebase -> code firebase-unavailable, got ' + JSON.stringify(result));
+      assert.strictEqual(result.message, 'Firebase not available', 'the message is still set too');
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('submitLeaderboardScore() rejects alias-required for an alias that is truthy but normalizes to empty (the submitScore() guard mismatch that could strand a player)', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    try {
+      await installFirestoreStub(page, {}); // firebaseReady() is true here
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+      const result = await page.evaluate(() => {
+        // A whitespace-only alias is truthy (passes a game's own `if (!alias)`
+        // guard) yet aliasDocId() normalizes it to '' - exactly the case that
+        // reaches submitLeaderboardScore() and rejects.
+        return MetroShared.submitLeaderboardScore('metrordle-leaderboard', '2027-01-01', '   ', { attempts: 3 }, {})
+          .then(function () { return { code: null }; }, function (err) { return { code: err && err.code }; });
+      });
+      assert.strictEqual(result.code, 'alias-required', 'whitespace alias -> code alias-required, got ' + JSON.stringify(result));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

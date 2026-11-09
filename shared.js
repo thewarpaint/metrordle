@@ -1322,9 +1322,18 @@ function compareByOrderSpecs(orderBySpecs) {
   };
 }
 
+// A leaderboard-submit error carrying a machine-readable .code, so a
+// caller's catch can log WHY it failed - Firefox's error.stack omits the
+// message, so logging the bare error hides the reason.
+function leaderboardError(code, message) {
+  var err = new Error(message);
+  err.code = code;
+  return err;
+}
+
 function submitLeaderboardScoreFallback(collectionName, dateKey, alias, fields) {
   var docId = aliasDocId(alias);
-  if (!docId) return Promise.reject(new Error('Alias is required'));
+  if (!docId) return Promise.reject(leaderboardError('alias-required', 'Alias is required'));
 
   var entries = loadFallbackEntries(collectionName, dateKey);
   entries[docId] = Object.assign({ alias: normalizeAlias(alias), submittedAt: Date.now() }, fields);
@@ -1368,12 +1377,12 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
       return submitLeaderboardScoreFallback(collectionName, dateKey, alias, fields);
     }
     console.warn('[Leaderboard] Firebase not ready and no fallback requested - write skipped:', path);
-    return Promise.reject(new Error('Firebase not available'));
+    return Promise.reject(leaderboardError('firebase-unavailable', 'Firebase not available'));
   }
 
   if (!docId) {
-    console.warn('[Leaderboard] Empty/invalid alias - write skipped:', path);
-    return Promise.reject(new Error('Alias is required'));
+    console.warn('[Leaderboard] Empty/invalid alias - write skipped:', path, '- raw alias:', JSON.stringify(alias));
+    return Promise.reject(leaderboardError('alias-required', 'Alias is required'));
   }
 
   console.log('[Leaderboard] Writing to Firestore:', path);

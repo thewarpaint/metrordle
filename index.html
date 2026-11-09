@@ -930,7 +930,7 @@
               // locally either way, so a failed submission isn't shown as
               // an error in the UI; it's silently retried the next time
               // submitScore() runs (e.g. the next reload).
-              console.error('[Leaderboard] submitScore() failed:', err);
+              console.error('[Leaderboard] submitScore() failed - code:', err && err.code, '- message:', err && err.message, '- error:', err);
             });
         }
 

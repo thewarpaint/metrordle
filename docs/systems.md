@@ -234,6 +234,9 @@ buttons), and a "restore with a code" field. On top of that, `shared.js`
 runs `initDataTransferBanner()` on every page: a `?restore=<id>` link
 (tapped inside the app) auto-restores and reloads via a bottom
 `.transfer-banner`; a just-installed standalone app with empty storage gets
-a gentle nudge toward `/configurar`. The manifest `start_url` is a static
-`/`, so a per-user id can't ride into the installed app automatically - the
-typed code is the reliable path, the link is the convenience path.
+a gentle nudge toward `/configurar` (the nudge isn't gated on
+`firebaseReady()`, since the PWA start page `/juegos/` doesn't load the
+Firebase SDK and the nudge only links to `/configurar`, which does). The
+manifest `start_url` is static, so a per-user id can't ride into the
+installed app automatically - the typed code is the reliable path, the link
+is the convenience path.

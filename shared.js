@@ -1999,7 +1999,9 @@ function initDataTransferBanner() {
 
   var onConfigurar = false;
   try { onConfigurar = window.location.pathname.indexOf('/configurar') === 0; } catch (e) {}
-  if (!onConfigurar && isStandalonePWA() && firebaseReady() && storageLooksEmpty()) {
+  // No firebaseReady() gate: the PWA start page (/juegos) doesn't load the
+  // Firebase SDK, and this banner only links to /configurar, which does.
+  if (!onConfigurar && isStandalonePWA() && storageLooksEmpty()) {
     var link = document.createElement('a');
     link.href = '/configurar/';
     link.textContent = 'Restaurar';

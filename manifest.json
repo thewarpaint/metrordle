@@ -2,7 +2,7 @@
   "name": "Metrordle",
   "short_name": "Metrordle",
   "description": "Ordena 5 estaciones de una línea del Metro de la Ciudad de México en el orden correcto. Tienes 5 intentos.",
-  "start_url": "/",
+  "start_url": "/juegos/",
   "scope": "/",
   "display": "standalone",
   "lang": "es-MX",

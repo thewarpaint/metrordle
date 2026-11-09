@@ -624,13 +624,13 @@
         // from the reveal screen, in case a round already finished before
         // they had one.
         //
-        // Skips entirely under ?debug=true - date-nav testing plays
+        // Skipped only in dry-run debug - date-nav testing plays
         // through arbitrary past/future days and shouldn't pollute the
         // real leaderboard with them.
         function submitScore() {
           if (!state || state.status !== 'done') return;
           if (state.leaderboardSubmitted) return;
-          if (MetroShared.isDebugMode()) return;
+          if (MetroShared.isDryRun()) return;
 
           var alias = MetroShared.getAlias();
           if (!alias) return;

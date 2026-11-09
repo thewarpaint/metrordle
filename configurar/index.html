@@ -246,16 +246,20 @@
         <div class="config-section">
           <h2 class="config-section__title" id="depuracion"><a class="config-section__anchor" href="#depuracion">Modo depuración</a></h2>
           <p class="dek">
-            Para pruebas: activa la navegación entre fechas en cada juego y deja de enviar puntajes a las tablas de posiciones. Útil en la app instalada, donde no puedes editar la dirección para agregar ?debug=true.
+            Para pruebas: activa la navegación entre fechas en cada juego. Útil en la app instalada, donde no puedes editar la dirección para agregar ?debug.
           </p>
           <div class="theme-options" id="debug-options" role="group" aria-label="Modo depuración">
-            <button type="button" class="mode-option" id="debug-option-off" data-debug="false" aria-pressed="false">
-              <span class="mode-option__title">Desactivado</span>
+            <button type="button" class="mode-option" id="debug-option-off" data-debug="off" aria-pressed="false">
+              <span class="mode-option__title">Normal</span>
               <span class="mode-option__desc">Juega normal y envía tus puntajes</span>
             </button>
-            <button type="button" class="mode-option" id="debug-option-on" data-debug="true" aria-pressed="false">
-              <span class="mode-option__title">Activado</span>
+            <button type="button" class="mode-option" id="debug-option-dry" data-debug="dry" aria-pressed="false">
+              <span class="mode-option__title">Depuración sin envío</span>
               <span class="mode-option__desc">Navega entre fechas; no envía puntajes</span>
+            </button>
+            <button type="button" class="mode-option" id="debug-option-live" data-debug="live" aria-pressed="false">
+              <span class="mode-option__title">Depuración con envío</span>
+              <span class="mode-option__desc">Navega entre fechas y sí envía puntajes</span>
             </button>
           </div>
         </div>
@@ -457,20 +461,21 @@
         restoreInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doRestore(); });
 
         // --- Debug mode (persisted, so it works in the installed PWA) ----
-        var DEBUG_OPTIONS = [false, true].map(function (on) {
-          return { on: on, el: document.getElementById('debug-option-' + (on ? 'on' : 'off')) };
+        // Three states: off / dry (nothing persisted) / live (still persists).
+        var DEBUG_OPTIONS = ['off', 'dry', 'live'].map(function (mode) {
+          return { mode: mode, el: document.getElementById('debug-option-' + mode) };
         });
 
-        function renderDebug(on) {
+        function renderDebug(mode) {
           DEBUG_OPTIONS.forEach(function (opt) {
-            opt.el.setAttribute('aria-pressed', String(opt.on === on));
+            opt.el.setAttribute('aria-pressed', String(opt.mode === mode));
           });
         }
 
         DEBUG_OPTIONS.forEach(function (opt) {
           opt.el.addEventListener('click', function () {
-            MetroShared.setDebugMode(opt.on);
-            renderDebug(opt.on);
+            MetroShared.setDebugMode(opt.mode);
+            renderDebug(opt.mode);
           });
         });
 

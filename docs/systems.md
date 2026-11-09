@@ -187,21 +187,27 @@ the exact policy and its documented `'unsafe-inline'` tradeoff).
 
 ## Debug mode
 
-A `debug` query param on any game page (just its presence - `?debug`,
-`?debug=true`, `?debug=1` all count) reveals a prev/next date-nav
-(`MetroShared.getEffectiveToday`/`getDateKey`) to preview any day's
-puzzle without waiting for it, and makes `submitScore()` a no-op site-wide
-so date-nav testing never pollutes the real leaderboards. `?date=YYYY-MM-DD`
-also works standalone (validated by regex, falls back to real "today" if
-malformed).
+Debug mode has **three states**, resolved by `MetroShared.debugRunMode()` →
+`'off' | 'dry' | 'live'`: a persisted setting (`metrordle:debug`, set by
+`/configurar`'s "Modo depuración" toggle via `setDebugMode()`) wins;
+otherwise a `debug` query param on any page (just its presence - `?debug`,
+`?debug=true`, `?debug=1` all count) means `'dry'` (`'live'` is toggle-only).
 
-`MetroShared.isDebugMode()` returns true for the `debug` param (any value)
-**or** a persisted flag (`metrordle:debug`), which `/configurar`'s "Modo
-depuración" toggle sets via `setDebugMode()` / reads via
-`getStoredDebugMode()`. The persisted path exists because the installed PWA
-can't edit its URL to add `?debug`. It's read with a literal key (not `loadConfig()`) because
-`isDebugMode()` runs in `initToolbar` at the top of `shared.js`, before
-`CONFIG_STORAGE_KEY` is assigned further down.
+Both debug states reveal a prev/next date-nav
+(`MetroShared.getEffectiveToday`/`getDateKey`) to preview any day's puzzle -
+that UI is gated by `isDebugMode()` (`!== 'off'`). They differ only in
+**persistence**: each game's `submitScore()` early-returns on
+`MetroShared.isDryRun()` (`=== 'dry'`), so `'dry'` plays through arbitrary
+days without ever submitting, while `'live'` still submits scores - for
+debugging persistence itself. Normal play submits as usual.
+`?date=YYYY-MM-DD` also works standalone (validated by regex, falls back to
+real "today" if malformed).
+
+The persisted path exists because the installed PWA can't edit its URL to
+add `?debug`. It's read with a literal key (not `loadConfig()`) because
+`debugRunMode()` runs in `initToolbar` at the top of `shared.js`, before
+`CONFIG_STORAGE_KEY` is assigned further down. `getStoredDebugMode()` returns
+the stored state (ignoring the URL) for the `/configurar` toggle to render.
 
 ## PWA install & data transfer
 

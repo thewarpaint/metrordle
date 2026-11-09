@@ -99,8 +99,8 @@
 
       /* Shared .start-overlay (shared.css) with the inset --paper-well
          shade instead of the shared --paper-raised default, same as Metro
-         Crush. Memoria has no mode toggle, so the panel holds a single
-         "Comenzar" button, not .start-overlay__modes. */
+         Crush. The panel offers a normal/hard mode choice via the shared
+         .start-overlay__modes pair, same as Copo de nieve. */
       .start-overlay { background: var(--paper-well); }
 
       @keyframes station-card-pop-in {
@@ -262,7 +262,7 @@
             <div class="progress__fill progress__fill--countdown" id="progress-fill"></div>
           </div>
           <div class="progress__label progress__label--split">
-            <span class="progress__count" id="memo-time">1:00</span>
+            <span class="progress__count clock"><span class="clock__time" id="memo-time">1:00</span><span class="clock__delta" id="memo-delta" aria-hidden="true"></span></span>
             <span id="memo-pairs">0 parejas</span>
           </div>
         </div>
@@ -277,10 +277,13 @@
 
           <div class="start-overlay" id="start-overlay" hidden>
             <div class="start-overlay__panel">
+              <div class="start-overlay__modes" id="start-modes">
+                <button type="button" class="btn-primary" id="start-normal-btn">Jugar modo normal</button>
+                <button type="button" class="btn-secondary" id="start-hard-btn">Jugar modo difícil</button>
+              </div>
               <p class="start-overlay__text">
-                Presiona "Comenzar" cuando estés listo para arrancar el conteo.
+                <strong>Modo difícil:</strong> el reloj es dinámico: 5 aciertos seguidos suman 1 segundo al reloj, pero cada error (dos cartas que no son pareja) resta 1.
               </p>
-              <button type="button" class="btn-primary" id="start-btn">Comenzar</button>
             </div>
           </div>
         </div>
@@ -291,6 +294,18 @@
           <div class="stats">
             <div class="stats__score" id="reveal-score">0</div>
             <div class="stats__label">parejas</div>
+          </div>
+
+          <!-- Hard mode only: the elastic clock's seconds gained/lost. -->
+          <div class="stat-grid" id="reveal-stats" style="--cols: 2;" hidden>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-seconds-won">0</div>
+              <div class="stat-box__label">Segundos ganados</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box__value" id="reveal-seconds-lost">0</div>
+              <div class="stat-box__label">Segundos perdidos</div>
+            </div>
           </div>
 
           <div class="station-grid-6" id="reveal-icons"></div>
@@ -331,6 +346,10 @@
         var START_DATE_KEY = '2026-08-29';
 
         var ROUND_SECONDS = 60;
+
+        // Hard mode: this many correct pairs in a row add a clock second;
+        // a committed non-matching pair subtracts one.
+        var HARD_BONUS_RUN = 5;
 
         // Matching all 8 of the board's starting pairs within the round
         // counts as a "win" for streak purposes - the board itself has no
@@ -488,6 +507,11 @@
               score: parsed.score,
               won: parsed.won,
               matchedStations: Array.isArray(parsed.matchedStations) ? parsed.matchedStations : [],
+              // Hard-mode fields, likewise added later - a result from before
+              // they shipped reads as a normal-mode round with no elastic clock.
+              mode: parsed.mode === 'hard' ? 'hard' : 'normal',
+              secondsWon: typeof parsed.secondsWon === 'number' ? parsed.secondsWon : 0,
+              secondsLost: typeof parsed.secondsLost === 'number' ? parsed.secondsLost : 0,
               leaderboardSubmitted: !!parsed.leaderboardSubmitted,
             };
           } catch (e) {
@@ -501,6 +525,9 @@
               score: score,
               won: won,
               matchedStations: matchedStations,
+              mode: state.mode,
+              secondsWon: state.secondsWon,
+              secondsLost: state.secondsLost,
               leaderboardSubmitted: !!leaderboardSubmitted,
             }));
           } catch (e) {
@@ -539,6 +566,10 @@
               score: saved.score,
               won: saved.won,
               matchedStations: saved.matchedStations,
+              mode: saved.mode,
+              secondsWon: saved.secondsWon,
+              secondsLost: saved.secondsLost,
+              correctRun: 0,
               leaderboardSubmitted: saved.leaderboardSubmitted,
               streak: savedStreak.count,
               maxStreak: savedStreak.max,
@@ -577,6 +608,11 @@
             won: false,
             streak: 0,
             maxStreak: 0,
+            // Set for real when the player picks a mode in beginRound().
+            mode: 'normal',
+            correctRun: 0,
+            secondsWon: 0,
+            secondsLost: 0,
           };
 
           render();
@@ -586,8 +622,9 @@
         // board is already built and visible underneath, but nothing
         // ticks (and clicks on it do nothing, see onCardClick) until
         // the player says they're ready.
-        function beginRound() {
+        function beginRound(mode) {
           if (!state || state.status !== 'ready') return;
+          state.mode = mode === 'hard' ? 'hard' : 'normal';
           state.status = 'playing';
           render();
           startTimer();
@@ -640,7 +677,16 @@
           // Metroguessr, this can legitimately be 0 (a loss still
           // submits here), which is fine - just below the >1 threshold
           // that badge uses to show at all.
-          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, { score: state.score, streak: state.streak }, {})
+          // hardMode and streak are display-only, never part of orderBySpecs.
+          var fields = { score: state.score, hardMode: state.mode === 'hard', streak: state.streak };
+          // secondsWon/secondsLost only exist in hard mode (the elastic
+          // clock), so submit them only then; firestore.rules keeps both
+          // optional (deploy the rule first).
+          if (state.mode === 'hard') {
+            fields.secondsWon = state.secondsWon;
+            fields.secondsLost = state.secondsLost;
+          }
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.dateKey, alias, fields, {})
             .then(function () {
               state.leaderboardSubmitted = true;
               persistResult(state.dateKey, state.score, state.won, state.matchedStations, true);
@@ -760,7 +806,18 @@
             state.matchedStations.push(a.station);
             state.selectedIndex = null;
 
+            // Hard mode (real play only - practice has no countdown): a run
+            // of HARD_BONUS_RUN correct pairs banks a clock second.
+            var clockBonus = state.status === 'playing' && state.mode === 'hard' &&
+              ++state.correctRun >= HARD_BONUS_RUN;
+            if (clockBonus) {
+              state.correctRun = 0;
+              state.timeLeft += 1;
+              state.secondsWon += 1;
+            }
+
             renderStatus();
+            if (clockBonus) MetroShared.pulseClock(els.memoTime, els.memoDelta, 1);
 
             // Read/cloned before the refill below moves anything, so the
             // "+1" lands where the match actually happened, and the ghost
@@ -795,6 +852,20 @@
 
             if (popupOrigin) showMatchPopup(popupOrigin, matchedLine);
           } else {
+            // Hard mode: a non-matching opposite-type pair is a real guess -
+            // costs a second and clears the selection. Same-type picks can
+            // never match, so they just re-select (no penalty, any mode).
+            if (state.status === 'playing' && state.mode === 'hard' && a.type !== b.type) {
+              state.correctRun = 0;
+              state.timeLeft = Math.max(0, state.timeLeft - 1);
+              state.secondsLost += 1;
+              state.selectedIndex = null;
+              renderStatus();
+              updateSelectionClasses();
+              MetroShared.pulseClock(els.memoTime, els.memoDelta, -1);
+              if (state.timeLeft <= 0) endRound();
+              return;
+            }
             state.selectedIndex = index;
             updateSelectionClasses();
           }
@@ -946,7 +1017,8 @@
           }
           els.memoTime.textContent = formatClock(state.timeLeft);
           els.memoPairs.textContent = pairsLabel(state.score);
-          els.progressFill.style.width = (state.timeLeft / ROUND_SECONDS * 100) + '%';
+          // Hard mode can bank seconds past the 60s start, so clamp the bar.
+          els.progressFill.style.width = Math.min(100, state.timeLeft / ROUND_SECONDS * 100) + '%';
         }
 
         // Toggles which single card shows .station-card--selected without
@@ -1078,6 +1150,13 @@
           );
 
           $('reveal-score').textContent = state.score;
+
+          var showStats = state.mode === 'hard';
+          els.revealStats.hidden = !showStats;
+          if (showStats) {
+            els.revealSecondsWon.textContent = state.secondsWon;
+            els.revealSecondsLost.textContent = state.secondsLost;
+          }
 
           renderRevealIcons();
           renderAliasRow();
@@ -1255,7 +1334,7 @@
           // myAliasId guarantees the player's own row is somewhere in the
           // result even if it's ranked below the top LEADERBOARD_SIZE
           // (see getTopLeaderboardScores()'s own comment).
-          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['streak'], myAliasId: myAliasId })
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, dateKey, LEADERBOARD_SIZE, [['score', 'desc']], { extraFields: ['hardMode', 'streak', 'secondsWon', 'secondsLost'], myAliasId: myAliasId })
             .then(function (entries) {
               // Either the player navigated to a different day (debug
               // date-nav) before this resolved, or a newer renderLeaderboard()
@@ -1285,8 +1364,16 @@
                 name.textContent = entry.alias;
 
                 var score = document.createElement('span');
-                score.className = 'leaderboard__score--plain';
-                score.textContent = entry.score;
+                score.className = 'leaderboard__score';
+                var badge = document.createElement('span');
+                badge.className = 'leaderboard__score-badge';
+                if (entry.hardMode) badge.textContent = '🧠';
+                var number = document.createElement('span');
+                number.className = 'leaderboard__score-number leaderboard__score-number--wide';
+                number.textContent = entry.score;
+                score.appendChild(badge);
+                score.appendChild(number);
+                score.appendChild(MetroShared.buildSecondsBadge(entry.secondsWon, entry.secondsLost));
 
                 li.appendChild(rank);
                 li.appendChild(name);
@@ -1312,8 +1399,9 @@
 
         function buildShareText() {
           var rating = getRating(state.score);
+          var hardModeLine = state.mode === 'hard' ? '🧠 Modo difícil\n' : '';
 
-          return '#Metrordle: Memoria #' + state.gameNumber + '\n\n' +
+          return '#Metrordle: Memoria #' + state.gameNumber + '\n' + hardModeLine + '\n' +
             rating.square + ' Calificación: ' + rating.label + '\n' +
             'Parejas: ' + state.score + '\n' +
             '🔥 ' + MetroShared.formatStreak(state.streak) + maxStreakLine(', ') + '\n\n' +
@@ -1345,14 +1433,19 @@
             progressTrack: $('progress-track'),
             progressFill: $('progress-fill'),
             memoTime: $('memo-time'),
+            memoDelta: $('memo-delta'),
             memoPairs: $('memo-pairs'),
             boardWrap: $('board-wrap'),
             board: $('memo-board'),
             startOverlay: $('start-overlay'),
-            startBtn: $('start-btn'),
+            startNormalBtn: $('start-normal-btn'),
+            startHardBtn: $('start-hard-btn'),
             practiceBanner: $('practice-banner'),
             endPracticeBtn: $('end-practice-btn'),
             reveal: $('reveal'),
+            revealStats: $('reveal-stats'),
+            revealSecondsWon: $('reveal-seconds-won'),
+            revealSecondsLost: $('reveal-seconds-lost'),
             revealIcons: $('reveal-icons'),
             leaderboardAliasRow: $('leaderboard-alias-row'),
             leaderboardRecord: $('leaderboard-record'),
@@ -1367,7 +1460,8 @@
           };
 
           els.shareBtn.addEventListener('click', shareResult);
-          els.startBtn.addEventListener('click', beginRound);
+          els.startNormalBtn.addEventListener('click', function () { beginRound('normal'); });
+          els.startHardBtn.addEventListener('click', function () { beginRound('hard'); });
           els.practiceBtn.addEventListener('click', continuePractice);
           els.endPracticeBtn.addEventListener('click', endPractice);
 

@@ -39,7 +39,7 @@ async function main() {
     return { context, page, pageErrors };
   }
 
-  test('start dialog blocks the round until "Comenzar" is clicked', async () => {
+  test('start dialog blocks the round until a mode is chosen', async () => {
     const { context, page } = await freshPage(TEST_DATE);
     try {
       assert.strictEqual(await page.locator('#start-overlay').isVisible(), true, 'overlay should be visible on load');
@@ -53,7 +53,7 @@ async function main() {
       assert.strictEqual(cells.length, 16, 'board should have 16 cells even before the round starts');
       assert.ok(cells.every((c) => c.disabled), 'every card should be disabled while the dialog is up');
 
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(150);
       assert.strictEqual(await page.locator('#start-overlay').isVisible(), false, 'overlay should hide once started');
 
@@ -67,7 +67,7 @@ async function main() {
   test('round counts down for real from 60 seconds', async () => {
     const { context, page } = await freshPage(TEST_DATE);
     try {
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       const atStart = await page.$eval('#memo-time', (el) => el.textContent);
       assert.strictEqual(atStart, '1:00');
 
@@ -82,7 +82,7 @@ async function main() {
   test('checkerboard card-type pattern holds on the initial board', async () => {
     const { context, page } = await freshPage(TEST_DATE);
     try {
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(150);
       const types = await getCardTypes(page);
       assert.deepStrictEqual(checkerboardOk(types), { ok: true });
@@ -94,7 +94,7 @@ async function main() {
   test('matching a pair repositions exactly 4 cards and preserves invariants', async () => {
     const { context, page, pageErrors } = await freshPage(TEST_DATE);
     try {
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(150);
 
       for (let round = 0; round < 4; round++) {
@@ -137,7 +137,7 @@ async function main() {
   test('a match deals the next pair immediately, spawning a ghost of the matched pair colored by its own line, plus a same-colored "+1" popup', async () => {
     const { context, page, pageErrors } = await freshPage(TEST_DATE);
     try {
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(150);
 
       const station = await findMatchingStation(page);
@@ -215,8 +215,8 @@ async function main() {
     const { context: c1, page: p1 } = await freshPage(TEST_DATE_2);
     const { context: c2, page: p2 } = await freshPage(TEST_DATE_2);
     try {
-      await p1.click('#start-btn');
-      await p2.click('#start-btn');
+      await p1.click('#start-normal-btn');
+      await p2.click('#start-normal-btn');
       await p1.waitForTimeout(150);
       await p2.waitForTimeout(150);
 
@@ -255,7 +255,7 @@ async function main() {
   test('?debug=true date navigation loads a different day\'s board', async () => {
     const { context, page } = await freshPage(TEST_DATE);
     try {
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(150);
       const titleBefore = await page.$eval('#game-title', (el) => el.textContent);
       const cellsBefore = await getCells(page);

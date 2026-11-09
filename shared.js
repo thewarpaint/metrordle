@@ -1097,7 +1097,14 @@ var ALIAS_STORAGE_KEY = 'metrordle:alias';
 var ALIAS_MAX_LENGTH = 20;
 
 function normalizeAlias(alias) {
-  return String(alias || '').trim().slice(0, ALIAS_MAX_LENGTH);
+  var s = String(alias || '').trim().slice(0, ALIAS_MAX_LENGTH);
+  // .slice() counts UTF-16 units, so the cap can cut an emoji's surrogate
+  // pair in half, leaving a lone high surrogate (invalid UTF-8). When the
+  // last unit is an unpaired high surrogate, drop it - its low-surrogate
+  // partner was the next unit, which the cap removed.
+  var last = s.charCodeAt(s.length - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) s = s.slice(0, -1);
+  return s;
 }
 
 // The document ID a given alias maps to in a leaderboard's "entries"

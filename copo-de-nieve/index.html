@@ -573,7 +573,7 @@
             .catch(function (err) {
               // The result is already saved locally; a failed submit is retried
               // the next time submitScore() runs (e.g. the next reload).
-              console.error('[Leaderboard] submitScore() failed:', err);
+              console.error('[Leaderboard] submitScore() failed - code:', err && err.code, '- message:', err && err.message, '- error:', err);
             });
         }
 

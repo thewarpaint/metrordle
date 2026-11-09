@@ -327,6 +327,41 @@ async function main() {
     }
   });
 
+  test('the "Modo depuración" toggle persists metrordle:debug, drives MetroShared.isDebugMode(), survives a reload, and applies site-wide (so the installed PWA can enter debug with no ?debug=true URL)', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      // Default: off, and no stored flag.
+      assert.strictEqual(await page.locator('#debug-option-off').getAttribute('aria-pressed'), 'true', '"Desactivado" should be the default');
+      assert.strictEqual(await page.locator('#debug-option-on').getAttribute('aria-pressed'), 'false');
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), false, 'no URL param, no stored flag -> not debug');
+
+      // Turn it on: persists the flag and isDebugMode() flips to true.
+      await page.click('#debug-option-on');
+      assert.strictEqual(await page.evaluate(() => localStorage.getItem('metrordle:debug')), 'true');
+      assert.strictEqual(await page.locator('#debug-option-on').getAttribute('aria-pressed'), 'true');
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), true, 'the stored flag alone (no ?debug=true) should enable debug mode');
+
+      // Survives a reload (rendered from the stored flag).
+      await page.reload({ waitUntil: 'networkidle' });
+      assert.strictEqual(await page.locator('#debug-option-on').getAttribute('aria-pressed'), 'true', 'should still read as on after a reload');
+
+      // Applies site-wide: a game page with NO ?debug=true sees debug mode.
+      await page.goto(server.baseUrl + '/metrocrush/', { waitUntil: 'networkidle' });
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), true, 'debug mode should apply on any page, not just /configurar/, with no URL param');
+
+      // Turn it off: clears the flag entirely (removeItem, not "false").
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      await page.click('#debug-option-off');
+      assert.strictEqual(await page.evaluate(() => localStorage.getItem('metrordle:debug')), null, 'turning it off should removeItem the flag, not store "false"');
+      assert.strictEqual(await page.evaluate(() => MetroShared.isDebugMode()), false);
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

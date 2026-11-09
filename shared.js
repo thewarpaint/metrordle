@@ -29,6 +29,13 @@ function buildToolbarIcon(name) {
   return svgIcon(TOOLBAR_ICON_PATHS[name] || '');
 }
 
+// Debug mode turns on via ?debug=true OR this persisted flag, so it's
+// reachable in the installed PWA where the URL can't be edited (/configurar
+// has the toggle). Read with a literal key, not loadConfig(), since
+// isDebugMode() runs in initToolbar below before CONFIG_STORAGE_KEY is
+// assigned further down the file.
+var DEBUG_STORAGE_KEY = 'metrordle:debug';
+
 (function initToolbar() {
   var debug = isDebugMode();
   var mounted = false;
@@ -657,10 +664,29 @@ function getPreviousDateKey(dateKey) {
 
 function isDebugMode() {
   try {
-    return new URL(window.location.href).searchParams.get('debug') === 'true';
+    if (new URL(window.location.href).searchParams.get('debug') === 'true') return true;
+  } catch (e) { /* fall through to the stored flag */ }
+  return getStoredDebugMode();
+}
+
+function getStoredDebugMode() {
+  try {
+    return localStorage.getItem(DEBUG_STORAGE_KEY) === 'true';
   } catch (e) {
     return false;
   }
+}
+
+// Persist or clear the debug flag - what /configurar's toggle calls, so
+// debug mode survives navigation and needs no ?debug=true in the URL.
+function setDebugMode(enabled) {
+  try {
+    if (enabled) localStorage.setItem(DEBUG_STORAGE_KEY, 'true');
+    else localStorage.removeItem(DEBUG_STORAGE_KEY);
+  } catch (e) {
+    // localStorage unavailable - the toggle just won't persist this session.
+  }
+  return !!enabled;
 }
 
 function getEffectiveToday(debugDate) {
@@ -2027,6 +2053,8 @@ window.MetroShared = {
   buildGamePromo: buildGamePromo,
   buildAllGamesGrid: buildAllGamesGrid,
   isDebugMode: isDebugMode,
+  getStoredDebugMode: getStoredDebugMode,
+  setDebugMode: setDebugMode,
   getEffectiveToday: getEffectiveToday,
   prefersReducedMotion: prefersReducedMotion,
   copyViaExecCommand: copyViaExecCommand,

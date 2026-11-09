@@ -194,6 +194,14 @@ so date-nav testing never pollutes the real leaderboards. `?date=YYYY-MM-DD`
 also works standalone (validated by regex, falls back to real "today" if
 malformed).
 
+`MetroShared.isDebugMode()` returns true for either `?debug=true` **or** a
+persisted flag (`metrordle:debug`), which `/configurar`'s "Modo depuración"
+toggle sets via `setDebugMode()` / reads via `getStoredDebugMode()`. The
+persisted path exists because the installed PWA can't edit its URL to add
+`?debug=true`. It's read with a literal key (not `loadConfig()`) because
+`isDebugMode()` runs in `initToolbar` at the top of `shared.js`, before
+`CONFIG_STORAGE_KEY` is assigned further down.
+
 ## PWA install & data transfer
 
 All personal progress lives in localStorage (alias `metrordle:alias`,

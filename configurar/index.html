@@ -242,6 +242,23 @@
           </div>
           <p class="alias-notice" id="restore-notice" aria-live="polite" hidden></p>
         </div>
+
+        <div class="config-section">
+          <h2 class="config-section__title" id="depuracion"><a class="config-section__anchor" href="#depuracion">Modo depuración</a></h2>
+          <p class="dek">
+            Para pruebas: activa la navegación entre fechas en cada juego y deja de enviar puntajes a las tablas de posiciones. Útil en la app instalada, donde no puedes editar la dirección para agregar ?debug=true.
+          </p>
+          <div class="theme-options" id="debug-options" role="group" aria-label="Modo depuración">
+            <button type="button" class="mode-option" id="debug-option-off" data-debug="false" aria-pressed="false">
+              <span class="mode-option__title">Desactivado</span>
+              <span class="mode-option__desc">Juega normal y envía tus puntajes</span>
+            </button>
+            <button type="button" class="mode-option" id="debug-option-on" data-debug="true" aria-pressed="false">
+              <span class="mode-option__title">Activado</span>
+              <span class="mode-option__desc">Navega entre fechas; no envía puntajes</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <p class="credit">
@@ -438,6 +455,26 @@
 
         restoreBtn.addEventListener('click', doRestore);
         restoreInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doRestore(); });
+
+        // --- Debug mode (persisted, so it works in the installed PWA) ----
+        var DEBUG_OPTIONS = [false, true].map(function (on) {
+          return { on: on, el: document.getElementById('debug-option-' + (on ? 'on' : 'off')) };
+        });
+
+        function renderDebug(on) {
+          DEBUG_OPTIONS.forEach(function (opt) {
+            opt.el.setAttribute('aria-pressed', String(opt.on === on));
+          });
+        }
+
+        DEBUG_OPTIONS.forEach(function (opt) {
+          opt.el.addEventListener('click', function () {
+            MetroShared.setDebugMode(opt.on);
+            renderDebug(opt.on);
+          });
+        });
+
+        renderDebug(MetroShared.getStoredDebugMode());
       })();
     </script>
   </body>

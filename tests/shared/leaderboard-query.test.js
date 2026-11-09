@@ -375,6 +375,43 @@ async function main() {
     }
   });
 
+  test('normalizeAlias() never emits a lone surrogate when the length cap splits an emoji (invalid UTF-8 would break the Firestore write)', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await page.goto(server.baseUrl + '/tablero/', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(200);
+
+      const result = await page.evaluate(() => {
+        function lone(s) {
+          return /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(s);
+        }
+        var split = 'A'.repeat(19) + '🚇'; // 21 UTF-16 units: the cap cuts the emoji in half
+        var atCap = '🚇'.repeat(10);       // exactly 20 units, pairs intact
+        var normSplit = MetroShared.normalizeAlias(split);
+        return {
+          normSplit: normSplit,
+          splitLone: lone(normSplit),
+          atCap: MetroShared.normalizeAlias(atCap),
+          atCapLone: lone(MetroShared.normalizeAlias(atCap)),
+          shortEmoji: MetroShared.normalizeAlias('🚇Ana'),
+        };
+      });
+
+      assert.strictEqual(result.splitLone, false, 'a split emoji must not leave a lone surrogate');
+      assert.strictEqual(result.normSplit, 'A'.repeat(19), 'the dangling half-emoji is dropped, leaving the 19 valid chars');
+      assert.strictEqual(result.atCapLone, false, 'ten emoji that exactly fill the 20-unit cap stay valid');
+      assert.strictEqual(result.atCap, '🚇'.repeat(10), 'emoji fully within the cap are preserved intact');
+      assert.strictEqual(result.shortEmoji, '🚇Ana', 'a short emoji alias is untouched');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

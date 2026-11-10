@@ -273,9 +273,7 @@
         </div>
       </div>
 
-      <p class="credit">
-        <a href="/juegos/">Todos los juegos</a> · <a href="/tablero/">Tablero</a>
-      </p>
+      <p class="credit"></p>
     </div>
 
     <script src="/vendor/firebase/firebase-app-compat.js"></script>
@@ -502,22 +500,13 @@
           });
         }
 
-        // The SW names its cache metrordle-v<n> (bumped per deploy), so
-        // reading it back shows what the player actually has. Highest by
-        // number, in case an update left two behind.
+        // The running cache version (same source as the footer, see
+        // MetroShared.readAppVersion): what the player actually has cached.
         var versionEl = document.getElementById('app-version-value');
         if (versionEl) {
-          if (!('caches' in window)) {
-            versionEl.textContent = 'desconocida';
-          } else {
-            caches.keys().then(function (keys) {
-              var versions = keys
-                .filter(function (k) { return /^metrordle-v\d+$/.test(k); })
-                .map(function (k) { return parseInt(k.slice('metrordle-v'.length), 10); })
-                .sort(function (a, b) { return a - b; });
-              versionEl.textContent = versions.length ? 'v' + versions[versions.length - 1] : 'desconocida';
-            }).catch(function () { versionEl.textContent = 'desconocida'; });
-          }
+          MetroShared.readAppVersion().then(function (v) {
+            versionEl.textContent = v || 'desconocida';
+          });
         }
       })();
     </script>

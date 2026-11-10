@@ -2105,8 +2105,60 @@ function initDataTransferBanner() {
   }
 }
 
+// The cache version the SW is serving (its cache is named metrordle-v<n>),
+// read from Cache Storage. Highest if an update left two; null if none.
+function readAppVersion() {
+  if (!('caches' in window)) return Promise.resolve(null);
+  return caches.keys().then(function (keys) {
+    var versions = keys
+      .filter(function (k) { return /^metrordle-v\d+$/.test(k); })
+      .map(function (k) { return parseInt(k.slice('metrordle-v'.length), 10); })
+      .sort(function (a, b) { return a - b; });
+    return versions.length ? 'v' + versions[versions.length - 1] : null;
+  }).catch(function () { return null; });
+}
+
+// Site footer in a page's .credit mount: the Tablero / Todos los juegos
+// links minus the current page, plus the running "Metrordle v<n>". A page
+// opts in by carrying an (empty) .credit.
+function initFooter() {
+  var credit = document.querySelector('.credit');
+  if (!credit) return;
+  credit.textContent = '';
+  var here = window.location.pathname.replace(/index\.html$/, '');
+  var version = document.createElement('span');
+  version.className = 'credit__version';
+  version.textContent = 'Metrordle';
+  var items = [];
+  [
+    { href: '/juegos/', text: 'Todos los juegos' },
+    { href: '/tablero/', text: 'Tablero' },
+  ].filter(function (l) { return l.href !== here; }).forEach(function (l) {
+    var a = document.createElement('a');
+    a.href = l.href;
+    a.textContent = l.text;
+    items.push(a);
+  });
+  items.push(version);
+  // Each '·' is its own element so the flex column-gap spaces both sides
+  // equally - a literal ' · ' text node renders unevenly (font-fallback
+  // side bearings of the glyph).
+  items.forEach(function (el, i) {
+    if (i > 0) {
+      var sep = document.createElement('span');
+      sep.className = 'credit__sep';
+      sep.setAttribute('aria-hidden', 'true');
+      sep.textContent = '·';
+      credit.appendChild(sep);
+    }
+    credit.appendChild(el);
+  });
+  readAppVersion().then(function (v) { if (v) version.textContent = 'Metrordle ' + v; });
+}
+
 window.MetroShared = {
   LINES: LINES,
+  readAppVersion: readAppVersion,
   STATION_ICON_SLUGS: STATION_ICON_SLUGS,
   buildStationMasks: buildStationMasks,
   buildToolbarIcon: buildToolbarIcon,
@@ -2168,6 +2220,10 @@ window.MetroShared = {
 // anyway for any page that loads it earlier.
 if (document.body) {
   initDataTransferBanner();
+  initFooter();
 } else {
-  document.addEventListener('DOMContentLoaded', initDataTransferBanner);
+  document.addEventListener('DOMContentLoaded', function () {
+    initDataTransferBanner();
+    initFooter();
+  });
 }

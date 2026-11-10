@@ -244,6 +244,14 @@
         </div>
 
         <div class="config-section">
+          <h2 class="config-section__title" id="mantenimiento"><a class="config-section__anchor" href="#mantenimiento">Mantenimiento</a></h2>
+          <p class="dek">
+            ¿El juego se ve atorado o desactualizado? Limpia la caché para volver a descargar sus archivos. Conserva tus rachas, alias y preferencias.
+          </p>
+          <button type="button" class="btn-secondary" id="purge-cache-btn">Limpiar caché y recargar</button>
+        </div>
+
+        <div class="config-section">
           <h2 class="config-section__title" id="depuracion"><a class="config-section__anchor" href="#depuracion">Modo depuración</a></h2>
           <p class="dek">
             Para pruebas: activa la navegación entre fechas en cada juego. Útil en la app instalada, donde no puedes editar la dirección para agregar ?debug.
@@ -480,6 +488,19 @@
         });
 
         renderDebug(MetroShared.getStoredDebugMode());
+
+        // --- Cache purge --------------------------------------------------
+        // Hands off to /purge/, the self-contained recovery page (no
+        // shared.css/shared.js, so it works even when a broken cache is what
+        // we're clearing): it wipes Cache Storage, unregisters the service
+        // worker, and hard-reloads. localStorage (streaks/alias/config) is
+        // left untouched, so no data is lost - this only forces fresh assets.
+        var purgeBtn = document.getElementById('purge-cache-btn');
+        if (purgeBtn) {
+          purgeBtn.addEventListener('click', function () {
+            window.location.assign('/purge/');
+          });
+        }
       })();
     </script>
   </body>

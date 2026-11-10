@@ -388,6 +388,31 @@ async function main() {
     }
   });
 
+  test('the "Limpiar caché y recargar" button routes to the /purge/ recovery page', async () => {
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 } });
+    const page = await context.newPage();
+    try {
+      // Stub /purge/ so its real clear-caches-and-redirect-home script
+      // doesn't run during the test - we only need to prove the button
+      // sends the player there; /purge/'s own behavior is its own concern.
+      await page.route('**/purge/', (route) => route.fulfill({
+        status: 200, contentType: 'text/html', body: '<!doctype html><title>stub</title>',
+      }));
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+
+      const btn = page.locator('#purge-cache-btn');
+      assert.strictEqual(await btn.count(), 1, 'the cache-purge button should exist');
+
+      await Promise.all([
+        page.waitForURL(/\/purge\/$/),
+        btn.click(),
+      ]);
+      assert.ok(/\/purge\/$/.test(page.url()), 'clicking should navigate to /purge/, got: ' + page.url());
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

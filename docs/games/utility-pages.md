@@ -329,7 +329,11 @@
 - **`/purge/`** - a recovery page that clears Cache Storage + unregisters
   the service worker, then redirects home. Deliberately self-contained
   (no `/shared.js`/`/shared.css` dependency), since it exists to recover
-  from a *broken* cache.
+  from a *broken* cache. `/configurar/`'s "Mantenimiento" section has a
+  "Limpiar caché y recargar" button that just navigates here, so an
+  installed-PWA player (who can't type `/purge/` into a URL bar) has a
+  reachable escape hatch; it only clears Cache Storage, never localStorage,
+  so streaks/alias/config survive.
 
 - **`/map/`** - an internal diagnostic page (not linked from any game's
   nav and `noindex` - same as `/tablero/`/`/design/` - and not precached,

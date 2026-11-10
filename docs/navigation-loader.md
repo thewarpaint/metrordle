@@ -1,8 +1,8 @@
-# Navigation loader (proposed)
+# Navigation loader
 
-**Status: design note, not yet implemented.** Captures the alternatives
-for a page-to-page navigation loading indicator, so the thinking isn't
-lost. Nothing here ships until it's built and this header is updated.
+**Status: #1 and #2 are implemented** (see `shared.css`'s `@view-transition`
++ `.nav-loader` and `shared.js`'s `initNavLoader`); #3-#5 remain proposed.
+This note keeps the full set of alternatives on record.
 
 ## Context
 

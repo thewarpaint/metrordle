@@ -2156,6 +2156,58 @@ function initFooter() {
   readAppVersion().then(function (v) { if (v) version.textContent = 'Metrordle ' + v; });
 }
 
+// A thin top progress bar during a full-page navigation - this is a
+// multi-page site, so every nav link is a whole document load. Shown ~150ms
+// after a same-origin nav starts (so fast/cached loads never flash it); the
+// incoming document just discards it. Pairs with the CSS @view-transition
+// fade. See docs/navigation-loader.md.
+function initNavLoader() {
+  var bar = document.createElement('div');
+  bar.className = 'nav-loader';
+  bar.setAttribute('aria-hidden', 'true');
+  var timer = null;
+  var shown = false;
+
+  function show() {
+    if (timer || shown) return;
+    timer = setTimeout(function () {
+      timer = null;
+      shown = true;
+      (document.body || document.documentElement).appendChild(bar);
+      void bar.offsetWidth; // flush so the keyframes run from the start
+      bar.classList.add('nav-loader--active');
+    }, 150);
+  }
+
+  function hide() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (!shown) return;
+    shown = false;
+    bar.classList.remove('nav-loader--active');
+    if (bar.parentNode) bar.parentNode.removeChild(bar);
+  }
+
+  // A plain left-click on a same-origin link that actually navigates away.
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a || a.hasAttribute('download')) return;
+    if (a.target && a.target !== '_self') return; // opens elsewhere
+    var url;
+    try { url = new URL(a.getAttribute('href'), window.location.href); } catch (err) { return; }
+    if (url.origin !== window.location.origin) return; // external
+    if (url.href === window.location.href) return; // same URL (no nav)
+    // Same document, only the hash differs: an in-page anchor, not a load.
+    if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) return;
+    show();
+  }, true);
+
+  // Catch-all for navigations not driven by a link click (JS redirects,
+  // form posts). Back/forward restores from bfcache - clear any stale bar.
+  window.addEventListener('pagehide', show);
+  window.addEventListener('pageshow', hide);
+}
+
 window.MetroShared = {
   LINES: LINES,
   readAppVersion: readAppVersion,
@@ -2221,9 +2273,11 @@ window.MetroShared = {
 if (document.body) {
   initDataTransferBanner();
   initFooter();
+  initNavLoader();
 } else {
   document.addEventListener('DOMContentLoaded', function () {
     initDataTransferBanner();
     initFooter();
+    initNavLoader();
   });
 }

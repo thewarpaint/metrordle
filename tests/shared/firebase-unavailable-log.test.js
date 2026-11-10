@@ -27,15 +27,16 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('a leaderboard read with the SDK unavailable logs the ad-block/network reason', async () => {
+  test('a leaderboard read with the SDK unavailable logs the reason', async () => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
     const warnings = [];
     page.on('console', (msg) => { if (msg.type() === 'warning') warnings.push(msg.text()); });
     try {
-      // Any page that loads shared.js works; /configurar/ is the simplest.
-      // The SDK can't load here, so getTopLeaderboardScores() hits its
-      // "Firebase not ready" branch and logs the reason synchronously.
+      // Block the vendored SDK so `firebase` stays undefined and
+      // getTopLeaderboardScores() hits its "Firebase not ready" branch,
+      // which logs the reason synchronously.
+      await page.route('**/vendor/firebase/**', (route) => route.abort());
       await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
       await page.evaluate(() => {
         window.MetroShared.getTopLeaderboardScores('memoria-leaderboard', '2026-11-20', 5, [['score', 'desc']], {});
@@ -43,9 +44,9 @@ async function main() {
       await page.waitForTimeout(100);
 
       const reasonLog = warnings.find(function (w) {
-        return /Firebase not ready/.test(w) && /(ad blocker|network error|gstatic)/.test(w);
+        return /Firebase not ready/.test(w) && /(vendored|same-origin|service-worker cache)/.test(w);
       });
-      assert.ok(reasonLog, 'expected a Firebase-not-ready warning naming the ad-block/network cause, got: ' + JSON.stringify(warnings));
+      assert.ok(reasonLog, 'expected a Firebase-not-ready warning naming the cause, got: ' + JSON.stringify(warnings));
     } finally {
       await context.close();
     }

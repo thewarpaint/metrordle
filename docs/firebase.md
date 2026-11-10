@@ -1,5 +1,21 @@
 # Firebase: config & Firestore rules
 
+- **`vendor/firebase/`** - the Firebase compat SDK, **vendored
+  same-origin** (`firebase-app-compat.js` + `firebase-firestore-compat.js`),
+  loaded by every Firebase page via `<script src="/vendor/firebase/...">`
+  instead of the `gstatic.com` CDN. **Why:** ad-blocker filter lists block
+  requests to gstatic.com, so the SDK silently never loaded for some
+  players (`firebaseDefined:false` → leaderboard writes skipped); a
+  same-origin file can't be blocked that way. The files are committed and
+  served as-is - the site still has **no build step**; Yarn is only used to
+  *refresh* the vendored copy, never at serve time. To update: pin the new
+  version in `package.json`, then `yarn install && yarn vendor:firebase`
+  (copies the two compat bundles from `node_modules/firebase/` into
+  `vendor/firebase/`), and **bump `CACHE_NAME` in `sw.js`** (both files are
+  in `PRECACHE_URLS`). Keep the version in sync with whatever the pages
+  reference historically (10.13.0). `node_modules/` is gitignored. The
+  Firestore API still talks to `*.googleapis.com` at runtime (unavoidable);
+  only the SDK *download* is now same-origin.
 - **`firebase-config.js`** - **contains the real, live Firebase
   project's credentials on `main`.** See "Firebase credential safety"
   below before ever running tests locally.

@@ -1378,12 +1378,11 @@ function firebaseStatusForLog() {
   };
 }
 
-// Why Firebase isn't ready, for the console - the SDK never loading (ad
-// blocker / firewall / gstatic unreachable) vs. an init failure, which
-// otherwise just reads as a generic "not ready".
+// Why Firebase isn't ready, for the console - the SDK never loading vs. an
+// init failure, which otherwise just reads as a generic "not ready".
 function firebaseUnavailableReason() {
   if (typeof firebase === 'undefined') {
-    return 'the Firebase SDK did not load - likely an ad blocker, a firewall, or gstatic.com unreachable (a network error)';
+    return 'the Firebase SDK did not load - it is vendored same-origin (/vendor/firebase/), so a missing file or a stale/broken service-worker cache, not an ad blocker';
   }
   if (!firebase.apps || firebase.apps.length === 0) {
     return 'the Firebase SDK loaded but no app is initialized - see the [Firebase] init logs';

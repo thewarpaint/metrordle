@@ -1378,6 +1378,19 @@ function firebaseStatusForLog() {
   };
 }
 
+// Why Firebase isn't ready, for the console - the SDK never loading (ad
+// blocker / firewall / gstatic unreachable) vs. an init failure, which
+// otherwise just reads as a generic "not ready".
+function firebaseUnavailableReason() {
+  if (typeof firebase === 'undefined') {
+    return 'the Firebase SDK did not load - likely an ad blocker, a firewall, or gstatic.com unreachable (a network error)';
+  }
+  if (!firebase.apps || firebase.apps.length === 0) {
+    return 'the Firebase SDK loaded but no app is initialized - see the [Firebase] init logs';
+  }
+  return 'Firebase is not ready';
+}
+
 // Upserts (creates or overwrites) the caller's entry for that day - "last
 // write wins" if the same alias submits from more than one device on the
 // same day, which is an accepted simplification rather than a bug.
@@ -1396,7 +1409,7 @@ function submitLeaderboardScore(collectionName, dateKey, alias, fields, options)
       console.log('[Leaderboard] Firebase not ready - writing to the localStorage fallback instead:', path);
       return submitLeaderboardScoreFallback(collectionName, dateKey, alias, fields);
     }
-    console.warn('[Leaderboard] Firebase not ready and no fallback requested - write skipped:', path);
+    console.warn('[Leaderboard] Firebase not ready and no fallback requested - write skipped:', path, '-', firebaseUnavailableReason());
     return Promise.reject(leaderboardError('firebase-unavailable', 'Firebase not available'));
   }
 
@@ -1542,7 +1555,7 @@ function getTopLeaderboardScores(collectionName, dateKey, limitCount, orderBySpe
       console.log('[Leaderboard] Firebase not ready - reading from the localStorage fallback instead:', path);
       return getTopLeaderboardScoresFallback(collectionName, dateKey, limitCount, orderBySpecs);
     }
-    console.warn('[Leaderboard] Firebase not ready and no fallback requested - read returns []:', path);
+    console.warn('[Leaderboard] Firebase not ready and no fallback requested - read returns []:', path, '-', firebaseUnavailableReason());
     return Promise.resolve([]);
   }
 

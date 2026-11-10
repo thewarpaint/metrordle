@@ -26,6 +26,24 @@ var FIREBASE_CONFIG = {
 (function () {
   if (typeof firebase === 'undefined') {
     console.error('[Firebase] SDK not loaded - firebase-app-compat.js/firebase-firestore-compat.js did not load before this script ran (network blocked? ad blocker? gstatic.com unreachable?).');
+    // A <script> onerror is opaque (no status), so re-fetch the SDK to learn
+    // more: a blocked request (ad blocker / firewall / offline) rejects with
+    // no HTTP status; one the server answered resolves with the real status
+    // (gstatic is CORS-enabled). Best-effort - wrapped so it can't break the
+    // page.
+    try {
+      var sdkScript = document.querySelector('script[src*="firebase-app-compat"]');
+      var sdkUrl = sdkScript ? sdkScript.src : 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js';
+      fetch(sdkUrl, { mode: 'cors', cache: 'no-store' })
+        .then(function (res) {
+          console.error('[Firebase] SDK probe: ' + sdkUrl + ' answered with HTTP status ' + res.status + ' (type=' + res.type + ') - it reached the browser but did not define `firebase`, so this is a CSP/cache/parse problem, not a network block.');
+        })
+        .catch(function (err) {
+          console.error('[Firebase] SDK probe: the request to ' + sdkUrl + ' FAILED (' + (err && err.name) + ': ' + (err && err.message) + ') - no HTTP status exists: the request was blocked (ad blocker / firewall), refused by CORS, or the network is offline.');
+        });
+    } catch (e) {
+      // Probe is best-effort diagnostics - never let it throw.
+    }
     return;
   }
 

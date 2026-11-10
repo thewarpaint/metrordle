@@ -1720,6 +1720,56 @@ input[type="text"]:disabled {
   animation-duration: 0.001ms !important;
 }
 
+/* Navigation loader (see docs/navigation-loader.md). Two parts:
+   #1 a free cross-document fade between same-origin pages, and #2 a thin top
+   progress bar shown ~150ms into a navigation (shared.js initNavLoader) so a
+   slow/uncached load gives feedback. The * animation override above freezes
+   the bar at its final width under reduced motion; the view-transition
+   pseudo-elements aren't matched by *, so disable their animation here too. */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+:root[data-reduced-motion="true"]::view-transition-group(*),
+:root[data-reduced-motion="true"]::view-transition-old(*),
+:root[data-reduced-motion="true"]::view-transition-new(*) {
+  animation: none !important;
+}
+
+.nav-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  height: 3px;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--ok);
+  pointer-events: none;
+}
+
+/* Creeps toward ~96% and never completes - the incoming document replaces
+   it. Fast front-loaded easing so a short wait still reads as progress. */
+.nav-loader--active {
+  animation: nav-loader-grow 8s cubic-bezier(0.08, 0.82, 0.17, 1) forwards;
+}
+
+@keyframes nav-loader-grow {
+  0% { transform: scaleX(0.05); }
+  40% { transform: scaleX(0.5); }
+  80% { transform: scaleX(0.85); }
+  100% { transform: scaleX(0.96); }
+}
+
 /* Debug log panel (shared.js's console mirror), only rendered under
    ?debug=true - inert in prod, like the .design-* classes above. Own
    dark palette so it reads in either theme. position:fixed is

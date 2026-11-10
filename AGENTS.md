@@ -79,6 +79,8 @@ so the right notes surface when you work in that folder.
 - `docs/testing.md` - the Playwright suite, the credential swap, the
   `serviceWorkers: 'block'` gotcha
 - `docs/contributing.md` - git workflow, `CACHE_NAME` = PR number
+- `docs/navigation-loader.md` - **(proposed, not built)** page-to-page
+  navigation loading indicator: alternatives + recommendation
 
 `tests/meta/agents-doc.test.js` keeps this map honest (size, resolvable
 links, a doc per game).

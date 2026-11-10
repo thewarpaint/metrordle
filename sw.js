@@ -4,7 +4,7 @@
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow. Versioned by the
 // PR number that ships the change, so two PRs can't collide on it.
-var CACHE_NAME = 'metrordle-v265';
+var CACHE_NAME = 'metrordle-v267';
 
 // How long a page navigation waits on the network before falling back to
 // the cached version - see the fetch handler below.
@@ -120,6 +120,16 @@ self.addEventListener('fetch', function (event) {
   var request = event.request;
 
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Same-origin only. Cross-origin subresources (the Firebase SDK on
+  // gstatic.com, Firestore's *.googleapis.com API) must bypass the
+  // cache-first branch below: a no-cors <script> yields an OPAQUE response
+  // that, once a bad one is cached, serves forever - leaving `firebase`
+  // undefined for a returning player until a CACHE_NAME bump. All of
+  // PRECACHE_URLS is same-origin, so nothing is lost by skipping these.
+  if (new URL(request.url).origin !== self.location.origin) {
     return;
   }
 

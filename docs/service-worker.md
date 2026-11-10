@@ -3,6 +3,17 @@
 - **`sw.js`** - service worker. Navigations: network race with a
   1.5s timeout, falling back to cache, updating the cache in the
   background regardless of who won the race. Static assets: cache-first.
+  **Cross-origin requests bypass the SW entirely** (an early `return` in
+  the fetch handler when `request.url`'s origin isn't ours): the Firebase
+  SDK from `gstatic.com` and Firestore's own `*.googleapis.com` API always
+  go straight to the network. They must never reach the cache-first asset
+  branch - a no-cors cross-origin `<script>` yields an *opaque* response
+  (status 0, unreadable body), and caching that then serving it cache-first
+  forever means one bad opaque fetch (flaky network, captive portal,
+  evicted zero-length body) leaves `firebase` undefined for a returning
+  player - every leaderboard write silently skipped - until a `CACHE_NAME`
+  bump wipes the cache. All of `PRECACHE_URLS` is same-origin, so nothing
+  legitimate is lost by skipping cross-origin.
   Per-client freshness tracking keeps a tab's own page and its
   `shared.js`/`shared.css` from diverging in version. **Bump
   `CACHE_NAME` on any change to `sw.js` or any precached asset** -

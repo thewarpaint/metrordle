@@ -413,6 +413,28 @@ async function main() {
     }
   });
 
+  test('the Mantenimiento section reports the active cache version (highest, by number) from Cache Storage', async () => {
+    // Block the SW so the only metrordle-v* caches are the ones seeded here.
+    const context = await browser.newContext({ viewport: { width: 420, height: 700 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    try {
+      await page.goto(server.baseUrl + '/configurar/', { waitUntil: 'networkidle' });
+      // Highest by NUMBER (v265 > v99; a string sort would wrongly pick v99).
+      await page.evaluate(async () => {
+        await caches.open('metrordle-v99');
+        await caches.open('metrordle-v265');
+      });
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForFunction(() => {
+        var el = document.getElementById('app-version-value');
+        return el && el.textContent && el.textContent !== '…';
+      });
+      assert.strictEqual(await page.textContent('#app-version-value'), 'v265', 'should show the highest seeded cache version');
+    } finally {
+      await context.close();
+    }
+  });
+
   const failed = await runAll();
   await browser.close();
   server.stop();

@@ -246,7 +246,7 @@
         <div class="config-section">
           <h2 class="config-section__title" id="mantenimiento"><a class="config-section__anchor" href="#mantenimiento">Mantenimiento</a></h2>
           <p class="dek">
-            ¿El juego se ve atorado o desactualizado? Limpia la caché para volver a descargar sus archivos. Conserva tus rachas, alias y preferencias.
+            ¿El juego se ve atorado o desactualizado? Limpia la caché para volver a descargar sus archivos. Conserva tus rachas, alias y preferencias. Versión de app y caché: <span id="app-version-value">…</span>.
           </p>
           <button type="button" class="btn-secondary" id="purge-cache-btn">Limpiar caché y recargar</button>
         </div>
@@ -500,6 +500,24 @@
           purgeBtn.addEventListener('click', function () {
             window.location.assign('/purge/');
           });
+        }
+
+        // The SW names its cache metrordle-v<n> (bumped per deploy), so
+        // reading it back shows what the player actually has. Highest by
+        // number, in case an update left two behind.
+        var versionEl = document.getElementById('app-version-value');
+        if (versionEl) {
+          if (!('caches' in window)) {
+            versionEl.textContent = 'desconocida';
+          } else {
+            caches.keys().then(function (keys) {
+              var versions = keys
+                .filter(function (k) { return /^metrordle-v\d+$/.test(k); })
+                .map(function (k) { return parseInt(k.slice('metrordle-v'.length), 10); })
+                .sort(function (a, b) { return a - b; });
+              versionEl.textContent = versions.length ? 'v' + versions[versions.length - 1] : 'desconocida';
+            }).catch(function () { versionEl.textContent = 'desconocida'; });
+          }
         }
       })();
     </script>

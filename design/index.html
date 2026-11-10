@@ -1080,6 +1080,11 @@
           bugBtn.className = 'toolbar-iconbtn';
           bugBtn.innerHTML = MetroShared.buildToolbarIcon('bug');
           tools.appendChild(bugBtn);
+          var refreshBtn = document.createElement('button');
+          refreshBtn.type = 'button';
+          refreshBtn.className = 'toolbar-iconbtn';
+          refreshBtn.innerHTML = MetroShared.buildToolbarIcon('refresh');
+          tools.appendChild(refreshBtn);
           var themeBtn = document.createElement('button');
           themeBtn.type = 'button';
           themeBtn.className = 'toolbar-iconbtn';
@@ -1093,7 +1098,7 @@
           gearLink.style.marginLeft = '0'; // real cluster right-aligns it; inline here
           gearLink.innerHTML = MetroShared.buildToolbarIcon('gear');
           iconsRow.appendChild(gearLink);
-          gallery.appendChild(buildExample(iconsRow, '<code>.toolbar-iconbtn</code>/<code>.brand__settings</code> · ✅ consolidado - íconos monocromáticos de la barra superior (🐞 depuración, ☀️/🌑 tema, ⚙️ ajustes), <code>stroke: currentColor</code> para leerse en ambos temas. Una sola fuente: <code>MetroShared.buildToolbarIcon</code> los inyecta en todas las páginas, antes se repetía el <code>&lt;svg&gt;</code> del engrane en 14 archivos.'));
+          gallery.appendChild(buildExample(iconsRow, '<code>.toolbar-iconbtn</code>/<code>.brand__settings</code> · ✅ consolidado - íconos monocromáticos de la barra superior (🐞 depuración, 🔄 recargar, ☀️/🌑 tema, ⚙️ ajustes), <code>stroke: currentColor</code> para leerse en ambos temas. Una sola fuente: <code>MetroShared.buildToolbarIcon</code> los inyecta en todas las páginas, antes se repetía el <code>&lt;svg&gt;</code> del engrane en 14 archivos.'));
         }
 
         // The shared leaderboard component, all real shared.css classes.

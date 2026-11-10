@@ -62,9 +62,17 @@ deliberately self-contained with no `shared.css`/`shared.js` at all
 (see its own bullet above). `/configurar/` has no gear of its own - a
 link from the settings page to itself would be redundant - so
 `shared.js`'s `initToolbar` falls back to anchoring the header toolbar
-(the light/dark toggle, plus the debug 🐞) inline in its `.brand` row
-anyway (the gearless-`.brand` branch), instead of floating it fixed
-(`toolbar-tools--fixed`) for lack of an anchor.
+(the light/dark toggle and the 🔄 reload button, plus the debug 🐞)
+inline in its `.brand` row anyway (the gearless-`.brand` branch), instead
+of floating it fixed (`toolbar-tools--fixed`) for lack of an anchor.
+
+The 🔄 reload button (`buildToolbarIcon('refresh')`) is a plain
+`window.location.reload()`, present in the toolbar on every page. It
+exists chiefly for standalone PWA users, who have no browser refresh
+button or URL bar of their own to force a fresh fetch; the reload re-runs
+the navigation through the network-first service worker (see
+`docs/service-worker.md`), so an online player picks up the latest
+deploy.
 
 All settings live in one `'metrordle:config'` localStorage key holding
 a plain object - `MetroShared.loadConfig()`/`saveConfig(partialConfig)`

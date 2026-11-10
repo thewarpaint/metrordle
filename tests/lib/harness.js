@@ -31,12 +31,15 @@ function waitForServer(port, timeoutMs) {
   });
 }
 
-// Spins up a plain `python3 -m http.server` rooted at the repo, since
-// every page here uses absolute paths like /shared.js and /station-icons.svg
-// - opening index.html straight from disk (file://) won't resolve those.
+// Spins up a static server rooted at the repo, since every page here uses
+// absolute paths like /shared.js and /station-icons.svg - opening
+// index.html straight from disk (file://) won't resolve those. It's a thin
+// wrapper over SimpleHTTPRequestHandler (see tests/lib/static-server.py)
+// that 404s /vendor/firebase/* so `firebase` stays undefined, the way this
+// sandbox (no Firestore reachability) and an ad-blocked player both see it.
 async function startServer(port) {
   port = port || Number(process.env.METRORDLE_TEST_PORT) || 8930;
-  const proc = spawn('python3', ['-m', 'http.server', String(port)], {
+  const proc = spawn('python3', [path.join(__dirname, 'static-server.py'), String(port)], {
     cwd: REPO_ROOT,
     stdio: 'ignore',
   });

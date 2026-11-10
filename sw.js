@@ -4,7 +4,7 @@
 // assets below - the version string is what makes the browser notice
 // the service worker changed and start the update flow. Versioned by the
 // PR number that ships the change, so two PRs can't collide on it.
-var CACHE_NAME = 'metrordle-v270';
+var CACHE_NAME = 'metrordle-v271';
 
 // How long a page navigation waits on the network before falling back to
 // the cached version - see the fetch handler below.
@@ -39,6 +39,10 @@ var PRECACHE_URLS = [
   '/apple-touch-icon.png',
   '/favicon.png',
   '/firebase-config.js',
+  // Firebase SDK, vendored same-origin (see docs/firebase.md) so an ad
+  // blocker can't block it the way it blocks the gstatic.com CDN.
+  '/vendor/firebase/firebase-app-compat.js',
+  '/vendor/firebase/firebase-firestore-compat.js',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',

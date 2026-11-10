@@ -18,7 +18,9 @@ ops page, which is English.
 ## Global invariants (true everywhere — don't relearn these per task)
 
 - **No build step.** Edit the `.html` files directly; nothing compiles.
-  Each game page is self-contained (inline `<style>`/`<script>`).
+  Each game page is self-contained (inline `<style>`/`<script>`). The one
+  bit of tooling is Yarn, used only to *refresh* the vendored Firebase SDK
+  in `vendor/firebase/` (committed, served as-is) - see `docs/firebase.md`.
 - **Deterministic per calendar day.** Every game derives its puzzle from
   a seeded RNG (`MetroShared.createSeededRandom('<salt>-' + dateKey)`), so
   everyone gets the same puzzle and replays need a `?debug=true` override.

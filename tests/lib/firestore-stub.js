@@ -157,9 +157,10 @@ async function installFirestoreStub(page, dataByCollectionAndDate) {
     `;
     await route.fulfill({ response, body: patched });
   });
-  // The real Firebase SDK scripts would otherwise clobber the fake
-  // window.firebase set up above once they (fail to) load - this
-  // sandboxed environment can't reach gstatic.com for them anyway.
+  // Block the real Firebase SDK so it can't clobber the fake window.firebase
+  // the patched shared.js sets up. The SDK is now vendored same-origin
+  // (/vendor/firebase/); the old gstatic.com path is kept too, harmless.
+  await page.route('**/vendor/firebase/**', (route) => route.abort());
   await page.route('**/www.gstatic.com/**', (route) => route.abort());
 }
 

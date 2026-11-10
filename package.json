@@ -1,0 +1,13 @@
+{
+  "name": "metrordle",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Metrordle - daily Mexico City Metro minigames. The site itself is static with no build step; this package only vendors the Firebase SDK into vendor/firebase/ so it loads same-origin (ad blockers block the gstatic.com CDN). See docs/firebase.md.",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "firebase": "10.13.0"
+  },
+  "scripts": {
+    "vendor:firebase": "mkdir -p vendor/firebase && cp node_modules/firebase/firebase-app-compat.js node_modules/firebase/firebase-firestore-compat.js vendor/firebase/ && echo 'Vendored firebase-app-compat.js + firebase-firestore-compat.js into vendor/firebase/ - remember to bump CACHE_NAME in sw.js.'"
+  }
+}

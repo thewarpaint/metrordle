@@ -1031,6 +1031,8 @@ input[type="text"]:disabled {
   box-shadow: 0 0 0 1px var(--focus);
 }
 
+/* The single rank-column width for every leaderboard - don't override per
+   page, so rank-to-alias spacing stays consistent site-wide. */
 .leaderboard__rank {
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;

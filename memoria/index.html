@@ -226,9 +226,10 @@
         margin-bottom: 1.1rem;
       }
 
-      /* .leaderboard* styling itself now lives in shared.css, common to
-         every game with a leaderboard - nothing Memoria-specific to
-         override here. */
+      /* .leaderboard* styling lives in shared.css. Memoria's score is always
+         2 digits, so narrow the score column from the 5-digit default (2.7rem)
+         to widen the alias - same width /tablero/ gives Memoria's column. */
+      #leaderboard-list { --score-number-width: 1.6rem; }
     </style>
   </head>
 

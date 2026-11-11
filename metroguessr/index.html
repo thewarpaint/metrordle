@@ -407,6 +407,22 @@
 
       body.round-over .reveal { flex: none; overflow: visible; }
 
+      /* The topbar is normally a full-bleed bar over the full-bleed map. On
+         the end screen there's no map, and the reveal content is a centered
+         27rem column (.panel shrink-wraps .panel__inner inside the centered
+         body flex), so a full-width topbar leaves the header spanning edge to
+         edge while the content sits narrow and centered on any viewport wider
+         than 27rem - a lopsided layout. Center the topbar to the same column
+         so the end screen reads as one aligned page. Excluded while the map is
+         maximized, where the topbar overlays the full-screen map again. */
+      body.round-over:not(.map-maximized) .topbar {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 27rem;
+      }
+
       /* On the end screen the in-flow button opens the map; the floating one
          is only the ✕ to close it. */
       body.round-over:not(.map-maximized) .map-maximize-btn { display: none; }

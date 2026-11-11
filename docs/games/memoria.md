@@ -85,3 +85,33 @@
   `endPractice()` restores exactly that snapshot - not whatever those
   happen to be after some practice matches - so the reveal screen a
   player returns to always shows the real submitted result.
+
+- **Hard mode.** Has a normal/hard toggle, chosen
+  Copo-de-nieve/Clasificador-style via two buttons in the start overlay
+  (`beginRound(mode)`) with the hard-mode explanation below them (this
+  replaced the old single "Comenzar" button). Hard mode makes the 60 s
+  clock elastic, the same `HARD_BONUS_RUN` (5) mechanic as Copo de nieve:
+  every 5 correct pairs in a row add a second (`state.timeLeft += 1`,
+  since Memoria's timer is a per-second `timeLeft`, not a
+  `performance.now()`-based `endTime`), and a **committed non-matching
+  pair of opposite card types** (a real icon-vs-name guess) subtracts one
+  (ending the round if it hits 0), with the shared
+  `MetroShared.pulseClock()` +1/−1 cue over the `#memo-time` clock. The
+  penalty is deliberately scoped to cross-type guesses: clicking a second
+  card of the *same* type as the first can never be a match (the board
+  never carries two same-type cells for one station), so it just
+  re-selects with no penalty, in every mode - the same penalty-free
+  re-selection normal mode always had. `correctRun` only advances on a
+  real playing-status match and resets on a penalized guess; practice
+  (`state.status === 'practice'`) never touches the elastic clock.
+  `renderStatus()`'s progress-fill width is clamped to 100% since a
+  bonus-fed `timeLeft` can run past `ROUND_SECONDS`.
+  `state.secondsWon`/`secondsLost` show as a two-tile `.stat-grid` on the
+  hard-mode reveal (`#reveal-stats`), and `hardMode` is submitted as a
+  display-only leaderboard field (🧠 badge, `extraFields` on both the game
+  and `/tablero/`) + a `🧠 Modo difícil` share-text line.
+  `state.mode`/`secondsWon`/`secondsLost` persist in the finished
+  (`persistResult`) save, so a reloaded hard round keeps its 🧠 badge and
+  stats. `memoria-leaderboard` in `firestore.rules` takes the same
+  optional `hardMode`/`secondsWon`/`secondsLost` fields as the other
+  elastic-clock games (deploy the rule before/with the code).

@@ -41,7 +41,7 @@ async function main() {
     try {
       await page.goto(server.baseUrl + '/memoria/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(1200);
 
       const timeBeforeReload = await page.$eval('#memo-time', (el) => el.textContent);
@@ -66,7 +66,7 @@ async function main() {
     try {
       await page.goto(server.baseUrl + '/memoria/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
-      await page.click('#start-btn');
+      await page.click('#start-normal-btn');
       await page.waitForTimeout(200);
 
       // Match 3 specific stations from the initial board (known for this
@@ -102,13 +102,13 @@ async function main() {
       const bannerText = await page.$eval('#reveal-banner .notice__text', (el) => el.textContent);
       assert.strictEqual(bannerText, '🔥 Racha: 0 días');
 
-      const stat = await page.$eval('#stat-you', (el) => el.textContent);
-      assert.strictEqual(stat, 'Parejas: 3');
+      const stat = await page.$eval('#reveal-score', (el) => el.textContent);
+      assert.strictEqual(stat, '3');
 
       // Persisted matchedStations stays in MATCH order - only the reveal's
       // rendered order is sorted by line, not the stored data itself.
       const saved = await page.evaluate((k) => localStorage.getItem('memoria:' + k), DATE);
-      assert.deepStrictEqual(JSON.parse(saved), { score: 3, won: false, matchedStations: [station1, station2, station3], leaderboardSubmitted: false });
+      assert.deepStrictEqual(JSON.parse(saved), { score: 3, won: false, matchedStations: [station1, station2, station3], mode: 'normal', secondsWon: 0, secondsLost: 0, leaderboardSubmitted: false });
 
       // The reveal screen should show one small icon per matched station,
       // laid out 6 per row, grouped by line rather than match order -
@@ -137,8 +137,8 @@ async function main() {
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(200);
       assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'reveal should show immediately on reload after finishing');
-      const statAfterReload = await page.$eval('#stat-you', (el) => el.textContent);
-      assert.strictEqual(statAfterReload, 'Parejas: 3', 'reload should show the same saved score, not start a new round');
+      const statAfterReload = await page.$eval('#reveal-score', (el) => el.textContent);
+      assert.strictEqual(statAfterReload, '3', 'reload should show the same saved score, not start a new round');
       const iconLabelsAfterReload = await page.$$eval('#reveal-icons .station-grid__cell', (els) => els.map((e) => e.getAttribute('aria-label')));
       assert.deepStrictEqual(iconLabelsAfterReload, [station3, station2, station1], 'reload should show the same line-sorted icon order');
     } finally {

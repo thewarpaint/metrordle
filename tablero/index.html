@@ -102,6 +102,7 @@
          Metro Crush keeps the wide fallback, the smaller-score games tighten. */
       #clasificador-list { --score-number-width: 1.8rem; }
       #copo-de-nieve-list { --score-number-width: 1.6rem; }
+      #memoria-list { --score-number-width: 1.6rem; }
 
       .admin-loading {
         align-items: center;
@@ -362,12 +363,23 @@
             collection: 'memoria-leaderboard',
             startDateKey: '2026-08-29',
             orderBySpecs: [['score', 'desc']],
-            extraFields: ['streak'],
+            extraFields: ['streak', 'hardMode', 'secondsWon', 'secondsLost'],
+            secondsBadge: true,
             href: '/memoria/',
             scoreCell: function (entry) {
               var score = document.createElement('span');
-              score.className = 'leaderboard__score--plain';
-              score.textContent = String(entry.score);
+              score.className = 'leaderboard__score';
+
+              var badge = document.createElement('span');
+              badge.className = 'leaderboard__score-badge';
+              if (entry.hardMode) badge.textContent = '🧠';
+
+              var number = document.createElement('span');
+              number.className = 'leaderboard__score-number leaderboard__score-number--wide';
+              number.textContent = entry.score;
+
+              score.appendChild(badge);
+              score.appendChild(number);
               return score;
             },
           },

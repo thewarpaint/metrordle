@@ -43,18 +43,28 @@ service cloud.firestore {
     // own comment in shared.js on why it's never part of orderBySpecs)
     // can legitimately be 0 here, unlike the other three - Memoria
     // submits on every completed round, win or lose, unlike Metrordle/
-    // Laberinto/Metroguessr's win-only submission.
+    // Laberinto/Metroguessr's win-only submission. hardMode and the
+    // secondsWon/secondsLost elastic-clock pair are display-only and
+    // OPTIONAL - they shipped after the collection did, so a stale cached
+    // client still submitting without them must not be rejected (same
+    // optional-field reasoning as Copo de nieve's own block; deploy this
+    // rule before/with the code).
     match /memoria-leaderboard/{dateKey}/entries/{aliasId} {
       allow read: if true;
 
       allow create, update: if
-        request.resource.data.keys().hasOnly(['alias', 'score', 'streak', 'submittedAt']) &&
+        request.resource.data.keys().hasOnly(['alias', 'score', 'hardMode', 'streak', 'secondsWon', 'secondsLost', 'submittedAt']) &&
         request.resource.data.alias is string &&
         request.resource.data.alias.size() > 0 &&
         request.resource.data.alias.size() <= 20 &&
         request.resource.data.score is int &&
         request.resource.data.score >= 0 &&
         request.resource.data.score <= 200 && // the whole network is 163 stations
+        (!('hardMode' in request.resource.data) || request.resource.data.hardMode is bool) &&
+        // secondsWon/secondsLost: hard-mode elastic clock, optional (see Copo
+        // de nieve's block below). Deploy this rule before the code.
+        (!('secondsWon' in request.resource.data) || (request.resource.data.secondsWon is int && request.resource.data.secondsWon >= 0 && request.resource.data.secondsWon <= 300)) &&
+        (!('secondsLost' in request.resource.data) || (request.resource.data.secondsLost is int && request.resource.data.secondsLost >= 0 && request.resource.data.secondsLost <= 300)) &&
         request.resource.data.streak is int &&
         request.resource.data.streak >= 0 &&
         request.resource.data.streak <= 5000 &&

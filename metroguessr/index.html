@@ -428,6 +428,12 @@
       body.round-over:not(.map-maximized) .map-maximize-btn { display: none; }
       body.round-over.map-maximized .map-stage { display: block; }
 
+      /* .panel__inner's gap already spaces it. */
+      #line-12-notice {
+        flex: none;
+        margin-bottom: 0;
+      }
+
       .guess-form {
         display: flex;
         flex-direction: column;
@@ -640,6 +646,8 @@
 
     <div class="panel" id="panel" hidden>
       <div class="panel__inner">
+        <div id="line-12-notice" hidden></div>
+
         <div class="guess-form" id="guess-form">
           <div class="search-box">
             <input type="text" id="guess-input" autocomplete="off" aria-label="¿Qué estación es?" placeholder="Escribe el nombre de una estación&hellip;">
@@ -773,6 +781,49 @@
             startIdx: played.length,
           };
         })();
+
+        // One-time notice that Línea 12 joined the rotation - once
+        // closed it never shows again, on any day.
+        var LINE_12_NOTICE_DISMISSED_KEY = 'metroguessr:line-12-notice-dismissed';
+
+        function line12NoticeDismissed() {
+          try {
+            return localStorage.getItem(LINE_12_NOTICE_DISMISSED_KEY) === '1';
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function dismissLine12Notice() {
+          try {
+            localStorage.setItem(LINE_12_NOTICE_DISMISSED_KEY, '1');
+          } catch (e) {}
+          renderLine12Notice(null);
+        }
+
+        function renderLine12Notice(dateKey) {
+          var notice = $('line-12-notice');
+          if (!dateKey || dateKey < LINE_12_CUTOVER_DATE_KEY || line12NoticeDismissed()) {
+            notice.hidden = true;
+            notice.innerHTML = '';
+            return;
+          }
+
+          MetroShared.renderNoticeBanner(notice, 'notice--info',
+            '¡Llegó la Línea 12!',
+            'Sus estaciones, de Mixcoac a Tláhuac, ya pueden salir como estación del día.');
+          notice.classList.add('notice--dismissible');
+
+          var close = document.createElement('button');
+          close.type = 'button';
+          close.className = 'notice__close';
+          close.setAttribute('aria-label', 'Cerrar aviso');
+          close.textContent = '×';
+          close.addEventListener('click', dismissLine12Notice);
+          notice.appendChild(close);
+
+          notice.hidden = false;
+        }
 
         function pickTarget(dateKey, gameNumber) {
           if (dateKey < LINE_12_CUTOVER_DATE_KEY) {
@@ -1185,6 +1236,7 @@
           var saved = loadSavedState(dateKey);
 
           pendingGameSetup = { dateKey: dateKey, gameNumber: gameNumber, target: target, saved: saved };
+          renderLine12Notice(dateKey);
 
           if (saved) {
             // Already playing/played today (in whichever mode that was) -

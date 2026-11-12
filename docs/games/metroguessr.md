@@ -73,3 +73,7 @@
   same 163-day order. Línea 12 days are wherever the shuffle put them -
   deliberately not evened out. **Adding more stations later needs the
   same treatment** (a new cutover + exclusion list), or past days change.
+  From the cutover on, a dismissible `.notice--info` (`#line-12-notice`,
+  top of the `.panel`) announces Línea 12; its × persists
+  `metroguessr:line-12-notice-dismissed` in `localStorage`, after which
+  it never shows again - same pattern as Laberinto's scoring notice.

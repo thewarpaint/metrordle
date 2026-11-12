@@ -279,6 +279,8 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   per rotation era (2026-09-12, 2026-09-20, 2026-11-13), plus the first
   Línea 12 day after `LINE_12_CUTOVER_DATE_KEY` (2026-12-01), which can
   be guessed for a win.
+- The Línea 12 notice is hidden before the cutover, shows from it on,
+  and its × hides it for good (persisted in `localStorage`).
 - A wrong guess adds exactly one distance+direction history chip;
   guessing the real target ends the round immediately as a win.
 - Five wrong guesses end the round as a loss, with the station name

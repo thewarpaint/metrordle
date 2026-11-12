@@ -177,7 +177,9 @@
   show at all, in practice unreachable now that the origin borrows the
   next hop's own color instead (see `makeRouteDot(lineId)`'s own
   comment in `laberinto/index.html`). A sixth pattern joined these:
-  `.notice`/`--success`/`--error`/`--info` (end-of-round banner -
+  `.notice`/`--success`/`--error`/`--info` (plus `.notice--dismissible`
+  + `.notice__close`, the × used by Laberinto's scoring notice and
+  Metroguessr's Línea 12 one) (end-of-round banner -
   Metrordle's/Laberinto's/Memoria's/Metro Crush's own bordered win/lose
   card and Clasificador's own borderless, day's-line-colored flat one,
   four page-local copies of the same idea now one shared class, border

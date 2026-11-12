@@ -32,9 +32,12 @@
   `PRECACHE_URLS`), so a change to its `index.html` needs a `CACHE_NAME`
   bump - see the `sw.js` bullet.
   Same prev/next date-nav as the
-  games' own `?debug=true` mode, gated behind that same param (each
-  game's own "Ver este día en ___" deep link too) - shows only today's
-  real data otherwise. Two `.stat-grid`/`.stat-box` tiles (shared with
+  games' own `?debug=true` mode, gated behind that same param - shows
+  only today's real data otherwise. Each board's title (e.g.
+  "Metrordle #92", one color throughout) links to that game: plain
+  (`/laberinto/`) normally, carrying `?debug=true&date=<shown date>`
+  under `?debug=true` (this replaced the old per-board "Ver este día en
+  ___ →" footer links). Two `.stat-grid`/`.stat-box` tiles (shared with
   Metro Crush's own reveal screen - see `shared.css`) above the
   per-game boards: unique aliases across every game that day, and
   total leaderboard entries across every game that day (every

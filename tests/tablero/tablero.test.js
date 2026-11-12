@@ -2,9 +2,9 @@
 
 // Covers /tablero/, the read-only cross-game leaderboard browser: the same
 // prev/next date-nav each game's own ?debug=true mode uses (see
-// index.html's #date-debug), gated behind that same param (so is each
-// game's own "Ver este día en ___" deep link) - both hidden by default,
-// shown only under ?debug=true. Plus one leaderboard section per game
+// index.html's #date-debug), gated behind that same param - hidden by
+// default, shown only under ?debug=true. Each board's title links to its
+// game (deep-linking to the shown date under ?debug=true only). Plus one leaderboard section per game
 // (metrordle-leaderboard, laberinto-leaderboard, memoria-leaderboard,
 // metroguessr-leaderboard, clasificador-leaderboard), each reusing that
 // game's own collection/orderBySpecs/score-formatting - see
@@ -17,7 +17,7 @@
 // streak concept (see AGENTS.md), just not exercised here. Also covers
 // the two .stat-grid/.stat-box tiles above the boards (unique aliases,
 // total entries that day) - these are NOT debug-gated, unlike the
-// date-nav/deep links.
+// date-nav.
 //
 // This sandboxed test environment can't reach Firestore at all
 // (gstatic.com is unreachable), so the "real data" checks stub
@@ -79,7 +79,7 @@ async function main() {
   const server = await startServer();
   const browser = await chromium.launch();
 
-  test('hides the date picker and each game\'s deep link by default, and degrades gracefully with no reachable Firebase', async () => {
+  test('hides the date picker and links each title to its game by default, and degrades gracefully with no reachable Firebase', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];
@@ -89,7 +89,9 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#date-debug').isVisible(), false, 'the date picker should be hidden without ?debug=true');
-      assert.strictEqual(await page.locator('#metrordle-link').isVisible(), false, 'the deep link should be hidden without ?debug=true');
+      assert.strictEqual(await page.$eval('#metrordle-link', (el) => el.getAttribute('href')), '/', 'the title should link to the game with no date/debug params');
+      assert.strictEqual(await page.$eval('#laberinto-link', (el) => el.getAttribute('href')), '/laberinto/', 'the title should link to the game with no date/debug params');
+      assert.strictEqual(await page.locator('.admin-board__link').count(), 0, 'the old "Ver este día en ___" links should be gone');
 
       // The stat tiles are NOT debug-gated - they should still show
       // (as 0/0, with no reachable Firebase) regardless.
@@ -110,7 +112,7 @@ async function main() {
     }
   });
 
-  test('?debug=true shows the date picker and each game\'s deep link, defaulting to today', async () => {
+  test('?debug=true shows the date picker, defaulting to today', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];
@@ -120,7 +122,6 @@ async function main() {
       await page.waitForTimeout(400);
 
       assert.strictEqual(await page.locator('#date-debug').isVisible(), true, 'the date picker should be visible under ?debug=true');
-      assert.strictEqual(await page.locator('#metrordle-link').isVisible(), true, 'the deep link should be visible under ?debug=true');
 
       const labelText = await page.locator('#date-debug-label').textContent();
       assert.ok(/^\d{4}-\d{2}-\d{2}( \(hoy\))?$/.test(labelText), 'expected a YYYY-MM-DD date label, got: ' + labelText);
@@ -132,7 +133,7 @@ async function main() {
     }
   });
 
-  test('under ?debug=true, the date picker moves across dates, and each game\'s deep link tracks the shown date', async () => {
+  test('under ?debug=true, the date picker moves across dates, and each title\'s deep link tracks the shown date', async () => {
     const context = await browser.newContext({ viewport: { width: 420, height: 900 } });
     const page = await context.newPage();
     const errors = [];

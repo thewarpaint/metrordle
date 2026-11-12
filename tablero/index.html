@@ -72,25 +72,18 @@
         margin: 0 0 0.15rem;
       }
 
-      .admin-board__num {
-        color: var(--ink-soft);
-        font-weight: 700;
+      .admin-board__title-link {
+        text-decoration: none;
+      }
+
+      .admin-board__title-link:hover {
+        text-decoration: underline;
       }
 
       .admin-board__dek {
         color: var(--ink-soft);
         font-size: 0.8rem;
         margin: 0;
-      }
-
-      .admin-board__link {
-        display: inline-block;
-        font-size: 0.78rem;
-        margin-top: 0.6rem;
-      }
-
-      .admin-board__link[hidden] {
-        display: none;
       }
 
       /* .leaderboard* is shared (see shared.css); these are /tablero/'s
@@ -180,76 +173,69 @@
       <div class="admin-boards" id="admin-boards" hidden>
         <div class="sign admin-board" id="metrordle-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Metrordle <span class="admin-board__num" id="metrordle-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="metrordle-link">Metrordle <span id="metrordle-num"></span></a></h2>
             <p class="admin-board__dek">Menos intentos gana · empate lo resuelve el modo difícil</p>
           </div>
           <ol class="leaderboard__list" id="metrordle-list"></ol>
           <p class="leaderboard__status" id="metrordle-status" hidden></p>
-          <a class="admin-board__link" id="metrordle-link" target="_blank" rel="noopener" hidden>Ver este día en Metrordle →</a>
         </div>
 
         <div class="sign admin-board" id="laberinto-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Laberinto <span class="admin-board__num" id="laberinto-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="laberinto-link">Laberinto <span id="laberinto-num"></span></a></h2>
             <p class="admin-board__dek">Menos estaciones gana · empate lo resuelven los transbordos</p>
           </div>
           <ol class="leaderboard__list" id="laberinto-list"></ol>
           <p class="leaderboard__status" id="laberinto-status" hidden></p>
-          <a class="admin-board__link" id="laberinto-link" target="_blank" rel="noopener" hidden>Ver este día en Laberinto →</a>
         </div>
 
         <div class="sign admin-board" id="memoria-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Memoria <span class="admin-board__num" id="memoria-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="memoria-link">Memoria <span id="memoria-num"></span></a></h2>
             <p class="admin-board__dek">Más parejas gana</p>
             <p class="leaderboard__record" id="memoria-record" hidden></p>
           </div>
           <ol class="leaderboard__list" id="memoria-list"></ol>
           <p class="leaderboard__status" id="memoria-status" hidden></p>
-          <a class="admin-board__link" id="memoria-link" target="_blank" rel="noopener" hidden>Ver este día en Memoria →</a>
         </div>
 
         <div class="sign admin-board" id="metroguessr-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Metroguessr <span class="admin-board__num" id="metroguessr-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="metroguessr-link">Metroguessr <span id="metroguessr-num"></span></a></h2>
             <p class="admin-board__dek">Menos intentos gana</p>
           </div>
           <ol class="leaderboard__list" id="metroguessr-list"></ol>
           <p class="leaderboard__status" id="metroguessr-status" hidden></p>
-          <a class="admin-board__link" id="metroguessr-link" target="_blank" rel="noopener" hidden>Ver este día en Metroguessr →</a>
         </div>
 
         <div class="sign admin-board" id="metrocrush-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Metro Crush <span class="admin-board__num" id="metrocrush-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="metrocrush-link">Metro Crush <span id="metrocrush-num"></span></a></h2>
             <p class="admin-board__dek">Más puntos gana</p>
             <p class="leaderboard__record" id="metrocrush-record" hidden></p>
           </div>
           <ol class="leaderboard__list" id="metrocrush-list"></ol>
           <p class="leaderboard__status" id="metrocrush-status" hidden></p>
-          <a class="admin-board__link" id="metrocrush-link" target="_blank" rel="noopener" hidden>Ver este día en Metro Crush →</a>
         </div>
 
         <div class="sign admin-board" id="clasificador-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Clasificador <span class="admin-board__num" id="clasificador-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="clasificador-link">Clasificador <span id="clasificador-num"></span></a></h2>
             <p class="admin-board__dek">Más estaciones clasificadas gana</p>
             <p class="leaderboard__record" id="clasificador-record" hidden></p>
           </div>
           <ol class="leaderboard__list" id="clasificador-list"></ol>
           <p class="leaderboard__status" id="clasificador-status" hidden></p>
-          <a class="admin-board__link" id="clasificador-link" target="_blank" rel="noopener" hidden>Ver este día en Clasificador →</a>
         </div>
 
         <div class="sign admin-board" id="copo-de-nieve-board">
           <div class="admin-board__head">
-            <h2 class="admin-board__title">Copo de nieve <span class="admin-board__num" id="copo-de-nieve-num"></span></h2>
+            <h2 class="admin-board__title"><a class="admin-board__title-link" id="copo-de-nieve-link">Copo de nieve <span id="copo-de-nieve-num"></span></a></h2>
             <p class="admin-board__dek">Más estaciones encontradas gana</p>
             <p class="leaderboard__record" id="copo-de-nieve-record" hidden></p>
           </div>
           <ol class="leaderboard__list" id="copo-de-nieve-list"></ol>
           <p class="leaderboard__status" id="copo-de-nieve-status" hidden></p>
-          <a class="admin-board__link" id="copo-de-nieve-link" target="_blank" rel="noopener" hidden>Ver este día en Copo de nieve →</a>
         </div>
       </div>
 
@@ -577,7 +563,9 @@
           var gameEls = els[game.key];
           var gameNumber = MetroShared.getGameNumberForDateKey(dateKey, game.startDateKey);
           gameEls.num.textContent = gameNumber >= 1 ? '#' + gameNumber : '';
-          gameEls.link.href = game.href + '?debug=true&date=' + dateKey;
+          // The title links to the game itself; under ?debug=true it
+          // deep-links to the shown date instead.
+          gameEls.link.href = game.href + (MetroShared.isDebugMode() ? '?debug=true&date=' + dateKey : '');
 
           gameEls.list.innerHTML = '';
           gameEls.status.hidden = true;
@@ -676,14 +664,12 @@
             };
           });
 
-          // The date-nav and each game's "Ver este día en ___" deep
-          // link both let a visitor browse any past day's real
-          // leaderboard data - stay hidden from a casual visitor by
+          // The date-nav lets a visitor browse any past day's real
+          // leaderboard data - stays hidden from a casual visitor by
           // default, same as every game's own ?debug=true-gated
           // date-nav, rather than always on like this page used to be.
           if (MetroShared.isDebugMode()) {
             els.dateDebug.hidden = false;
-            GAMES.forEach(function (game) { els[game.key].link.hidden = false; });
 
             $('date-prev').addEventListener('click', function () { shiftDate(-1); });
             $('date-next').addEventListener('click', function () { shiftDate(1); });

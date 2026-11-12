@@ -649,8 +649,7 @@ input[type="text"]:disabled {
   margin-top: 0.2rem;
 }
 
-/* A notice with a × (.notice__close) in its top-right corner; the padding
-   keeps the title/text from running under it. */
+/* A notice with a × (.notice__close); the padding keeps text off it. */
 .notice--dismissible {
   position: relative;
   padding-right: 2.2rem;

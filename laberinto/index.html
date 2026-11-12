@@ -265,35 +265,11 @@
          every game with a leaderboard - nothing Laberinto-specific to
          override here. */
 
-      /* The dismissible scoring notice: a × in its top-right corner, with
-         room reserved so the title/text never run under it. Page-local
-         since only this notice is dismissible (the shared .notice stays
-         untouched for every game's reveal banner). */
       #scoring-notice {
-        position: relative;
-        padding-right: 2.2rem;
         /* More breathing room above (off the intro copy), less below
            (toward the headsign) than the shared .notice's 1rem bottom. */
         margin-top: 0.9rem;
         margin-bottom: 0.25rem;
-      }
-
-      .notice__close {
-        position: absolute;
-        top: 0.35rem;
-        right: 0.4rem;
-        background: transparent;
-        border: 0;
-        color: inherit;
-        cursor: pointer;
-        font-size: 1.3rem;
-        line-height: 1;
-        opacity: 0.75;
-        padding: 0.2rem 0.4rem;
-      }
-
-      .notice__close:hover {
-        opacity: 1;
       }
     </style>
   </head>
@@ -852,6 +828,7 @@
             close.textContent = '×';
             close.addEventListener('click', dismissScoringNotice);
             notice.appendChild(close);
+            notice.classList.add('notice--dismissible');
 
             notice.hidden = false;
           } else {

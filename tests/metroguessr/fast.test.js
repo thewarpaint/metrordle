@@ -109,6 +109,36 @@ async function main() {
     }
   });
 
+  test('the Línea 12 notice shows from the cutover on, and its × dismisses it for good', async () => {
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    try {
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=2026-11-13', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+      assert.strictEqual(await page.locator('#line-12-notice').isVisible(), false, 'no notice before the cutover');
+
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=2026-11-14', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+      assert.strictEqual(await page.locator('#line-12-notice').isVisible(), true, 'the notice should show on the cutover day');
+
+      await page.click('#line-12-notice .notice__close');
+      assert.strictEqual(await page.locator('#line-12-notice').isVisible(), false, 'clicking × should hide the notice');
+      const flag = await page.evaluate(() => localStorage.getItem('metroguessr:line-12-notice-dismissed'));
+      assert.strictEqual(flag, '1', 'dismissal should be persisted');
+
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=2026-11-15', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+      assert.strictEqual(await page.locator('#line-12-notice').isVisible(), false, 'a dismissed notice should stay hidden on later days');
+
+      assert.strictEqual(errors.length, 0, 'expected no page errors: ' + JSON.stringify(errors));
+    } finally {
+      await context.close();
+    }
+  });
+
   test('a wrong guess adds a distance+direction history chip; a correct guess ends the round as a win', async () => {
     const DATE = '2026-09-21';
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });

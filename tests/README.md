@@ -275,6 +275,10 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   (2026-09-18, see `metroguessr/index.html`'s `pickTarget()`) reveal the
   same target - the no-repeat guarantee the `STATION_ORDER` permutation
   is meant to provide.
+- Adding Línea 12's stations changed no earlier day: one pinned target
+  per rotation era (2026-09-12, 2026-09-20, 2026-11-13), plus the first
+  Línea 12 day after `LINE_12_CUTOVER_DATE_KEY` (2026-12-01), which can
+  be guessed for a win.
 - A wrong guess adds exactly one distance+direction history chip;
   guessing the real target ends the round immediately as a win.
 - Five wrong guesses end the round as a loss, with the station name

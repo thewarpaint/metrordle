@@ -56,3 +56,20 @@
   holds.
   Has its own leaderboard (see below) and core-mechanics + leaderboard
   Playwright coverage under `tests/metroguessr/`.
+
+- **Daily target rotation** (`pickTarget()`), three eras, each frozen so
+  an already-played day never changes: (1) before
+  `NO_REPEAT_CUTOVER_DATE_KEY` (2026-09-18), an independent seeded pick
+  per day; (2) up to `LINE_12_CUTOVER_DATE_KEY` (2026-11-14),
+  `STATION_ORDER`, one fixed shuffle indexed by game number - both over
+  `LEGACY_STATION_NAMES`, i.e. `STATION_COORDS` minus
+  `LINE_12_ADDED_STATIONS` (Línea 12's 16 own stations, added to the
+  table after launch); (3) from 2026-11-14, `LINE_12_CYCLE`: every
+  station played before the cutover (computed from eras 1-2, in
+  first-played order) followed by one fixed shuffle of everything else
+  (the 87 legacy stations not played yet + Línea 12's 16). The cutover
+  day starts right after the already-played part, so nothing repeats
+  until all 163 have come up (2027-02-24), and later cycles replay the
+  same 163-day order. Línea 12 days are wherever the shuffle put them -
+  deliberately not evened out. **Adding more stations later needs the
+  same treatment** (a new cutover + exclusion list), or past days change.

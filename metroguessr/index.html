@@ -707,17 +707,30 @@
           return copy;
         }
 
-        // A single fixed shuffle of every station, seeded once (not per
-        // day) - this guarantees no station repeats until every other
-        // one has come up, unlike picking independently at random each
-        // day the way this used to work, which could (and did - games
-        // #5 and #6 landed on the same station) put the same station up
-        // on two different days well before the full list was
-        // exhausted. Only used from NO_REPEAT_CUTOVER_DATE_KEY on -
-        // see pickTarget() below - but computed unconditionally since
-        // it's cheap and every day from the cutover onward needs it.
+        // Línea 12's own stations joined STATION_COORDS after launch.
+        // Every pick before LINE_12_CUTOVER_DATE_KEY ignores them, so
+        // no already-played day's puzzle changes.
+        var LINE_12_ADDED_STATIONS = [
+          'Calle 11', 'Culhuacán', 'Eje Central', 'Hospital 20 de Noviembre',
+          'Insurgentes Sur', 'Lomas Estrella', 'Mexicaltzingo', 'Nopalera',
+          'Olivos', 'Parque de los Venados', 'Periférico Oriente',
+          'San Andrés Tomatlán', 'Tezonco', 'Tlaltenco', 'Tláhuac', 'Zapotitlán',
+        ];
+        var LEGACY_STATION_NAMES = STATIONS
+          .map(function (s) { return s[0]; })
+          .filter(function (name) { return LINE_12_ADDED_STATIONS.indexOf(name) === -1; });
+
+        // A single fixed shuffle of every (pre-Línea 12) station, seeded
+        // once (not per day) - this guarantees no station repeats until
+        // every other one has come up, unlike picking independently at
+        // random each day the way this used to work, which could (and
+        // did - games #5 and #6 landed on the same station) put the
+        // same station up on two different days well before the full
+        // list was exhausted. Only used between
+        // NO_REPEAT_CUTOVER_DATE_KEY and LINE_12_CUTOVER_DATE_KEY - see
+        // pickLegacyTarget() below.
         var STATION_ORDER = shuffle(
-          STATIONS.map(function (s) { return s[0]; }),
+          LEGACY_STATION_NAMES,
           MetroShared.createSeededRandom('metrordle-metroguessr-station-order')
         );
 
@@ -729,32 +742,68 @@
         // would silently change what an already-played day's puzzle
         // was for anyone replaying it via the debug date-nav, which is
         // worse than the rare collision (see games #5 and #6 above)
-        // that prompted this fix in the first place. Every day from
-        // here on gets the no-repeat guarantee instead.
+        // that prompted this fix in the first place.
         var NO_REPEAT_CUTOVER_DATE_KEY = '2026-09-18';
 
-        // dateKey and NO_REPEAT_CUTOVER_DATE_KEY are both zero-padded
-        // 'YYYY-MM-DD' strings, so a plain string comparison already
-        // sorts chronologically - no Date parsing needed.
-        function pickTarget(dateKey, gameNumber) {
+        // From this date on the rotation includes Línea 12 - see
+        // LINE_12_CYCLE below.
+        var LINE_12_CUTOVER_DATE_KEY = '2026-11-14';
+        var LINE_12_CUTOVER_GAME_NUMBER = MetroShared.getGameNumberForDateKey(LINE_12_CUTOVER_DATE_KEY, START_DATE_KEY);
+
+        function dateKeyForGameNumber(gameNumber) {
+          var date = new Date(START_DATE_KEY + 'T00:00:00');
+          date.setDate(date.getDate() + gameNumber - 1);
+          return MetroShared.getDateKey(date);
+        }
+
+        // The pick for any date before LINE_12_CUTOVER_DATE_KEY.
+        // dateKey and the cutover keys are all zero-padded 'YYYY-MM-DD'
+        // strings, so a plain string comparison already sorts
+        // chronologically - no Date parsing needed.
+        function pickLegacyTarget(dateKey, gameNumber) {
           if (dateKey < NO_REPEAT_CUTOVER_DATE_KEY) {
             var rand = MetroShared.createSeededRandom('metrordle-metroguessr-' + dateKey);
-            var idx = Math.floor(rand() * STATIONS.length);
-            return STATIONS[idx][0];
+            var idx = Math.floor(rand() * LEGACY_STATION_NAMES.length);
+            return LEGACY_STATION_NAMES[idx];
           }
 
           // gameNumber - 1 indexes into the fixed STATION_ORDER
-          // permutation, wrapping via modulo once a full cycle
-          // completes - still fully deterministic (every player
-          // computes the identical sequence from gameNumber alone) and
-          // needs no persisted state. Wrapped with an extra
-          // + STATION_ORDER.length before the final % so a gameNumber
-          // at or before START_DATE_KEY (reachable via the debug
-          // date-nav, where it can go to 0 or negative) still lands on
-          // a valid, positive index instead of JS's negative-modulo
-          // result for a negative dividend.
+          // permutation. Wrapped with an extra + STATION_ORDER.length
+          // before the final % so a gameNumber at or before
+          // START_DATE_KEY (reachable via the debug date-nav, where it
+          // can go to 0 or negative) still lands on a valid index.
           var orderIdx = (((gameNumber - 1) % STATION_ORDER.length) + STATION_ORDER.length) % STATION_ORDER.length;
           return STATION_ORDER[orderIdx];
+        }
+
+        // One full cycle of every station: first the ones already
+        // played before the Línea 12 cutover (in the order they first
+        // came up), then a fixed shuffle of everything else - the
+        // legacy stations not played yet plus Línea 12's. The cutover
+        // day starts right after the already-played part, so nothing
+        // played before it repeats until the whole cycle is through,
+        // and later cycles just replay it.
+        var LINE_12_CYCLE = (function () {
+          var played = [];
+          for (var gameNumber = 1; gameNumber < LINE_12_CUTOVER_GAME_NUMBER; gameNumber++) {
+            var name = pickLegacyTarget(dateKeyForGameNumber(gameNumber), gameNumber);
+            if (played.indexOf(name) === -1) played.push(name);
+          }
+          var unplayed = STATIONS
+            .map(function (s) { return s[0]; })
+            .filter(function (name) { return played.indexOf(name) === -1; });
+          return {
+            order: played.concat(shuffle(unplayed, MetroShared.createSeededRandom('metrordle-metroguessr-station-order-line-12'))),
+            startIdx: played.length,
+          };
+        })();
+
+        function pickTarget(dateKey, gameNumber) {
+          if (dateKey < LINE_12_CUTOVER_DATE_KEY) {
+            return pickLegacyTarget(dateKey, gameNumber);
+          }
+          var idx = (gameNumber - LINE_12_CUTOVER_GAME_NUMBER + LINE_12_CYCLE.startIdx) % LINE_12_CYCLE.order.length;
+          return LINE_12_CYCLE.order[idx];
         }
 
         var MAX_ATTEMPTS = 5;

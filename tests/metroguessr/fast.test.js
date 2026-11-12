@@ -49,7 +49,7 @@ async function main() {
   test('no two of ten consecutive post-cutover days repeat the same target', async () => {
     // NO_REPEAT_CUTOVER_DATE_KEY is 2026-09-18 - every date here is on
     // or after it, so all ten should draw from the same shuffled
-    // STATION_ORDER cycle (147 stations), far from wrapping around.
+    // STATION_ORDER cycle (147 pre-Línea 12 stations), far from wrapping around.
     const DATES = ['2026-09-18', '2026-09-19', '2026-09-20', '2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'];
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
     try {
@@ -67,6 +67,46 @@ async function main() {
       assert.strictEqual(seen.size, targets.length, 'expected no duplicate targets, got: ' + JSON.stringify(targets));
     } finally {
       await context.close();
+    }
+  });
+
+  test('adding Línea 12 keeps every earlier day\'s target, and its stations come up (and can be guessed) from LINE_12_CUTOVER_DATE_KEY on', async () => {
+    // Pinned from main before Línea 12's stations joined STATION_COORDS:
+    // one day per era (per-day pick, STATION_ORDER, the cutover's eve).
+    // 2026-12-01 is the first Línea 12 day of the new rotation.
+    const EXPECTED = {
+      '2026-09-12': 'Viaducto',
+      '2026-09-20': 'Buenavista',
+      '2026-11-13': 'Santa Marta',
+      '2026-12-01': 'Hospital 20 de Noviembre',
+    };
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    try {
+      for (const date of Object.keys(EXPECTED)) {
+        const page = await context.newPage();
+        await stubMap(page);
+        await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + date, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(150);
+        await playToReveal(page);
+        assert.strictEqual(await revealedTarget(page), EXPECTED[date], 'unexpected target for ' + date);
+        await page.close();
+      }
+    } finally {
+      await context.close();
+    }
+
+    // A fresh context, so the day isn't already played out in localStorage.
+    const guessContext = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    try {
+      const page = await guessContext.newPage();
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=2026-12-01', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+      await guess(page, 'Hospital 20 de Noviembre');
+      assert.strictEqual(await page.locator('#reveal').isVisible(), true, 'guessing the Línea 12 target should end the round as a win');
+      assert.strictEqual(await page.locator('#guess-input').isVisible(), false, 'no further guesses once the round is over');
+    } finally {
+      await guessContext.close();
     }
   });
 

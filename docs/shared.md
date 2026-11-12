@@ -26,7 +26,10 @@
   `STATION_ICON_SLUGS` (station -> pictogram), and `STATION_COORDS`
   (`[name, lat, lng]` for Metroguessr's map and `/map/` - moved out of
   `metroguessr/index.html` so both read the exact same recorded data;
-  Línea 12 isn't in the source dataset yet).
+  163 rows - Línea 12's 16 own stations were added later, from each
+  station's Wikipedia article. Metroguessr's daily pick depends on this
+  table: adding or removing a row changes past puzzles unless the game
+  excludes it from earlier dates - see `docs/games/metroguessr.md`).
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`

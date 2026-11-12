@@ -465,9 +465,11 @@ var STATION_ICON_SLUGS = {
 // dataset and cross-checked against shared.js's own station
 // lists/counts per line (name spelling normalized to match
 // shared.js; only cosmetic accent/slug differences found, no
-// coordinate conflicts across interchange stations). Línea 12
-// (opened 2012) isn't in the source dataset and its 16
-// unique stations aren't included here yet.
+// coordinate conflicts across interchange stations). Línea 12's
+// 16 own stations weren't in that dataset - added later from each
+// station's Wikipedia article. Metroguessr keeps them out of its
+// pre-2026-11-14 picks (see its LINE_12_ADDED_STATIONS) - adding or
+// removing a row here needs the same care, or past puzzles change.
 var STATION_COORDS = [
   ["Acatitla", 19.3647, -99.005699],
   ["Aculco", 19.3738, -99.107697],
@@ -487,6 +489,7 @@ var STATION_COORDS = [
   ["Bosque de Aragón", 19.458105, -99.069257],
   ["Boulevard Puerto Aéreo", 19.419701, -99.096001],
   ["Buenavista", 19.446501, -99.153198],
+  ["Calle 11", 19.320463, -99.085734],
   ["Camarones", 19.4792, -99.190201],
   ["Canal de San Juan", 19.3985, -99.059303],
   ["Canal del Norte", 19.4489, -99.116096],
@@ -508,12 +511,14 @@ var STATION_COORDS = [
   ["Cuatro Caminos", 19.4596, -99.215897],
   ["Cuauhtémoc", 19.4259, -99.154701],
   ["Cuitláhuac", 19.4575, -99.182198],
+  ["Culhuacán", 19.337001, -99.10899],
   ["Deportivo 18 de Marzo", 19.483801, -99.126602],
   ["Deportivo Oceanía", 19.451, -99.079399],
   ["División del Norte", 19.379849, -99.159111],
   ["Doctores", 19.4217, -99.143303],
   ["Ecatepec", 19.515301, -99.036003],
   ["Eduardo Molina", 19.451401, -99.1054],
+  ["Eje Central", 19.361351, -99.151416],
   ["El Rosario", 19.504601, -99.200104],
   ["Ermita", 19.3619, -99.142899],
   ["Escuadrón 201", 19.365, -99.1092],
@@ -528,11 +533,13 @@ var STATION_COORDS = [
   ["Guerrero", 19.444799, -99.145401],
   ["Hangares", 19.4242, -99.087898],
   ["Hidalgo", 19.4373, -99.147102],
+  ["Hospital 20 de Noviembre", 19.372042, -99.171005],
   ["Hospital General", 19.413601, -99.1539],
   ["Impulsora", 19.485901, -99.048897],
   ["Indios Verdes", 19.495399, -99.119499],
   ["Instituto del Petróleo", 19.4908, -99.14709],
   ["Insurgentes", 19.423599, -99.162804],
+  ["Insurgentes Sur", 19.373581, -99.178762],
   ["Isabel la Católica", 19.4265, -99.137497],
   ["Iztacalco", 19.3887, -99.112198],
   ["Iztapalapa", 19.357901, -99.093498],
@@ -546,9 +553,11 @@ var STATION_COORDS = [
   ["Lagunilla", 19.4433, -99.130997],
   ["Lázaro Cárdenas", 19.4069, -99.144699],
   ["Lindavista", 19.4879, -99.134598],
+  ["Lomas Estrella", 19.322256, -99.096111],
   ["Los Reyes", 19.358999, -98.976898],
   ["Martín Carrera", 19.485001, -99.104401],
   ["Merced", 19.425501, -99.124702],
+  ["Mexicaltzingo", 19.357671, -99.121852],
   ["Miguel Ángel de Quevedo", 19.3468, -99.181],
   ["Misterios", 19.4634, -99.130798],
   ["Mixcoac", 19.3762, -99.187798],
@@ -559,16 +568,20 @@ var STATION_COORDS = [
   ["Nativitas", 19.379499, -99.140198],
   ["Nezahualcóyotl", 19.473101, -99.054497],
   ["Niños Héroes", 19.421, -99.150497],
+  ["Nopalera", 19.29997, -99.046049],
   ["Normal", 19.444401, -99.167397],
   ["Norte 45", 19.488899, -99.163498],
   ["Obrera", 19.413099, -99.144096],
   ["Observatorio", 19.398551, -99.200449],
   ["Oceanía", 19.445801, -99.087196],
   ["Olímpica", 19.521299, -99.033401],
+  ["Olivos", 19.304275, -99.059385],
   ["Panteones", 19.458799, -99.203201],
   ["Pantitlán", 19.4154, -99.072197],
+  ["Parque de los Venados", 19.370662, -99.158716],
   ["Patriotismo", 19.4062, -99.178902],
   ["Peñón Viejo", 19.373301, -99.017097],
+  ["Periférico Oriente", 19.317673, -99.074647],
   ["Pino Suárez", 19.4259, -99.133202],
   ["Plaza Aragón", 19.5285, -99.030197],
   ["Polanco", 19.433701, -99.190697],
@@ -583,6 +596,7 @@ var STATION_COORDS = [
   ["Río de los Remedios", 19.490999, -99.0467],
   ["Romero Rubio", 19.4408, -99.094299],
   ["Salto del Agua", 19.4268, -99.142197],
+  ["San Andrés Tomatlán", 19.328306, -99.104868],
   ["San Antonio", 19.3848, -99.186302],
   ["San Antonio Abad", 19.418699, -99.134102],
   ["San Cosme", 19.441799, -99.161102],
@@ -600,7 +614,10 @@ var STATION_COORDS = [
   ["Tepalcates", 19.3913, -99.046402],
   ["Tepito", 19.442801, -99.123703],
   ["Terminal Aérea", 19.4338, -99.0877],
+  ["Tezonco", 19.306365, -99.065533],
   ["Tezozómoc", 19.494699, -99.19559],
+  ["Tláhuac", 19.28639, -99.01417],
+  ["Tlaltenco", 19.29438, -99.024104],
   ["Tlatelolco", 19.455218, -99.143164],
   ["UAM Azcapotzalco", 19.490999, -99.186401],
   ["UAM-I", 19.3508, -99.074699],
@@ -614,6 +631,7 @@ var STATION_COORDS = [
   ["Viveros", 19.353701, -99.176003],
   ["Xola", 19.395201, -99.137802],
   ["Zapata", 19.370701, -99.164902],
+  ["Zapotitlán", 19.296635, -99.034649],
   ["Zaragoza", 19.4123, -99.082397],
   ["Zócalo", 19.433001, -99.1325]
 ];

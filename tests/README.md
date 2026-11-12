@@ -473,13 +473,14 @@ hard mode toggle:
 leaderboard browser (no game state of its own to plant in
 `localStorage` - it just reads every game's own collection):
 - The date picker (the same prev/next chevrons as each game's own
-  `?debug=true` date-nav) and each game's "Ver este día en ___" deep
-  link are both hidden without `?debug=true`, shown only with it - and
+  `?debug=true` date-nav) is hidden without `?debug=true`, shown only
+  with it; each board's title links to its game with no params - and
   the sections this file covers degrade gracefully to an empty-state
   message when Firebase isn't reachable either way.
 - Under `?debug=true`, the date picker defaults to today; clicking the
   chevrons moves the shown date a real calendar day at a time, and each
-  game's deep link tracks whatever date is currently shown.
+  board title's link tracks whatever date is currently shown
+  (`?debug=true&date=`).
 - Real leaderboard data (stubbed via a route-intercepted, patched
   `shared.js`, since this sandboxed environment can't reach Firestore)
   renders with each game's own ranking and score formatting: Metrordle's

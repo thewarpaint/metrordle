@@ -71,9 +71,8 @@ async function main() {
   });
 
   test('adding Línea 12 keeps every earlier day\'s target, and its stations come up (and can be guessed) from LINE_12_CUTOVER_DATE_KEY on', async () => {
-    // Pinned from main before Línea 12's stations joined STATION_COORDS:
-    // one day per era (per-day pick, STATION_ORDER, the cutover's eve).
-    // 2026-12-01 is the first Línea 12 day of the new rotation.
+    // One pre-Línea 12 target per rotation era, pinned from main, plus
+    // the first Línea 12 day.
     const EXPECTED = {
       '2026-09-12': 'Viaducto',
       '2026-09-20': 'Buenavista',

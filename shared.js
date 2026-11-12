@@ -466,10 +466,9 @@ var STATION_ICON_SLUGS = {
 // lists/counts per line (name spelling normalized to match
 // shared.js; only cosmetic accent/slug differences found, no
 // coordinate conflicts across interchange stations). Línea 12's
-// 16 own stations weren't in that dataset - added later from each
-// station's Wikipedia article. Metroguessr keeps them out of its
-// pre-2026-11-14 picks (see its LINE_12_ADDED_STATIONS) - adding or
-// removing a row here needs the same care, or past puzzles change.
+// 16 own stations come from Wikipedia. Adding or removing a row
+// changes Metroguessr's past puzzles unless it's excluded there
+// (see its LINE_12_ADDED_STATIONS).
 var STATION_COORDS = [
   ["Acatitla", 19.3647, -99.005699],
   ["Aculco", 19.3738, -99.107697],

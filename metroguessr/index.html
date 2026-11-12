@@ -707,9 +707,8 @@
           return copy;
         }
 
-        // Línea 12's own stations joined STATION_COORDS after launch.
-        // Every pick before LINE_12_CUTOVER_DATE_KEY ignores them, so
-        // no already-played day's puzzle changes.
+        // Added to STATION_COORDS after launch; picks before
+        // LINE_12_CUTOVER_DATE_KEY ignore them so past days don't change.
         var LINE_12_ADDED_STATIONS = [
           'Calle 11', 'Culhuacán', 'Eje Central', 'Hospital 20 de Noviembre',
           'Insurgentes Sur', 'Lomas Estrella', 'Mexicaltzingo', 'Nopalera',
@@ -720,15 +719,8 @@
           .map(function (s) { return s[0]; })
           .filter(function (name) { return LINE_12_ADDED_STATIONS.indexOf(name) === -1; });
 
-        // A single fixed shuffle of every (pre-Línea 12) station, seeded
-        // once (not per day) - this guarantees no station repeats until
-        // every other one has come up, unlike picking independently at
-        // random each day the way this used to work, which could (and
-        // did - games #5 and #6 landed on the same station) put the
-        // same station up on two different days well before the full
-        // list was exhausted. Only used between
-        // NO_REPEAT_CUTOVER_DATE_KEY and LINE_12_CUTOVER_DATE_KEY - see
-        // pickLegacyTarget() below.
+        // One fixed shuffle, so no station repeats within a cycle (the
+        // per-day picks before it could: games #5 and #6 matched).
         var STATION_ORDER = shuffle(
           LEGACY_STATION_NAMES,
           MetroShared.createSeededRandom('metrordle-metroguessr-station-order')
@@ -736,17 +728,11 @@
 
         var START_DATE_KEY = '2026-09-12';
 
-        // Everything up to (not including) this date keeps the original
-        // per-day independent pick, exactly as it always worked -
-        // switching every past day over to the STATION_ORDER scheme
-        // would silently change what an already-played day's puzzle
-        // was for anyone replaying it via the debug date-nav, which is
-        // worse than the rare collision (see games #5 and #6 above)
-        // that prompted this fix in the first place.
+        // Days before this keep the original per-day pick, so
+        // already-played puzzles don't change.
         var NO_REPEAT_CUTOVER_DATE_KEY = '2026-09-18';
 
-        // From this date on the rotation includes Línea 12 - see
-        // LINE_12_CYCLE below.
+        // From this date the rotation is LINE_12_CYCLE.
         var LINE_12_CUTOVER_DATE_KEY = '2026-11-14';
         var LINE_12_CUTOVER_GAME_NUMBER = MetroShared.getGameNumberForDateKey(LINE_12_CUTOVER_DATE_KEY, START_DATE_KEY);
 
@@ -756,10 +742,8 @@
           return MetroShared.getDateKey(date);
         }
 
-        // The pick for any date before LINE_12_CUTOVER_DATE_KEY.
-        // dateKey and the cutover keys are all zero-padded 'YYYY-MM-DD'
-        // strings, so a plain string comparison already sorts
-        // chronologically - no Date parsing needed.
+        // The pick for dates before LINE_12_CUTOVER_DATE_KEY. Date keys
+        // are zero-padded, so string comparison sorts chronologically.
         function pickLegacyTarget(dateKey, gameNumber) {
           if (dateKey < NO_REPEAT_CUTOVER_DATE_KEY) {
             var rand = MetroShared.createSeededRandom('metrordle-metroguessr-' + dateKey);
@@ -767,22 +751,14 @@
             return LEGACY_STATION_NAMES[idx];
           }
 
-          // gameNumber - 1 indexes into the fixed STATION_ORDER
-          // permutation. Wrapped with an extra + STATION_ORDER.length
-          // before the final % so a gameNumber at or before
-          // START_DATE_KEY (reachable via the debug date-nav, where it
-          // can go to 0 or negative) still lands on a valid index.
+          // Double modulo: the debug date-nav can reach gameNumber <= 0.
           var orderIdx = (((gameNumber - 1) % STATION_ORDER.length) + STATION_ORDER.length) % STATION_ORDER.length;
           return STATION_ORDER[orderIdx];
         }
 
-        // One full cycle of every station: first the ones already
-        // played before the Línea 12 cutover (in the order they first
-        // came up), then a fixed shuffle of everything else - the
-        // legacy stations not played yet plus Línea 12's. The cutover
-        // day starts right after the already-played part, so nothing
-        // played before it repeats until the whole cycle is through,
-        // and later cycles just replay it.
+        // A full cycle: stations played before the cutover, then a fixed
+        // shuffle of the rest (unplayed + Línea 12). The cutover day
+        // starts at startIdx, so nothing repeats until all have come up.
         var LINE_12_CYCLE = (function () {
           var played = [];
           for (var gameNumber = 1; gameNumber < LINE_12_CUTOVER_GAME_NUMBER; gameNumber++) {

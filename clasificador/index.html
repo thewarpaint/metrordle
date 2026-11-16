@@ -453,7 +453,7 @@
           try {
             var raw = localStorage.getItem(storageKeyFor(dateKey));
             if (!raw) return null;
-            var parsed = JSON.parse(raw);
+            var parsed = MetroShared.migrateStationNames(JSON.parse(raw));
             if (!parsed || typeof parsed.total !== 'number' || !parsed.correctByLine) return null;
             return {
               total: parsed.total,

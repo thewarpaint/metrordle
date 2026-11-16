@@ -496,7 +496,7 @@
           try {
             var raw = localStorage.getItem(storageKeyFor(dateKey));
             if (!raw) return null;
-            var parsed = JSON.parse(raw);
+            var parsed = MetroShared.migrateStationNames(JSON.parse(raw));
             if (!parsed || typeof parsed.score !== 'number') return null;
             // matchedStations/leaderboardSubmitted were added after this
             // key's format shipped, so a result saved by an older version

@@ -281,6 +281,9 @@ loop with the real map stubbed (see `tests/lib/leaflet-stub.js`):
   be guessed for a win.
 - The Línea 12 notice is hidden before the cutover, shows from it on,
   and its × hides it for good (persisted in `localStorage`).
+- Renamed stations: `migrateStationNames()` maps old saved names, every
+  `LINES` name has coordinates and an icon slug, and the typeahead
+  ignores spaces/punctuation.
 - A wrong guess adds exactly one distance+direction history chip;
   guessing the real target ends the round immediately as a win.
 - Five wrong guesses end the round as a loss, with the station name

@@ -76,7 +76,7 @@ async function main() {
       await stubNativeShare(page);
       await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
       await plantState(page, DATE, [
-        { name: 'Zócalo', dist: 3.2, correct: false },
+        { name: 'Zócalo / Tenochtitlán', dist: 3.2, correct: false },
         { name: 'Chapultepec', dist: 0, correct: true },
       ], 1);
       await page.reload({ waitUntil: 'networkidle' });
@@ -111,7 +111,7 @@ async function main() {
       await stubNativeShare(page);
       await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=' + DATE, { waitUntil: 'networkidle' });
       await plantState(page, DATE, [
-        { name: 'Zócalo', dist: 3.2, correct: false },
+        { name: 'Zócalo / Tenochtitlán', dist: 3.2, correct: false },
         { name: 'Pantitlán', dist: 7.1, correct: false },
         { name: 'Chapultepec', dist: 0, correct: true },
       ], 2);

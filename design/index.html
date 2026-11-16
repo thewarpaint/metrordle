@@ -206,7 +206,7 @@
         var STATION_SAMPLE = [
           { name: 'Pantitlán', lineId: '9' },
           { name: 'Tacubaya', lineId: '7' },
-          { name: 'Zócalo', lineId: '2' },
+          { name: 'Zócalo / Tenochtitlán', lineId: '2' },
           { name: 'Insurgentes', lineId: '1' },
         ];
 
@@ -231,7 +231,7 @@
           { name: 'Autobuses del Norte', lineId: '5' },
           { name: 'El Rosario', lineId: '6' },
           { name: 'Tezozómoc', lineId: '6' },
-          { name: 'UAM Azcapotzalco', lineId: '6' },
+          { name: 'UAM - Azcapotzalco', lineId: '6' },
         ];
 
         function lineById(id) {
@@ -483,7 +483,7 @@
             { name: 'Tacuba', correct: true },
             { name: 'Hidalgo', correct: true },
             { name: 'Bellas Artes', correct: false },
-            { name: 'Zócalo', correct: false },
+            { name: 'Zócalo / Tenochtitlán', correct: false },
             { name: 'Pino Suárez', correct: true },
           ];
 
@@ -571,7 +571,7 @@
 
           // A real 11-stop route with two transfers - long enough to show
           // a 2-digit step number in the optimal-path list below.
-          // Garibaldi/Lagunilla (origin, no line of its own - nothing
+          // Garibaldi / Lagunilla (origin, no line of its own - nothing
           // was ridden to get there) to Bellas Artes via Línea 8,
           // transferring there onto Línea 2 through Zócalo and Pino
           // Suárez (same line several times in a row shows the dot
@@ -580,10 +580,10 @@
           // optimal-path examples below - same route, shown live
           // (growing as you play) and as the post-round summary.
           var OPTIMAL_PATH_SAMPLE = [
-            { name: 'Garibaldi/Lagunilla', lineId: null },
+            { name: 'Garibaldi / Lagunilla', lineId: null },
             { name: 'Bellas Artes', lineId: '8' },
             { name: 'Allende', lineId: '2' },
-            { name: 'Zócalo', lineId: '2' },
+            { name: 'Zócalo / Tenochtitlán', lineId: '2' },
             { name: 'Pino Suárez', lineId: '2' },
             { name: 'Merced', lineId: '1' },
             { name: 'Candelaria', lineId: '1' },
@@ -721,7 +721,7 @@
           gallery.appendChild(buildExample(info, '<code>.notice--info</code> · ✅ consolidado - Clasificador, sin ganar/perder (cada ronda se envía sin importar el puntaje) - antes coloreada con <code>--line</code>, el de la línea del día; ahora un azul fijo, igual en cualquier día.'));
 
           var guessr = document.createElement('div');
-          MetroShared.renderNoticeBanner(guessr, 'notice--error', 'Se acabaron los intentos', '🔥 ' + MetroShared.formatStreak(0) + '. La estación era: Zócalo.');
+          MetroShared.renderNoticeBanner(guessr, 'notice--error', 'Se acabaron los intentos', '🔥 ' + MetroShared.formatStreak(0) + '. La estación era: Zócalo / Tenochtitlán.');
           gallery.appendChild(buildExample(guessr, '<code>.notice</code> · ✅ consolidado - Metroguessr al perder, con el nombre de la estación acoplado al texto en vez de en su propia línea como antes; al ganar, ese nombre se omite por completo - ya lo acertaste.'));
         }
 

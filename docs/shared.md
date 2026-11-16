@@ -30,6 +30,14 @@
   station's Wikipedia article. Metroguessr's daily pick depends on this
   table: adding or removing a row changes past puzzles unless the game
   excludes it from earlier dates - see `docs/games/metroguessr.md`).
+  **Renaming a station** (five were, to match current signage: Zócalo /
+  Tenochtitlán, Ferrería / Arena CDMX, Garibaldi / Lagunilla, UAM - I,
+  UAM - Azcapotzalco): change the name in place in all three tables
+  (same row/key position - Metroguessr's shuffle indexes by position, so
+  puzzles don't move) and add old -> new to `RENAMED_STATIONS`. Every
+  game that saves station names runs its parsed save through
+  `MetroShared.migrateStationNames()`, so a round saved under the old
+  name still restores. Icon slugs don't change.
 - **`shared.css`** - design tokens (`:root` custom properties, light +
   dark via `prefers-color-scheme` and `[data-theme]`), the embedded
   Overpass font (base64 `@font-face`, huge single line - don't `cat`

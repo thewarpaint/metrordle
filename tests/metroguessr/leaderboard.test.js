@@ -162,7 +162,7 @@ async function main() {
       // up the guess's own coordinates by name to compute a bearing;
       // a name that isn't a real station throws instead of rendering.
       await plantState(page, DATE, [
-        { name: 'Zócalo', dist: 4, correct: false },
+        { name: 'Zócalo / Tenochtitlán', dist: 4, correct: false },
         { name: 'Chapultepec', dist: 3, correct: false },
         { name: 'Pantitlán', dist: 2, correct: false },
         { name: 'Tacubaya', dist: 1, correct: false },

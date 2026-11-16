@@ -119,7 +119,7 @@ async function main() {
 
       const guessrText = await page.locator('#notices-gallery .design-example').nth(3).locator('.notice--error').textContent();
       assert.ok(guessrText.indexOf('Racha: 0 días') !== -1, 'expected Metroguessr\'s own notice to include a streak: ' + guessrText);
-      assert.ok(guessrText.indexOf('La estación era: Zócalo') !== -1, 'expected Metroguessr\'s own notice (a loss) to include the station name: ' + guessrText);
+      assert.ok(guessrText.indexOf('La estación era: Zócalo / Tenochtitlán') !== -1, 'expected Metroguessr\'s own notice (a loss) to include the station name: ' + guessrText);
 
       const formExamples = await page.locator('#forms-gallery .design-example').count();
       assert.strictEqual(formExamples, 11, 'expected 11 form examples (buttons, guess button, alias field, search field, mode modal, overlay modes, persistent picker, date-nav chevrons, reorder chevrons, debug mode toggle, map maximize button)');

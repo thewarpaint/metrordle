@@ -139,6 +139,45 @@ async function main() {
     }
   });
 
+  test('renamed stations: old saved names migrate, every name keeps its icon and coordinates, and search ignores spaces and punctuation', async () => {
+    const context = await browser.newContext({ viewport: { width: 400, height: 900 } });
+    const page = await context.newPage();
+    try {
+      await stubMap(page);
+      await page.goto(server.baseUrl + '/metroguessr/?debug=true&date=2026-09-21', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+
+      const migrated = await page.evaluate(() => MetroShared.migrateStationNames({
+        guesses: [{ name: 'Zócalo' }, { name: 'UAM-I' }, { name: 'Tacuba' }],
+        byStation: { 'Garibaldi/Lagunilla': ['Ferrería', 'UAM Azcapotzalco'] },
+        done: true,
+      }));
+      assert.deepStrictEqual(migrated, {
+        guesses: [{ name: 'Zócalo / Tenochtitlán' }, { name: 'UAM - I' }, { name: 'Tacuba' }],
+        byStation: { 'Garibaldi / Lagunilla': ['Ferrería / Arena CDMX', 'UAM - Azcapotzalco'] },
+        done: true,
+      });
+
+      const orphans = await page.evaluate(() => {
+        const coords = {};
+        MetroShared.STATION_COORDS.forEach((s) => { coords[s[0]] = true; });
+        const names = [];
+        MetroShared.LINES.forEach((line) => line.stations.forEach((name) => { names.push(name); }));
+        return names.filter((name) => !coords[name] || !MetroShared.STATION_ICON_SLUGS[name]);
+      });
+      assert.deepStrictEqual(orphans, [], 'every station in LINES needs coordinates and an icon slug');
+
+      const QUERIES = { 'uam-i': 'UAM - I', 'uam azc': 'UAM - Azcapotzalco', 'garibaldi/lag': 'Garibaldi / Lagunilla', 'zocalo': 'Zócalo / Tenochtitlán', 'ferreria': 'Ferrería / Arena CDMX' };
+      for (const query of Object.keys(QUERIES)) {
+        await page.fill('#guess-input', query);
+        await page.waitForTimeout(80);
+        assert.strictEqual(await page.locator('.suggestion').first().textContent(), QUERIES[query], 'unexpected first suggestion for "' + query + '"');
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
   test('a wrong guess adds a distance+direction history chip; a correct guess ends the round as a win', async () => {
     const DATE = '2026-09-21';
     const context = await browser.newContext({ viewport: { width: 400, height: 900 } });

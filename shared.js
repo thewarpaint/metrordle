@@ -278,23 +278,50 @@ var DEBUG_STORAGE_KEY = 'metrordle:debug';
 
 var LINES = [
   { id: '1', name: 'Línea 1', color: '#ec2a7b', textColor: '#ffffff', stations: ['Observatorio', 'Tacubaya', 'Juanacatlán', 'Chapultepec', 'Sevilla', 'Insurgentes', 'Cuauhtémoc', 'Balderas', 'Salto del Agua', 'Isabel la Católica', 'Pino Suárez', 'Merced', 'Candelaria', 'San Lázaro', 'Moctezuma', 'Balbuena', 'Boulevard Puerto Aéreo', 'Gómez Farías', 'Zaragoza', 'Pantitlán'] },
-  { id: '2', name: 'Línea 2', color: '#0057a8', textColor: '#ffffff', stations: ['Cuatro Caminos', 'Panteones', 'Tacuba', 'Cuitláhuac', 'Popotla', 'Colegio Militar', 'Normal', 'San Cosme', 'Revolución', 'Hidalgo', 'Bellas Artes', 'Allende', 'Zócalo', 'Pino Suárez', 'San Antonio Abad', 'Chabacano', 'Viaducto', 'Xola', 'Villa de Cortés', 'Nativitas', 'Portales', 'Ermita', 'General Anaya', 'Tasqueña'] },
+  { id: '2', name: 'Línea 2', color: '#0057a8', textColor: '#ffffff', stations: ['Cuatro Caminos', 'Panteones', 'Tacuba', 'Cuitláhuac', 'Popotla', 'Colegio Militar', 'Normal', 'San Cosme', 'Revolución', 'Hidalgo', 'Bellas Artes', 'Allende', 'Zócalo / Tenochtitlán', 'Pino Suárez', 'San Antonio Abad', 'Chabacano', 'Viaducto', 'Xola', 'Villa de Cortés', 'Nativitas', 'Portales', 'Ermita', 'General Anaya', 'Tasqueña'] },
   { id: '3', name: 'Línea 3', color: '#8f8f00', textColor: '#ffffff', stations: ['Indios Verdes', 'Deportivo 18 de Marzo', 'Potrero', 'La Raza', 'Tlatelolco', 'Guerrero', 'Hidalgo', 'Juárez', 'Balderas', 'Niños Héroes', 'Hospital General', 'Centro Médico', 'Etiopía', 'Eugenia', 'División del Norte', 'Zapata', 'Coyoacán', 'Viveros', 'Miguel Ángel de Quevedo', 'Copilco', 'Universidad'] },
   { id: '4', name: 'Línea 4', color: '#00a99d', textColor: '#ffffff', stations: ['Martín Carrera', 'Talismán', 'Bondojito', 'Consulado', 'Canal del Norte', 'Morelos', 'Candelaria', 'Fray Servando', 'Jamaica', 'Santa Anita'] },
   { id: '5', name: 'Línea 5', color: '#ffcd00', textColor: '#1a1a1a', stations: ['Politécnico', 'Instituto del Petróleo', 'Autobuses del Norte', 'La Raza', 'Misterios', 'Valle Gómez', 'Consulado', 'Eduardo Molina', 'Aragón', 'Oceanía', 'Terminal Aérea', 'Hangares', 'Pantitlán'] },
-  { id: '6', name: 'Línea 6', color: '#e2231a', textColor: '#ffffff', stations: ['El Rosario', 'Tezozómoc', 'UAM Azcapotzalco', 'Ferrería', 'Norte 45', 'Vallejo', 'Instituto del Petróleo', 'Lindavista', 'Deportivo 18 de Marzo', 'La Villa / Basílica', 'Martín Carrera'] },
+  { id: '6', name: 'Línea 6', color: '#e2231a', textColor: '#ffffff', stations: ['El Rosario', 'Tezozómoc', 'UAM - Azcapotzalco', 'Ferrería / Arena CDMX', 'Norte 45', 'Vallejo', 'Instituto del Petróleo', 'Lindavista', 'Deportivo 18 de Marzo', 'La Villa / Basílica', 'Martín Carrera'] },
   { id: '7', name: 'Línea 7', color: '#f68b1f', textColor: '#1a1a1a', stations: ['El Rosario', 'Aquiles Serdán', 'Camarones', 'Refinería', 'Tacuba', 'San Joaquín', 'Polanco', 'Auditorio', 'Constituyentes', 'Tacubaya', 'San Pedro de los Pinos', 'San Antonio', 'Mixcoac', 'Barranca del Muerto'] },
-  { id: '8', name: 'Línea 8', color: '#0e8a4b', textColor: '#ffffff', stations: ['Garibaldi/Lagunilla', 'Bellas Artes', 'San Juan de Letrán', 'Salto del Agua', 'Doctores', 'Obrera', 'Chabacano', 'La Viga', 'Santa Anita', 'Coyuya', 'Iztacalco', 'Apatlaco', 'Aculco', 'Escuadrón 201', 'Atlalilco', 'Iztapalapa', 'Cerro de la Estrella', 'UAM-I', 'Constitución de 1917'] },
+  { id: '8', name: 'Línea 8', color: '#0e8a4b', textColor: '#ffffff', stations: ['Garibaldi / Lagunilla', 'Bellas Artes', 'San Juan de Letrán', 'Salto del Agua', 'Doctores', 'Obrera', 'Chabacano', 'La Viga', 'Santa Anita', 'Coyuya', 'Iztacalco', 'Apatlaco', 'Aculco', 'Escuadrón 201', 'Atlalilco', 'Iztapalapa', 'Cerro de la Estrella', 'UAM - I', 'Constitución de 1917'] },
   { id: '9', name: 'Línea 9', color: '#6d4c33', textColor: '#ffffff', stations: ['Tacubaya', 'Patriotismo', 'Chilpancingo', 'Centro Médico', 'Lázaro Cárdenas', 'Chabacano', 'Jamaica', 'Mixiuhca', 'Velódromo', 'Ciudad Deportiva', 'Puebla', 'Pantitlán'] },
   { id: 'A', name: 'Línea A', color: '#8e2c8f', textColor: '#ffffff', stations: ['Pantitlán', 'Agrícola Oriental', 'Canal de San Juan', 'Tepalcates', 'Guelatao', 'Peñón Viejo', 'Acatitla', 'Santa Marta', 'Los Reyes', 'La Paz'] },
   { id: '12', name: 'Línea 12', color: '#a67c00', textColor: '#ffffff', stations: ['Mixcoac', 'Insurgentes Sur', 'Hospital 20 de Noviembre', 'Zapata', 'Parque de los Venados', 'Eje Central', 'Ermita', 'Mexicaltzingo', 'Atlalilco', 'Culhuacán', 'San Andrés Tomatlán', 'Lomas Estrella', 'Calle 11', 'Periférico Oriente', 'Tezonco', 'Olivos', 'Nopalera', 'Zapotitlán', 'Tlaltenco', 'Tláhuac'] },
-  { id: 'B', name: 'Línea B', color: '#6b8570', textColor: '#ffffff', stations: ['Buenavista', 'Guerrero', 'Garibaldi/Lagunilla', 'Lagunilla', 'Tepito', 'Morelos', 'San Lázaro', 'Ricardo Flores Magón', 'Romero Rubio', 'Oceanía', 'Deportivo Oceanía', 'Bosque de Aragón', 'Villa de Aragón', 'Nezahualcóyotl', 'Impulsora', 'Río de los Remedios', 'Múzquiz', 'Ecatepec', 'Olímpica', 'Plaza Aragón', 'Ciudad Azteca'] },
+  { id: 'B', name: 'Línea B', color: '#6b8570', textColor: '#ffffff', stations: ['Buenavista', 'Guerrero', 'Garibaldi / Lagunilla', 'Lagunilla', 'Tepito', 'Morelos', 'San Lázaro', 'Ricardo Flores Magón', 'Romero Rubio', 'Oceanía', 'Deportivo Oceanía', 'Bosque de Aragón', 'Villa de Aragón', 'Nezahualcóyotl', 'Impulsora', 'Río de los Remedios', 'Múzquiz', 'Ecatepec', 'Olímpica', 'Plaza Aragón', 'Ciudad Azteca'] },
 ];
 
 // Station name -> pictogram slug, resolved against the symbols in
 // station-icons.svg. Stations without an entry (or whose slug has no
 // matching <symbol>) simply render without an icon - each game's own
 // render code is responsible for that fallback.
+// Stations renamed after launch (old -> current). Saved rounds may still
+// hold the old names - see migrateStationNames().
+var RENAMED_STATIONS = {
+  'Zócalo': 'Zócalo / Tenochtitlán',
+  'Ferrería': 'Ferrería / Arena CDMX',
+  'Garibaldi/Lagunilla': 'Garibaldi / Lagunilla',
+  'UAM-I': 'UAM - I',
+  'UAM Azcapotzalco': 'UAM - Azcapotzalco',
+};
+
+// Returns a copy of a parsed saved state with every old station name
+// (string value or object key, at any depth) swapped for its current one.
+function migrateStationNames(value) {
+  if (typeof value === 'string') {
+    return Object.prototype.hasOwnProperty.call(RENAMED_STATIONS, value) ? RENAMED_STATIONS[value] : value;
+  }
+  if (Array.isArray(value)) return value.map(migrateStationNames);
+  if (value && typeof value === 'object') {
+    var out = {};
+    Object.keys(value).forEach(function (key) {
+      out[migrateStationNames(key)] = migrateStationNames(value[key]);
+    });
+    return out;
+  }
+  return value;
+}
+
 var STATION_ICON_SLUGS = {
   'Observatorio': 'observatorio',
   'Tacubaya': 'tacubaya',
@@ -328,7 +355,7 @@ var STATION_ICON_SLUGS = {
   'Hidalgo': 'hidalgo',
   'Bellas Artes': 'bellas-artes',
   'Allende': 'allende',
-  'Zócalo': 'zocalo',
+  'Zócalo / Tenochtitlán': 'zocalo',
   'San Antonio Abad': 'san-antonio-abad',
   'Chabacano': 'chabacano',
   'Viaducto': 'viaducto',
@@ -379,8 +406,8 @@ var STATION_ICON_SLUGS = {
   'Hangares': 'hangares',
   'El Rosario': 'el-rosario',
   'Tezozómoc': 'tezozomoc',
-  'UAM Azcapotzalco': 'azcapotzalco',
-  'Ferrería': 'ferreria',
+  'UAM - Azcapotzalco': 'azcapotzalco',
+  'Ferrería / Arena CDMX': 'ferreria',
   'Norte 45': 'norte-45',
   'Vallejo': 'vallejo',
   'Lindavista': 'lindavista',
@@ -396,7 +423,7 @@ var STATION_ICON_SLUGS = {
   'San Antonio': 'san-antonio',
   'Mixcoac': 'mixcoac',
   'Barranca del Muerto': 'barranca-del-muerto',
-  'Garibaldi/Lagunilla': 'garibaldi',
+  'Garibaldi / Lagunilla': 'garibaldi',
   'San Juan de Letrán': 'san-juan-de-letran',
   'Doctores': 'doctores',
   'Obrera': 'obrera',
@@ -409,7 +436,7 @@ var STATION_ICON_SLUGS = {
   'Atlalilco': 'atlalilco',
   'Iztapalapa': 'iztapalapa',
   'Cerro de la Estrella': 'cerro-de-la-estrella',
-  'UAM-I': 'uam',
+  'UAM - I': 'uam',
   'Constitución de 1917': 'constitucion-de-1917',
   'Patriotismo': 'patriotismo',
   'Chilpancingo': 'chilpancingo',
@@ -523,9 +550,9 @@ var STATION_COORDS = [
   ["Escuadrón 201", 19.365, -99.1092],
   ["Etiopía", 19.395599, -99.156303],
   ["Eugenia", 19.3855, -99.157501],
-  ["Ferrería", 19.490499, -99.173897],
+  ["Ferrería / Arena CDMX", 19.490499, -99.173897],
   ["Fray Servando", 19.4217, -99.120499],
-  ["Garibaldi/Lagunilla", 19.444401, -99.139801],
+  ["Garibaldi / Lagunilla", 19.444401, -99.139801],
   ["General Anaya", 19.3533, -99.144997],
   ["Gómez Farías", 19.4158, -99.090302],
   ["Guelatao", 19.385099, -99.035599],
@@ -618,8 +645,8 @@ var STATION_COORDS = [
   ["Tláhuac", 19.28639, -99.01417],
   ["Tlaltenco", 19.29438, -99.024104],
   ["Tlatelolco", 19.455218, -99.143164],
-  ["UAM Azcapotzalco", 19.490999, -99.186401],
-  ["UAM-I", 19.3508, -99.074699],
+  ["UAM - Azcapotzalco", 19.490999, -99.186401],
+  ["UAM - I", 19.3508, -99.074699],
   ["Universidad", 19.324499, -99.174004],
   ["Valle Gómez", 19.4594, -99.119499],
   ["Vallejo", 19.490299, -99.155602],
@@ -632,7 +659,7 @@ var STATION_COORDS = [
   ["Zapata", 19.370701, -99.164902],
   ["Zapotitlán", 19.296635, -99.034649],
   ["Zaragoza", 19.4123, -99.082397],
-  ["Zócalo", 19.433001, -99.1325]
+  ["Zócalo / Tenochtitlán", 19.433001, -99.1325]
 ];
 
 // The OS-level media query OR this site's own "Animaciones limitadas"
@@ -2232,6 +2259,7 @@ window.MetroShared = {
   buildStationMasks: buildStationMasks,
   buildToolbarIcon: buildToolbarIcon,
   STATION_COORDS: STATION_COORDS,
+  migrateStationNames: migrateStationNames,
   hashStringToInt: hashStringToInt,
   createSeededRandom: createSeededRandom,
   pad2: pad2,

@@ -77,3 +77,6 @@
   top of the `.panel`) announces Línea 12; its × persists
   `metroguessr:line-12-notice-dismissed` in `localStorage`, after which
   it never shows again - same pattern as Laberinto's scoring notice.
+  The guess typeahead matches on `searchKey()` (accents, spaces and
+  punctuation dropped), so "uam-i" or "garibaldi/lag" still find
+  "UAM - I" / "Garibaldi / Lagunilla".

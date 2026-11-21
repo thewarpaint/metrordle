@@ -152,7 +152,7 @@
         font-size: 0.82rem;
         line-height: 1.4;
         margin: 0;
-        padding: 0.35rem 1.1rem 0.2rem;
+        padding: 0.35rem 1.1rem 0.9rem;
       }
 
       .clue {
@@ -176,6 +176,20 @@
         text-align: right;
         color: var(--ink-soft);
         font-variant-numeric: tabular-nums;
+      }
+
+      /* Pistas lay out as [line badge][meaning] in a flex row, so a meaning
+         that wraps stays in its own column instead of flowing back under the
+         badge. (Respuestas stack head/senses/etymology, so they keep the
+         default block flow.) */
+      .clue:not(.clue--answer) {
+        display: flex;
+        align-items: baseline;
+      }
+
+      .clue:not(.clue--answer) .clue__text {
+        flex: 1;
+        min-width: 0;
       }
 
       .clue__word {

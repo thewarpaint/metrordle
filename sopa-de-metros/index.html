@@ -187,7 +187,7 @@
       /* Respuestas rows: lines + station name, then each sense (meaning +
          its [n] citation) and a muted etymology line under it. */
       .clue__answer-head {
-        margin-bottom: 0.1rem;
+        margin-bottom: 0.3rem;
       }
 
       .clue__sense {
@@ -226,7 +226,7 @@
       .refs-list {
         list-style: none;
         margin: 0;
-        padding: 0.35rem 1.1rem 0.2rem;
+        padding: 0.35rem 1.1rem 1rem;
         font-size: 0.76rem;
         line-height: 1.4;
         color: var(--ink-soft);
@@ -968,6 +968,7 @@
             progressFill: $('progress-fill'),
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),
+            actions: document.querySelector('.actions'),
             sign: document.querySelector('.sign'),
             progressTrack: document.querySelector('.progress__track'),
             fx: $('celebration-fx'),
@@ -985,11 +986,17 @@
           });
 
           // "Nueva sopa" discards today's saved progress and deals a fresh
-          // random board (itself not persisted - a prototyping replay).
-          els.restartBtn.addEventListener('click', function () {
-            try { localStorage.removeItem(storageKey); } catch (e) {}
-            newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2), null);
-          });
+          // random board (itself not persisted - a prototyping replay). It's
+          // a dev-only replay, so it's shown only under ?debug=true; everyone
+          // else just gets the one daily board.
+          if (MetroShared.isDebugMode()) {
+            els.restartBtn.addEventListener('click', function () {
+              try { localStorage.removeItem(storageKey); } catch (e) {}
+              newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2), null);
+            });
+          } else if (els.actions) {
+            els.actions.hidden = true;
+          }
 
           newGame('metrordle-sopa-' + dateKey, storageKey);
         }

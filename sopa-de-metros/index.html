@@ -152,7 +152,7 @@
         font-size: 0.82rem;
         line-height: 1.4;
         margin: 0;
-        padding: 0.35rem 1.1rem 0.2rem;
+        padding: 0.35rem 1.1rem 0.9rem;
       }
 
       .clue {
@@ -178,20 +178,91 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* Pistas lay out as [line badge][meaning] in a flex row, so a meaning
+         that wraps stays in its own column instead of flowing back under the
+         badge. (Respuestas stack head/senses/etymology, so they keep the
+         default block flow.) */
+      .clue:not(.clue--answer) {
+        display: flex;
+        align-items: baseline;
+      }
+
+      .clue:not(.clue--answer) .clue__text {
+        flex: 1;
+        min-width: 0;
+      }
+
       .clue__word {
         font-weight: 800;
         letter-spacing: 0.03em;
         text-transform: uppercase;
       }
 
-      /* Respuestas rows are two lines: lines + station name, then the
-         meaning on its own line (room for more content later). */
+      /* Respuestas rows: lines + station name, then each sense (meaning +
+         its [n] citation) and a muted etymology line under it. */
       .clue__answer-head {
-        margin-bottom: 0.1rem;
+        margin-bottom: 0.3rem;
       }
 
-      .clue--answer .clue__text {
+      .clue__sense {
         display: block;
+      }
+
+      /* Inline citation marker linking to the Referencias entry below.
+         Rendered only on solved answers, so it never reveals an unfound
+         word (the reference URL carries the station name). */
+      .clue__ref {
+        color: var(--focus);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-decoration: none;
+        margin-left: 0.2rem;
+        white-space: nowrap;
+      }
+
+      .clue__ref:hover,
+      .clue__ref:focus-visible {
+        text-decoration: underline;
+      }
+
+      /* Morphological breakdown under a solved meaning (authoritative
+         source per station - see the Referencias list). */
+      .clue__etym {
+        color: var(--ink-soft);
+        font-size: 0.74rem;
+        font-style: italic;
+        opacity: 0.85;
+        margin: 0.05rem 0 0.25rem;
+      }
+
+      /* Referencias list at the page bottom; mirrors the [n] markers and,
+         like them, lists only solved stations' sources. */
+      .refs-list {
+        list-style: none;
+        margin: 0;
+        padding: 0.35rem 1.1rem 1rem;
+        font-size: 0.76rem;
+        line-height: 1.4;
+        color: var(--ink-soft);
+      }
+
+      .refs-list li {
+        margin-bottom: 0.4rem;
+      }
+
+      .refs-list li:last-child {
+        margin-bottom: 0;
+      }
+
+      .ref__num {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        margin-right: 0.3rem;
+      }
+
+      .refs-list a {
+        color: var(--focus);
+        word-break: break-word;
       }
 
       /* The station's line roundel(s), leading the clue on its text line.
@@ -243,7 +314,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Sopa de metros: noviembre</h1>
+          <h1>Sopa de metros: diciembre</h1>
           <p class="sign__sub">Topónimos del náhuatl</p>
           <p class="dek">Encuentra 10 estaciones del Metro en la cuadrícula. Para cada estación la pista es el significado de un topónimo de origen náhuatl y la línea en la que se encuentra.</p>
           <p class="dek">Toca una letra y continúa tocando casillas adyacentes en la misma dirección para seleccionar una palabra. Están ocultas en sentido horizontal, vertical o diagonal. Una letra puede ser compartida por más de una palabra.</p>
@@ -274,6 +345,11 @@
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
         </div>
 
+        <div class="clue-group" id="refs-group" hidden>
+          <h2 class="clue-group__title">Referencias</h2>
+          <ol class="refs-list" id="refs-list"></ol>
+        </div>
+
         <canvas id="celebration-fx" class="celebration-fx" aria-hidden="true"></canvas>
       </div>
 
@@ -288,26 +364,63 @@
         var GRID = 12;
         var WORD_COUNT = 10;
         var SHADES = 4; // green shades cycled so touching found words differ
-        // Metro-themed Spanish words (uppercase, accent-free so each maps
-        // to one grid cell) each paired with a clue - the player sees only
-        // the clue until the word is found. 10 pairs are drawn per board.
-        // Topónimos en náhuatl: cada pista da el significado del nombre
-        // y la(s) línea(s) donde está la estación (verificadas contra
-        // MetroShared.LINES). Son exactamente WORD_COUNT, así que el
-        // shuffle solo varía dónde caen, no cuáles salen.
-        // clue is just the toponym's meaning; lineIds are the station's
-        // line ids (MetroShared.LINES), rendered as a leading badge.
+        // Authoritative source for each toponym's meaning, cited as "[n]"
+        // on the solved answer and linked from the Referencias list at the
+        // page bottom. The index IS the [n] citation number.
+        var REFERENCES = [
+          { label: 'INAH — "Aculco, lugar donde se tuerce el agua"', url: 'https://www.inah.gob.mx/foto-del-dia/aculco-lugar-donde-se-tuerce-el-agua' },
+          { label: 'Gran Diccionario Náhuatl (IIB-UNAM) — coyohuacan', url: 'https://gdn.iib.unam.mx/diccionario/coyohuacan/188807' },
+          { label: 'Gran Diccionario Náhuatl (IIB-UNAM) — colhuacan', url: 'https://gdn.iib.unam.mx/diccionario/colhuacan/174911' },
+          { label: 'C. Montemayor, Diccionario del náhuatl en el español de México (vía Wikipedia)', url: 'https://es.wikipedia.org/wiki/Culhuac%C3%A1n' },
+          { label: 'Excélsior — "¿Qué significa Mixcoac?"', url: 'https://www.excelsior.com.mx/estilo-de-vida/que-significa-mixcoac-historia-barrio-iconico-cdmx' },
+          { label: 'Arqueología Mexicana — "Metro Mixiuhca…"', url: 'https://arqueologiamexicana.mx/mexico-antiguo/metro-mixiuhca' },
+          { label: 'Arqueología Mexicana — "El ícono del metro Pantitlán"', url: 'https://arqueologiamexicana.mx/mexico-antiguo/el-icono-del-metro-pantitlan' },
+          { label: 'Gran Diccionario Náhuatl (IIB-UNAM) — popotl', url: 'https://gdn.iib.unam.mx/diccionario/popotl/60435' },
+          { label: 'Noticonquista (UNAM) — Tacuba / Tlacopan', url: 'https://www.noticonquista.unam.mx/lugar/139/1838' },
+          { label: 'Gran Diccionario Náhuatl (IIB-UNAM) — tlatelolco', url: 'https://gdn.iib.unam.mx/diccionario/tlatelolco/71560' },
+          { label: 'Gran Diccionario Náhuatl (IIB-UNAM) — tzapotl', url: 'https://gdn.iib.unam.mx/diccionario/tzapotl/189083' },
+        ];
+
+        // Metro-themed station words (uppercase, accent-free so each maps to
+        // one grid cell). The player sees only the meaning (the "pista")
+        // until the word is found; the solved answer also shows an
+        // etymology breakdown and a [n] citation into REFERENCES. All 10 are
+        // drawn per board, so the shuffle only varies where they fall.
+        // - senses: one or more meanings for the toponym (Culhuacán has two
+        //   attested readings), each with its etymology and source ref.
+        // - lineIds: the station's MetroShared.LINES ids, shown as badges.
         var WORD_POOL = [
-          { word: 'ACULCO', clue: '"En el agua torcida"', lineIds: ['8'] },
-          { word: 'COYOACAN', clue: '"Lugar de coyotes"', lineIds: ['3'] },
-          { word: 'CULHUACAN', clue: '"Lugar de quienes tienen abuelos"', lineIds: ['12'] },
-          { word: 'MIXCOAC', clue: '"Lugar de la serpiente de nubes"', lineIds: ['7', '12'] },
-          { word: 'MIXIUHCA', clue: '"Lugar del parto"', lineIds: ['9'] },
-          { word: 'PANTITLAN', clue: '"Entre las banderas"', lineIds: ['1', '5', '9', 'A'] },
-          { word: 'POPOTLA', clue: '"Donde abundan los popotes"', lineIds: ['2'] },
-          { word: 'TACUBA', clue: 'Del náhuatl Tlacopan, "sobre las varas"', lineIds: ['2', '7'] },
-          { word: 'TLATELOLCO', clue: '"En el montículo de tierra"', lineIds: ['3'] },
-          { word: 'ZAPOTITLAN', clue: '"Donde abundan los zapotes"', lineIds: ['12'] },
+          { word: 'ACULCO', lineIds: ['8'], senses: [
+            { meaning: '"En el agua torcida"', etym: 'atl "agua" + coltic "torcido" + -co "lugar"', ref: 0 },
+          ] },
+          { word: 'COYOACAN', lineIds: ['3'], senses: [
+            { meaning: '"Lugar de coyotes"', etym: 'cóyotl "coyote" + -hua "posesivo" + -can "locativo"', ref: 1 },
+          ] },
+          { word: 'CULHUACAN', lineIds: ['12'], senses: [
+            { meaning: '"Cerro torcido"', etym: 'cóltic "cosa torcida, curva" (de colihui "torcerse") + -can "lugar"', ref: 2 },
+            { meaning: '"Lugar de los que veneran a Coltzin"', etym: 'Coltzin "Coltzin, Dios Torcido"; -hua "posesivo" y -can "locativo"', ref: 3 },
+          ] },
+          { word: 'MIXCOAC', lineIds: ['7', '12'], senses: [
+            { meaning: '"Lugar de la serpiente de nubes"', etym: 'mixtli "nube" + coatl "serpiente" + -c "lugar"', ref: 4 },
+          ] },
+          { word: 'MIXIUHCA', lineIds: ['9'], senses: [
+            { meaning: '"Lugar del parto"', etym: 'mixihui "parir, dar a luz" + -can "lugar"', ref: 5 },
+          ] },
+          { word: 'PANTITLAN', lineIds: ['1', '5', '9', 'A'], senses: [
+            { meaning: '"Entre las banderas"', etym: 'pantli "bandera" + -tlan "lugar de, entre"', ref: 6 },
+          ] },
+          { word: 'POPOTLA', lineIds: ['2'], senses: [
+            { meaning: '"Donde abundan los popotes"', etym: 'popotl "popote (planta para escobas)" + -tlan "lugar de"', ref: 7 },
+          ] },
+          { word: 'TACUBA', lineIds: ['2', '7'], senses: [
+            { meaning: 'Del náhuatl Tlacopan, "sobre las varas"', etym: 'tlacotl "vara" + -pan "sobre, en"', ref: 8 },
+          ] },
+          { word: 'TLATELOLCO', lineIds: ['3'], senses: [
+            { meaning: '"En el montículo de tierra"', etym: 'tlatelli "montículo de tierra" + -co "lugar"', ref: 9 },
+          ] },
+          { word: 'ZAPOTITLAN', lineIds: ['12'], senses: [
+            { meaning: '"Donde abundan los zapotes"', etym: 'tzapotl "zapote" + -titlan "entre, junto a"', ref: 10 },
+          ] },
         ];
         // Spanish-ish fill alphabet (no Ñ, no rare K/W).
         var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
@@ -491,18 +604,16 @@
           });
           els.pistasGroup.hidden = els.clues.children.length === 0;
           els.respuestasGroup.hidden = els.answers.children.length === 0;
+          renderRefs();
         }
 
         function buildClueItem(i, found) {
           var entry = state.words[i];
           var li = document.createElement('li');
           li.className = 'clue' + (found ? ' clue--answer' : '');
-          var text = document.createElement('span');
-          text.className = 'clue__text';
-          text.textContent = entry.clue;
           if (found) {
-            // Respuestas: a first line of all the station's lines + its
-            // name, then the meaning on its own line.
+            // Respuestas: the station's lines + name, then each sense
+            // (meaning + its [n] citation) with a muted etymology line.
             var head = document.createElement('div');
             head.className = 'clue__answer-head';
             head.appendChild(buildLineBadges(entry.lineIds));
@@ -511,13 +622,72 @@
             w.textContent = entry.word;
             head.appendChild(w);
             li.appendChild(head);
-            li.appendChild(text);
+            entry.senses.forEach(function (sense) {
+              var row = document.createElement('div');
+              row.className = 'clue__sense';
+              var mt = document.createElement('span');
+              mt.className = 'clue__text';
+              mt.textContent = sense.meaning;
+              row.appendChild(mt);
+              if (typeof sense.ref === 'number') row.appendChild(buildRefMarker(sense.ref));
+              li.appendChild(row);
+              if (sense.etym) {
+                var ety = document.createElement('div');
+                ety.className = 'clue__etym';
+                ety.textContent = sense.etym;
+                li.appendChild(ety);
+              }
+            });
           } else {
-            // Pistas: one seeded line badge, then the meaning, one line.
+            // Pistas: one seeded line badge, then the meaning(s) joined -
+            // no citation/etymology here, so an unfound word isn't revealed.
             li.appendChild(buildLineBadges([entry.lineId]));
+            var text = document.createElement('span');
+            text.className = 'clue__text';
+            text.textContent = entry.senses.map(function (s) { return s.meaning; }).join(' o ');
             li.appendChild(text);
           }
           return li;
+        }
+
+        // Inline "[n]" citation linking to its Referencias entry below.
+        function buildRefMarker(n) {
+          var a = document.createElement('a');
+          a.className = 'clue__ref';
+          a.href = '#ref-' + n;
+          a.textContent = '[' + n + ']';
+          a.setAttribute('aria-label', 'Referencia ' + n);
+          return a;
+        }
+
+        // The Referencias list at the page bottom. Lists only the sources of
+        // already-solved stations, so it never hands out an unfound word (a
+        // reference URL carries the station name). Numbered to match [n].
+        function renderRefs() {
+          var shown = {};
+          state.foundOrder.forEach(function (i) {
+            state.words[i].senses.forEach(function (s) {
+              if (typeof s.ref === 'number') shown[s.ref] = true;
+            });
+          });
+          els.refsList.innerHTML = '';
+          REFERENCES.forEach(function (ref, n) {
+            if (!shown[n]) return;
+            var li = document.createElement('li');
+            li.id = 'ref-' + n;
+            var num = document.createElement('span');
+            num.className = 'ref__num';
+            num.textContent = '[' + n + ']';
+            var a = document.createElement('a');
+            a.href = ref.url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = ref.label;
+            li.appendChild(num);
+            li.appendChild(a);
+            els.refsList.appendChild(li);
+          });
+          els.refsGroup.hidden = els.refsList.children.length === 0;
         }
 
         // One or more line roundels in an inline wrapper, leading a clue.
@@ -772,7 +942,7 @@
           var words = built.words.map(function (w) {
             return {
               word: w.word,
-              clue: w.clue,
+              senses: w.senses,
               lineIds: w.lineIds,
               lineId: w.lineIds[Math.floor(lineRand() * w.lineIds.length)],
             };
@@ -806,10 +976,13 @@
             answers: $('answers'),
             pistasGroup: $('pistas-group'),
             respuestasGroup: $('respuestas-group'),
+            refsGroup: $('refs-group'),
+            refsList: $('refs-list'),
             progressCount: $('progress-count'),
             progressFill: $('progress-fill'),
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),
+            actions: document.querySelector('.actions'),
             sign: document.querySelector('.sign'),
             progressTrack: document.querySelector('.progress__track'),
             fx: $('celebration-fx'),
@@ -827,11 +1000,17 @@
           });
 
           // "Nueva sopa" discards today's saved progress and deals a fresh
-          // random board (itself not persisted - a prototyping replay).
-          els.restartBtn.addEventListener('click', function () {
-            try { localStorage.removeItem(storageKey); } catch (e) {}
-            newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2), null);
-          });
+          // random board (itself not persisted - a prototyping replay). It's
+          // a dev-only replay, so it's shown only under ?debug=true; everyone
+          // else just gets the one daily board.
+          if (MetroShared.isDebugMode()) {
+            els.restartBtn.addEventListener('click', function () {
+              try { localStorage.removeItem(storageKey); } catch (e) {}
+              newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2), null);
+            });
+          } else if (els.actions) {
+            els.actions.hidden = true;
+          }
 
           newGame('metrordle-sopa-' + dateKey, storageKey);
         }

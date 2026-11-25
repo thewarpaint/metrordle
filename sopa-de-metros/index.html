@@ -372,13 +372,10 @@
         var MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
           'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-        // Sopa de metros is a MONTHLY challenge, not a daily one: one curated
-        // board per month, keyed by 'YYYY-MM'. Each entry stores the fully
-        // materialized 12x12 letter grid (12 strings of 12 chars) - no seed,
-        // no runtime generator. The 10 WORD_POOL stations are located in the
-        // grid at load (locateWords) for the found-cell coloring. A month
-        // with no entry here has no challenge: the page shows a "sin reto"
-        // state until one is added. To add a month, drop in its grid below.
+        // Monthly challenge: one curated board per month, keyed 'YYYY-MM',
+        // stored as a materialized 12x12 letter grid (no seed/generator - the
+        // 10 stations are located in it at load). A month with no entry shows
+        // the "sin reto" state; add a month by dropping its grid in below.
         var MONTHLY_PUZZLES = {
           '2026-12': {
             grid: [
@@ -467,12 +464,10 @@
         function reverse(s) { return s.split('').reverse().join(''); }
 
         // --- Board lookup ------------------------------------------------
-        // The grid is a materialized monthly config (12 strings of 12 chars);
-        // locate each WORD_POOL station's cells in it (any of the 8
-        // directions, read forwards). Returns the cells per word in WORD_POOL
-        // order (so they line up with state.words/shades), or null if any
-        // word is missing - which flags a malformed config and sends the page
-        // to its "sin reto" state rather than rendering an unsolvable board.
+        // Locate each WORD_POOL station in the stored grid (8 directions,
+        // forwards), cells returned in WORD_POOL order (aligned with
+        // state.words/shades). null if any word is missing - a malformed
+        // config, which falls back to the "sin reto" state.
         function locateWords(grid) {
           var all = [];
           for (var i = 0; i < WORD_POOL.length; i++) {
@@ -898,12 +893,10 @@
         }
 
         // --- Persistence -------------------------------------------------
-        // One stored entry per month (key 'metrordle-sopa:<monthKey>'). The
-        // grid is a fixed materialized config, so only the found progress
-        // (and the leaderboard-submitted flag) is stored and re-applied over
-        // the rebuilt board on reload - which is also what locks a solved
-        // month: a returning solved player restores straight into the won
-        // state, with no way to replay outside debug mode.
+        // One entry per month ('metrordle-sopa:<monthKey>'): only the found
+        // progress + the submitted flag (the grid is fixed). Restoring it is
+        // also the solve-once lock - a solved month reloads straight into the
+        // won state, no replay outside debug.
         function saveProgress() {
           if (!state.persistKey) return;
           try {
@@ -932,13 +925,11 @@
         }
 
         // --- Leaderboard -------------------------------------------------
-        // Records that this player solved the month's challenge: a single
-        // { alias, submittedAt } doc per alias per month, server-stamped.
-        // The monthly leaderboard (a follow-up) ranks these ascending, so the
-        // earliest solver tops it. No-ops without a site-wide alias (set in
-        // /configurar) or under a ?debug dry-run; a persisted flag keeps a
-        // reload from resubmitting. Best-effort - a failed write just clears
-        // the flag so a later load can retry.
+        // Records a solve as one server-stamped { alias, submittedAt } doc
+        // per alias per month (the leaderboard ranks these ascending). No-op
+        // without a site-wide alias or under a ?debug dry-run; the persisted
+        // flag stops a reload resubmitting, and a failed write clears it to
+        // retry later.
         function submitScore() {
           if (!state || !state.won || state.leaderboardSubmitted) return;
           if (MetroShared.isDryRun && MetroShared.isDryRun()) return;
@@ -954,11 +945,10 @@
         }
 
         // --- Lifecycle ---------------------------------------------------
-        // Builds this month's board from its materialized grid. wordCells
-        // (located in the grid) drive the found-cell shades; the clue line
-        // badge is picked per station from a monthKey-seeded stream so it's
-        // stable for the month. Copies each WORD_POOL entry so the shared
-        // objects aren't mutated.
+        // Builds the month's board from its grid: located cells drive the
+        // shades, and each station's clue line badge is picked from a
+        // monthKey-seeded stream (stable for the month). Copies WORD_POOL
+        // entries so the shared objects aren't mutated.
         function newGame(grid, monthKey, persistKey) {
           var wordCells = locateWords(grid);
           var shades = colorWords(wordCells);
@@ -1053,9 +1043,9 @@
             onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
           });
 
-          // "Nueva sopa" replays this month's board (clears its saved
-          // progress) - a dev-only override of the solve-once lock, shown
-          // only under ?debug=true; everyone else gets the one monthly board.
+          // "Nueva sopa" replays this month's board (clears its progress) -
+          // a dev-only override of the solve-once lock, shown only under
+          // ?debug=true.
           if (MetroShared.isDebugMode()) {
             els.restartBtn.addEventListener('click', function () {
               try { localStorage.removeItem(storageKey); } catch (e) {}

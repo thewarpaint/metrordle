@@ -971,10 +971,8 @@
             });
         }
 
-        // The alias row only matters once you've solved (that's when there's
-        // something to submit): show the input only to a solved player who
-        // has no site-wide alias yet; otherwise their own highlighted row in
-        // the list identifies them.
+        // The claim-your-spot input shows only to a solved player with no
+        // alias yet (otherwise their own highlighted row identifies them).
         function renderAliasRow() {
           if (state.won && !MetroShared.getAlias()) showAliasInput();
           else hideAliasRow();
@@ -1018,10 +1016,9 @@
           return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
         }
 
-        // The monthly standings: the earliest solvers first (ascending by the
-        // server-stamped submittedAt), each row showing the date they solved.
-        // A request-id guard keeps a slow earlier response from painting over
-        // a newer one (e.g. the refresh submitScore() fires on success).
+        // Monthly standings: earliest solvers first (ascending submittedAt),
+        // each row rank + alias + solve date. The request-id guard stops a
+        // slow fetch painting over the post-submit refresh.
         var leaderboardRequestId = 0;
         function renderLeaderboard() {
           if (!state) return;

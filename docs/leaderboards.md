@@ -159,9 +159,11 @@ solve via `submitLeaderboardScore(..., monthKey, alias, {}, {})` (empty
 `fields`, so the shared helper's `{alias, submittedAt}` is the whole doc),
 no-op without a site-wide alias or under a `?debug` dry-run, guarded by the
 persisted `leaderboardSubmitted` flag. As always, the rule is a **manual
-Firebase-console deploy that must land before/with the code**. The on-page
-ranked-list rendering (and an inline alias-entry row) is a follow-up - this
-stage records solves but doesn't display standings yet.
+Firebase-console deploy that must land before/with the code**. The page
+renders the standings in a "Primeros en resolver" block
+(`renderLeaderboard()` with `orderBySpecs [['submittedAt','asc']]`), each row
+showing rank + alias + the solve **date** (no score column); an inline
+alias-entry row shows only to a solved player with no alias yet.
 
 ## High score records
 

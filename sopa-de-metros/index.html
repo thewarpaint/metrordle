@@ -275,6 +275,22 @@
         vertical-align: middle;
       }
 
+      /* The shared .leaderboard has no horizontal padding (other pages wrap
+         it in a padded container); match the clue groups' 1.1rem here. */
+      .leaderboard {
+        padding: 0.3rem 1.1rem 0;
+      }
+
+      /* The solve date cell at the end of each row (this board ranks by when
+         you solved, not a score). */
+      .leaderboard__date {
+        flex: none;
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
       .actions {
         padding: 0.6rem 1.1rem 1rem;
       }
@@ -342,6 +358,13 @@
           <ol class="clues" id="answers"></ol>
         </div>
 
+        <div class="leaderboard" id="leaderboard">
+          <h2 class="leaderboard__title">Primeros en resolver</h2>
+          <div class="leaderboard__alias" id="leaderboard-alias-row" hidden></div>
+          <ol class="leaderboard__list" id="leaderboard-list"></ol>
+          <p class="leaderboard__status" id="leaderboard-status" hidden></p>
+        </div>
+
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
         </div>
@@ -369,6 +392,7 @@
         var WORD_COUNT = 10;
         var SHADES = 4; // green shades cycled so touching found words differ
         var LEADERBOARD_COLLECTION = 'sopa-de-metros-leaderboard';
+        var LEADERBOARD_SIZE = 5;
         var MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
           'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -888,6 +912,8 @@
             showWinBanner();
             celebrate();
             submitScore();
+            renderAliasRow();
+            renderLeaderboard();
           }
           saveProgress();
         }
@@ -938,9 +964,94 @@
           state.leaderboardSubmitted = true;
           saveProgress();
           MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.monthKey, alias, {}, {})
+            .then(function () { renderLeaderboard(); })
             .catch(function () {
               state.leaderboardSubmitted = false;
               saveProgress();
+            });
+        }
+
+        // The claim-your-spot input shows only to a solved player with no
+        // alias yet (otherwise their own highlighted row identifies them).
+        function renderAliasRow() {
+          if (state.won && !MetroShared.getAlias()) showAliasInput();
+          else hideAliasRow();
+        }
+
+        function hideAliasRow() {
+          els.leaderboardAliasRow.hidden = true;
+          els.leaderboardAliasRow.innerHTML = '';
+        }
+
+        function showAliasInput() {
+          var el = els.leaderboardAliasRow;
+          el.innerHTML = '';
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 20;
+          input.placeholder = 'Tu alias';
+          input.setAttribute('aria-label', 'Tu alias para la tabla de posiciones');
+          var saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.className = 'btn-primary';
+          saveBtn.textContent = 'Guardar';
+          function save() {
+            if (!MetroShared.setAlias(input.value)) return;
+            hideAliasRow();
+            submitScore();
+          }
+          saveBtn.addEventListener('click', save);
+          input.addEventListener('keydown', function (e) { if (e.key === 'Enter') save(); });
+          el.appendChild(input);
+          el.appendChild(saveBtn);
+          el.hidden = false;
+        }
+
+        // 'YYYY-MM' challenge is a single month, so the day + short month is
+        // enough; the exact ms still breaks ties in the ascending ranking.
+        function formatSolveDate(ms) {
+          if (!ms) return '';
+          var d = new Date(ms);
+          if (isNaN(d.getTime())) return '';
+          return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+        }
+
+        // Monthly standings: earliest solvers first (ascending submittedAt),
+        // each row rank + alias + solve date. The request-id guard stops a
+        // slow fetch painting over the post-submit refresh.
+        var leaderboardRequestId = 0;
+        function renderLeaderboard() {
+          if (!state) return;
+          var monthKey = state.monthKey;
+          var requestId = ++leaderboardRequestId;
+          var myAliasId = MetroShared.aliasDocId(MetroShared.getAlias());
+          MetroShared.getTopLeaderboardScores(LEADERBOARD_COLLECTION, monthKey, LEADERBOARD_SIZE, [['submittedAt', 'asc']], { myAliasId: myAliasId })
+            .then(function (entries) {
+              if (!state || state.monthKey !== monthKey || requestId !== leaderboardRequestId) return;
+              els.leaderboardList.innerHTML = '';
+              if (entries.length === 0) {
+                els.leaderboardStatus.textContent = 'Todavía nadie ha resuelto el reto. ¡Sé el primero!';
+                els.leaderboardStatus.hidden = false;
+                return;
+              }
+              els.leaderboardStatus.hidden = true;
+              entries.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'leaderboard__row' + (entry.id === myAliasId ? ' leaderboard__row--you' : '');
+                var rank = document.createElement('span');
+                rank.className = 'leaderboard__rank';
+                rank.textContent = '#' + MetroShared.formatRank(entry, index);
+                var name = document.createElement('span');
+                name.className = 'leaderboard__alias-name';
+                name.textContent = entry.alias;
+                var date = document.createElement('span');
+                date.className = 'leaderboard__date';
+                date.textContent = formatSolveDate(entry.submittedAt);
+                li.appendChild(rank);
+                li.appendChild(name);
+                li.appendChild(date);
+                els.leaderboardList.appendChild(li);
+              });
             });
         }
 
@@ -985,12 +1096,14 @@
           // A restored, already-solved board resubmits in case the earlier
           // attempt never reached Firestore (submitScore no-ops if it did).
           if (state.won) { showWinBanner(); submitScore(); }
+          renderAliasRow();
+          renderLeaderboard();
         }
 
         // No challenge for the active month (no config, or a malformed one):
         // hide the interactive parts and show a "come back next month" notice.
         function showUnavailable() {
-          [els.board, els.progress, els.pistasGroup, els.respuestasGroup, els.refsGroup, els.actions]
+          [els.board, els.progress, els.pistasGroup, els.respuestasGroup, els.leaderboard, els.refsGroup, els.actions]
             .forEach(function (el) { if (el) el.hidden = true; });
           MetroShared.renderNoticeBanner(
             els.winNotice, 'notice--info',
@@ -1009,6 +1122,10 @@
             respuestasGroup: $('respuestas-group'),
             refsGroup: $('refs-group'),
             refsList: $('refs-list'),
+            leaderboard: $('leaderboard'),
+            leaderboardAliasRow: $('leaderboard-alias-row'),
+            leaderboardList: $('leaderboard-list'),
+            leaderboardStatus: $('leaderboard-status'),
             progressCount: $('progress-count'),
             progressFill: $('progress-fill'),
             winNotice: $('win-notice'),

@@ -52,9 +52,9 @@ async function main() {
   }
 
   test("a month with a config renders a solvable board titled for that month", async () => {
-    const { context, page, errors } = await open('/sopa-de-metros/?date=2026-11-15');
+    const { context, page, errors } = await open('/sopa-de-metros/?date=2026-12-15');
     try {
-      assert.strictEqual(await page.locator('#game-title').textContent(), 'Sopa de metros: noviembre');
+      assert.strictEqual(await page.locator('#game-title').textContent(), 'Sopa de metros: diciembre');
       assert.strictEqual(await page.locator('.cell').count(), 144, 'a 12x12 grid');
       assert.strictEqual(await page.locator('#clues .clue').count(), 10, 'all 10 clues in Pistas');
       assert.strictEqual(await page.locator('.board').evaluate((el) => el.hidden), false, 'board visible');
@@ -74,7 +74,7 @@ async function main() {
     const page = await context.newPage();
     await page.route('**/www.gstatic.com/**', (r) => r.abort());
     try {
-      await page.goto(server.baseUrl + '/sopa-de-metros/?date=2026-11-15', { waitUntil: 'domcontentloaded' });
+      await page.goto(server.baseUrl + '/sopa-de-metros/?date=2026-12-15', { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(300);
       await page.evaluate(solveBoard);
       await page.waitForTimeout(150);
@@ -110,11 +110,11 @@ async function main() {
   });
 
   test("the Nueva sopa replay button is debug-only", async () => {
-    let r = await open('/sopa-de-metros/?date=2026-11-15');
+    let r = await open('/sopa-de-metros/?date=2026-12-15');
     try {
       assert.strictEqual(await r.page.locator('.actions').evaluate((el) => el.hidden), true, 'hidden in normal play');
     } finally { await r.context.close(); }
-    r = await open('/sopa-de-metros/?date=2026-11-15&debug=true');
+    r = await open('/sopa-de-metros/?date=2026-12-15&debug=true');
     try {
       assert.strictEqual(await r.page.locator('.actions').evaluate((el) => el.hidden), false, 'shown under ?debug=true');
       assert.strictEqual(await r.page.locator('#restart-btn').isVisible(), true);

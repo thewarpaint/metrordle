@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <!--
       Same defense-in-depth CSP as every other page (see clasificador's
-      own comment). This prototype loads no Firebase, but keeping the
-      shared policy avoids a per-page exception to maintain.
+      own comment). Loads the vendored Firebase SDK (same-origin, so covered
+      by 'self') for the monthly leaderboard; the connect-src googleapis
+      entries let Firestore reach its backend at runtime.
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://www.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -314,7 +315,7 @@
 
       <div class="sign">
         <div class="sign__head">
-          <h1>Sopa de metros: diciembre</h1>
+          <h1 id="game-title">Sopa de metros</h1>
           <p class="sign__sub">Topónimos del náhuatl</p>
           <p class="dek">Encuentra 10 estaciones del Metro en la cuadrícula. Para cada estación la pista es el significado de un topónimo de origen náhuatl y la línea en la que se encuentra.</p>
           <p class="dek">Toca una letra y continúa tocando casillas adyacentes en la misma dirección para seleccionar una palabra. Están ocultas en sentido horizontal, vertical o diagonal. Una letra puede ser compartida por más de una palabra.</p>
@@ -356,6 +357,9 @@
       <p class="credit"></p>
     </div>
 
+    <script src="/vendor/firebase/firebase-app-compat.js"></script>
+    <script src="/vendor/firebase/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
     <script src="/shared.js"></script>
     <script>
       (function () {
@@ -364,6 +368,36 @@
         var GRID = 12;
         var WORD_COUNT = 10;
         var SHADES = 4; // green shades cycled so touching found words differ
+        var LEADERBOARD_COLLECTION = 'sopa-de-metros-leaderboard';
+        var MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+          'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+        // Sopa de metros is a MONTHLY challenge, not a daily one: one curated
+        // board per month, keyed by 'YYYY-MM'. Each entry stores the fully
+        // materialized 12x12 letter grid (12 strings of 12 chars) - no seed,
+        // no runtime generator. The 10 WORD_POOL stations are located in the
+        // grid at load (locateWords) for the found-cell coloring. A month
+        // with no entry here has no challenge: the page shows a "sin reto"
+        // state until one is added. To add a month, drop in its grid below.
+        var MONTHLY_PUZZLES = {
+          '2026-11': {
+            grid: [
+              'NHDRDEJMABJN',
+              'ANQETLAIAONA',
+              'LQRHFLLXACAC',
+              'TXDCTGAIMLLA',
+              'IULOSSBUIOTO',
+              'TVPIOAUHXLIY',
+              'OOCMCVCCCETO',
+              'PUVUSIAAOTNC',
+              'ALLPVFTHAAAF',
+              'ZCALFARACLPP',
+              'OONBZSMQYTIT',
+              'MDPNACAUHLUC',
+            ],
+          },
+        };
+
         // Authoritative source for each toponym's meaning, cited as "[n]"
         // on the solved answer and linked from the Referencias list at the
         // page bottom. The index IS the [n] citation number.
@@ -385,7 +419,7 @@
         // one grid cell). The player sees only the meaning (the "pista")
         // until the word is found; the solved answer also shows an
         // etymology breakdown and a [n] citation into REFERENCES. All 10 are
-        // drawn per board, so the shuffle only varies where they fall.
+        // hidden in every monthly grid (locateWords finds each one).
         // - senses: one or more meanings for the toponym (Culhuacán has two
         //   attested readings), each with its etymology and source ref.
         // - lineIds: the station's MetroShared.LINES ids, shown as badges.
@@ -422,8 +456,6 @@
             { meaning: '"Donde abundan los zapotes"', etym: 'tzapotl "zapote" + -titlan "entre, junto a"', ref: 10 },
           ] },
         ];
-        // Spanish-ish fill alphabet (no Ñ, no rare K/W).
-        var FILL = 'ABCDEFGHIJLMNOPQRSTUVXYZ';
         var DIRS = [[0, 1], [1, 0], [1, 1], [1, -1], [0, -1], [-1, 0], [-1, -1], [-1, 1]];
 
         var state = null;
@@ -434,84 +466,38 @@
         function keyOf(r, c) { return r + ',' + c; }
         function reverse(s) { return s.split('').reverse().join(''); }
 
-        function shuffle(arr, rand) {
-          for (var i = arr.length - 1; i > 0; i--) {
-            var j = Math.floor(rand() * (i + 1));
-            var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
-          }
-          return arr;
-        }
-
-        // --- Board generation --------------------------------------------
-        // Deterministic from a salt. A given salt's placement can fail (a
-        // word that won't fit the partial board), so retry with a bumped
-        // counter until one works - still a pure function of the salt.
-        function buildBoard(salt) {
-          for (var attempt = 0; attempt < 80; attempt++) {
-            var rand = MetroShared.createSeededRandom(salt + '-' + attempt);
-            var built = tryBuild(rand);
-            if (built) return built;
-          }
-          return null;
-        }
-
-        function tryBuild(rand) {
-          var words = shuffle(WORD_POOL.slice(), rand).slice(0, WORD_COUNT);
-          var grid = [];
-          for (var r = 0; r < GRID; r++) {
-            grid.push([]);
-            for (var c = 0; c < GRID; c++) grid[r].push(null);
-          }
-          var wordCells = [];
-          for (var i = 0; i < words.length; i++) {
-            var cells = placeWord(grid, words[i].word, rand);
+        // --- Board lookup ------------------------------------------------
+        // The grid is a materialized monthly config (12 strings of 12 chars);
+        // locate each WORD_POOL station's cells in it (any of the 8
+        // directions, read forwards). Returns the cells per word in WORD_POOL
+        // order (so they line up with state.words/shades), or null if any
+        // word is missing - which flags a malformed config and sends the page
+        // to its "sin reto" state rather than rendering an unsolvable board.
+        function locateWords(grid) {
+          var all = [];
+          for (var i = 0; i < WORD_POOL.length; i++) {
+            var cells = findWord(grid, WORD_POOL[i].word);
             if (!cells) return null;
-            wordCells.push(cells);
+            all.push(cells);
           }
-          for (var r2 = 0; r2 < GRID; r2++) {
-            for (var c2 = 0; c2 < GRID; c2++) {
-              if (grid[r2][c2] === null) grid[r2][c2] = FILL.charAt(Math.floor(rand() * FILL.length));
-            }
-          }
-          return { grid: grid, words: words, shades: colorWords(wordCells) };
+          return all;
         }
 
-        // Sample candidate placements and take the one that reuses the
-        // fewest already-filled cells (short-circuiting on a crossing-free
-        // spot), so words overlap as little as possible - fewer shared
-        // cells means fewer touching words and clearer shades.
-        function placeWord(grid, word, rand) {
-          var len = word.length;
-          var best = null, bestOverlap = Infinity;
-          for (var t = 0; t < 300; t++) {
-            var dir = DIRS[Math.floor(rand() * DIRS.length)];
-            var dr = dir[0], dc = dir[1];
-            var r0 = Math.floor(rand() * GRID), c0 = Math.floor(rand() * GRID);
-            var rEnd = r0 + dr * (len - 1), cEnd = c0 + dc * (len - 1);
-            if (rEnd < 0 || rEnd >= GRID || cEnd < 0 || cEnd >= GRID) continue;
-            var fits = true, overlap = 0;
-            for (var k = 0; k < len; k++) {
-              var cur = grid[r0 + dr * k][c0 + dc * k];
-              if (cur !== null) {
-                if (cur !== word.charAt(k)) { fits = false; break; }
-                overlap++;
+        function findWord(grid, word) {
+          for (var r = 0; r < GRID; r++) {
+            for (var c = 0; c < GRID; c++) {
+              for (var d = 0; d < DIRS.length; d++) {
+                var dr = DIRS[d][0], dc = DIRS[d][1], ok = true, cells = [];
+                for (var k = 0; k < word.length; k++) {
+                  var rr = r + dr * k, cc = c + dc * k;
+                  if (rr < 0 || rr >= GRID || cc < 0 || cc >= GRID || grid[rr].charAt(cc) !== word.charAt(k)) { ok = false; break; }
+                  cells.push([rr, cc]);
+                }
+                if (ok) return cells;
               }
             }
-            if (!fits) continue;
-            if (overlap < bestOverlap) {
-              best = { r0: r0, c0: c0, dr: dr, dc: dc };
-              bestOverlap = overlap;
-              if (overlap === 0) break; // can't do better than no crossing
-            }
           }
-          if (!best) return null;
-          var placed = [];
-          for (var k2 = 0; k2 < len; k2++) {
-            var r = best.r0 + best.dr * k2, c = best.c0 + best.dc * k2;
-            grid[r][c] = word.charAt(k2);
-            placed.push([r, c]);
-          }
-          return placed;
+          return null;
         }
 
         // Proper shade coloring computed once at build time (not per solve)
@@ -800,9 +786,15 @@
           MetroShared.renderNoticeBanner(
             els.winNotice, 'notice--success',
             '¡Las encontraste todas!',
-            'Completaste las 10 estaciones de nombre náhuatl.'
+            'Completaste el reto de ' + monthName(state.monthKey) + '. Vuelve el próximo mes para uno nuevo.'
           );
           els.winNotice.hidden = false;
+        }
+
+        // 'YYYY-MM' -> Spanish month name (falls back to the raw key).
+        function monthName(monthKey) {
+          var m = parseInt((monthKey || '').slice(5, 7), 10);
+          return (m >= 1 && m <= 12) ? MONTH_NAMES[m - 1] : monthKey;
         }
 
         // --- Win celebration -------------------------------------------
@@ -900,15 +892,18 @@
             state.won = true;
             showWinBanner();
             celebrate();
+            submitScore();
           }
           saveProgress();
         }
 
         // --- Persistence -------------------------------------------------
-        // Only today's deterministic board persists (its key is the day's
-        // own dateKey); the random "Nueva sopa" board never does. The board
-        // itself is a pure function of the salt, so only the found progress
-        // is stored and re-applied over a freshly rebuilt board on reload.
+        // One stored entry per month (key 'metrordle-sopa:<monthKey>'). The
+        // grid is a fixed materialized config, so only the found progress
+        // (and the leaderboard-submitted flag) is stored and re-applied over
+        // the rebuilt board on reload - which is also what locks a solved
+        // month: a returning solved player restores straight into the won
+        // state, with no way to replay outside debug mode.
         function saveProgress() {
           if (!state.persistKey) return;
           try {
@@ -917,6 +912,7 @@
               foundOrder: state.foundOrder,
               foundCells: state.foundCells,
               won: state.won,
+              leaderboardSubmitted: state.leaderboardSubmitted,
             }));
           } catch (e) {}
         }
@@ -925,23 +921,49 @@
           var saved = null;
           try { saved = JSON.parse(localStorage.getItem(key)); } catch (e) {}
           // Ignore anything that doesn't match this board's word count (a
-          // stale/corrupt entry just starts the day fresh).
+          // stale/corrupt entry just starts the month fresh).
           if (!saved || !Array.isArray(saved.found) ||
               saved.found.length !== state.words.length) return;
           state.found = saved.found;
           state.foundOrder = Array.isArray(saved.foundOrder) ? saved.foundOrder : [];
           state.foundCells = saved.foundCells && typeof saved.foundCells === 'object' ? saved.foundCells : {};
           state.won = !!saved.won;
+          state.leaderboardSubmitted = !!saved.leaderboardSubmitted;
+        }
+
+        // --- Leaderboard -------------------------------------------------
+        // Records that this player solved the month's challenge: a single
+        // { alias, submittedAt } doc per alias per month, server-stamped.
+        // The monthly leaderboard (a follow-up) ranks these ascending, so the
+        // earliest solver tops it. No-ops without a site-wide alias (set in
+        // /configurar) or under a ?debug dry-run; a persisted flag keeps a
+        // reload from resubmitting. Best-effort - a failed write just clears
+        // the flag so a later load can retry.
+        function submitScore() {
+          if (!state || !state.won || state.leaderboardSubmitted) return;
+          if (MetroShared.isDryRun && MetroShared.isDryRun()) return;
+          var alias = MetroShared.getAlias();
+          if (!alias) return;
+          state.leaderboardSubmitted = true;
+          saveProgress();
+          MetroShared.submitLeaderboardScore(LEADERBOARD_COLLECTION, state.monthKey, alias, {}, {})
+            .catch(function () {
+              state.leaderboardSubmitted = false;
+              saveProgress();
+            });
         }
 
         // --- Lifecycle ---------------------------------------------------
-        function newGame(salt, persistKey) {
-          var built = buildBoard(salt);
-          // One line per station for the clue badge - seeded off the salt
-          // (separate stream, so buildBoard's RNG is untouched), stable per
-          // board. Copy each word so WORD_POOL's shared entries aren't mutated.
-          var lineRand = MetroShared.createSeededRandom(salt + '-lines');
-          var words = built.words.map(function (w) {
+        // Builds this month's board from its materialized grid. wordCells
+        // (located in the grid) drive the found-cell shades; the clue line
+        // badge is picked per station from a monthKey-seeded stream so it's
+        // stable for the month. Copies each WORD_POOL entry so the shared
+        // objects aren't mutated.
+        function newGame(grid, monthKey, persistKey) {
+          var wordCells = locateWords(grid);
+          var shades = colorWords(wordCells);
+          var lineRand = MetroShared.createSeededRandom(monthKey + '-sopa-lines');
+          var words = WORD_POOL.map(function (w) {
             return {
               word: w.word,
               senses: w.senses,
@@ -950,15 +972,17 @@
             };
           });
           state = {
-            grid: built.grid,
+            grid: grid,
+            monthKey: monthKey,
             words: words,
-            shades: built.shades,
+            shades: shades,
             found: words.map(function () { return false; }),
             foundOrder: [],
             foundCells: {},
             selection: [],
             selDir: null,
             won: false,
+            leaderboardSubmitted: false,
             persistKey: persistKey || null,
           };
           if (persistKey) restoreProgress(persistKey);
@@ -968,7 +992,22 @@
           paintCells();
           renderClues();
           renderProgress();
-          if (state.won) showWinBanner();
+          // A restored, already-solved board resubmits in case the earlier
+          // attempt never reached Firestore (submitScore no-ops if it did).
+          if (state.won) { showWinBanner(); submitScore(); }
+        }
+
+        // No challenge for the active month (no config, or a malformed one):
+        // hide the interactive parts and show a "come back next month" notice.
+        function showUnavailable() {
+          [els.board, els.progress, els.pistasGroup, els.respuestasGroup, els.refsGroup, els.actions]
+            .forEach(function (el) { if (el) el.hidden = true; });
+          MetroShared.renderNoticeBanner(
+            els.winNotice, 'notice--info',
+            'Sin reto este mes',
+            'El reto de Sopa de metros vuelve pronto. ¡Nos vemos el próximo mes!'
+          );
+          els.winNotice.hidden = false;
         }
 
         function init() {
@@ -985,15 +1024,28 @@
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),
             actions: document.querySelector('.actions'),
+            board: document.querySelector('.board'),
+            progress: document.querySelector('.progress'),
+            title: $('game-title'),
             sign: document.querySelector('.sign'),
             progressTrack: document.querySelector('.progress__track'),
             fx: $('celebration-fx'),
           };
 
-          // Today's board is the same for everyone, same convention as
-          // every other game's single-seed-per-day; its progress persists.
+          // Monthly challenge: the puzzle is keyed by calendar month, the
+          // same for everyone, and its progress persists for that month.
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
-          var storageKey = 'metrordle-sopa:' + dateKey;
+          var monthKey = dateKey.slice(0, 7); // 'YYYY-MM'
+          els.title.textContent = 'Sopa de metros: ' + monthName(monthKey);
+
+          var puzzle = MONTHLY_PUZZLES[monthKey];
+          // No config (or a grid missing a word) -> nothing to play this month.
+          if (!puzzle || !locateWords(puzzle.grid)) {
+            showUnavailable();
+            return;
+          }
+
+          var storageKey = 'metrordle-sopa:' + monthKey;
 
           els.grid.addEventListener('click', function (e) {
             var cell = e.target.closest('.cell');
@@ -1001,20 +1053,19 @@
             onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
           });
 
-          // "Nueva sopa" discards today's saved progress and deals a fresh
-          // random board (itself not persisted - a prototyping replay). It's
-          // a dev-only replay, so it's shown only under ?debug=true; everyone
-          // else just gets the one daily board.
+          // "Nueva sopa" replays this month's board (clears its saved
+          // progress) - a dev-only override of the solve-once lock, shown
+          // only under ?debug=true; everyone else gets the one monthly board.
           if (MetroShared.isDebugMode()) {
             els.restartBtn.addEventListener('click', function () {
               try { localStorage.removeItem(storageKey); } catch (e) {}
-              newGame('metrordle-sopa-rnd-' + Math.random().toString(36).slice(2), null);
+              newGame(puzzle.grid, monthKey, storageKey);
             });
           } else if (els.actions) {
             els.actions.hidden = true;
           }
 
-          newGame('metrordle-sopa-' + dateKey, storageKey);
+          newGame(puzzle.grid, monthKey, storageKey);
         }
 
         init();

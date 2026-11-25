@@ -96,6 +96,14 @@
   `docs/leaderboards.md`). On a live solve `submitScore()` writes the entry
   via `MetroShared.submitLeaderboardScore(..., monthKey, alias, {}, {})` -
   no-op without a site-wide alias (from `/configurar`) or under a `?debug`
-  dry-run, guarded by the persisted `leaderboardSubmitted` flag. The on-page
-  **ranked list rendering (and an inline alias-entry row) is a follow-up** -
-  this stage records solves but doesn't yet display the standings.
+  dry-run, guarded by the persisted `leaderboardSubmitted` flag. The page
+  renders the standings in a **"Primeros en resolver"** block (shared
+  `.leaderboard` markup, below the clue lists): `renderLeaderboard()` fetches
+  the earliest `LEADERBOARD_SIZE` solvers
+  (`getTopLeaderboardScores(..., [['submittedAt','asc']])`, the player's own
+  row pinned in via `myAliasId`) and shows each as rank + alias + the solve
+  **date** (`formatSolveDate`, day + short month) - no score column. An
+  inline **alias-entry row** (`renderAliasRow()`) appears only to a *solved*
+  player with no site-wide alias, so they can claim their spot; a request-id
+  guard keeps a slow fetch from painting over the refresh `submitScore()`
+  fires on a successful write.

@@ -101,6 +101,7 @@ async function main() {
       assert.strictEqual(await page.locator('.board').evaluate((el) => el.hidden), true, 'board hidden');
       assert.strictEqual(await page.locator('.progress').evaluate((el) => el.hidden), true, 'progress hidden');
       assert.strictEqual(await page.locator('#pistas-group').evaluate((el) => el.hidden), true, 'pistas hidden');
+      assert.strictEqual(await page.locator('#leaderboard').evaluate((el) => el.hidden), true, 'leaderboard hidden');
       assert.strictEqual(await page.locator('#win-notice').evaluate((el) => el.hidden), false, 'notice shown');
       assert.ok((await page.locator('#win-notice').textContent()).indexOf('Sin reto este mes') !== -1, 'sin-reto copy');
       assert.strictEqual(errors.length, 0, 'no page errors: ' + errors.join('; '));
@@ -119,6 +120,25 @@ async function main() {
       assert.strictEqual(await r.page.locator('.actions').evaluate((el) => el.hidden), false, 'shown under ?debug=true');
       assert.strictEqual(await r.page.locator('#restart-btn').isVisible(), true);
     } finally { await r.context.close(); }
+  });
+
+  test("the leaderboard shows the empty state, then prompts for an alias after a solve", async () => {
+    const { context, page, errors } = await open('/sopa-de-metros/?date=2026-12-15');
+    try {
+      // Firebase is unreachable in the sandbox, so the standings read empty.
+      assert.strictEqual(await page.locator('#leaderboard').evaluate((el) => el.hidden), false, 'leaderboard visible');
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').evaluate((el) => el.hidden), true, 'no alias row before solving');
+      assert.strictEqual(await page.locator('#leaderboard-status').evaluate((el) => el.hidden), false, 'empty-state status shown');
+      assert.ok((await page.locator('#leaderboard-status').textContent()).indexOf('Sé el primero') !== -1, 'empty-state copy');
+      await page.evaluate(solveBoard);
+      await page.waitForTimeout(150);
+      // No site-wide alias in a fresh context -> the claim-your-spot input appears.
+      assert.strictEqual(await page.locator('#leaderboard-alias-row').evaluate((el) => el.hidden), false, 'alias row shown after solving');
+      assert.strictEqual(await page.locator('#leaderboard-alias-row input').count(), 1, 'alias input present');
+      assert.strictEqual(errors.length, 0, 'no page errors: ' + errors.join('; '));
+    } finally {
+      await context.close();
+    }
   });
 
   const failed = await runAll();

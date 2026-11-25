@@ -301,6 +301,30 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // sopa-de-metros-leaderboard/{monthKey}/entries/{aliasId} - the odd one
+    // out: Sopa de metros is a MONTHLY challenge, so the middle path segment
+    // is a calendar month ('YYYY-MM'), not a dateKey. There's no score - the
+    // leaderboard only calls out WHEN each player solved the month's board and
+    // ranks ascending by that time, so the earliest solver tops it. The doc is
+    // just { alias, submittedAt }, and submittedAt == request.time stamps it
+    // server-side so that ascending order is trustworthy. CREATE-ONLY (no
+    // update/delete): a player's first solve time is locked in and can never
+    // be pushed later by a resubmit (same alias collisions still share one
+    // doc, like the other collections). Deploy this rule before/with the code.
+    match /sopa-de-metros-leaderboard/{monthKey}/entries/{aliasId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasOnly(['alias', 'submittedAt']) &&
+        request.resource.data.alias is string &&
+        request.resource.data.alias.size() > 0 &&
+        request.resource.data.alias.size() <= 20 &&
+        request.resource.data.submittedAt == request.time &&
+        aliasId == request.resource.data.alias.lower();
+
+      allow update, delete: if false;
+    }
+
     // records/{gameKey} - one document per game tracking its own
     // highest score ever (MetroShared.updateHighScoreRecord() in
     // shared.js), for Memoria, Metro Crush, and Clasificador: the games

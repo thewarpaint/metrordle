@@ -4,7 +4,9 @@ Each game has its own daily Firestore leaderboard:
 `{collection}/{dateKey}/entries/{aliasDocId}`, collections
 `metrordle-leaderboard` / `laberinto-leaderboard` / `memoria-leaderboard` /
 `metroguessr-leaderboard` / `metrocrush-leaderboard` /
-`clasificador-leaderboard` / `copo-de-nieve-leaderboard`.
+`clasificador-leaderboard` / `copo-de-nieve-leaderboard`. **Sopa de metros
+is the exception - a monthly challenge, see "Sopa de metros (monthly)"
+below.**
 Alias is a free-text nickname (site-wide `metrordle:alias` localStorage
 key, shared across all games), changeable from `/configurar/` (see
 "Site config" below) - but still no way to carry old entries forward
@@ -140,6 +142,26 @@ rejected. As always, **this rule is a manual deploy that must land before
 (or with) the code** - until it does, a hard-mode submission carrying the
 new keys fails `hasOnly` against the old rule and is rejected
 (`permission-denied`).
+
+## Sopa de metros (monthly)
+
+Sopa de metros (`docs/games/sopa-de-metros.md`) breaks the daily pattern: it
+is a **monthly** challenge, so its collection is keyed by calendar month -
+`sopa-de-metros-leaderboard/{monthKey}/entries/{aliasId}`, `monthKey` =
+`'YYYY-MM'`, not a `dateKey`. It has **no score**: the leaderboard calls out
+only **when** each player solved the month's board and ranks **ascending by
+`submittedAt`** (server-stamped, `== request.time`), so the earliest solver
+tops it. The doc is just `{ alias, submittedAt }`. Its `firestore.rules`
+block is **create-only** (no update/delete), so a player's first solve time
+is locked in and can never be pushed later by a resubmit - the one leaderboard
+collection that doesn't allow `update`. `submitScore()` writes it on a live
+solve via `submitLeaderboardScore(..., monthKey, alias, {}, {})` (empty
+`fields`, so the shared helper's `{alias, submittedAt}` is the whole doc),
+no-op without a site-wide alias or under a `?debug` dry-run, guarded by the
+persisted `leaderboardSubmitted` flag. As always, the rule is a **manual
+Firebase-console deploy that must land before/with the code**. The on-page
+ranked-list rendering (and an inline alias-entry row) is a follow-up - this
+stage records solves but doesn't display standings yet.
 
 ## High score records
 

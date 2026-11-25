@@ -25,6 +25,7 @@ const FILES = [
   'metrocrush/selection.test.js',
   'clasificador/fast.test.js',
   'clasificador/leaderboard.test.js',
+  'sopa-de-metros/monthly.test.js',
   'tablero/tablero.test.js',
   'configurar/config.test.js',
   'design/design.test.js',

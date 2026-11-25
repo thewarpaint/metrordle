@@ -1,64 +1,101 @@
-# Sopa de metros (`/sopa-de-metros/`, prototype)
+# Sopa de metros (`/sopa-de-metros/`, monthly)
 
-- **`/sopa-de-metros/`** - **prototype**, early word-search (sopa de
-  letras - the folder's a pun on it). Not
-  linked from any nav, `noindex`, no Firebase/leaderboard
-  yet, but precached now (`sw.js`'s own `PRECACHE_URLS`, both the
-  directory and its `index.html`, same as the real games) - so a change
-  to it needs a `CACHE_NAME` bump, which
-  `tests/meta/sw-cache-version.test.js` enforces off that list - a
-  standalone playable board, same scaffolding as the real games
+- **`/sopa-de-metros/`** - a **monthly** word-search challenge (sopa de
+  letras - the folder's a pun on it). Not yet linked from any nav and
+  `noindex`, but precached (`sw.js`'s own `PRECACHE_URLS`, both the
+  directory and its `index.html`, same as the real games), so a change to
+  it needs a `CACHE_NAME` bump that `tests/meta/sw-cache-version.test.js`
+  enforces off that list. Same scaffolding as the real games
   (shared.css/shared.js, the pre-paint theme snippet, `.sign`/`.btn-*`,
-  `.notice--success` win banner). A 12×12 grid hides 10 Metro-themed
-  Spanish words (uppercase, accent-free so each maps to one cell; 10
-  `{word, clue}` pairs drawn from a ~20-pair pool), placed in any of the
-  8 directions (forward or reversed), the rest filled with random
-  letters - deterministic per day via `createSeededRandom('metrordle-
-  sopa-' + dateKey)`, retried with a bumped counter if a word won't fit
-  (still a pure function of the day). `placeWord()` samples candidate
-  spots and takes the one reusing the fewest already-filled cells
-  (short-circuiting on a crossing-free spot), so words overlap as little
-  as possible - fewer shared cells, fewer touching words. The player sees only the clues (a
-  numbered `.clues` list, an `<ol>`), never the words; each clue is led
-  by `.line-bar__badge--sm` roundel(s) (shared.css, colored from
-  `MetroShared.LINES`, wrapped in `.clue__lines`). A Pistas clue shows a
-  single line - one of the station's own `lineIds`, picked by a per-board
-  seeded stream (`salt + '-lines'`, separate from the board-building RNG,
-  so it's stable per day and fresh on "Nueva sopa") when a station has
-  several - followed by the toponym's meaning, not "estación de la Línea
-  N" text; a solved station in Respuestas shows **all** of its lines
-  (`entry.lineIds`), since the answer's no longer a secret. The clues sit
-  in two numbered, headed lists (`buildClueItem()`/`renderClues()`):
-  "Pistas" (unfound clues, original order) and "Respuestas" (solved
-  stations, in solve order via `state.foundOrder`), each group hidden
-  while its list is empty. Finding a word moves it to Respuestas, shown as
-  the revealed word (plain `--ink`, no longer green) in front of its own
-  clue - no strike-through. Tap a cell to anchor; an 8-neighbour tap
-  locks a direction and extends; each further tap must be the next cell
-  in that direction. A run whose letters spell a target word (either
-  orientation) locks it green - found words cycle 4 green shades
-  (`.cell--g0..g3`), colored once at board-build time (`colorWords()`,
+  shared `.notice--*` banners) and now the vendored Firebase SDK +
+  `firebase-config.js` for its leaderboard.
+
+## Monthly cadence & materialized config
+
+  Unlike the daily games, Sopa de metros runs **one curated board per
+  calendar month**. There is **no runtime board generator and no seed**:
+  each month's puzzle is a fully **materialized 12×12 letter grid** (12
+  strings of 12 chars) stored in the page's `MONTHLY_PUZZLES` map, keyed by
+  `'YYYY-MM'`. The active month is `getDateKey(getEffectiveToday())`'s
+  `YYYY-MM` prefix (so `?date=` still previews other months), and the `<h1>`
+  title derives from it (`Sopa de metros: <mes>`). **To add a month, drop
+  its grid into `MONTHLY_PUZZLES`** - that map is the sole source of truth
+  for which months have a challenge.
+  - A month **with no entry** (or whose grid is missing a word) renders the
+    **"sin reto" state**: the board, progress, clue lists and actions are
+    hidden and a `.notice--info` says the challenge returns next month.
+  - The 10 `WORD_POOL` stations are **located in the stored grid at load**
+    (`locateWords()`/`findWord()` scan the 8 directions), returning each
+    word's cells in `WORD_POOL` order - this drives the found-cell shade
+    coloring (below) and, if any word isn't present, flags the config as
+    malformed and falls back to the "sin reto" state rather than rendering
+    an unsolvable board. The `.line-bar__badge--sm` roundel a Pistas clue
+    leads with (one of a station's `lineIds`) is picked from a
+    `monthKey + '-sopa-lines'` seeded stream, stable for the month.
+
+## Solve-once lock
+
+  Found progress persists per month to `'metrordle-sopa:' + monthKey`
+  (found state + a `leaderboardSubmitted` flag; the grid is a fixed config,
+  rebuilt and re-overlaid on reload). This is also the **no-replay lock**: a
+  player who already solved a month restores straight into the won state
+  (win banner shown, board inert via `onCellTap`'s `state.won` guard) with
+  no way to start over. The **"Nueva sopa"** button is a **debug-only**
+  (`?debug=true`) override that clears the month's progress and replays the
+  **same** board - hidden entirely in normal play.
+
+## Clues, meanings & references
+
+  The player sees only the clues (a numbered `.clues` list), never the
+  words; each clue is led by `.line-bar__badge--sm` roundel(s) (colored from
+  `MetroShared.LINES`, wrapped in `.clue__lines`). Each station carries one
+  or more **senses** (`{meaning, etym, ref}`); a Pistas clue shows the
+  meaning(s) joined with "o" (Culhuacán has **two** attested readings -
+  "cerro torcido" / "lugar de los que veneran a Coltzin"), on a flex row so
+  a wrapped clue stays in its text column. Clues sit in two numbered, headed
+  lists (`buildClueItem()`/`renderClues()`): "Pistas" (unfound, original
+  order) and "Respuestas" (solved, in `state.foundOrder` order), each group
+  hidden while empty. A **solved** station in Respuestas shows **all** its
+  lines, the revealed word, each sense's meaning with a `[n]` **citation
+  marker**, and a muted **etymology** breakdown line. A "Referencias" list at
+  the page bottom (`renderRefs()`) links the full authoritative source per
+  `[n]` (mostly the Gran Diccionario Náhuatl, IIB-UNAM). Citations, etymology
+  and the Referencias list are rendered **only for solved stations**, so a
+  reference URL (which carries the station name) never reveals an unfound
+  word.
+
+## Interaction, coloring & celebration
+
+  Tap a cell to anchor; an 8-neighbour tap locks a direction and extends;
+  each further tap must be the next cell in that direction. A run spelling a
+  target word (either orientation) locks it green - found words cycle 4
+  green shades (`.cell--g0..g3`), colored once at load (`colorWords()`,
   Welsh-Powell over the word-adjacency graph - two words adjacent when any
-  cells are within Chebyshev 1, shared cells included) rather than at
-  solve time, so no two touching or crossing words ever share a shade
-  regardless of the order they're found (4 shades always suffice for these
-  boards), which is what lets you tell contiguous words apart; a
-  tap that breaks the line starts a fresh attempt at that cell, and
-  re-tapping the live selection cancels it. Progress is a rounded
-  "X / 10 palabras" bar (shared.css's own `.progress`) under the intro,
-  its small label sitting below the bar; the win banner (`.notice--success`)
-  sits just above that bar. Completing the board fires a one-shot
-  celebration (`celebrate()`): a burst of 💀 erupts from the progress bar
-  and rains over the card, drawn as emoji particles on a page-local
-  `.celebration-fx` canvas that covers the `.sign` (pointer-events none).
-  It fires only on a live solve (from `markFound`), never on a same-day
-  reload of an already-won board, and honors
-  `MetroShared.prefersReducedMotion()` (fewer, calmer skulls). Page-local
-  for now; a candidate to promote to a shared `MetroShared` helper once a
-  second game wants one. Today's board persists its found progress to
-  `'metrordle-sopa:' + dateKey` (only the found state - the board itself
-  is a pure function of the salt, rebuilt and re-overlaid on reload), so a
-  refresh keeps your progress; "Nueva sopa" removes that key and deals a
-  fresh random board (itself never persisted). No
-  committed test yet (it's a prototype) - validated via a scratchpad
-  Playwright solve.
+  cells are within Chebyshev 1, shared cells included) so no two touching or
+  crossing words share a shade regardless of solve order, which is what lets
+  you tell contiguous words apart. A tap breaking the line starts a fresh
+  attempt; re-tapping the live selection cancels it. Progress is a rounded
+  "X / 10 palabras" bar; the win banner (`.notice--success`) sits above it.
+  Completing the board fires a one-shot celebration (`celebrate()`): a burst
+  of festive glyphs (🎄 🎁 ⛄ ❄️ ⭐ 🔔, a random one per particle, 100
+  particles) erupts from the progress bar over a page-local `.celebration-fx`
+  canvas. It fires only on a live solve (from `markFound`), never on a reload
+  of an already-won board, and honors `MetroShared.prefersReducedMotion()`.
+
+## Leaderboard (data model)
+
+  Sopa's leaderboard is deliberately unlike the others: it has **no score**,
+  only **when** you solved the month's challenge, ranked ascending so the
+  earliest solver tops it. Collection
+  `sopa-de-metros-leaderboard/{monthKey}/entries/{aliasId}` (monthKey, not a
+  dateKey), doc `{ alias, submittedAt }`, `submittedAt == request.time`
+  (server-stamped). The `firestore.rules` block is **create-only** (no
+  update/delete), so a player's first solve time is locked in and can't be
+  pushed later by a resubmit - **a manual Firebase-console deploy that must
+  land before/with the code**, like every rules change (see
+  `docs/leaderboards.md`). On a live solve `submitScore()` writes the entry
+  via `MetroShared.submitLeaderboardScore(..., monthKey, alias, {}, {})` -
+  no-op without a site-wide alias (from `/configurar`) or under a `?debug`
+  dry-run, guarded by the persisted `leaderboardSubmitted` flag. The on-page
+  **ranked list rendering (and an inline alias-entry row) is a follow-up** -
+  this stage records solves but doesn't yet display the standings.

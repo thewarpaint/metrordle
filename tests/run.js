@@ -30,6 +30,7 @@ const FILES = [
   'configurar/config.test.js',
   'design/design.test.js',
   'status/status.test.js',
+  'shared/suggestions.test.js',
   'shared/leaderboard-query.test.js',
   'shared/high-score-record.test.js',
   'shared/transfer.test.js',

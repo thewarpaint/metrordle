@@ -1,8 +1,11 @@
 # Sopa de metros (`/sopa-de-metros/`, monthly)
 
 - **`/sopa-de-metros/`** - a **monthly** word-search challenge (sopa de
-  letras - the folder's a pun on it). Not yet linked from any nav and
-  `noindex`, but precached (`sw.js`'s own `PRECACHE_URLS`, both the
+  letras - the folder's a pun on it). Linked from the `/juegos/` index (its
+  `GAMES` entry has `display.index: true` but `display.suggestions: false`,
+  so it's listed there but stays out of the end-screen suggestions - see
+  `docs/systems.md`) but still `noindex`, and precached
+  (`sw.js`'s own `PRECACHE_URLS`, both the
   directory and its `index.html`, same as the real games), so a change to
   it needs a `CACHE_NAME` bump that `tests/meta/sw-cache-version.test.js`
   enforces off that list. Same scaffolding as the real games
@@ -23,8 +26,9 @@
   for which months have a challenge.
   - A month **with no entry** (or whose grid is missing a word) renders the
     **"sin reto" state**: the board, progress, clue lists, actions, subtitle
-    and intro paragraphs are hidden and a `.notice--info` says the challenge
-    returns next month. **Under `?debug=true` the game is always shown** - an
+    and intro paragraphs are hidden and a `.notice--info` ("Reto no
+    disponible") says the challenge isn't ready yet. **Under `?debug=true`
+    the game is always shown** - an
     unconfigured active month falls back to the newest configured month
     (`latestConfiguredMonth()`) so the board can still be exercised.
   - The 10 `WORD_POOL` stations are **located in the stored grid at load**

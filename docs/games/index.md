@@ -14,7 +14,7 @@ Player-facing games first, then the internal/utility pages.
 | Metro Crush | `/metrocrush/` | shipped (no committed tests) | [metrocrush.md](metrocrush.md) |
 | Clasificador | `/clasificador/` | shipped | [clasificador.md](clasificador.md) |
 | Copo de nieve | `/copo-de-nieve/` | graduated prototype (noindex, unlinked) | [copo-de-nieve.md](copo-de-nieve.md) |
-| Sopa de metros | `/sopa-de-metros/` | prototype (noindex, unlinked) | [sopa-de-metros.md](sopa-de-metros.md) |
+| Sopa de metros | `/sopa-de-metros/` | monthly (noindex, listed on `/juegos/`) | [sopa-de-metros.md](sopa-de-metros.md) |
 
 ## Utility & internal pages
 

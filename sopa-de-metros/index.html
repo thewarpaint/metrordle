@@ -206,17 +206,12 @@
          Rendered only on solved answers, so it never reveals an unfound
          word (the reference URL carries the station name). */
       .clue__ref {
-        color: var(--focus);
+        color: var(--ink);
         font-size: 0.72rem;
         font-weight: 700;
-        text-decoration: none;
+        text-decoration: underline;
         margin-left: 0.2rem;
         white-space: nowrap;
-      }
-
-      .clue__ref:hover,
-      .clue__ref:focus-visible {
-        text-decoration: underline;
       }
 
       /* Morphological breakdown under a solved meaning (authoritative
@@ -255,7 +250,7 @@
       }
 
       .refs-list a {
-        color: var(--focus);
+        color: var(--ink);
         word-break: break-word;
       }
 
@@ -360,6 +355,7 @@
 
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
+          <button type="button" class="btn-secondary" id="solve-btn">Completar reto</button>
         </div>
 
         <div class="clue-group" id="refs-group" hidden>
@@ -911,6 +907,34 @@
           saveProgress();
         }
 
+        // Debug-only: force a win (all words found + celebration) to check the
+        // completed state without playing; replays just the animation if won.
+        function solveAll() {
+          if (!state) return;
+          if (state.won) { celebrate(); return; }
+          state.words.forEach(function (entry, i) {
+            if (state.found[i]) return;
+            state.found[i] = true;
+            state.foundOrder.push(i);
+            state.wordCells[i].forEach(function (cell) {
+              var k = keyOf(cell[0], cell[1]);
+              if (!(k in state.foundCells)) state.foundCells[k] = state.shades[i];
+            });
+          });
+          state.selection = [];
+          state.selDir = null;
+          state.won = true;
+          paintCells();
+          renderClues();
+          renderProgress();
+          showWinBanner();
+          celebrate();
+          submitScore();
+          renderAliasRow();
+          renderLeaderboard();
+          saveProgress();
+        }
+
         // --- Persistence -------------------------------------------------
         // One entry per month ('metrordle-sopa:<monthKey>'): only the found
         // progress + the submitted flag (the grid is fixed). Restoring it is
@@ -1070,6 +1094,7 @@
             monthKey: monthKey,
             words: words,
             shades: shades,
+            wordCells: wordCells, // per-word cells, for the debug solve-all
             found: words.map(function () { return false; }),
             foundOrder: [],
             foundCells: {},
@@ -1130,6 +1155,7 @@
             progressFill: $('progress-fill'),
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),
+            solveBtn: $('solve-btn'),
             actions: document.querySelector('.actions'),
             board: document.querySelector('.board'),
             progress: document.querySelector('.progress'),
@@ -1169,14 +1195,15 @@
             onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
           });
 
-          // "Nueva sopa" replays this month's board (clears its progress) -
-          // a dev-only override of the solve-once lock, shown only under
-          // ?debug=true.
+          // Debug-only (.actions is hidden otherwise): "Nueva sopa" replays the
+          // month (clearing progress, overriding the solve-once lock);
+          // "Completar reto" solves it instantly to check the win state.
           if (MetroShared.isDebugMode()) {
             els.restartBtn.addEventListener('click', function () {
               try { localStorage.removeItem(storageKey); } catch (e) {}
               newGame(puzzle.grid, monthKey, storageKey);
             });
+            els.solveBtn.addEventListener('click', solveAll);
           } else if (els.actions) {
             els.actions.hidden = true;
           }

@@ -126,6 +126,21 @@ async function main() {
     }
   });
 
+  test("the debug 'Completar reto' button solves the board instantly", async () => {
+    const { context, page, errors } = await open('/sopa-de-metros/?date=2026-12-15&debug=true');
+    try {
+      assert.strictEqual(await page.locator('#solve-btn').isVisible(), true, 'solve button shown in debug');
+      await page.locator('#solve-btn').click();
+      await page.waitForTimeout(200);
+      assert.strictEqual(await page.locator('#progress-count').textContent(), '10 / 10', 'all solved');
+      assert.strictEqual(await page.locator('#win-notice').evaluate((el) => el.hidden), false, 'win banner shown');
+      assert.ok((await page.locator('.cell--found').count()) > 0, 'found cells colored');
+      assert.strictEqual(errors.length, 0, 'no page errors: ' + errors.join('; '));
+    } finally {
+      await context.close();
+    }
+  });
+
   test("the Nueva sopa replay button is debug-only", async () => {
     let r = await open('/sopa-de-metros/?date=2026-12-15');
     try {

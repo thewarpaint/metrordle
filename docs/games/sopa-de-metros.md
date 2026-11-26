@@ -43,9 +43,12 @@
   rebuilt and re-overlaid on reload). This is also the **no-replay lock**: a
   player who already solved a month restores straight into the won state
   (win banner shown, board inert via `onCellTap`'s `state.won` guard) with
-  no way to start over. The **"Nueva sopa"** button is a **debug-only**
-  (`?debug=true`) override that clears the month's progress and replays the
-  **same** board - hidden entirely in normal play.
+  no way to start over. Two **debug-only** (`?debug=true`)
+  buttons sit in the `.actions` row, hidden entirely in normal play:
+  **"Nueva sopa"** clears the month's progress and replays the same board
+  (overriding the lock), and **"Completar reto"** (`solveAll()`) marks every
+  word found and runs the win flow (banner + celebration) so the completed
+  state and animation can be checked without playing.
 
 ## Clues, meanings & references
 

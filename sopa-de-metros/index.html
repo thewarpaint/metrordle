@@ -360,6 +360,7 @@
 
         <div class="actions">
           <button type="button" class="btn-secondary" id="restart-btn">Nueva sopa</button>
+          <button type="button" class="btn-secondary" id="solve-btn">Completar reto</button>
         </div>
 
         <div class="clue-group" id="refs-group" hidden>
@@ -911,6 +912,35 @@
           saveProgress();
         }
 
+        // Debug-only: mark every word found and run the win flow (banner +
+        // celebration), so the completed state and animation can be checked
+        // without playing. Replays just the animation if already solved.
+        function solveAll() {
+          if (!state) return;
+          if (state.won) { celebrate(); return; }
+          state.words.forEach(function (entry, i) {
+            if (state.found[i]) return;
+            state.found[i] = true;
+            state.foundOrder.push(i);
+            state.wordCells[i].forEach(function (cell) {
+              var k = keyOf(cell[0], cell[1]);
+              if (!(k in state.foundCells)) state.foundCells[k] = state.shades[i];
+            });
+          });
+          state.selection = [];
+          state.selDir = null;
+          state.won = true;
+          paintCells();
+          renderClues();
+          renderProgress();
+          showWinBanner();
+          celebrate();
+          submitScore();
+          renderAliasRow();
+          renderLeaderboard();
+          saveProgress();
+        }
+
         // --- Persistence -------------------------------------------------
         // One entry per month ('metrordle-sopa:<monthKey>'): only the found
         // progress + the submitted flag (the grid is fixed). Restoring it is
@@ -1070,6 +1100,7 @@
             monthKey: monthKey,
             words: words,
             shades: shades,
+            wordCells: wordCells, // per-word cells, for the debug solve-all
             found: words.map(function () { return false; }),
             foundOrder: [],
             foundCells: {},
@@ -1130,6 +1161,7 @@
             progressFill: $('progress-fill'),
             winNotice: $('win-notice'),
             restartBtn: $('restart-btn'),
+            solveBtn: $('solve-btn'),
             actions: document.querySelector('.actions'),
             board: document.querySelector('.board'),
             progress: document.querySelector('.progress'),
@@ -1169,14 +1201,16 @@
             onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
           });
 
-          // "Nueva sopa" replays this month's board (clears its progress) -
-          // a dev-only override of the solve-once lock, shown only under
-          // ?debug=true.
+          // Dev-only tools (the whole .actions row is shown only under
+          // ?debug=true): "Nueva sopa" replays this month's board (clearing
+          // its progress, overriding the solve-once lock), "Completar reto"
+          // solves it instantly to check the win state + animation.
           if (MetroShared.isDebugMode()) {
             els.restartBtn.addEventListener('click', function () {
               try { localStorage.removeItem(storageKey); } catch (e) {}
               newGame(puzzle.grid, monthKey, storageKey);
             });
+            els.solveBtn.addEventListener('click', solveAll);
           } else if (els.actions) {
             els.actions.hidden = true;
           }

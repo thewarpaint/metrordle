@@ -1098,8 +1098,7 @@
         function showUnavailable() {
           [els.board, els.progress, els.pistasGroup, els.respuestasGroup, els.leaderboard, els.refsGroup, els.actions]
             .forEach(function (el) { if (el) el.hidden = true; });
-          // Also drop the subtitle and the gameplay instructions - there's no
-          // board to describe in this state.
+          // No board to describe here - drop the subtitle and intro too.
           els.intro.forEach(function (el) { el.hidden = true; });
           MetroShared.renderNoticeBanner(
             els.winNotice, 'notice--info',
@@ -1147,9 +1146,8 @@
           var monthKey = dateKey.slice(0, 7); // 'YYYY-MM'
           var puzzle = MONTHLY_PUZZLES[monthKey];
 
-          // Debug always shows a playable board: if the active month has no
-          // config, fall back to the newest configured month so the game can
-          // still be exercised.
+          // Debug always shows a board: an unconfigured month falls back to
+          // the newest configured one so the game stays exercisable.
           if ((!puzzle || !locateWords(puzzle.grid)) && MetroShared.isDebugMode()) {
             var fallback = latestConfiguredMonth();
             if (fallback) { monthKey = fallback; puzzle = MONTHLY_PUZZLES[monthKey]; }

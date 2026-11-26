@@ -41,13 +41,6 @@
     </script>
 
     <style>
-      /* The full-bleed grid runs to the card edge, so .sign's own heavy
-         3px frame around it read as odd - drop the border here (the card
-         still reads via its shadow, radius and raised background). */
-      .sign {
-        border: none;
-      }
-
       .sign__head {
         padding: 1.1rem 1.1rem 0.4rem;
       }
@@ -1105,12 +1098,20 @@
         function showUnavailable() {
           [els.board, els.progress, els.pistasGroup, els.respuestasGroup, els.leaderboard, els.refsGroup, els.actions]
             .forEach(function (el) { if (el) el.hidden = true; });
+          // Also drop the subtitle and the gameplay instructions - there's no
+          // board to describe in this state.
+          els.intro.forEach(function (el) { el.hidden = true; });
           MetroShared.renderNoticeBanner(
             els.winNotice, 'notice--info',
             'Sin reto este mes',
             'El reto de Sopa de metros vuelve pronto. ¡Nos vemos el próximo mes!'
           );
           els.winNotice.hidden = false;
+        }
+
+        // Newest 'YYYY-MM' key with a config ('YYYY-MM' sorts chronologically).
+        function latestConfiguredMonth() {
+          return Object.keys(MONTHLY_PUZZLES).sort().pop();
         }
 
         function init() {
@@ -1133,6 +1134,7 @@
             actions: document.querySelector('.actions'),
             board: document.querySelector('.board'),
             progress: document.querySelector('.progress'),
+            intro: document.querySelectorAll('.sign__sub, .dek'),
             title: $('game-title'),
             sign: document.querySelector('.sign'),
             progressTrack: document.querySelector('.progress__track'),
@@ -1143,9 +1145,18 @@
           // same for everyone, and its progress persists for that month.
           var dateKey = MetroShared.getDateKey(MetroShared.getEffectiveToday());
           var monthKey = dateKey.slice(0, 7); // 'YYYY-MM'
+          var puzzle = MONTHLY_PUZZLES[monthKey];
+
+          // Debug always shows a playable board: if the active month has no
+          // config, fall back to the newest configured month so the game can
+          // still be exercised.
+          if ((!puzzle || !locateWords(puzzle.grid)) && MetroShared.isDebugMode()) {
+            var fallback = latestConfiguredMonth();
+            if (fallback) { monthKey = fallback; puzzle = MONTHLY_PUZZLES[monthKey]; }
+          }
+
           els.title.textContent = 'Sopa de metros: ' + monthName(monthKey);
 
-          var puzzle = MONTHLY_PUZZLES[monthKey];
           // No config (or a grid missing a word) -> nothing to play this month.
           if (!puzzle || !locateWords(puzzle.grid)) {
             showUnavailable();

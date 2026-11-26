@@ -102,8 +102,24 @@ async function main() {
       assert.strictEqual(await page.locator('.progress').evaluate((el) => el.hidden), true, 'progress hidden');
       assert.strictEqual(await page.locator('#pistas-group').evaluate((el) => el.hidden), true, 'pistas hidden');
       assert.strictEqual(await page.locator('#leaderboard').evaluate((el) => el.hidden), true, 'leaderboard hidden');
+      assert.strictEqual(await page.locator('.sign__sub').evaluate((el) => el.hidden), true, 'subtitle hidden');
+      assert.strictEqual(await page.locator('.dek').first().evaluate((el) => el.hidden), true, 'intro hidden');
       assert.strictEqual(await page.locator('#win-notice').evaluate((el) => el.hidden), false, 'notice shown');
       assert.ok((await page.locator('#win-notice').textContent()).indexOf('Sin reto este mes') !== -1, 'sin-reto copy');
+      assert.strictEqual(errors.length, 0, 'no page errors: ' + errors.join('; '));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("debug mode always shows a board, falling back when the month has no config", async () => {
+    // 2099-01 has no config; under ?debug it falls back to the newest
+    // configured month (2026-12) so the game is always playable in debug.
+    const { context, page, errors } = await open('/sopa-de-metros/?date=2099-01-15&debug=true');
+    try {
+      assert.strictEqual(await page.locator('.board').evaluate((el) => el.hidden), false, 'board shown in debug');
+      assert.strictEqual(await page.locator('.cell').count(), 144, 'a full grid');
+      assert.strictEqual(await page.locator('#game-title').textContent(), 'Sopa de metros: diciembre', 'titled for the fallback month');
       assert.strictEqual(errors.length, 0, 'no page errors: ' + errors.join('; '));
     } finally {
       await context.close();

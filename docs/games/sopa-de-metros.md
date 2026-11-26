@@ -22,8 +22,11 @@
   its grid into `MONTHLY_PUZZLES`** - that map is the sole source of truth
   for which months have a challenge.
   - A month **with no entry** (or whose grid is missing a word) renders the
-    **"sin reto" state**: the board, progress, clue lists and actions are
-    hidden and a `.notice--info` says the challenge returns next month.
+    **"sin reto" state**: the board, progress, clue lists, actions, subtitle
+    and intro paragraphs are hidden and a `.notice--info` says the challenge
+    returns next month. **Under `?debug=true` the game is always shown** - an
+    unconfigured active month falls back to the newest configured month
+    (`latestConfiguredMonth()`) so the board can still be exercised.
   - The 10 `WORD_POOL` stations are **located in the stored grid at load**
     (`locateWords()`/`findWord()` scan the 8 directions), returning each
     word's cells in `WORD_POOL` order - this drives the found-cell shade

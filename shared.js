@@ -794,21 +794,25 @@ function getGameNumberForDateKey(dateKey, startDateKey) {
   return Math.round((target.getTime() - start.getTime()) / msPerDay) + 1;
 }
 
-// Fixed priority order for the "sigue jugando hoy" suggestions on every
-// game's own end screen - not the same order as AGENTS.md's "The games"
-// section, which is roughly chronological by ship date. Every game's
-// own localStorage key follows the same '<key>:' + dateKey shape (see
-// each page's own storageKeyFor()), which is what makes a single
-// shared isGamePlayedToday() possible below instead of one per game.
-var SUGGESTABLE_GAMES = [
-  { key: 'metrordle', href: '/', name: 'Metrordle', glyph: '🚇', sub: 'Ordena cinco estaciones de la misma línea →' },
-  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '🃏', sub: 'Haz parejas del nombre de la estación con su logo →' },
-  { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación en el mapa →' },
-  { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Navega la red para llegar a tu destino →' },
-  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Junta tres o más estaciones →' },
-  { key: 'clasificador', href: '/clasificador/', name: 'Clasificador', glyph: '🪣', sub: 'Mueve las estaciones a la línea correcta →' },
-  { key: 'copo-de-nieve', href: '/copo-de-nieve/', name: 'Copo de nieve', glyph: '❄️', sub: 'Encuentra la estación que no es como el resto →' },
+// The whole game family. Each entry's `display` map decides where it shows:
+// `suggestions` (eligible for a reveal's "sigue jugando hoy" rotation) and
+// `index` (listed on /juegos/) - independent, so Sopa de metros (monthly)
+// is on the index but out of the daily rotation. Every game's localStorage
+// key is '<key>:' + dateKey (each page's storageKeyFor()), which lets one
+// shared isGamePlayedToday() cover them all.
+var GAMES = [
+  { key: 'metrordle', href: '/', name: 'Metrordle', glyph: '🚇', sub: 'Ordena cinco estaciones de la misma línea →', display: { suggestions: true, index: true } },
+  { key: 'memoria', href: '/memoria/', name: 'Memoria', glyph: '🃏', sub: 'Haz parejas del nombre de la estación con su logo →', display: { suggestions: true, index: true } },
+  { key: 'metroguessr', href: '/metroguessr/', name: 'Metroguessr', glyph: '🗺️', sub: 'Adivina la estación en el mapa →', display: { suggestions: true, index: true } },
+  { key: 'laberinto', href: '/laberinto/', name: 'Laberinto', glyph: '🧭', sub: 'Navega la red para llegar a tu destino →', display: { suggestions: true, index: true } },
+  { key: 'metrocrush', href: '/metrocrush/', name: 'Metro Crush', glyph: '🍬', sub: 'Junta tres o más estaciones →', display: { suggestions: true, index: true } },
+  { key: 'clasificador', href: '/clasificador/', name: 'Clasificador', glyph: '🪣', sub: 'Mueve las estaciones a la línea correcta →', display: { suggestions: true, index: true } },
+  { key: 'copo-de-nieve', href: '/copo-de-nieve/', name: 'Copo de nieve', glyph: '❄️', sub: 'Encuentra la estación que no es como el resto →', display: { suggestions: true, index: true } },
+  { key: 'sopa-de-metros', href: '/sopa-de-metros/', name: 'Sopa de metros', glyph: '🔤', sub: 'Encuentra las estaciones ocultas en la cuadrícula →', display: { suggestions: false, index: true } },
 ];
+
+// The daily-suggestion pool: the games whose display.suggestions is on.
+var SUGGESTABLE_GAMES = GAMES.filter(function (g) { return g.display.suggestions; });
 
 // Whether `gameKey` already has a completed result for `dateKey`, read
 // straight from that game's own saved state - "completed" rather than
@@ -937,7 +941,7 @@ function buildGamePromo(currentGameKey, dateKey) {
 // with the ones already played today moved to the end and muted (still
 // enabled links). Returns a detached .game-promo__grid.
 function buildAllGamesGrid(dateKey) {
-  var sorted = SUGGESTABLE_GAMES.slice().sort(function (a, b) {
+  var sorted = GAMES.filter(function (g) { return g.display.index; }).sort(function (a, b) {
     return a.name.localeCompare(b.name, 'es');
   });
   var grid = document.createElement('div');

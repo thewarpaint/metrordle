@@ -105,7 +105,7 @@ async function main() {
       assert.strictEqual(await page.locator('.sign__sub').evaluate((el) => el.hidden), true, 'subtitle hidden');
       assert.strictEqual(await page.locator('.dek').first().evaluate((el) => el.hidden), true, 'intro hidden');
       assert.strictEqual(await page.locator('#win-notice').evaluate((el) => el.hidden), false, 'notice shown');
-      assert.ok((await page.locator('#win-notice').textContent()).indexOf('Sin reto este mes') !== -1, 'sin-reto copy');
+      assert.ok((await page.locator('#win-notice').textContent()).indexOf('Reto no disponible') !== -1, 'sin-reto copy');
       assert.strictEqual(errors.length, 0, 'no page errors: ' + errors.join('; '));
     } finally {
       await context.close();

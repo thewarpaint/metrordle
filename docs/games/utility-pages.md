@@ -2,16 +2,19 @@
 
 - **`/juegos/`** - a plain index page listing every game, built from the
   same `.game-promo` card design the end-screen "sigue jugando hoy" promo
-  uses. `MetroShared.buildAllGamesGrid(dateKey)` (shared.js) renders all of
-  `SUGGESTABLE_GAMES` as cards, sorted A-Z by name, with the games already
-  played **today** (`isGamePlayedToday`, real calendar day) moved to the
-  end and muted via `.game-promo__card--played` (shared.css: `opacity: 0.5`,
-  restored on hover - still enabled links). Shares the card markup with
-  `buildGamePromo` through a common `buildGameCard(game, muted)` helper.
-  Player-facing, so precached (`sw.js`'s `PRECACHE_URLS`, so a change needs
-  a `CACHE_NAME` bump); loads no Firebase. Lists all of
-  `SUGGESTABLE_GAMES` (seven now that Copo de nieve joined) - not the
-  `/sopa-de-metros/` prototype, the one game still outside that list.
+  uses. `MetroShared.buildAllGamesGrid(dateKey)` (shared.js) renders every
+  game with `display.index` in the `GAMES` catalog as cards, sorted A-Z by
+  name, with the games already played **today** (`isGamePlayedToday`, real
+  calendar day) moved to the end and muted via `.game-promo__card--played`
+  (shared.css: `opacity: 0.5`, restored on hover - still enabled links).
+  Shares the card markup with `buildGamePromo` through a common
+  `buildGameCard(game, muted)` helper. Player-facing, so precached (`sw.js`'s
+  `PRECACHE_URLS`, so a change needs a `CACHE_NAME` bump); loads no Firebase.
+  Lists the seven daily games plus `/sopa-de-metros/`, which has
+  `display.index: true` but `display.suggestions: false` so it gets a card
+  here yet stays out of the end-screen suggestions (it's a monthly challenge,
+  not a daily game). Sopa never mutes as "played today" - its monthly storage
+  key doesn't match the `'<key>:' + dateKey` shape `isGamePlayedToday` reads.
   Linked from each game page's footer: a `<p class="credit">` holding
   `<a href="/juegos/">Todos los juegos</a> · <a href="/tablero/">Tablero</a>`
   (an interpunct `·` between the two) on `/`, `/laberinto/`, `/memoria/`,

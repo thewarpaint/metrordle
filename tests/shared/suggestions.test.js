@@ -53,7 +53,7 @@ async function main() {
       });
       assert.deepStrictEqual(
         union,
-        ['clasificador', 'laberinto', 'memoria', 'metrocrush', 'metroguessr'],
+        ['clasificador', 'copo-de-nieve', 'laberinto', 'memoria', 'metrocrush', 'metroguessr'],
         'every non-current game should be surfaced across days (proves a real shuffle, not the fixed top-2)'
       );
     });
@@ -76,6 +76,31 @@ async function main() {
       assert.ok(!picks.includes('memoria'), 'a completed game must never be suggested');
       assert.ok(!picks.includes('laberinto'), 'a completed game must never be suggested');
       assert.ok(!picks.includes('metrordle'), 'never suggests the current game');
+    });
+  });
+
+  test('never suggests Sopa de metros - it is a monthly game, kept out of the daily rotation', async () => {
+    await withPage(async (page) => {
+      const seen = await page.evaluate(() => {
+        const games = ['metrordle', 'memoria', 'metroguessr', 'laberinto', 'metrocrush', 'clasificador', 'copo-de-nieve'];
+        const set = {};
+        for (let d = 0; d < 90; d++) {
+          games.forEach(g => MetroShared.getSuggestedGames(g, '2099-02-' + d).forEach(s => { set[s.key] = true; }));
+        }
+        return Object.keys(set);
+      });
+      assert.ok(!seen.includes('sopa-de-metros'), 'Sopa must never surface in the end-screen suggestions');
+    });
+  });
+
+  test('the /juegos grid lists every game including Sopa de metros', async () => {
+    await withPage(async (page) => {
+      const names = await page.evaluate(() => {
+        const grid = MetroShared.buildAllGamesGrid('2026-11-26');
+        return [...grid.querySelectorAll('.game-promo__name')].map(n => n.textContent);
+      });
+      ['Metrordle', 'Memoria', 'Metroguessr', 'Laberinto', 'Metro Crush', 'Clasificador', 'Copo de nieve', 'Sopa de metros']
+        .forEach(name => assert.ok(names.includes(name), 'the full index should list ' + name));
     });
   });
 

@@ -25,8 +25,9 @@ Fisher-Yates (`createSeededRandom('metrordle-suggest-' + dateKey + '-' +
 currentGameKey)`), not a fresh `Math.random()` - so the two picks vary
 day to day and per game (surfacing every game over time rather than the
 old fixed priority order) yet stay stable within a day, so a reload of
-the reveal doesn't reshuffle them. `SUGGESTABLE_GAMES`' own array order
-no longer matters for which games show, only its membership. "Completed" is
+the reveal doesn't reshuffle them. `SUGGESTABLE_GAMES` isn't a hand-kept
+list: it's derived from the single `GAMES` catalog (every game that has
+`display.suggestions`), so order doesn't matter, only membership. "Completed" is
 checked via that game's own `'<key>:' + dateKey` localStorage entry
 (every game's key matches its `storageKeyFor()` prefix, which is what
 makes one shared check possible instead of one per game):
@@ -43,11 +44,16 @@ every other game is already done today.
 
 The `/juegos/` index reuses the same card design through a shared
 `buildGameCard(game, muted)` helper (also what `buildGamePromo` builds its
-cards from). `MetroShared.buildAllGamesGrid(dateKey)` renders *all* of
-`SUGGESTABLE_GAMES` (not minus-current, not capped, not shuffled) sorted
+cards from). `MetroShared.buildAllGamesGrid(dateKey)` renders every game
+with `display.index` (not minus-current, not capped, not shuffled) sorted
 A-Z, with today's already-played games (`isGamePlayedToday`) moved to the
 end and muted (`.game-promo__card--played`) but still enabled - see the
-`/juegos/` bullet above.
+`/juegos/` bullet above. The two surfaces are driven by each game's
+`display` map in `GAMES`: `display.index` gates the `/juegos/` card and
+`display.suggestions` gates the daily rotation, so a game can show on one
+without the other - the monthly Sopa de metros (`index: true`,
+`suggestions: false`) gets a `/juegos/` card but never shows up in a
+reveal's "Sigue jugando hoy".
 
 ## Site config
 

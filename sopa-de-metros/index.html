@@ -206,17 +206,12 @@
          Rendered only on solved answers, so it never reveals an unfound
          word (the reference URL carries the station name). */
       .clue__ref {
-        color: var(--focus);
+        color: var(--ink);
         font-size: 0.72rem;
         font-weight: 700;
-        text-decoration: none;
+        text-decoration: underline;
         margin-left: 0.2rem;
         white-space: nowrap;
-      }
-
-      .clue__ref:hover,
-      .clue__ref:focus-visible {
-        text-decoration: underline;
       }
 
       /* Morphological breakdown under a solved meaning (authoritative
@@ -255,7 +250,7 @@
       }
 
       .refs-list a {
-        color: var(--focus);
+        color: var(--ink);
         word-break: break-word;
       }
 
@@ -912,9 +907,8 @@
           saveProgress();
         }
 
-        // Debug-only: mark every word found and run the win flow (banner +
-        // celebration), so the completed state and animation can be checked
-        // without playing. Replays just the animation if already solved.
+        // Debug-only: force a win (all words found + celebration) to check the
+        // completed state without playing; replays just the animation if won.
         function solveAll() {
           if (!state) return;
           if (state.won) { celebrate(); return; }
@@ -1201,10 +1195,9 @@
             onCellTap(Number(cell.dataset.r), Number(cell.dataset.c));
           });
 
-          // Dev-only tools (the whole .actions row is shown only under
-          // ?debug=true): "Nueva sopa" replays this month's board (clearing
-          // its progress, overriding the solve-once lock), "Completar reto"
-          // solves it instantly to check the win state + animation.
+          // Debug-only (.actions is hidden otherwise): "Nueva sopa" replays the
+          // month (clearing progress, overriding the solve-once lock);
+          // "Completar reto" solves it instantly to check the win state.
           if (MetroShared.isDebugMode()) {
             els.restartBtn.addEventListener('click', function () {
               try { localStorage.removeItem(storageKey); } catch (e) {}
